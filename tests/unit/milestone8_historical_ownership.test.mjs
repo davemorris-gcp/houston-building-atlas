@@ -30,7 +30,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
-test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CONFIDENTIAL_OWNER_TOKENS suppress all 3 surfaces", () => {
+test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CONFIDENTIAL_OWNER_TOKENS redact active tenure and preserve prior owners across all 3 surfaces", () => {
   const sampleOh =
     "2019-2026~20190415~R2019-149789~GARCIA ELENA & MARCOS|2005-2018~<=1988~~THOMPSON HAROLD E";
   const sampleDeeds = "20190415:R2019-149789:101:D";
@@ -71,12 +71,14 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
   assert.match(homesteadRk.html, /THOMPSON HAROLD E/);
   assert.match(homesteadRk.html, /Copy Prior Owner/);
 
-  // 2. Every canonical statutory TX Tax Code Sec. 25.025 confidential token suppresses all 3 surfaces
+  // 2. Every canonical statutory TX Tax Code Sec. 25.025 confidential token redacts the active confidential
+  //    tenure (GARCIA ELENA & MARCOS, 2019-2026) and its acquisition deed (RP-2019-149789) across all 3 surfaces
+  //    while preserving verified prior unrelated public owners (THOMPSON HAROLD E, 2005-2018)
   assert.equal(CONFIDENTIAL_OWNER_TOKENS.size, 7);
   for (const confTok of CONFIDENTIAL_OWNER_TOKENS) {
     assert.equal(isConfidentialOwnerName(confTok), true, `Expected confidential: ${confTok}`);
     assert.deepEqual(formatClerkPartyTokens(confTok), []);
-    assert.deepEqual(decodeCompactOwnerHistory(sampleOh, confTok), []);
+    assert.equal(decodeCompactOwnerHistory(sampleOh, confTok).length, 2);
 
     const confXray = decodeParcelOwnershipXray({
       featureProps: {
@@ -92,8 +94,11 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
       },
     });
     assert.equal(confXray.isConfidential, true);
-    assert.deepEqual(confXray.ownerHistoryTenures, []);
-    assert.deepEqual(confXray.priorOwners, []);
+    assert.equal(confXray.ownerHistoryTenures.length, 1);
+    assert.equal(confXray.ownerHistoryTenures[0].ownerName, "THOMPSON HAROLD E");
+    assert.equal(confXray.ownerHistoryTenures[0].spanLabel, "2005-2018");
+    assert.equal(confXray.priorOwners.length, 1);
+    assert.equal(confXray.priorOwners[0].ownerName, "THOMPSON HAROLD E");
     assert.equal(confXray.recordedTenureSince, "");
 
     const confRk = buildResearchKitDeedChainView(
@@ -102,11 +107,12 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
       { d: sampleDeeds, oh: sampleOh },
       confTok
     );
-    assert.equal(confRk.count, 0, `Expected 0 deeds in Step 3 for ${confTok}`);
-    assert.ok(!confRk.html.includes("GARCIA ELENA"), `Leaked owner in Step 3 for ${confTok}`);
-    assert.ok(!confRk.html.includes("THOMPSON HAROLD"), `Leaked prior owner in Step 3 for ${confTok}`);
-    assert.ok(!confRk.html.includes("owner-party"), `Leaked Grantee copy pill in Step 3 for ${confTok}`);
-    assert.ok(!confRk.html.includes("RP-2019-149789"), `Leaked Clerk File # in Step 3 for ${confTok}`);
+    assert.equal(confRk.count, 1, `Expected 1 prior tenure in Step 3 for ${confTok}`);
+    assert.ok(!confRk.html.includes("GARCIA ELENA"), `Leaked active confidential owner in Step 3 for ${confTok}`);
+    assert.ok(confRk.html.includes("THOMPSON HAROLD E"), `Missing prior owner in Step 3 for ${confTok}`);
+    assert.ok(confRk.html.includes("Copy Prior Owner"), `Missing Copy Prior Owner pill in Step 3 for ${confTok}`);
+    assert.ok(!confRk.html.includes("Copy Owner:"), `Leaked active Copy Owner pill in Step 3 for ${confTok}`);
+    assert.ok(!confRk.html.includes("RP-2019-149789"), `Leaked active Clerk File # in Step 3 for ${confTok}`);
     assert.ok(!confRk.html.includes("149789"), `Leaked raw Clerk digits in Step 3 for ${confTok}`);
 
     const confTimeline = buildStewardshipTimelineModel({
@@ -121,13 +127,16 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
         flip: 35,
       },
     });
-    assert.deepEqual(confTimeline.ownerTenures, []);
+    assert.equal(confTimeline.ownerTenures.length, 1);
+    assert.equal(confTimeline.ownerTenures[0].ownerName, "THOMPSON HAROLD E");
+    assert.equal(
+      confTimeline.events.some((ev) => ev.kind === "owner_tenure" && ev.ownerName === "THOMPSON HAROLD E"),
+      true
+    );
     for (const ev of confTimeline.events) {
-      assert.notEqual(ev.kind, "owner_tenure");
-      assert.notEqual(ev.kind, "deed", `Leaked deed event in Surface 3 for ${confTok}`);
+      assert.notEqual(ev.kind, "deed", `Leaked active deed event in Surface 3 for ${confTok}`);
       assert.notEqual(ev.kind, "rapid_flip", `Leaked rapid_flip event in Surface 3 for ${confTok}`);
       assert.ok(!String(ev.title).includes("GARCIA ELENA"));
-      assert.ok(!String(ev.title).includes("THOMPSON HAROLD"));
       assert.ok(!String(ev.subtitle || "").includes("149789"));
       assert.ok(!String(ev.citation || "").includes("149789"));
     }
@@ -142,14 +151,16 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
         permitShardRec: { ot: "homestead", d: sampleDeeds, oh: sampleOh },
       });
       assert.equal(mixedXray.isConfidential, true);
-      assert.deepEqual(mixedXray.ownerHistoryTenures, []);
+      assert.equal(mixedXray.ownerHistoryTenures.length, 1);
+      assert.equal(mixedXray.ownerHistoryTenures[0].ownerName, "THOMPSON HAROLD E");
       assert.equal(mixedXray.clerkUrl.includes("149789"), false);
 
       const mixedTl = buildStewardshipTimelineModel({
         featureProps: mixedProps,
         permitShardRec: { d: sampleDeeds, oh: sampleOh, flip: 35 },
       });
-      assert.deepEqual(mixedTl.ownerTenures, []);
+      assert.equal(mixedTl.ownerTenures.length, 1);
+      assert.equal(mixedTl.ownerTenures[0].ownerName, "THOMPSON HAROLD E");
       assert.equal(mixedTl.events.some((ev) => ev.kind === "deed" || ev.kind === "rapid_flip"), false);
     }
 
@@ -177,6 +188,68 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
       "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
     );
   }
+
+  // 2b. Pre-election multi-segment taint + unvetted TPIA deed/lien party redaction across all 3 surfaces
+  const preElectionOh =
+    "2019-2026~20150401~R2015-149789~CURRENT OWNER|2015-2018~20150401~R2015-149789~GARCIA ELENA & MARCOS|2005-2014~<=1988~~THOMPSON HAROLD E";
+  const preElectionDeeds =
+    "20150401:R2015-149789:101:D|20131215:R2013-999888::D:THOMPSON HAROLD E:GARCIA ELENA";
+  const preElectionMl = "20131220~R2013-777666~ACME BUILDERS~GARCIA ELENA~85000|19950501~P555111~ACME BUILDERS~THOMPSON HAROLD E~12000";
+  const preXray = decodeParcelOwnershipXray({
+    featureProps: {
+      hcad_num: "0010020000001",
+      owner: "CONFIDENTIAL",
+      owner_name: "GARCIA ELENA",
+      own_tier: "homestead",
+      use_category: "Single-Family",
+    },
+    permitShardRec: {
+      conf: 1,
+      oh: preElectionOh,
+      d: preElectionDeeds,
+      ml: preElectionMl,
+    },
+  });
+  assert.equal(preXray.isConfidential, true);
+  assert.equal(preXray.ownerHistoryTenures.length, 1);
+  assert.equal(preXray.ownerHistoryTenures[0].ownerName, "THOMPSON HAROLD E");
+  assert.equal(preXray.ownerHistoryTenures[0].spanLabel, "2005-2014");
+
+  const preRk = buildResearchKitDeedChainView(
+    "0010020000001",
+    "0010020000001",
+    { conf: 1, oh: preElectionOh, d: preElectionDeeds, ml: preElectionMl },
+    "CONFIDENTIAL"
+  );
+  assert.equal(preRk.count, 2);
+  assert.ok(!preRk.html.includes("GARCIA ELENA"));
+  assert.ok(!preRk.html.includes("149789"));
+  assert.ok(!preRk.html.includes("999888"));
+  assert.ok(!preRk.html.includes("777666"));
+  assert.ok(preRk.html.includes("P555111"));
+  assert.ok(!preRk.html.includes("for THOMPSON HAROLD E"));
+  assert.ok(preRk.html.includes("THOMPSON HAROLD E"));
+
+  const preTl = buildStewardshipTimelineModel({
+    featureProps: {
+      hcad_num: "0010020000001",
+      owner: "CONFIDENTIAL",
+      owner_name: "GARCIA ELENA",
+      year_built: 1928,
+    },
+    permitShardRec: {
+      conf: 1,
+      oh: preElectionOh,
+      d: preElectionDeeds,
+      ml: preElectionMl,
+    },
+  });
+  assert.equal(preTl.ownerTenures.length, 1);
+  assert.equal(preTl.ownerTenures[0].ownerName, "THOMPSON HAROLD E");
+  assert.ok(!JSON.stringify(preTl.events).includes("GARCIA ELENA"));
+  assert.ok(!JSON.stringify(preTl.events).includes("149789"));
+  assert.ok(!JSON.stringify(preTl.events).includes("999888"));
+  assert.ok(!JSON.stringify(preTl.events).includes("777666"));
 
   // 3. Map-clicked ordinary homestead with empty/placeholder props.owner hydrates recordedOwner from active 2026 oh tenure
   const mapClickedXray = decodeParcelOwnershipXray({

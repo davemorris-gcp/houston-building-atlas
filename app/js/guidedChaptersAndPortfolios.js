@@ -21,6 +21,7 @@ import {
 import {
   decodeCompactMechanicsLiens,
   decodeCompactOwnerHistory,
+  filterConfidentialOwnerHistoryAndDeeds,
   formatClerkInstrumentToken,
   isConfidentialOwnerName,
   isEntityOrTrustOwnerName,
@@ -2115,12 +2116,29 @@ export function decodeParcelOwnershipXray(
   const billingAddress = isRedactedHomestead ? "" : rawBillingAddress;
   const careOfAgent = isRedactedHomestead ? "" : rawCareOf;
 
-  // Decode 22-year (2005-2026) HCAD certified-roll ownership tenures gated strictly on `isConfidential`
-  // (NEVER on `isRedactedHomestead`, which is true for ~650,000+ public owner-occupied homesteads whose mailing address is omitted) (`DF-1`).
-  const ownerHistoryTenures = isConfidential
-    ? []
-    : decodeCompactOwnerHistory(shard.oh || props.owner_history || "", rawOwnerName);
-  const priorOwners = ownerHistoryTenures.slice(1).map((t) => ({
+  // Decode 22-year (2005-2026) HCAD certified-roll ownership tenures with Current-Tenure-Only
+  // Sec. 25.025 redaction (`filterConfidentialOwnerHistoryAndDeeds`): when `isConfidential` is true,
+  // the active homeowner's tenure (`endYear >= getAtlasMaxYear()`) and acquisition deed are masked,
+  // while verified prior unrelated owners (`endYear < getAtlasMaxYear()`) are retained (`DF-1`).
+  const rawOwnerHistoryTenures = decodeCompactOwnerHistory(
+    shard.oh || props.owner_history || "",
+    rawOwnerName
+  );
+  const ownerHistoryTenures = filterConfidentialOwnerHistoryAndDeeds(
+    rawOwnerHistoryTenures,
+    [],
+    [],
+    [],
+    isConfidential,
+    getAtlasMaxYear(),
+    [props.owner, props.owner_name, shard.owner, candidateOwnerName]
+  ).tenures;
+  const priorTenureSource =
+    isConfidential ||
+    (ownerHistoryTenures.length > 0 && ownerHistoryTenures[0].endYear < getAtlasMaxYear())
+      ? ownerHistoryTenures
+      : ownerHistoryTenures.slice(1);
+  const priorOwners = priorTenureSource.map((t) => ({
     ownerName: t.ownerName,
     spanLabel: t.spanLabel,
     startYear: t.startYear,
@@ -2505,9 +2523,71 @@ export function buildStewardshipTimelineModel({
       isConfidentialOwnerName(props.owner_name) ||
       isConfidentialOwnerName(shard.owner)
   );
-  const ohTenures = isConfidentialTimeline
-    ? []
-    : decodeCompactOwnerHistory(shard.oh || props.owner_history || "", rawTimelineOwner);
+  const rawOhTenures = decodeCompactOwnerHistory(
+    shard.oh || props.owner_history || "",
+    isConfidentialTimeline ? "" : rawTimelineOwner
+  );
+  const rawDeedSource = [];
+  if (Array.isArray(deeds) && deeds.length > 0) {
+    rawDeedSource.push(...deeds);
+  } else {
+    const rawDeedStr = typeof deeds === "string" ? deeds : String(shard.d || props.deed_chain || "");
+    if (rawDeedStr.trim()) {
+      for (const e of parseCompactDeedWireEntries(rawDeedStr)) {
+        if (!e.isoDate) continue;
+        rawDeedSource.push([e.isoDate, e.token, e.deedId, e.typeCode, e.grantor, e.grantee]);
+      }
+    }
+  }
+  const normalizedTimelineDeeds = [];
+  for (const dRow of rawDeedSource) {
+    let dt = "";
+    let clerkNumRaw = "";
+    let deedId = "";
+    let code = "D";
+    let grantor = "";
+    let grantee = "";
+    if (Array.isArray(dRow)) {
+      dt = String(dRow[0] || "").trim();
+      clerkNumRaw = String(dRow[1] || "").trim();
+      deedId = String(dRow[2] || "").trim();
+      code = String(dRow[3] || "D").trim().toUpperCase();
+      grantor = String(dRow[4] || "").trim();
+      grantee = String(dRow[5] || "").trim();
+    } else if (dRow && typeof dRow === "object") {
+      dt = String(dRow.date || dRow.dt || "").trim();
+      clerkNumRaw = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
+      deedId = String(dRow.deed_id || dRow.deedId || "").trim();
+      code = String(dRow.type || dRow.code || "D").trim().toUpperCase();
+      grantor = String(dRow.grantor || "").trim();
+      grantee = String(dRow.grantee || "").trim();
+    }
+    if (!dt) continue;
+    const normInst = clerkNumRaw ? formatClerkInstrumentToken(clerkNumRaw, dt) : null;
+    normalizedTimelineDeeds.push({
+      date: dt,
+      clerkNumRaw,
+      normInst,
+      matchKey: normInst?.matchKey || "",
+      deedId,
+      code,
+      grantor,
+      grantee,
+    });
+  }
+  const rawMlList = shard.ml ? decodeCompactMechanicsLiens(shard.ml) : [];
+  const filteredTimelineConf = filterConfidentialOwnerHistoryAndDeeds(
+    rawOhTenures,
+    normalizedTimelineDeeds,
+    rawMlList,
+    [],
+    isConfidentialTimeline,
+    getAtlasMaxYear(),
+    [props.owner, props.owner_name, shard.owner, rawTimelineOwner]
+  );
+  const ohTenures = filteredTimelineConf.tenures;
+  const effDeeds = filteredTimelineConf.deeds;
+  const effMlList = filteredTimelineConf.mlItems;
 
   // Index `ohTenures` by canonical Clerk instrument key and acquisition date so deed nodes receive
   // Grantee names without duplicating conveyance rows (`DF-6`, `UT-7`).
@@ -2523,45 +2603,14 @@ export function buildStewardshipTimelineModel({
     }
   });
 
-  let effDeeds = [];
-  if (!isConfidentialTimeline) {
-    if (Array.isArray(deeds) && deeds.length > 0) {
-      effDeeds = deeds;
-    } else {
-      const rawDeedStr = typeof deeds === "string" ? deeds : String(shard.d || props.deed_chain || "");
-      if (rawDeedStr.trim()) {
-        for (const e of parseCompactDeedWireEntries(rawDeedStr)) {
-          if (!e.isoDate) continue;
-          effDeeds.push([e.isoDate, e.token, e.deedId, e.typeCode, e.grantor, e.grantee]);
-        }
-      }
-    }
-  }
-
-  for (const dRow of effDeeds) {
-    let dt = "";
-    let clerkNumRaw = "";
-    let deedId = "";
-    let code = "D";
-    let rowGrantor = "";
-    let rowGrantee = "";
-    if (Array.isArray(dRow)) {
-      dt = String(dRow[0] || "").trim();
-      clerkNumRaw = String(dRow[1] || "").trim();
-      deedId = String(dRow[2] || "").trim();
-      code = String(dRow[3] || "D").trim().toUpperCase();
-      rowGrantor = String(dRow[4] || "").trim();
-      rowGrantee = String(dRow[5] || "").trim();
-    } else if (dRow && typeof dRow === "object") {
-      dt = String(dRow.date || dRow.dt || "").trim();
-      clerkNumRaw = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
-      deedId = String(dRow.deed_id || dRow.deedId || "").trim();
-      code = String(dRow.type || dRow.code || "D").trim().toUpperCase();
-      rowGrantor = String(dRow.grantor || "").trim();
-      rowGrantee = String(dRow.grantee || "").trim();
-    }
-    if (!dt) continue;
-    const normInst = clerkNumRaw ? formatClerkInstrumentToken(clerkNumRaw, dt) : null;
+  for (const dItem of effDeeds) {
+    const dt = dItem.date;
+    const clerkNumRaw = dItem.clerkNumRaw;
+    const normInst = dItem.normInst;
+    const deedId = dItem.deedId;
+    const code = dItem.code;
+    const rowGrantor = dItem.grantor;
+    const rowGrantee = dItem.grantee;
     const clerkNum = normInst ? normInst.copyValue : clerkNumRaw;
     const clerkDisplay = normInst ? normInst.displayValue : clerkNumRaw;
 
@@ -2629,30 +2678,28 @@ export function buildStewardshipTimelineModel({
     });
   }
 
-  if (!isConfidentialTimeline && shard.ml) {
-    for (const ml of decodeCompactMechanicsLiens(shard.ml)) {
-      const mlDt = ml.date || String(yrBuilt || 1990);
-      const mlYear = parseInt(mlDt.slice(0, 4), 10) || yrBuilt || 1990;
-      const clerkNum = ml.instrument.copyValue;
-      const clerkDisplay = ml.instrument.displayValue;
-      const amtSuffix = ml.amount ? ` ($${ml.amount})` : "";
-      events.push({
-        kind: "mechanics_lien",
-        category: "construction",
-        year: mlYear,
-        dateLabel: mlDt,
-        sortKey: mlDt.length === 4 ? `${mlDt}-05-01` : mlDt,
-        title: `Recorded Mechanic's Lien / Builder Contract: ${ml.contractor}${amtSuffix}`,
-        subtitle: `${
-          ml.instrument.kind === "vol_page" ? "Harris County Deed " : "Harris County Clerk File #"
-        }${clerkDisplay}${ml.ownerName ? ` · Owner: ${ml.ownerName}` : ""}`,
-        citation: `RP Clerk #${clerkDisplay} (M/L)`,
-        badge: "Mechanic's Lien (M/L)",
-        clerkFileNum: clerkNum,
-        contractor: ml.contractor,
-        url: clerkNum ? buildHarrisCountyClerkRpUrl(clerkNum) : null,
-      });
-    }
+  for (const ml of effMlList) {
+    const mlDt = ml.date || String(yrBuilt || 1990);
+    const mlYear = parseInt(mlDt.slice(0, 4), 10) || yrBuilt || 1990;
+    const clerkNum = ml.instrument.copyValue;
+    const clerkDisplay = ml.instrument.displayValue;
+    const amtSuffix = ml.amount ? ` ($${ml.amount})` : "";
+    events.push({
+      kind: "mechanics_lien",
+      category: "construction",
+      year: mlYear,
+      dateLabel: mlDt,
+      sortKey: mlDt.length === 4 ? `${mlDt}-05-01` : mlDt,
+      title: `Recorded Mechanic's Lien / Builder Contract: ${ml.contractor}${amtSuffix}`,
+      subtitle: `${
+        ml.instrument.kind === "vol_page" ? "Harris County Deed " : "Harris County Clerk File #"
+      }${clerkDisplay}${ml.ownerName ? ` · Owner: ${ml.ownerName}` : ""}`,
+      citation: `RP Clerk #${clerkDisplay} (M/L)`,
+      badge: "Mechanic's Lien (M/L)",
+      clerkFileNum: clerkNum,
+      contractor: ml.contractor,
+      url: clerkNum ? buildHarrisCountyClerkRpUrl(clerkNum) : null,
+    });
   }
 
   // Emit `owner_tenure` provenance nodes for un-deeded historical HCAD roll tenures and pre-2005 acquisitions (`DF-6`, `UT-7`).

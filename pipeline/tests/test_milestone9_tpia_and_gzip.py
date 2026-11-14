@@ -814,6 +814,7 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
     # 0620820000016: currently non-confidential buyer (2015-2026), had historical confidential owner in 2003
     # 0620820000019: active snapshot has aka='CONFIDENTIAL' while mailto='PUBLIC DISPLAY'
     # 0620820000020: standard public parcel for Option A REL non-promotion + Bound Deed Book vol/page gate
+    # 0620820000021: active confidential parcel (2020-2026) with unrelated prior seller (2005-2019)
     write_deterministic_gzip_json_shard(
         permits_dir / "permits_062.json.gz",
         {
@@ -825,6 +826,7 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
             },
             "0620820000019": {"yr": 1935, "d": "20200101:R2020-11111"},
             "0620820000020": {"yr": 1922},
+            "0620820000021": {"yr": 1938, "conf": 1, "d": "20200601:R2020-55555"},
         },
     )
     write_deterministic_gzip_json_shard(
@@ -832,6 +834,7 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
         {
             "0620820000016": "2015-2026~20150601~R2015-20001~PUBLIC BUYER",
             "0620820000019": "2020-2026~20200101~R2020-11111~PUBLIC DISPLAY",
+            "0620820000021": "2020-2026~20200601~R2020-55555~SHIELDED HOMEOWNER|2005-2019~20050310~20050123456~PRIOR SELLER",
         },
     )
 
@@ -916,11 +919,56 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
     oh062 = read_json_or_gzip_path(oh_dir / "owners_062.json.gz")
     p062 = read_json_or_gzip_path(permits_dir / "permits_062.json.gz")
 
-    # (a) aka='CONFIDENTIAL' scrubbed fail-closed; non-target 0620820000099 excluded
+    # (a) aka='CONFIDENTIAL' (single tenure) scrubbed fail-closed; non-target 0620820000099 excluded;
+    #     0620820000021 retains only its unrelated prior seller (2005-2019) while redacting 2020-2026
     assert "0620820000019" not in oh062
     assert p062["0620820000019"] == {"yr": 1935, "conf": 1}
+    assert oh062["0620820000021"] == "2005-2019~20050310~20050123456~PRIOR SELLER"
+    assert "SHIELDED" not in oh062["0620820000021"]
+    assert p062["0620820000021"] == {"yr": 1938, "conf": 1}
     assert "0620820000099" not in oh062
     assert "0620820000099" not in p062
+
+    # Re-running TPIA ingestion when owners_062.json.gz already holds a current-tenure-redacted wire
+    # ("2005-2019~20050310~20050123456~PRIOR SELLER" with 2020-2026 stripped) must keep 2020..2026 in
+    # redacted_years so a late-2019 confidential acquisition deed (RP-2019-999888) and a 2021 pre-election
+    # TPIA snapshot never attach to 0620820000021.
+    (hcad_dir / "snapshots.csv").write_text(
+        "\n".join(
+            [
+                "acct,yr,mailto,aka,new_own_dt,conf",
+                "0620820000016,2003,PRIOR OFFICER,,1998-05-01,1",
+                "0620820000019,2026,PUBLIC DISPLAY,CONFIDENTIAL,2020-01-01,0",
+                "0620820000021,2021,SHIELDED HOMEOWNER,,2019-11-15,0",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (clerk_dir / "conf_deed_2019.csv").write_text(
+        "acct,file_no,file_date,inst_type,grantor,grantee\n"
+        "0620820000021,RP-2019-999888,2019-11-15,W/D,PRIOR SELLER,SHIELDED HOMEOWNER\n",
+        encoding="utf-8",
+    )
+    cli.main(
+        [
+            "--mode",
+            "ingest-tpia",
+            "--apply",
+            "--output-dir",
+            str(data_dir),
+            "--cache-dir",
+            str(cache_dir),
+            "--hcad-dir",
+            str(hcad_dir),
+            "--clerk-dir",
+            str(clerk_dir),
+        ]
+    )
+    oh062_rerun = read_json_or_gzip_path(oh_dir / "owners_062.json.gz")
+    assert oh062_rerun["0620820000021"] == "2005-2019~20050310~20050123456~PRIOR SELLER"
+    assert "999888" not in oh062_rerun["0620820000021"]
+    assert "SHIELDED" not in oh062_rerun["0620820000021"]
 
     # Historical confidential tenure (2003) redacted from oh062 AND party names stripped from p062
     assert "PRIOR OFFICER" not in oh062["0620820000016"]

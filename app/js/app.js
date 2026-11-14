@@ -23098,7 +23098,7 @@ export class HoustonAtlasApp {
         : "";
 
     const priorOwnersHtml =
-      !xray.isConfidential && Array.isArray(xray.priorOwners) && xray.priorOwners.length > 0
+      Array.isArray(xray.priorOwners) && xray.priorOwners.length > 0
         ? `<div class="ownership-xray-row" id="inspector-prior-owners-row">
             <span class="ownership-xray-label">Prior HCAD Owners (2005-${getAtlasMaxYear()}):</span>
             <span class="ownership-xray-val">${xray.priorOwners

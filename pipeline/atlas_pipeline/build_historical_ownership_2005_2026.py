@@ -2,10 +2,10 @@
 
 Architecture (Milestone 8):
   1. Pure Stateless Consolidation & Privacy Layer:
-     - Enforces 1:1 statutory Texas Tax Code Sec. 25.025 privacy shielding (`CONFIDENTIAL_OWNER_TOKENS`),
-       suppressing active-roll confidential parcels completely and retroactively tainting/redacting
+     - Enforces statutory Texas Tax Code Sec. 25.025 current-tenure privacy shielding (`CONFIDENTIAL_OWNER_TOKENS`),
+       redacting the active confidential owner's tenure (and acquisition deed) plus retroactively tainting/redacting
        contiguous pre-election snapshots (and secondary `owners.txt` co-owner rows `ln_num >= 1`)
-       when an owner elected confidentiality mid-window before a later non-confidential sale (`DF-1`).
+       when an owner elected confidentiality, while preserving unrelated prior owners' historical tenures (`DF-1`).
      - Consolidates clerical punctuation, `ET UX`, middle-initial, and `>= 18`-char column-truncation
        jitter while guarding series LLCs (`SERIES 1` vs `SERIES 12`), Roman numerals (`I` vs `II`),
        generational suffixes (`JR`/`SR`/`II`/`III`), and geographic/entity stopwords (`DF-2`).
@@ -578,12 +578,6 @@ def consolidate_account_tenures(
         )
         for s in sorted(snapshots, key=lambda s: int(s.year))
     ]
-    # If the latest observed roll snapshot (or explicit active_tax_year snapshot) is confidential, omit parcel completely.
-    if ordered[-1].is_confidential:
-        return []
-    for s in ordered:
-        if s.year == active_tax_year and (s.is_confidential or is_confidential_owner_token(s.owner_name)):
-            return []
 
     dedup_deeds, untokened_dates = _deduplicate_account_deeds(deeds)
     deed_dates_set = set(all_deed_dates or ()) | untokened_dates
@@ -598,15 +592,19 @@ def consolidate_account_tenures(
     ]
 
     # Retroactive pre-election taint (backward) + intra-tenure taint (forward) (`DF-1`):
-    # If an owner held the parcel in 2011-2015 publicly, elected Sec. 25.025 in 2016-2021, and sold in 2022,
-    # taint 2011-2015 and any clerically unmasked post-election years of that same tenure so personal names
-    # and acquisition deed tokens never leak (including when HCAD resets confidential new_own_dt to <=1988 or '').
+    # Under TX Tax Code Sec. 25.025, only the protected individual's own tenure (including any pre-election
+    # years where that same owner appeared publicly before filing Form 50-284, and their acquisition deed)
+    # is redacted; earlier unrelated owners' historical tenures and deeds remain public record.
     recovered_conf_acqs: set[str] = set()
     for idx in range(n):
         if not tainted[idx]:
             continue
         conf_acq = ordered[idx].acq_dt
-        pre_taint_owner = ""
+        pre_taint_owner = (
+            ordered[idx].owner_name
+            if (ordered[idx].owner_name and not is_confidential_owner_token(ordered[idx].owner_name))
+            else ""
+        )
         # Walk backward across contiguous snapshots belonging to the same pre-election tenure
         for j in range(idx - 1, -1, -1):
             if tainted[j]:
@@ -623,6 +621,16 @@ def consolidate_account_tenures(
             snap_next = ordered[j + 1]
             has_deed = _has_deed_in_year_window(
                 dedup_deeds, deed_dates_set, snap_j.year, snap_next.year, after_acq_dt=snap_j.acq_dt
+            )
+            conf_acq_yr = (
+                int(conf_acq[:4])
+                if (
+                    conf_acq
+                    and conf_acq != HCAD_MAINFRAME_SENTINEL
+                    and len(conf_acq) >= 4
+                    and conf_acq[:4].isdigit()
+                )
+                else 0
             )
             if conf_acq and snap_j.acq_dt:
                 if snap_j.acq_dt == conf_acq and (
@@ -653,7 +661,10 @@ def consolidate_account_tenures(
                     and not pre_taint_owner
                     and (
                         conf_acq == HCAD_MAINFRAME_SENTINEL
-                        or snap_j.acq_dt == HCAD_MAINFRAME_SENTINEL
+                        or (
+                            snap_j.acq_dt == HCAD_MAINFRAME_SENTINEL
+                            and (conf_acq_yr == 0 or conf_acq_yr <= snap_j.year)
+                        )
                     )
                 ):
                     tainted[j] = True
@@ -683,6 +694,7 @@ def consolidate_account_tenures(
             )
             if same_blank_pre_taint or (
                 not has_deed
+                and (conf_acq_yr == 0 or conf_acq_yr <= snap_j.year)
                 and (
                     not pre_taint_owner
                     or is_confidential_owner_token(snap_j.owner_name)
@@ -774,10 +786,6 @@ def consolidate_account_tenures(
                     known_taint_owner = snap_j.owner_name
             else:
                 break
-
-    # If taint reached the latest/active snapshot, omit the entire parcel (`DF-1`).
-    if tainted[-1]:
-        return []
 
     # Collect redacted year windows & tainted acq_dts so deeds belonging to redacted tenures are never mispaired
     redacted_acq_dts: set[str] = {

@@ -94,8 +94,8 @@ def _write_custom_roll_zip(
 
 
 def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(tmp_path: Path) -> None:
-    """UT-1: Active confidential suppression, mid-window pre-election taint, ln_num>=2 co-owners, and zero mail_addr."""
-    # 1. Active 2026 confidential accounts must return [] even if 2005-2025 had public personal names.
+    """UT-1: Current-tenure-only confidential redaction, mid-window pre-election taint, ln_num>=2 co-owners, and zero mail_addr."""
+    # 1. Single-tenure confidential accounts (same owner 2005-2026) must return [] even if 2005-2025 had public personal names.
     public_history = [
         RollOwnerSnapshot(year=yr, owner_name="CARTER BENJAMIN", is_confidential=False, acq_dt="20040510")
         for yr in range(2005, 2026)
@@ -111,16 +111,22 @@ def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(t
         )
         == []
     )
-    # Even when 2005-2025 belonged to an unrelated prior seller separated by a 2025 recorded deed,
-    # an active 2026 confidential election omits the ENTIRE parcel from owners_<prefix3>.json.gz:
-    assert (
-        consolidate_account_tenures(
-            [*public_history, RollOwnerSnapshot(year=2026, owner_name="CURRENT OWNER", is_confidential=True, acq_dt="20251115")],
-            deeds=[("20251115", "R2025-888777")],
-            active_tax_year=2026,
+    # Under Current-Tenure-Only Redaction (TX Tax Code Sec. 25.025), when 2005-2025 belonged to an unrelated
+    # prior seller separated by a 2025 recorded deed, the active 2026 confidential buyer (and their 20251115
+    # acquisition deed R2025-888777) is redacted while the unrelated prior seller (2005-2025) is preserved:
+    assert consolidate_account_tenures(
+        [*public_history, RollOwnerSnapshot(year=2026, owner_name="CURRENT OWNER", is_confidential=True, acq_dt="20251115")],
+        deeds=[("20251115", "R2025-888777"), ("20040510", "X998877")],
+        active_tax_year=2026,
+    ) == [
+        ConsolidatedOwnerTenure(
+            start_year=2005,
+            end_year=2025,
+            owner_name="CARTER BENJAMIN",
+            acq_dt="20040510",
+            deed_token="X998877",
         )
-        == []
-    )
+    ]
 
     # 2. Mid-window confidential election (2011-2015 public -> 2016-2021 CURRENT OWNER -> 2022-2026 non-confidential sale):
     #    - 2005-2010 earlier unrelated owner ("ADAMS MARTHA") BEFORE 2011 deed IS preserved.

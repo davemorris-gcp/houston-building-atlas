@@ -17,11 +17,12 @@ Architecture (Milestone 9):
        into normalized `(subdivision, section, block, kind, id)` keys (`LOT`, `UNIT`, `RESERVE`,
        `TRACT`) with strict multi-parcel ambiguity capping (`max_parcels_per_legal_key = 4`) so
        subdivision-wide filings or un-unitized condominium regimes never fan out across dozens of accounts.
-  3. Fail-Closed Statutory Confidentiality (`TX Tax Code Sec. 25.025`):
+  3. Current-Tenure-Only Statutory Confidentiality (`TX Tax Code Sec. 25.025`):
      - Aggregates confidential HCAD accounts from `permits_<prefix3>.json.gz` (`conf == 1`),
-       `Real_acct_owner.zip`, and TPIA snapshots; strips all Grantor/Grantee/Mechanic's Lien/Deed of
-       Trust/tenure strings on protected parcels; and routes annual roll snapshots through
-       `consolidate_account_tenures` for retroactive pre-election taint shielding.
+       `Real_acct_owner.zip`, and TPIA snapshots; redacts the active confidential homeowner's tenure,
+       pre-election snapshots, acquisition deed, and `permits_<prefix3>.json.gz` party fields while
+       retaining verified prior unrelated public tenures (`end_year < active_tax_year`) in
+       `owners_<prefix3>.json.gz`.
   4. Deterministic `.json.gz` Shard Promotion:
      - Supports `--dry-run` (zero live file mutations, full linkage & coverage report) and `--apply`
        (atomic header-free RFC 1952 `mtime=0` `.json.gz` writes + `pmtiles_manifest.json` span update
@@ -2115,19 +2116,14 @@ def run_tpia_ingestion(
 
         if inst.has_confidential_party or (matched_hcads & confidential_hcads):
             confidential_suppressed_instruments += 1
-            # Strictly exclude confidential accounts; if the filing itself named a confidential party, drop completely
+            # If the filing itself named a confidential party token, drop completely
             if inst.has_confidential_party:
-                continue
-            matched_hcads -= confidential_hcads
-            if not matched_hcads:
                 continue
 
         grantor_str = " & ".join(inst.grantors[:2])
         grantee_str = " & ".join(inst.grantees[:2])
 
         for acct in sorted(matched_hcads):
-            if acct in confidential_hcads:
-                continue
             if inst.category in ("CONVEYANCE", "RESTRICTION_PLAT"):
                 clerk_conveyances_by_acct[acct].append(
                     (inst.dt8, inst.clerk_token, inst.wire_type_code, grantor_str, grantee_str)
@@ -2150,12 +2146,95 @@ def run_tpia_ingestion(
     updated_oh_accounts = 0
     updated_permit_accounts = 0
 
-    # Fail-closed scrub on any newly discovered confidential HCAD accounts
+    min_observed_roll_year: int | None = None
+    for pfx_map in oh_shards.values():
+        for acct_k, wire_val in pfx_map.items():
+            if acct_k in confidential_hcads:
+                continue
+            for seg in wire_val.split("|"):
+                sp = seg.split("~", 1)[0].strip()
+                if len(sp) >= 4 and sp[:4].isdigit():
+                    yr_v = int(sp[:4])
+                    if min_observed_roll_year is None or yr_v < min_observed_roll_year:
+                        min_observed_roll_year = yr_v
+
+    # Current-tenure-only Sec. 25.025 redaction on confidential HCAD accounts:
+    # Retain verified prior tenures (`end_year < active_tax_year`) and pre-acquisition deeds/liens
+    # while masking the active confidential tenure, its acquisition deed, and current owner metadata.
     for conf_acct in sorted(confidential_hcads):
+        if len(conf_acct) < 3 or not conf_acct[:3].isdigit():
+            continue
         pfx = conf_acct[:3]
-        if conf_acct in oh_shards.get(pfx, {}):
-            del oh_shards[pfx][conf_acct]
-            touched_oh_prefixes.add(pfx)
+        existing_wire = oh_shards.get(pfx, {}).get(conf_acct, "")
+        base_snaps, base_deeds = expand_compact_owner_history_to_snapshots(existing_wire)
+        extra_snaps = list(hcad_res["snapshots_by_acct"].get(conf_acct, []))
+        raw_combined = base_snaps + extra_snaps
+        has_active_in_base = any(s.year >= active_tax_year for s in base_snaps)
+        nonconf_base_years = [
+            s.year
+            for s in base_snaps
+            if not s.is_confidential and not is_confidential_owner_token(s.owner_name)
+        ]
+        conf_floor_year = (
+            max(nonconf_base_years) + 1
+            if (nonconf_base_years and not has_active_in_base and max(nonconf_base_years) < active_tax_year)
+            else active_tax_year
+        )
+        combined_snaps = [
+            RollOwnerSnapshot(
+                year=s.year,
+                owner_name=s.owner_name,
+                is_confidential=True if s.year >= conf_floor_year else s.is_confidential,
+                acq_dt=s.acq_dt,
+            )
+            for s in raw_combined
+        ]
+        seen_years = {s.year for s in combined_snaps}
+        synth_acq_dt = f"{conf_floor_year}0101" if conf_floor_year < active_tax_year else ""
+        for redact_yr in range(conf_floor_year, active_tax_year + 1):
+            if redact_yr not in seen_years:
+                combined_snaps.append(
+                    RollOwnerSnapshot(
+                        year=redact_yr,
+                        owner_name="CURRENT OWNER",
+                        is_confidential=True,
+                        acq_dt=synth_acq_dt,
+                    )
+                )
+        conf_deed_pairs: list[tuple[str, str]] = list(base_deeds)
+        for dt8, tok, _gr, _ge in hcad_res["deeds_by_acct"].get(conf_acct, ()):
+            conf_deed_pairs.append((dt8, tok))
+        for dt8, tok, _wc, _gr, _ge in clerk_conveyances_by_acct.get(conf_acct, ()):
+            conf_deed_pairs.append((dt8, tok))
+
+        prior_tenures = (
+            consolidate_account_tenures(
+                combined_snaps,
+                deeds=conf_deed_pairs,
+                active_tax_year=active_tax_year,
+                max_tenures=MAX_OWNER_TENURES_PER_PARCEL,
+            )
+            if combined_snaps
+            else []
+        )
+        prior_tenures = [t for t in prior_tenures if t.end_year < active_tax_year]
+        new_conf_wire = encode_compact_owner_history(prior_tenures) if prior_tenures else ""
+
+        if not new_conf_wire:
+            if conf_acct in oh_shards.get(pfx, {}):
+                del oh_shards[pfx][conf_acct]
+                touched_oh_prefixes.add(pfx)
+        else:
+            for t in prior_tenures:
+                if min_observed_roll_year is None or t.start_year < min_observed_roll_year:
+                    min_observed_roll_year = t.start_year
+            if pfx not in oh_shards:
+                oh_shards[pfx] = {}
+            if oh_shards[pfx].get(conf_acct) != new_conf_wire:
+                oh_shards[pfx][conf_acct] = new_conf_wire
+                touched_oh_prefixes.add(pfx)
+                updated_oh_accounts += 1
+
         prec = permit_shards.get(pfx, {}).get(conf_acct)
         if isinstance(prec, dict):
             before_prec = dict(prec)
@@ -2163,23 +2242,15 @@ def run_tpia_ingestion(
                 prec.pop(k_rm, None)
             prec["conf"] = 1
             if prec != before_prec:
+                permit_shards[pfx][conf_acct] = prec
                 touched_permit_prefixes.add(pfx)
+                updated_permit_accounts += 1
 
     all_snapshot_accts = set(hcad_res["snapshots_by_acct"].keys()) | {
         acct
         for acct in (set(hcad_res["deeds_by_acct"].keys()) | set(clerk_conveyances_by_acct.keys()))
         if acct in oh_shards.get(acct[:3], {})
     }
-
-    min_observed_roll_year: int | None = None
-    for pfx_map in oh_shards.values():
-        for wire_val in pfx_map.values():
-            for seg in wire_val.split("|"):
-                sp = seg.split("~", 1)[0].strip()
-                if len(sp) >= 4 and sp[:4].isdigit():
-                    yr_v = int(sp[:4])
-                    if min_observed_roll_year is None or yr_v < min_observed_roll_year:
-                        min_observed_roll_year = yr_v
 
     historical_conf_hcads: set[str] = set(hcad_res["historical_conf_hcads"])
 

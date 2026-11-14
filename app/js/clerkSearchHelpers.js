@@ -1024,11 +1024,11 @@ export function buildAddressShardUrl(key, cacheBust = "") {
  *     4. `<owner_name>`: Sanitized HCAD roll owner name (rest-joined on `~` for defensive tolerance).
  */
 export function decodeCompactOwnerHistory(compactOhStr = "", currentOwnerName = "") {
-  if (isConfidentialOwnerName(currentOwnerName)) return [];
   const raw = String(compactOhStr || "").trim();
   if (!raw) return [];
 
   const tenures = [];
+  const redactedSegments = [];
   const entries = raw.split("|");
   for (let i = 0; i < entries.length; i += 1) {
     const entry = entries[i].trim();
@@ -1044,7 +1044,37 @@ export function decodeCompactOwnerHistory(compactOhStr = "", currentOwnerName = 
     if (!ownerName && i === 0 && !isPlaceholderOwnerName(currentOwnerName)) {
       ownerName = String(currentOwnerName).trim();
     }
-    if (!ownerName || isPlaceholderOwnerName(ownerName)) continue;
+    if (!ownerName || isPlaceholderOwnerName(ownerName)) {
+      const redSpan = /^(\d{4})(?:-(\d{4}))?$/.exec(spanRaw);
+      const rStart = redSpan ? Number(redSpan[1]) : 0;
+      const rEnd = redSpan ? (redSpan[2] ? Number(redSpan[2]) : rStart) : 0;
+      let rAcq = "";
+      if (acqRaw === "<=1988") {
+        rAcq = "<=1988";
+      } else if (/^\d{8}$/.test(acqRaw) && acqRaw !== "00000000") {
+        const yyyy = acqRaw.slice(0, 4);
+        const mm = acqRaw.slice(4, 6);
+        const dd = acqRaw.slice(6, 8);
+        rAcq = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+      } else if (/^\d{4}(?:-\d{2}-\d{2})?$/.test(acqRaw)) {
+        rAcq = acqRaw;
+      }
+      const rDeed = deedRaw
+        ? formatClerkInstrumentToken(
+            deedRaw,
+            rAcq && rAcq !== "<=1988" ? rAcq : String(rStart || "")
+          )
+        : null;
+      redactedSegments.push({
+        index: i,
+        startYear: rStart,
+        endYear: rEnd,
+        acqDate: rAcq,
+        deed: rDeed,
+        ownerName,
+      });
+      continue;
+    }
 
     const spanMatch = /^(\d{4})(?:-(\d{4}))?$/.exec(spanRaw);
     if (!spanMatch) continue;
@@ -1097,7 +1127,253 @@ export function decodeCompactOwnerHistory(compactOhStr = "", currentOwnerName = 
       partyTokens,
     });
   }
+  if (redactedSegments.length > 0) {
+    Object.defineProperty(tenures, "_redactedSegments", {
+      value: redactedSegments,
+      enumerable: false,
+    });
+  }
   return tenures;
+}
+
+/**
+ * Enforce Current-Tenure-Only Confidential Owner Redaction under TX Tax Code Sec. 25.025:
+ * When `isConfidential` is true, redact the active owner's tenure (`endYear >= maxRollYear`
+ * or confidential token, plus any contiguous pre-election tenure sharing the same primary
+ * surname/entity token, acquisition date, or deed instrument) and its acquisition deed, while
+ * preserving verified prior unrelated public tenures (`endYear < maxRollYear`) and pre-acquisition
+ * deeds/liens (`year < maxPriorEndYear`).
+ */
+export function filterConfidentialOwnerHistoryAndDeeds(
+  ohTenures = [],
+  deedItems = [],
+  mlItems = [],
+  dtItems = [],
+  isConfidential = false,
+  maxRollYear = 2026,
+  ownerHints = []
+) {
+  const tenuresList = Array.isArray(ohTenures) ? ohTenures : [];
+  const deedsList = Array.isArray(deedItems) ? deedItems : [];
+  const mlList = Array.isArray(mlItems) ? mlItems : [];
+  const dtList = Array.isArray(dtItems) ? dtItems : [];
+  const redactedMatchKeys = new Set();
+  const redactedAcqDates = new Set();
+
+  if (!isConfidential) {
+    return {
+      tenures: tenuresList,
+      deeds: deedsList,
+      mlItems: mlList,
+      dtItems: dtList,
+      redactedMatchKeys,
+      redactedAcqDates,
+      maxPriorEndYear: 0,
+    };
+  }
+
+  const effMaxYear =
+    Number.isFinite(Number(maxRollYear)) && Number(maxRollYear) >= 2005
+      ? Number(maxRollYear)
+      : 2026;
+
+  const redactedIndices = new Set();
+  const redactedPrimaryTokens = new Set();
+  let minRedactedStartYear = effMaxYear;
+  const _primaryTokenOf = (t) => {
+    const firstCopy = String(t?.partyTokens?.[0]?.copy || t?.ownerName || "")
+      .trim()
+      .toUpperCase();
+    const tok = firstCopy.split(/\s+/)[0] || "";
+    return tok.length >= 3 ? tok : "";
+  };
+  const _primaryTokenOfName = (nameStr) => {
+    const clean = String(nameStr || "").trim();
+    if (!clean || isPlaceholderOwnerName(clean)) return "";
+    return _primaryTokenOf({
+      ownerName: clean,
+      partyTokens: formatClerkPartyTokens(clean),
+    });
+  };
+
+  const skippedRedacted = Array.isArray(ohTenures?._redactedSegments)
+    ? ohTenures._redactedSegments
+    : [];
+  for (const seg of skippedRedacted) {
+    if (seg?.deed?.matchKey) redactedMatchKeys.add(seg.deed.matchKey);
+    if (seg?.acqDate && seg.acqDate !== "<=1988") redactedAcqDates.add(seg.acqDate);
+    if (Number(seg?.startYear) >= 1836 && Number(seg.startYear) < minRedactedStartYear) {
+      minRedactedStartYear = Number(seg.startYear);
+    }
+    const stok = _primaryTokenOfName(seg?.ownerName);
+    if (stok) redactedPrimaryTokens.add(stok);
+  }
+  for (const hint of Array.isArray(ownerHints) ? ownerHints : [ownerHints]) {
+    const htok = _primaryTokenOfName(hint);
+    if (htok) redactedPrimaryTokens.add(htok);
+  }
+
+  for (let i = 0; i < tenuresList.length; i += 1) {
+    const t = tenuresList[i];
+    if (!t) continue;
+    if (
+      Number(t.endYear) >= effMaxYear ||
+      isPlaceholderOwnerName(t.ownerName) ||
+      (t.acqDate && t.acqDate !== "<=1988" && redactedAcqDates.has(t.acqDate)) ||
+      (t.deed?.matchKey && redactedMatchKeys.has(t.deed.matchKey))
+    ) {
+      redactedIndices.add(i);
+      const ptok = _primaryTokenOf(t);
+      if (ptok) redactedPrimaryTokens.add(ptok);
+      if (t.deed?.matchKey) redactedMatchKeys.add(t.deed.matchKey);
+      if (t.acqDate && t.acqDate !== "<=1988") redactedAcqDates.add(t.acqDate);
+      if (Number(t.startYear) >= 1836 && Number(t.startYear) < minRedactedStartYear) {
+        minRedactedStartYear = Number(t.startYear);
+      }
+    }
+  }
+
+  // Also redact any contiguous older segment belonging to the same redacted active owner
+  for (let i = 0; i < tenuresList.length; i += 1) {
+    if (redactedIndices.has(i)) continue;
+    const t = tenuresList[i];
+    if (!t) continue;
+    const ptok = _primaryTokenOf(t);
+    const prevWasRedacted = i === 0 || redactedIndices.has(i - 1);
+    if (
+      prevWasRedacted &&
+      ((ptok && redactedPrimaryTokens.has(ptok)) ||
+        (t.acqDate && t.acqDate !== "<=1988" && redactedAcqDates.has(t.acqDate)) ||
+        (t.deed?.matchKey && redactedMatchKeys.has(t.deed.matchKey)))
+    ) {
+      redactedIndices.add(i);
+      if (ptok) redactedPrimaryTokens.add(ptok);
+      if (t.deed?.matchKey) redactedMatchKeys.add(t.deed.matchKey);
+      if (t.acqDate && t.acqDate !== "<=1988") redactedAcqDates.add(t.acqDate);
+      if (Number(t.startYear) >= 1836 && Number(t.startYear) < minRedactedStartYear) {
+        minRedactedStartYear = Number(t.startYear);
+      }
+    }
+  }
+
+  const priorTenures = [];
+  for (let i = 0; i < tenuresList.length; i += 1) {
+    if (redactedIndices.has(i)) continue;
+    const t = tenuresList[i];
+    if (!t || Number(t.endYear) >= effMaxYear) continue;
+    let safeDeed = t.deed || null;
+    if (safeDeed) {
+      const dYr = Number(String(safeDeed.date || "").slice(0, 4)) || 0;
+      const grTok = _primaryTokenOfName(safeDeed.grantor);
+      const geTok = _primaryTokenOfName(safeDeed.grantee);
+      if (
+        (safeDeed.matchKey && redactedMatchKeys.has(safeDeed.matchKey)) ||
+        (dYr > 0 && dYr > Number(t.endYear)) ||
+        isConfidentialOwnerName(safeDeed.grantor) ||
+        isConfidentialOwnerName(safeDeed.grantee) ||
+        (grTok && redactedPrimaryTokens.has(grTok)) ||
+        (geTok && redactedPrimaryTokens.has(geTok))
+      ) {
+        safeDeed = null;
+      }
+    }
+    priorTenures.push(safeDeed === t.deed ? t : { ...t, deed: safeDeed });
+  }
+
+  if (priorTenures.length === 0) {
+    return {
+      tenures: [],
+      deeds: [],
+      mlItems: [],
+      dtItems: [],
+      redactedMatchKeys,
+      redactedAcqDates,
+      maxPriorEndYear: 0,
+    };
+  }
+
+  const maxPriorEndYear = priorTenures.reduce(
+    (acc, t) => Math.max(acc, Number(t.endYear) || 0),
+    0
+  );
+  const maxPriorStartYear = priorTenures.reduce(
+    (acc, t) => Math.max(acc, Number(t.startYear) || 0),
+    0
+  );
+  const pairedPriorByKey = new Map();
+  for (const t of priorTenures) {
+    if (t.deed?.matchKey && !pairedPriorByKey.has(t.deed.matchKey)) {
+      pairedPriorByKey.set(t.deed.matchKey, t);
+    }
+  }
+
+  const safeDeeds = [];
+  for (const d of deedsList) {
+    if (!d) continue;
+    const grTok = _primaryTokenOfName(d.grantor);
+    const geTok = _primaryTokenOfName(d.grantee);
+    if (
+      isConfidentialOwnerName(d.grantor) ||
+      isConfidentialOwnerName(d.grantee) ||
+      (grTok && redactedPrimaryTokens.has(grTok)) ||
+      (geTok && redactedPrimaryTokens.has(geTok))
+    ) {
+      continue;
+    }
+    if (d.matchKey && redactedMatchKeys.has(d.matchKey)) {
+      continue;
+    }
+    const pairedTenure = d.matchKey ? pairedPriorByKey.get(d.matchKey) || null : null;
+    if (d.date && redactedAcqDates.has(d.date) && !pairedTenure) {
+      continue;
+    }
+    if (pairedTenure) {
+      safeDeeds.push(
+        d.grantor || d.grantee !== pairedTenure.ownerName
+          ? { ...d, grantor: "", grantee: pairedTenure.ownerName }
+          : d
+      );
+      continue;
+    }
+    const yr = Number(String(d.date || "").slice(0, 4)) || 0;
+    if (yr > 0 && yr <= maxPriorStartYear && yr < maxPriorEndYear && yr < minRedactedStartYear) {
+      safeDeeds.push(d.grantor || d.grantee ? { ...d, grantor: "", grantee: "" } : d);
+    }
+  }
+
+  const safeMl = [];
+  for (const ml of mlList) {
+    if (!ml) continue;
+    const mlOwnTok = _primaryTokenOfName(ml.ownerName);
+    if (
+      isConfidentialOwnerName(ml.contractor) ||
+      isConfidentialOwnerName(ml.ownerName) ||
+      (mlOwnTok && redactedPrimaryTokens.has(mlOwnTok))
+    ) {
+      continue;
+    }
+    const yr = Number(String(ml.date || "").slice(0, 4)) || 0;
+    if (yr > 0 && yr < maxPriorEndYear && yr < minRedactedStartYear) {
+      safeMl.push(ml.ownerName ? { ...ml, ownerName: "" } : ml);
+    }
+  }
+
+  const safeDt = dtList.filter((dt) => {
+    if (!dt) return false;
+    if (isConfidentialOwnerName(dt.lender)) return false;
+    const yr = Number(String(dt.date || "").slice(0, 4)) || 0;
+    return yr > 0 && yr < maxPriorEndYear && yr < minRedactedStartYear;
+  });
+
+  return {
+    tenures: priorTenures,
+    deeds: safeDeeds,
+    mlItems: safeMl,
+    dtItems: safeDt,
+    redactedMatchKeys,
+    redactedAcqDates,
+    maxPriorEndYear,
+  };
 }
 
 function _escapeClerkHtml(val) {
@@ -1253,27 +1529,50 @@ export function buildResearchKitDeedChainView(
       isConfidentialOwnerName(currentOwnerName) ||
       isConfidentialOwnerName(permitShardRec?.owner)
   );
-  if (isConfidential) {
+  const rawTenures = decodeCompactOwnerHistory(
+    permitShardRec?.oh || "",
+    isConfidential ? "" : effOwner
+  );
+  const rawChainItems = decodeCompactDeedChain(permitShardRec?.d || "");
+  const rawMlItems = decodeCompactMechanicsLiens(permitShardRec?.ml || "");
+  const rawDtItems = decodeCompactDeedOfTrustLenders(permitShardRec?.dt_lender || "");
+  const filteredConf = filterConfidentialOwnerHistoryAndDeeds(
+    rawTenures,
+    rawChainItems,
+    rawMlItems,
+    rawDtItems,
+    isConfidential,
+    2026,
+    [currentOwnerName, permitShardRec?.owner]
+  );
+  const tenures = filteredConf.tenures;
+  const chainItems = filteredConf.deeds;
+  const mlItems = filteredConf.mlItems;
+  const dtItems = filteredConf.dtItems;
+
+  if (
+    isConfidential &&
+    tenures.length === 0 &&
+    chainItems.length === 0 &&
+    mlItems.length === 0 &&
+    dtItems.length === 0
+  ) {
     const html = `
       <div class="rk-deed-chain-head">
         <span class="rk-deed-chain-title">&#128220; HCAD Roll Ownership &amp; Deed Chain</span>
         <span class="rk-deed-chain-count is-muted">Protected (TX Tax Code Sec. 25.025)</span>
       </div>
       <div class="rk-clerk-hint">
-        Ownership names and County Clerk instrument links are withheld for statutory confidential homesteads under Texas Tax Code Section 25.025.
+        Current homeowner identity and acquisition instruments are withheld for statutory confidential homesteads under Texas Tax Code Section 25.025 (no prior unrelated post-2004 HCAD ownership transfers recorded).
       </div>
     `;
     return { ignore: false, hidden: false, isEmptyCama: true, count: 0, html };
   }
-  const tenures = decodeCompactOwnerHistory(permitShardRec?.oh || "", effOwner);
-  const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
-  const mlItems = decodeCompactMechanicsLiens(permitShardRec?.ml || "");
-  const dtItems = decodeCompactDeedOfTrustLenders(permitShardRec?.dt_lender || "");
   const mlHtml = _renderMechanicsLiensSubblockHtml(mlItems);
   const dtHtml = _renderDeedOfTrustLendersSubblockHtml(dtItems);
 
-  // When 22-year HCAD certified-roll ownership tenures are available for a non-confidential parcel,
-  // render the integrated Ownership & Deed Chain view while retaining any unpaired Clerk instruments (`REG-1`).
+  // When HCAD certified-roll ownership tenures are available (including verified prior unrelated
+  // tenures on a confidential parcel), render the Ownership & Deed Chain view (`REG-1`).
   if (tenures.length > 0) {
     const pairedKeys = new Set(
       tenures.map((t) => t.deed?.matchKey).filter(Boolean)
@@ -1300,7 +1599,7 @@ export function buildResearchKitDeedChainView(
           .map((pt, pIdx) => {
             const escCopy = _escapeClerkHtml(pt.copy);
             const roleLbl =
-              idx === 0
+              !isConfidential && idx === 0
                 ? pIdx === 0
                   ? "Copy Owner"
                   : `Copy Owner (${pIdx + 1})`
@@ -1343,9 +1642,12 @@ export function buildResearchKitDeedChainView(
            </div>`
         : "";
 
-    let scopeNote =
-      "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index (pre-2005 HCAD CAMA tables were not retained across HCAD server conversions). Copy any File Number or Prior Owner token above into County Clerk Deeds (RP, 1960-present) to pull deeds, mortgages (D/T), and mechanic's liens (M/L).";
-    if (tenures.length === 1 && (chainItems.length === 0 || tenures[0].isPreMainframe)) {
+    let scopeNote = isConfidential
+      ? `Current Homeowner Shielded (TX Tax Code Sec. 25.025): The active homeowner's name, tenure (${
+          maxEndYear + 1
+        }-present), and acquisition deed are withheld under Texas Tax Code Section 25.025. Only prior unrelated owners (${minStartYear}-${maxEndYear}) and pre-acquisition instruments remain displayed.`
+      : "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index (pre-2005 HCAD CAMA tables were not retained across HCAD server conversions). Copy any File Number or Prior Owner token above into County Clerk Deeds (RP, 1960-present) to pull deeds, mortgages (D/T), and mechanic's liens (M/L).";
+    if (!isConfidential && tenures.length === 1 && (chainItems.length === 0 || tenures[0].isPreMainframe)) {
       const t0 = tenures[0];
       if (t0.isPreMainframe) {
         scopeNote =
@@ -1360,10 +1662,11 @@ export function buildResearchKitDeedChainView(
     }
 
     const countVal = tenures.length + unpairedDeeds.length + mlItems.length + dtItems.length;
-    const countBadge =
-      tenures.length === 1
-        ? `1 Continuous Tenure (${tenures[0].spanLabel})`
-        : `${tenures.length} HCAD Owners (${minStartYear}-${maxEndYear})`;
+    const countBadge = isConfidential
+      ? `${tenures.length} Prior ${tenures.length === 1 ? "Owner" : "Owners"} (${minStartYear}-${maxEndYear}) · Current Protected (TX Tax Code Sec. 25.025)`
+      : tenures.length === 1
+      ? `1 Continuous Tenure (${tenures[0].spanLabel})`
+      : `${tenures.length} HCAD Owners (${minStartYear}-${maxEndYear})`;
 
     const html = `
       <div class="rk-deed-chain-head">

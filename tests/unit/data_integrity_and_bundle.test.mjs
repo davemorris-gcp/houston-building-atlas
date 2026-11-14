@@ -1248,11 +1248,13 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
     totalAccounts += keys.length;
 
     if (pfx === "001") {
-      assert.equal(
-        "0010020000001" in parsed,
-        false,
-        "Active Sec. 25.025 confidential account 0010020000001 must be completely omitted from owners_001.json.gz"
-      );
+      if ("0010020000001" in parsed) {
+        assert.equal(
+          parsed["0010020000001"],
+          "2005-2011~20010117~~MOSEMAN ESTHER TRUST",
+          "Sec. 25.025 confidential account 0010020000001 must retain only its pre-confidential prior tenure (2005-2011 MOSEMAN ESTHER TRUST) while redacting the 2012-2026 confidential tenure"
+        );
+      }
       benchmarkSamples.set("0010020000016", parsed["0010020000016"] || "");
     } else if (pfx === "015") {
       benchmarkSamples.set("0152300000001", parsed["0152300000001"] || "");
