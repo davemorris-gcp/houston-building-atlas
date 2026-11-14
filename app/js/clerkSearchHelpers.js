@@ -1345,7 +1345,7 @@ export function buildResearchKitDeedChainView(
 
     let scopeNote =
       "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index (pre-2005 HCAD CAMA tables were not retained across HCAD server conversions). Copy any File Number or Prior Owner token above into County Clerk Deeds (RP, 1960-present) to pull deeds, mortgages (D/T), and mechanic's liens (M/L).";
-    if (tenures.length === 1 && chainItems.length === 0) {
+    if (tenures.length === 1 && (chainItems.length === 0 || tenures[0].isPreMainframe)) {
       const t0 = tenures[0];
       if (t0.isPreMainframe) {
         scopeNote =

@@ -260,7 +260,7 @@ def test_key_street_deed_coverage_and_restored_neighbor_footprints(
 ) -> None:
     page = guarded_page
 
-    # 1. 1133 Key St (0621100000013): continuous pre-2005 tenure (Acq. 2001-01-22, 0 post-mid-2004 HCAD deeds)
+    # 1. 1133 Key St (0621100000013): continuous pre-2005 tenure (Acq. 2001-01-22, U849488 + Clerk TPIA deeds)
     page.goto(f"{atlas_base_url}/index.html#hcad=0621100000013", wait_until="domcontentloaded")
     _wait_for_atlas_ready(page)
     page.wait_for_selector("#inspector-drawer:not(.hidden)", timeout=10000)
@@ -268,20 +268,21 @@ def test_key_street_deed_coverage_and_restored_neighbor_footprints(
     page.wait_for_selector("#research-kit-deed-chain:not(.hidden) .rk-deed-scope-note", timeout=10000)
     deed_1133_txt = page.locator("#research-kit-deed-chain").text_content() or ""
     assert "1 Continuous Tenure (2005-2026)" in deed_1133_txt
-    assert "Continuous HCAD Roll Tenure (2005-2026" in deed_1133_txt
+    assert "Acq. 2001-01-22" in deed_1133_txt
+    assert "U849488" in deed_1133_txt
     url_harvester.harvest_from_locator(page.locator("#inspector-body"), "key_st:1133_continuous_tenure")
 
-    # 2. 1127 Key St (0621100000014): curated 1927 override intact + 6 HCAD Owners (2005-2026) + .rk-deed-scope-note
+    # 2. 1127 Key St (0621100000014): curated 1925 override intact + 13 HCAD Owners (1925-2026) + .rk-deed-scope-note
     _select_hcad_and_wait_for_deed_chain(page, "0621100000014", expect_empty_cama=False)
     insp_1127 = page.locator("#inspector-body").text_content() or ""
     assert "1127 KEY ST" in insp_1127.upper()
-    assert "1927" in insp_1127
+    assert "1925" in insp_1127
     hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
     if hist_tab.get_attribute("aria-selected") != "true":
         hist_tab.click()
     page.wait_for_selector("#research-kit-deed-chain .rk-deed-scope-note", timeout=10000)
     deed_1127_txt = page.locator("#research-kit-deed-chain").text_content() or ""
-    assert "6 HCAD Owners (2005-2026)" in deed_1127_txt
+    assert "13 HCAD Owners (1925-2026)" in deed_1127_txt
     assert "Combines 22 annual HCAD certified appraisal rolls" in deed_1127_txt
     assert page.locator('#research-kit-deed-chain [data-rk-copy="RP-2019-149789"]').count() == 1
 
