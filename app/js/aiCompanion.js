@@ -126,14 +126,15 @@ export const AI_COMPANION_PLATFORMS = Object.freeze([
   },
   {
     id: "cli",
-    label: "CLI & Coding Agents",
-    shortLabel: "CLI / Skill",
-    actionLabel: "Copy CLI Quick-Start Commands",
-    subtitle: "Claude Code, Gemini CLI, Cursor & Local Python / Node Scripts",
+    label: "CLI, Local LLMs & Coding Agents",
+    shortLabel: "CLI / Local LLM",
+    actionLabel: "Copy CLI & Local LLM Commands",
+    subtitle: "Claude Code, Gemini CLI, Ollama, LM Studio, llama.cpp & 2-Way Contributions",
     launchUrl: "public/ai-companion/SKILL.md",
     steps: [
-      "Unzip houston-building-atlas-skill.zip into your agent's skills/ folder (or download query_atlas.py directly).",
+      "Unzip houston-building-atlas-skill.zip into your agent's skills/ folder (or attach llms-full.txt + query_atlas.py to Ollama, LM Studio, OpenWebUI, AnythingLLM, Claude Code, or Gemini CLI).",
       "Run python3 query_atlas.py --address \"2000 Smith St\" or --architect \"James Ruskin Bailey\" to query all 37 datasets over HTTPS in < 1 second.",
+      "Contribute verified research, Walk-the-Block field surveys, or quick flags back to the moderated Google Sheet queue using --submit-correction, --submit-survey, or --submit-flag (with --agent-tool and --dry-run).",
       "The script automatically checks atlas_environments.json so future vanity URL cutovers work with zero reconfiguration.",
     ],
   },
@@ -215,7 +216,7 @@ export function buildPlatformSystemInstructions(platform = "chatgpt", options = 
 
   if (platKey === "cli") {
     return [
-      "# Quick-Start CLI Commands (Python 3 or Node.js 18+)",
+      "# Quick-Start CLI & Local LLM Commands (Python 3 or Node.js 18+)",
       "",
       "# 1. Query any Houston street address across all 37 datasets:",
       "python3 skills/houston-building-atlas/scripts/query_atlas.py --address \"2000 Smith St\"",
@@ -232,6 +233,21 @@ export function buildPlatformSystemInstructions(platform = "chatgpt", options = 
       "",
       "# 5. List the 15-Point Endangered Property Watchlist:",
       "python3 skills/houston-building-atlas/scripts/query_atlas.py --watchlist",
+      "",
+      "# 6. Contribute verified primary-source research back to the moderated Atlas queue",
+      "#    (works from Claude Code, Gemini CLI, Ollama, LM Studio, llama.cpp, or Node.js):",
+      "python3 skills/houston-building-atlas/scripts/query_atlas.py --submit-correction \\",
+      "  --hcad 0550140020008 --address \"3700 N Main St\" --year-built 1946 \\",
+      "  --architect \"R. G. Schneider\" --style \"Art Moderne\" \\",
+      "  --source-type ARCHIVAL_CITATION \\",
+      "  --source-citation \"Houston Post, Oct 12, 1946; COH Permit #1946-1182\" \\",
+      "  --agent-tool \"Ollama Llama-3.3\" --dry-run",
+      "",
+      "# 7. Submit a Walk-the-Block field survey or 1-click quick flag:",
+      "python3 skills/houston-building-atlas/scripts/query_atlas.py --submit-survey \\",
+      "  --hcad 0052090000011 --address \"1917 Washington Ave\" \\",
+      "  --integrity-grade \"Intact\" --condition-rating \"Good\" \\",
+      "  --field-notes \"Historic masonry commercial block intact\" --agent-tool \"Claude Code\" --dry-run",
     ].join("\n");
   }
 

@@ -618,6 +618,343 @@
       color: var(--muted);
     }
 
+    /* Coverage & Extraction Fidelity Meters */
+    .completeness-banner {
+      margin-top: 16px;
+      padding: 16px 18px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .completeness-banner-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .completeness-bars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .meter-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .meter-row-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .meter-pct {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 8px;
+      background: color-mix(in srgb, var(--muted) 22%, transparent);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .meter-sub {
+      font-size: 13px;
+      color: var(--ink-2);
+      line-height: 1.45;
+    }
+
+    .feed-coverage-box {
+      margin-top: 4px;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .feed-meters-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 560px) {
+      .feed-meters-pair {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feed-gap-detail {
+      font-size: 13px;
+      color: var(--ink-2);
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .feed-pass2-callout {
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.45;
+      padding: 8px 10px;
+      border-left: 3px solid var(--blue);
+      background: color-mix(in srgb, var(--blue) 9%, transparent);
+      border-radius: 0 6px 6px 0;
+      margin: 0;
+    }
+
+    /* Deep-Dive Spotlights & Matrix Table */
+    .spotlights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 640px) {
+      .spotlights-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .spotlight-card {
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .spotlight-title {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.3;
+      text-wrap: balance;
+    }
+
+    .spotlight-headline {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--emerald);
+      background: color-mix(in srgb, var(--emerald) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--emerald) 35%, transparent);
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .subcohort-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .subcohort-item {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .subcohort-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .matrix-table-wrap {
+      overflow-x: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .matrix-table th {
+      background: var(--bg-elev);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border-strong);
+      white-space: nowrap;
+    }
+
+    .matrix-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.45;
+    }
+
+    .matrix-table tbody tr {
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    .matrix-table tbody tr:hover {
+      background: var(--card-hover);
+    }
+
+
+    /* Animated System & LLM Architecture Diagram */
+    .arch-mode-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .arch-flow-mode-btn {
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .arch-flow-mode-btn:hover {
+      border-color: var(--blue);
+      color: var(--ink);
+    }
+    .arch-flow-mode-btn.active {
+      background: color-mix(in srgb, var(--blue) 18%, var(--card));
+      border-color: var(--blue);
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+    }
+    .arch-mode-caption {
+      font-size: 13px;
+      color: var(--ink-2);
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      margin-bottom: 14px;
+    }
+    .arch-canvas-wrap {
+      background: #080e1a;
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .arch-inspector-card {
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+    }
+    .arch-inspector-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .arch-inspector-list {
+      margin: 10px 0 6px;
+      padding-left: 20px;
+      font-size: 13.5px;
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .arch-tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .arch-tech-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+    .arch-tech-icon {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .arch-tech-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .arch-tech-role {
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
     /* Detail Modal / Drawer */
     .modal-backdrop {
       position: fixed;
@@ -745,7 +1082,7 @@
         <div>
           <h2 class="hero-heading" id="heroHeading">Every Institution, Public Feed &amp; Cross-Check Powering the Atlas</h2>
           <p class="hero-sub">
-            The Houston Building Atlas cross-references appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and fire insurance maps across municipal, county, state, federal, and archival institutions. This diagram is driven by a single declarative catalog (<code>app/public/data/data_sources_catalog.json</code>) so new feeds automatically appear on screen and in the printable poster.
+            The Houston Building Atlas cross-references appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and fire insurance maps across municipal, county, state, federal, and archival institutions. This diagram is driven by a single declarative catalog (<code>app/public/data/data_sources_catalog.json</code>) tracking both <strong>Source Volume Coverage (%)</strong> and <strong>Parcel-Level Extraction Fidelity (%)</strong> across all 46 feeds.
           </p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -753,6 +1090,7 @@
         </div>
       </div>
       <div class="kpi-strip" id="kpiStrip" aria-label="Ecosystem summary metrics"></div>
+      <div class="completeness-banner" id="completenessBanner" aria-label="Corpus completeness vs extraction fidelity summary"></div>
     </section>
 
     <section class="controls-panel" aria-label="Diagram view and filter controls">
@@ -761,17 +1099,20 @@
           <span class="filter-label">Group Diagram By:</span>
           <div class="view-tabs" role="tablist" aria-label="Diagram grouping mode">
             <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution &amp; Sector</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="architecture" aria-selected="false">⚡ Animated System &amp; LLM Architecture</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="gaps" aria-selected="false">📊 Coverage, Fidelity &amp; Gaps</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⚡ By Retrieval Frequency</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="engine" aria-selected="false">🔍 By Cross-Check Engine</button>
           </div>
         </div>
         <div class="search-box">
           <span aria-hidden="true">🔎</span>
-          <input type="search" id="searchInput" placeholder="Search institution, dataset, Block Books, HCAD, Sanborn, script..." aria-label="Filter institutions and data feeds" />
+          <input type="search" id="searchInput" placeholder="Search institution, dataset, Block Books, HCAD, Sanborn, Pass-2, script..." aria-label="Filter institutions and data feeds" />
         </div>
       </div>
 
       <div class="status-filter-row" id="statusFilterBar" aria-label="Filter by integration status"></div>
+      <div class="status-filter-row" id="fidelityFilterBar" aria-label="Filter by extraction fidelity tier"></div>
     </section>
 
     <section class="engines-section" aria-labelledby="enginesEyebrow">
@@ -790,14 +1131,22 @@
   </div>
 
   <script type="module">
+    import { renderArchitectureDiagramSectionHtml } from "./js/architectureDiagram.js?v=20261115a";
+
     let catalog = null;
+    const initialHash = String(window.location.hash || "").toLowerCase();
     const state = {
-      viewMode: "sector", // "sector" | "frequency" | "engine"
+      viewMode: initialHash.includes("arch") ? "architecture" : "sector", // "sector" | "architecture" | "gaps" | "frequency" | "engine"
       statusFilter: "ALL",
+      fidelityFilter: "ALL",
       engineFilter: "",
       q: "",
       posterMode: false,
       theme: localStorage.getItem("hba:ecosystem:theme") || "dark",
+      archFlowMode: "all",
+      archPlaying: true,
+      archSpeed: 1,
+      archSelectedNodeId: "user_local_cloud_llms",
     };
 
     function esc(str) {
@@ -827,6 +1176,25 @@
       };
     }
 
+    function getFidelityMeta(fidelityId) {
+      return (catalog?.fidelityDefinitions || []).find(f => f.id === fidelityId) || {
+        id: fidelityId || "pass2_complete",
+        label: fidelityId || "High Fidelity",
+        shortLabel: fidelityId || "High Fidelity",
+        color: "#10b981",
+        badgeBg: "rgba(16,185,129,0.14)",
+        badgeBorder: "rgba(16,185,129,0.45)",
+      };
+    }
+
+    function meterColor(pct) {
+      const n = Number(pct) || 0;
+      if (n >= 85) return "var(--emerald)";
+      if (n >= 40) return "var(--blue)";
+      if (n > 0) return "var(--amber)";
+      return "var(--purple)";
+    }
+
     function getAllFlattenedFeeds() {
       if (!catalog) return [];
       const out = [];
@@ -847,6 +1215,10 @@
       if (state.statusFilter !== "ALL" && feed.status !== state.statusFilter) {
         return false;
       }
+      const cf = feed.coverageAndFidelity || {};
+      if (state.fidelityFilter !== "ALL" && cf.fidelityTier !== state.fidelityFilter) {
+        return false;
+      }
       if (state.engineFilter && !(feed.engineIds || []).includes(state.engineFilter)) {
         return false;
       }
@@ -864,6 +1236,10 @@
           feed.frequencyLabel,
           feed.method,
           feed.pipelineScript,
+          cf.coveredSummary,
+          cf.universeSummary,
+          cf.whatIsMissing,
+          cf.pass2AndGapClosurePlan,
           ...(feed.appTargets || []),
         ].join(" ").toLowerCase();
         if (!hay.includes(needle)) return false;
@@ -876,36 +1252,70 @@
       const totalOrgs = (catalog.organizations || []).length;
       const activeAuto = allFeeds.filter(f => f.status === "active_auto").length;
       const activeCurated = allFeeds.filter(f => f.status === "active_curated").length;
-      const assistedHitl = allFeeds.filter(f => f.status === "assisted_hitl").length;
-      const inFlight = allFeeds.filter(f => f.status === "in_flight_request").length;
-      const planned = allFeeds.filter(f => f.status === "planned_roadmap").length;
+      const sum = catalog.corpusCompletenessSummary || {};
+      const avgVol = sum.averageVolumeCoveragePct ?? 81;
+      const avgFid = sum.averageExtractionFidelityPct ?? 66;
+      const tierCounts = sum.fidelityTierCounts || {};
+      const needsPass2 = tierCounts.pass1_needs_pass2 || 0;
+      const pullNeeded = tierCounts.inventory_only_pull_needed || 0;
 
       document.getElementById("kpiStrip").innerHTML = `
         <div class="kpi-box">
           <div class="kpi-num">${totalOrgs}</div>
-          <div class="kpi-lbl">Source Institutions</div>
-        </div>
-        <div class="kpi-box">
-          <div class="kpi-num">${allFeeds.length}</div>
-          <div class="kpi-lbl">Total Data Feeds</div>
+          <div class="kpi-lbl">Source Institutions (${allFeeds.length} Data Feeds)</div>
         </div>
         <div class="kpi-box">
           <div class="kpi-num" style="color:var(--emerald)">${activeAuto + activeCurated}</div>
           <div class="kpi-lbl">Active Automated &amp; Indexed (${activeAuto} Auto · ${activeCurated} Corpus)</div>
         </div>
         <div class="kpi-box">
-          <div class="kpi-num" style="color:var(--amber)">${assistedHitl}</div>
-          <div class="kpi-lbl">Assisted 1-Click Portals</div>
+          <div class="kpi-num" style="color:var(--emerald)">${avgVol}%</div>
+          <div class="kpi-lbl">Avg Source-Volume Coverage Acquired</div>
         </div>
         <div class="kpi-box">
-          <div class="kpi-num" style="color:var(--purple)">${inFlight + planned}</div>
-          <div class="kpi-lbl">In-Flight &amp; Planned (${inFlight} In-Flight · ${planned} Roadmap)</div>
+          <div class="kpi-num" style="color:var(--blue)">${avgFid}%</div>
+          <div class="kpi-lbl">Avg Parcel-Level Extraction Fidelity</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num" style="color:var(--amber)">${needsPass2} + ${pullNeeded}</div>
+          <div class="kpi-lbl">Pass-2 Re-Extraction (${needsPass2}) &amp; Archive Pulls (${pullNeeded})</div>
         </div>
         <div class="kpi-box">
           <div class="kpi-num" style="color:var(--blue)">${(catalog.synthesisEngines || []).length}</div>
-          <div class="kpi-lbl">Cross-Check Engines</div>
+          <div class="kpi-lbl">Cross-Check Synthesis Engines</div>
         </div>
       `;
+
+      const bannerEl = document.getElementById("completenessBanner");
+      if (bannerEl) {
+        bannerEl.innerHTML = `
+          <div class="completeness-banner-top">
+            <div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--blue)">Quantitative Completeness Audit: Source Acquisition vs. Deep Extraction Fidelity</div>
+              <p style="margin:4px 0 0;font-size:14px;color:var(--ink-2);max-width:980px">${esc(sum.keyTakeaway || "")}</p>
+            </div>
+            <button type="button" class="btn primary" data-switch-view="gaps">📊 Open Full Coverage &amp; Pass-2 Gap Playbook</button>
+          </div>
+          <div class="completeness-bars-grid">
+            <div class="meter-card">
+              <div class="meter-row-head">
+                <span>1. Source Volume / Corpus Acquisition Coverage</span>
+                <span class="meter-pct" style="color:var(--emerald)">${avgVol}%</span>
+              </div>
+              <div class="meter-track"><div class="meter-fill" style="width:${avgVol}%;background:var(--emerald)"></div></div>
+              <div class="meter-sub">Share of target historic volumes, GIS layers, and bulk SQL/XML archives downloaded or indexed (${tierCounts.pass2_complete || 26} feeds at 85-100% fidelity).</div>
+            </div>
+            <div class="meter-card">
+              <div class="meter-row-head">
+                <span>2. Parcel &amp; Building-Level Extraction Fidelity (Pass 1 vs. Pass 2)</span>
+                <span class="meter-pct" style="color:var(--blue)">${avgFid}%</span>
+              </div>
+              <div class="meter-track"><div class="meter-fill" style="width:${avgFid}%;background:var(--blue)"></div></div>
+              <div class="meter-sub">${needsPass2} already-acquired corpora (1866-1968 City Directories, 7.68 GiB Clerk TPIA, Sanborn sheets, TARO XMLs) have unextracted Pass-2 fields ready to mine on disk.</div>
+            </div>
+          </div>
+        `;
+      }
     }
 
     function renderStatusFilters() {
@@ -928,6 +1338,27 @@
         `);
       }
       document.getElementById("statusFilterBar").innerHTML = pills.join("");
+
+      const fidCounts = { ALL: allFeeds.length };
+      for (const f of allFeeds) {
+        const ft = f.coverageAndFidelity?.fidelityTier || "pass2_complete";
+        fidCounts[ft] = (fidCounts[ft] || 0) + 1;
+      }
+      const fidPills = [
+        `<span class="filter-label">Extraction Fidelity Filter:</span>`,
+        `<button type="button" class="status-pill-btn" data-fidelity-id="ALL" aria-pressed="${state.fidelityFilter === "ALL"}">All Fidelity Tiers (${fidCounts.ALL})</button>`,
+      ];
+      for (const fd of catalog.fidelityDefinitions || []) {
+        const cnt = fidCounts[fd.id] || 0;
+        fidPills.push(`
+          <button type="button" class="status-pill-btn" data-fidelity-id="${esc(fd.id)}" aria-pressed="${state.fidelityFilter === fd.id}" title="${esc(fd.description)}">
+            <span class="status-dot" style="background:${esc(fd.color)}"></span>
+            ${esc(fd.shortLabel)} (${cnt})
+          </button>
+        `);
+      }
+      const fidBar = document.getElementById("fidelityFilterBar");
+      if (fidBar) fidBar.innerHTML = fidPills.join("");
     }
 
     function renderEnginesBar() {
@@ -956,6 +1387,10 @@
 
     function renderFeedCardHtml(feed, org, includeOrgBadge = false) {
       const st = getStatusMeta(feed.status);
+      const cf = feed.coverageAndFidelity || {};
+      const fid = getFidelityMeta(cf.fidelityTier);
+      const volPct = cf.volumeCoveragePct ?? 100;
+      const fidPct = cf.extractionFidelityPct ?? 100;
       const isRoadmapOrInFlight = feed.status === "planned_roadmap" || feed.status === "in_flight_request";
       const engineBadges = (feed.engineIds || []).map(eid => {
         const eng = (catalog.synthesisEngines || []).find(e => e.id === eid);
@@ -965,22 +1400,155 @@
       return `
         <article class="feed-item ${isRoadmapOrInFlight ? "roadmap-item" : ""}" data-open-feed="${esc(feed.id)}" role="button" tabindex="0" aria-label="Inspect ${esc(feed.name)}">
           <div class="feed-eyebrow">
-            <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
-              <span class="status-dot" style="background:${esc(st.color)}"></span>
-              ${esc(st.shortLabel)}
-            </span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
+                <span class="status-dot" style="background:${esc(st.color)}"></span>
+                ${esc(st.shortLabel)}
+              </span>
+              <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)}">
+                ${esc(fid.shortLabel)}
+              </span>
+            </div>
             <span class="freq-badge">⏱️ ${esc(feed.frequencyLabel)}</span>
           </div>
           ${includeOrgBadge ? `<div style="font-size:12px;font-weight:700;color:var(--blue)">🏛️ ${esc(org.name)}</div>` : ""}
           <h4 class="feed-title">${esc(feed.name)}</h4>
           <p class="feed-body">${esc(feed.whatItProvides)}</p>
+          <div class="feed-coverage-box">
+            <div class="feed-meters-pair">
+              <div>
+                <div class="meter-row-head"><span>Volume Coverage</span><span class="meter-pct" style="color:${meterColor(volPct)}">${volPct}%</span></div>
+                <div class="meter-track"><div class="meter-fill" style="width:${volPct}%;background:${meterColor(volPct)}"></div></div>
+              </div>
+              <div>
+                <div class="meter-row-head"><span>Extraction Fidelity</span><span class="meter-pct" style="color:${meterColor(fidPct)}">${fidPct}%</span></div>
+                <div class="meter-track"><div class="meter-fill" style="width:${fidPct}%;background:${meterColor(fidPct)}"></div></div>
+              </div>
+            </div>
+            ${cf.coveredSummary ? `<p class="feed-gap-detail"><strong>Extracted:</strong> ${esc(cf.coveredSummary)}</p>` : ""}
+            ${cf.whatIsMissing ? `<p class="feed-gap-detail"><strong>Gap / Unextracted:</strong> ${esc(cf.whatIsMissing)}</p>` : ""}
+            ${cf.pass2AndGapClosurePlan ? `<p class="feed-pass2-callout"><strong>How We Fill the Gap:</strong> ${esc(cf.pass2AndGapClosurePlan)}</p>` : ""}
+          </div>
           <p class="feed-crosscheck"><strong>Cross-Check Logic:</strong> ${esc(feed.howCrossChecked)}</p>
-          ${isRoadmapOrInFlight ? `<div class="feed-roadmap-note"><strong>How &amp; When Planned:</strong> ${esc(feed.howAndWhenPlanned)}</div>` : ""}
           <div class="feed-footer">
             <span>📦 ${esc(feed.recordScale)}</span>
             <span>${engineBadges}</span>
           </div>
         </article>
+      `;
+    }
+
+    function renderByGapsAndSpotlights() {
+      const spotlights = catalog.deepDiveSpotlights || [];
+      const spotlightCards = spotlights.map(sp => {
+        const fid = getFidelityMeta(sp.fidelityTier);
+        const cohortsHtml = (sp.subCohorts || []).map(sc => `
+          <div class="subcohort-item">
+            <div class="subcohort-head">
+              <span>${esc(sc.label)}</span>
+              <span class="mono-tag">Vol: ${sc.volumeCoveragePct}% · Fidelity: ${sc.extractionFidelityPct}%</span>
+            </div>
+            <div class="feed-meters-pair">
+              <div class="meter-track"><div class="meter-fill" style="width:${sc.volumeCoveragePct}%;background:${meterColor(sc.volumeCoveragePct)}"></div></div>
+              <div class="meter-track"><div class="meter-fill" style="width:${sc.extractionFidelityPct}%;background:${meterColor(sc.extractionFidelityPct)}"></div></div>
+            </div>
+            <div style="font-size:13px;color:var(--ink-2)"><strong>Extracted:</strong> ${esc(sc.extractedLabel)} · <strong>Universe:</strong> ${esc(sc.universeLabel)}</div>
+            <div style="font-size:13px;color:var(--muted)"><strong>Gap Detail:</strong> ${esc(sc.gapNote)}</div>
+          </div>
+        `).join("");
+
+        return `
+          <article class="spotlight-card">
+            <div class="feed-eyebrow">
+              <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)}">${esc(fid.label)}</span>
+              <span class="mono-tag">Vol ${sp.volumeCoveragePct}% · Fidelity ${sp.extractionFidelityPct}%</span>
+            </div>
+            <h3 class="spotlight-title">${esc(sp.title)}</h3>
+            <div style="font-size:13px;font-weight:600;color:var(--blue)">🏛️ ${esc(sp.institution)}</div>
+            <div class="spotlight-headline">${esc(sp.headlineMetric)}</div>
+            <p class="feed-body">${esc(sp.summary)}</p>
+            <div class="feed-pass2-callout" style="border-left-color:var(--amber);background:color-mix(in srgb, var(--amber) 9%, transparent)">
+              <strong>Why Pass 1 Missed Recoverable Records:</strong> ${esc(sp.whyPass1MissedData)}
+            </div>
+            <div class="feed-pass2-callout">
+              <strong>Pass-2 &amp; Archival Gap-Closure Plan:</strong> ${esc(sp.howWeWillFillGaps)}
+            </div>
+            <div class="subcohort-list">${cohortsHtml}</div>
+          </article>
+        `;
+      }).join("");
+
+      const allFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const sortedFeeds = [...allFeeds].sort((a, b) => {
+        const fa = a.coverageAndFidelity?.extractionFidelityPct ?? 100;
+        const fb = b.coverageAndFidelity?.extractionFidelityPct ?? 100;
+        return fa - fb;
+      });
+
+      const rowsHtml = sortedFeeds.map(f => {
+        const cf = f.coverageAndFidelity || {};
+        const fid = getFidelityMeta(cf.fidelityTier);
+        const volPct = cf.volumeCoveragePct ?? 100;
+        const fidPct = cf.extractionFidelityPct ?? 100;
+        return `
+          <tr data-open-feed="${esc(f.id)}">
+            <td>
+              <div style="font-weight:700;color:var(--ink)">${esc(f.name)}</div>
+              <div style="font-size:12px;color:var(--blue);font-weight:600">${esc(f.org.shortName || f.org.name)}</div>
+              <div style="margin-top:4px">
+                <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)}">${esc(fid.shortLabel)}</span>
+              </div>
+            </td>
+            <td style="min-width:130px">
+              <div class="meter-row-head"><span>Vol</span><span class="meter-pct" style="color:${meterColor(volPct)}">${volPct}%</span></div>
+              <div class="meter-track" style="margin:4px 0 8px"><div class="meter-fill" style="width:${volPct}%;background:${meterColor(volPct)}"></div></div>
+              <div class="meter-row-head"><span>Fidelity</span><span class="meter-pct" style="color:${meterColor(fidPct)}">${fidPct}%</span></div>
+              <div class="meter-track" style="margin-top:4px"><div class="meter-fill" style="width:${fidPct}%;background:${meterColor(fidPct)}"></div></div>
+            </td>
+            <td>
+              <div style="font-size:13px;color:var(--ink)"><strong>Extracted:</strong> ${esc(cf.coveredSummary || f.recordScale)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px"><strong>Universe:</strong> ${esc(cf.universeSummary || "")}</div>
+            </td>
+            <td style="font-size:13px;color:var(--ink-2)">${esc(cf.whatIsMissing || "")}</td>
+            <td style="font-size:13px;color:var(--ink)">${esc(cf.pass2AndGapClosurePlan || f.howAndWhenPlanned)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      return `
+        <section class="sector-block">
+          <div class="sector-header">
+            <div>
+              <h2 class="sector-title">🔬 Deep-Dive Fidelity &amp; Gap Spotlights (What Pass 1 Captured vs. How Pass 2 Fills the Gaps)</h2>
+              <p class="sector-desc">Detailed breakdown of the 8 major historical datasets where we distinguish between raw volumes acquired vs. parcel-level records extracted.</p>
+            </div>
+            <span class="mono-tag">${spotlights.length} deep-dive cohorts</span>
+          </div>
+          <div class="spotlights-grid">${spotlightCards}</div>
+        </section>
+        <section class="sector-block">
+          <div class="sector-header">
+            <div>
+              <h2 class="sector-title">📋 Complete 46-Feed Coverage, Missing Records &amp; Gap-Closure Matrix (Sorted Lowest Fidelity First)</h2>
+              <p class="sector-desc">Click any row to open the full technical specification and code path for that data feed.</p>
+            </div>
+            <span class="mono-tag">${sortedFeeds.length} feeds shown</span>
+          </div>
+          <div class="matrix-table-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>Data Feed &amp; Institution</th>
+                  <th>Vol / Fidelity %</th>
+                  <th>Extracted vs. Target Universe</th>
+                  <th>What Is Missing / Unextracted</th>
+                  <th>Pass-2 / Archival Gap-Closure Plan</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </section>
       `;
     }
 
@@ -1082,7 +1650,16 @@
       renderStatusFilters();
       renderEnginesBar();
       const container = document.getElementById("diagramContainer");
-      if (state.viewMode === "frequency") {
+      if (state.viewMode === "architecture") {
+        container.innerHTML = renderArchitectureDiagramSectionHtml({
+          activeFlowMode: state.archFlowMode,
+          isPlaying: state.archPlaying,
+          speedMultiplier: state.archSpeed,
+          selectedNodeId: state.archSelectedNodeId,
+        });
+      } else if (state.viewMode === "gaps") {
+        container.innerHTML = renderByGapsAndSpotlights();
+      } else if (state.viewMode === "frequency") {
         container.innerHTML = renderByFrequency();
       } else if (state.viewMode === "engine") {
         container.innerHTML = renderByEngine();
@@ -1095,6 +1672,8 @@
       const hit = getAllFlattenedFeeds().find(f => f.id === feedId);
       if (!hit) return;
       const st = getStatusMeta(hit.status);
+      const cf = hit.coverageAndFidelity || {};
+      const fid = getFidelityMeta(cf.fidelityTier);
       const engines = (hit.engineIds || [])
         .map(id => (catalog.synthesisEngines || []).find(e => e.id === id))
         .filter(Boolean)
@@ -1104,10 +1683,15 @@
       modalCard.innerHTML = `
         <div class="modal-head">
           <div>
-            <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
-              <span class="status-dot" style="background:${esc(st.color)}"></span>
-              ${esc(st.label)}
-            </span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
+                <span class="status-dot" style="background:${esc(st.color)}"></span>
+                ${esc(st.label)}
+              </span>
+              <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)}">
+                ${esc(fid.label)}
+              </span>
+            </div>
             <h3 class="modal-title" id="modalTitle">${esc(hit.name)}</h3>
             <div style="font-size:14px;color:var(--ink-2)">
               <strong>Institution:</strong> ${esc(hit.org.name)} · <a href="${esc(hit.org.websiteUrl)}" target="_blank" rel="noopener noreferrer">Official Portal ↗</a>
@@ -1117,16 +1701,22 @@
         </div>
         <p style="font-size:15px;margin:0 0 12px">${esc(hit.whatItProvides)}</p>
         <dl class="detail-dl">
+          <dt>Volume vs. Fidelity</dt>
+          <dd><strong>${cf.volumeCoveragePct ?? 100}%</strong> Source Volume Coverage · <strong>${cf.extractionFidelityPct ?? 100}%</strong> Parcel-Level Extraction Fidelity</dd>
+          <dt>Extracted Records</dt>
+          <dd>${esc(cf.coveredSummary || hit.recordScale)}</dd>
+          <dt>Target Universe</dt>
+          <dd>${esc(cf.universeSummary || hit.recordScale)}</dd>
+          <dt>What Is Missing</dt>
+          <dd>${esc(cf.whatIsMissing || "None")}</dd>
+          <dt>Gap-Closure Plan</dt>
+          <dd>${esc(cf.pass2AndGapClosurePlan || hit.howAndWhenPlanned)}</dd>
           <dt>Retrieval Cadence</dt>
           <dd>${esc(hit.frequencyLabel)}</dd>
           <dt>Ingestion Method</dt>
           <dd>${esc(hit.method)}</dd>
-          <dt>Dataset Scale</dt>
-          <dd>${esc(hit.recordScale)}</dd>
           <dt>Cross-Check Logic</dt>
           <dd>${esc(hit.howCrossChecked)}</dd>
-          <dt>Operational / Roadmap Plan</dt>
-          <dd>${esc(hit.howAndWhenPlanned)}</dd>
           <dt>Synthesis Engines</dt>
           <dd>${engines || "None"}</dd>
           <dt>Application Surfaces</dt>
@@ -1142,6 +1732,7 @@
       const width = 3600;
       const height = 2400;
       const allFeeds = getAllFlattenedFeeds();
+      const sum = catalog.corpusCompletenessSummary || {};
       const xmlEsc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       const lines = [];
       lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
@@ -1156,7 +1747,7 @@
       lines.push(`<rect x="40" y="40" width="${width - 80}" height="${height - 80}" fill="none" stroke="#38bdf8" stroke-width="3"/>`);
       lines.push(`<text x="80" y="110" fill="#8cc63f" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">PRESERVATION HOUSTON · ARCHITECTURAL DATA PROVENANCE BLUEPRINT (24"x36" POSTER)</text>`);
       lines.push(`<text x="80" y="160" fill="#f1f5f9" font-family="Georgia, serif" font-size="44" font-weight="700">${xmlEsc(catalog.title)}</text>`);
-      lines.push(`<text x="80" y="200" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">${xmlEsc(catalog.subtitle)} · Updated ${xmlEsc(catalog.lastUpdated)} · ${catalog.organizations.length} Institutions · ${allFeeds.length} Data Feeds</text>`);
+      lines.push(`<text x="80" y="200" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">Updated ${xmlEsc(catalog.lastUpdated)} · ${catalog.organizations.length} Institutions · ${allFeeds.length} Data Feeds · Avg Volume Coverage ${sum.averageVolumeCoveragePct ?? 81}% · Avg Extraction Fidelity ${sum.averageExtractionFidelityPct ?? 66}%</text>`);
 
       const sectors = catalog.sectors || [];
       const colW = Math.floor((width - 160 - (sectors.length - 1) * 24) / sectors.length);
@@ -1176,10 +1767,11 @@
           let fy = yCursor + 46;
           for (const f of feeds) {
             const st = getStatusMeta(f.status);
+            const cf = f.coverageAndFidelity || {};
             lines.push(`<rect x="${x0 + 10}" y="${fy}" width="${colW - 20}" height="82" rx="6" fill="#152036" stroke="${xmlEsc(st.color)}" stroke-width="1.5"/>`);
-            lines.push(`<text x="${x0 + 20}" y="${fy + 22}" fill="${xmlEsc(st.color)}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">[${xmlEsc(st.shortLabel)}] · ${xmlEsc(f.frequencyLabel.slice(0, 38))}</text>`);
+            lines.push(`<text x="${x0 + 20}" y="${fy + 22}" fill="${xmlEsc(st.color)}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">[${xmlEsc(st.shortLabel)}] Vol ${cf.volumeCoveragePct ?? 100}% · Fid ${cf.extractionFidelityPct ?? 100}%</text>`);
             lines.push(`<text x="${x0 + 20}" y="${fy + 44}" fill="#f1f5f9" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">${xmlEsc(f.name.slice(0, 56))}</text>`);
-            lines.push(`<text x="${x0 + 20}" y="${fy + 66}" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="13">${xmlEsc(f.recordScale.slice(0, 62))}</text>`);
+            lines.push(`<text x="${x0 + 20}" y="${fy + 66}" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="13">${xmlEsc((cf.coveredSummary || f.recordScale).slice(0, 62))}</text>`);
             fy += 90;
           }
           yCursor += boxH + 14;
@@ -1197,6 +1789,44 @@
     }
 
     document.addEventListener("click", e => {
+      const archFlowBtn = e.target.closest("[data-arch-flow-mode]");
+      if (archFlowBtn) {
+        state.archFlowMode = archFlowBtn.dataset.archFlowMode;
+        renderDiagram();
+        return;
+      }
+
+      if (e.target.closest("[data-arch-toggle-play]")) {
+        state.archPlaying = !state.archPlaying;
+        renderDiagram();
+        return;
+      }
+
+      if (e.target.closest("[data-arch-cycle-speed]")) {
+        const speeds = [1, 1.5, 0.5];
+        const nextIdx = (speeds.indexOf(state.archSpeed) + 1) % speeds.length;
+        state.archSpeed = speeds[nextIdx];
+        renderDiagram();
+        return;
+      }
+
+      const archNode = e.target.closest("[data-arch-node-id]");
+      if (archNode) {
+        state.archSelectedNodeId = archNode.dataset.archNodeId;
+        renderDiagram();
+        return;
+      }
+
+      const switchBtn = e.target.closest("[data-switch-view]");
+      if (switchBtn) {
+        state.viewMode = switchBtn.dataset.switchView;
+        document.querySelectorAll("[data-view-mode]").forEach(b => {
+          b.setAttribute("aria-selected", String(b.dataset.viewMode === state.viewMode));
+        });
+        renderDiagram();
+        return;
+      }
+
       const viewTab = e.target.closest("[data-view-mode]");
       if (viewTab) {
         state.viewMode = viewTab.dataset.viewMode;
@@ -1211,6 +1841,14 @@
       if (statusBtn) {
         const clicked = statusBtn.dataset.statusId;
         state.statusFilter = (state.statusFilter === clicked && clicked !== "ALL") ? "ALL" : clicked;
+        renderDiagram();
+        return;
+      }
+
+      const fidBtn = e.target.closest("[data-fidelity-id]");
+      if (fidBtn) {
+        const clicked = fidBtn.dataset.fidelityId;
+        state.fidelityFilter = (state.fidelityFilter === clicked && clicked !== "ALL") ? "ALL" : clicked;
         renderDiagram();
         return;
       }
@@ -1278,7 +1916,7 @@
 
     async function init() {
       applyTheme();
-      const resp = await fetch("public/data/data_sources_catalog.json?v=20261113c");
+      const resp = await fetch("public/data/data_sources_catalog.json?v=20261115a");
       catalog = await resp.json();
       renderDiagram();
     }

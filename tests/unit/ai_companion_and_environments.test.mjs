@@ -493,3 +493,121 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
   assert.ok(!/[\u2013\u2014]/.test(llmsTxt), "app/llms.txt contains forbidden U+2013/U+2014 dashes");
   assert.ok(!/[\u2013\u2014]/.test(llmsFullTxt), "app/llms-full.txt contains forbidden U+2013/U+2014 dashes");
 });
+
+
+import {
+  AtlasNodeClient,
+  sanitizeSpreadsheetCell,
+  formatCsvRows,
+  SUGGESTION_CSV_COLUMNS,
+  FIELD_SURVEY_CSV_COLUMNS,
+} from "../../skills/houston-building-atlas/scripts/query_atlas.mjs";
+import {
+  ARCHITECTURE_FLOW_MODES,
+  TECH_STACK_LOGOS,
+  ARCHITECTURE_NODES,
+  ARCHITECTURE_EDGES,
+  renderArchitectureDiagramSectionHtml,
+} from "../../app/js/architectureDiagram.js";
+
+test("UT-AI-6: 2-Way Community & Local LLM Contribution API in query_atlas.mjs upholds moderation, formula safety, and dry-run contracts", async () => {
+  const client = new AtlasNodeClient();
+
+  // 1. Dry-run property correction with Local LLM agent_tool tagging
+  const corrRes = await client.submitCorrection(
+    {
+      hcad_num: "0550140020008",
+      address: "3700 N Main St",
+      building_name: "Granada Theater",
+      suggested_year_built: 1946,
+      architect: "R. G. Schneider",
+      style: "Art Moderne",
+      source_type: "ARCHIVAL_CITATION",
+      source_citation: "Houston Post, Oct 12, 1946",
+      agent_tool: "Ollama Llama-3.3-70B",
+    },
+    { dryRun: true }
+  );
+  assert.equal(corrRes.ok, true);
+  assert.equal(corrRes.mode, "dry_run");
+  assert.equal(corrRes.payload.hcad_num, "0550140020008");
+  assert.equal(corrRes.payload.suggested_year_built, 1946);
+  assert.ok(corrRes.payload.source_citation.includes("[AI_AGENT:Ollama Llama-3.3-70B]"));
+
+  // 2. Dry-run Walk-the-Block field survey
+  const surveyRes = await client.submitFieldSurvey(
+    {
+      hcad_num: "0052090000011",
+      address: "1917 Washington Ave",
+      historic_district: "Old Sixth Ward",
+      integrity_grade: "Intact",
+      condition_rating: "Good",
+      field_notes: "Masonry bearing commercial storefront intact",
+      agent_tool: "Claude Code",
+    },
+    { dryRun: true }
+  );
+  assert.equal(surveyRes.ok, true);
+  assert.equal(surveyRes.payload.action, "field_survey");
+  assert.equal(surveyRes.payload.source_type, "FIELD_SURVEY_OBSERVATION");
+  assert.ok(surveyRes.payload.source_citation.includes("[AI_AGENT:Claude Code]"));
+
+  // 3. Dry-run 1-click quick flag
+  const flagRes = await client.submitQuickFlag(
+    {
+      flag_type: "claim_dispute",
+      hcad_num: "0152300000001",
+      address: "2000 Smith St",
+      disputed_field: "year_built",
+      disputed_value: "1928",
+      suggested_value: "1894",
+      notes: "Built 1894 for John Henry Kirby; 1928 is James Ruskin Bailey remodel",
+      agent_tool: "Gemini CLI",
+    },
+    { dryRun: true }
+  );
+  assert.equal(flagRes.ok, true);
+  assert.equal(flagRes.payload.suggested_year_built, 1894);
+  assert.ok(flagRes.payload.source_citation.includes("[CLAIM_DISPUTE:year_built]"));
+
+  // 4. Formula-injection neutralization & RFC 4180 CSV export
+  assert.equal(sanitizeSpreadsheetCell("=CMD|' /C calc'!A0"), "'=CMD|' /C calc'!A0");
+  const csvOut = client.exportContributionsCsv({
+    kind: "suggestions",
+    records: [corrRes.payload],
+  });
+  assert.ok(csvOut.startsWith(SUGGESTION_CSV_COLUMNS.join(",")));
+  assert.ok(csvOut.includes("0550140020008"));
+
+  const surveyCsvOut = client.exportContributionsCsv({
+    kind: "surveys",
+    records: [surveyRes.payload],
+  });
+  assert.ok(surveyCsvOut.startsWith(FIELD_SURVEY_CSV_COLUMNS.join(",")));
+  assert.ok(surveyCsvOut.includes("0052090000011"));
+});
+
+test("UT-AI-7: Interactive Animated System & LLM Architecture Diagram upholds node, flow, logo, and data-ecosystem.html contracts", () => {
+  assert.equal(ARCHITECTURE_FLOW_MODES.length, 5);
+  assert.ok(TECH_STACK_LOGOS.length >= 8);
+  assert.ok(ARCHITECTURE_NODES.length >= 10);
+  assert.ok(ARCHITECTURE_EDGES.length >= 14);
+
+  const html = renderArchitectureDiagramSectionHtml({
+    activeFlowMode: "all",
+    isPlaying: true,
+    speedMultiplier: 1,
+    selectedNodeId: "user_local_cloud_llms",
+  });
+  assert.ok(html.includes('id="animatedArchitectureSection"'));
+  assert.ok(html.includes('id="archAnimatedSvg"'));
+  assert.ok(html.includes("<animateMotion"));
+  assert.ok(html.includes("Antigravity &amp; Claude Code"));
+  assert.ok(html.includes("GitHub Repository &amp; Actions Batch Pipelines"));
+  assert.ok(html.includes("End-User Cloud &amp; Local LLM Tools (2-Way Skill)"));
+  assert.ok(!/[\u2013\u2014]/.test(html), "Architecture diagram HTML must not contain U+2013 or U+2014 dashes");
+
+  const ecosystemHtml = fs.readFileSync(path.join(APP_DIR, "data-ecosystem.html"), "utf8");
+  assert.ok(ecosystemHtml.includes('data-view-mode="architecture"'));
+  assert.ok(ecosystemHtml.includes("renderArchitectureDiagramSectionHtml"));
+});

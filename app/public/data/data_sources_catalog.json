@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "2.0.0",
   "title": "Houston Building Atlas Data Ecosystem & Provenance Catalog",
-  "subtitle": "Declarative registry of all municipal, county, state, federal, academic, and archival institutions integrated or planned for cross-checking Houston building history and demolition risk",
-  "lastUpdated": "2026-11-14",
+  "subtitle": "Declarative registry of all 29 municipal, county, state, federal, academic, and archival institutions (46 data feeds) with quantitative universe coverage, Pass-1 vs. Pass-2 extraction fidelity audits, and gap-closure playbooks",
+  "lastUpdated": "2026-11-15",
   "maintenanceNote": "Add or update any institution or data feed in this JSON file (app/public/data/data_sources_catalog.json). Both the interactive screen explorer and the printable 24x36 architectural blueprint poster in app/data-ecosystem.html render automatically from this catalog.",
   "statusDefinitions": [
     {
@@ -263,7 +263,16 @@
           "whatItProvides": "Account numbers, site addresses, erection dates (date_erected / yr_impr), square footage, structural type, exterior wall materials, CDU/grade ratings, and legal descriptions.",
           "howCrossChecked": "Cross-checked against City Directories and HMRC permits to flag rounded decade placeholder dates (1900, 1920, 1930, 1940, 1950) and overridden via date_overrides.json.",
           "pipelineScript": "pipeline/atlas_pipeline/ingest_hcad.py",
-          "howAndWhenPlanned": "Active in production; automated annual roll refresher checks pdata.hcad.org each July/August and applies October/November correction supplements."
+          "howAndWhenPlanned": "Active in production; automated annual roll refresher checks pdata.hcad.org each July/August and applies October/November correction supplements.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 94,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "1,546,683 parcels & 1,507,897 dated building footprints (100.00% dated, 0 undated) across 5 quadrant .pmtiles shards",
+            "universeSummary": "All 1,546,683 Harris County real property accounts & 1.51M structures in HCAD 2026 CAMA (real_acct, building_res, building_other, exterior, extra_features, parcel_tieback)",
+            "whatIsMissing": "100% of current HCAD tables are ingested (including exterior.txt per-building base/upper story areas and extra_features_detail1/2). The only fidelity limitation is upstream HCAD data quality: 3,047 Historic Core structures still carry un-overridden rounded decade estimates (1900, 1920, 1930, 1940) from 1984 computerization.",
+            "pass2AndGapClosurePlan": "Maintain 100% annual roll sync via cli.py --mode annual-refresh each July/August and October/November, while systematically replacing the remaining 3,047 Historic Core rounded-decade estimates using Pass-2 City Directory, Sanborn, and Harris County Archives CR001 Block Book value-jump overrides."
+          }
         },
         {
           "id": "hcad_historical_rolls",
@@ -284,7 +293,16 @@
           "whatItProvides": "Year-by-year recorded property owners, mailing addresses, acquisition dates (new_own_dt), and assessed values from 2005 to 2026.",
           "howCrossChecked": "Used to construct continuous chain-of-title timelines and to unmask post-2021 Texas Tax Code Sec. 25.025 'Current Owner' privacy shields using pre-shield historical rolls.",
           "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
-          "howAndWhenPlanned": "Active in production across all 699,664 parcel shards; refreshed annually."
+          "howAndWhenPlanned": "Active in production across all 699,664 parcel shards; refreshed annually.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 95,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "22 / 22 surviving annual certified rolls (2005-2026) -> 1,239,007 accounts, 845,850 multi-tenure chains & 1,724,304 paired Clerk deed tokens in 152 gzipped shards (48.35 MiB)",
+            "universeSummary": "22 surviving digital HCAD PDATA annual rolls (2005-2026); pre-2005 (1988-2004) electronic CAMA tables were lost by HCAD during server migrations (confirmed by HCAD Open Records Nov 11, 2026)",
+            "whatIsMissing": "100% of surviving 2005-2026 digital HCAD rolls are extracted (with Current-Tenure-Only TX Tax Code Sec. 25.025 redaction preserving prior public owners on 24,593 confidential parcels). Pre-2005 HCAD CAMA snapshots (1988-2004) no longer exist at HCAD, and 89,970 pre-1988 accounts carry a default 01/02/1988 microfilm-digitization date.",
+            "pass2AndGapClosurePlan": "Bridge the extinct 1988-2004 HCAD CAMA gap directly via Pass-2 expansion of our local 7.68 GiB Harris County Clerk Real Property index (1960-2004 warranty deeds, already matched to 25,705 pre-2004 owner chains) plus Harris County Archives 1915-1997 CR001 Block Books and 1970-1983 CR067 Microfilm Tax Rolls."
+          }
         },
         {
           "id": "hcad_arcgis_live",
@@ -306,7 +324,16 @@
           "whatItProvides": "Live owner_name_1, owner_name_2, deeds_date (exact acquisition date), mail_addr_1, state_class, land_value, total_appraised_val, and parcel polygon centroids.",
           "howCrossChecked": "Overrides Plat Tracker applicant/engineer names on the Watchlist so Row 5 always records the true HCAD property owner and actual deed acquisition date rather than sweep date.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production both in daily Python sweeps and live client-side browser enrichment."
+          "howAndWhenPlanned": "Active in production both in daily Python sweeps and live client-side browser enrichment.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 98,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% live query coverage across 1.55M parcels (all 28 active Watchlist properties + biweekly Plat Tracker filings swept daily at 7:00 AM CT + live browser viewport parcel queries)",
+            "universeSummary": "HCAD Public_Query & Residential_Grade ArcGIS FeatureServers (1.55M countywide parcels)",
+            "whatIsMissing": "Live FeatureServer queries cover 100% of geocoded parcels and vacant lots (e.g., 3346 Scott St), but HCAD's ArcGIS service occasionally throttles batch requests above 250 concurrent records during Monday morning maintenance windows.",
+            "pass2AndGapClosurePlan": "Active in production with exponential backoff, multi-HCAD split-account parsing, and automatic fallback to locally bundled 2026 CAMA shards if HCAD's ArcGIS server is temporarily unreachable."
+          }
         },
         {
           "id": "hcad_permits_bulk",
@@ -327,7 +354,16 @@
           "whatItProvides": "Permit issue dates, permit types, docket numbers, and remodel/addition/demolition indicators tracked by HCAD appraisers.",
           "howCrossChecked": "Cross-checked with City of Houston iPermits and HMRC 1905-1951 building permits to separate demolition permits from remodels.",
           "pipelineScript": "pipeline/atlas_pipeline/build_permits_shards.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 92,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "1,300,027 raw HCAD permits (1,124,683 normalized shard entries) + 914,980 appraiser inspection notes across 1,210,554 accounts in 152 gzipped shards (73.41 MiB)",
+            "universeSummary": "1,300,027 permit rows in HCAD permits.txt (25 permit_type codes) + 914,980 building_res/building_other inspection notes (1988-2026)",
+            "whatIsMissing": "100% of HCAD permits.txt and appraiser notes are ingested and translated via permitPlainEnglish.js. However, HCAD's permits.txt only tracks permits logged by tax appraisers since ~1988 and frequently labels major historic teardowns or guts as generic 'Type 11 / 31 Remodel' unless cross-checked against City of Houston iPermits.",
+            "pass2AndGapClosurePlan": "Cross-link HCAD 8-digit docket numbers directly against City of Houston weekly sold permits XLS and pre-1988 HMRC building permit ledgers (1905-1951) so pre-1988 additions and misclassified remodels are fully disambiguated."
+          }
         }
       ]
     },
@@ -359,7 +395,16 @@
           "whatItProvides": "Original pre-1984 tax assessor Building and Land Assessment (BLA) cards containing original City of Houston building permit numbers and issue dates, builder/architect attributions, measured floorplan sketches, room counts, historic valuations, and pre-HCAD ownership chains before 1984 computerization rounded dates to 1920/1930/1940.",
           "howAndWhenPlanned": "Active in production: all 915 CR001 BLA box ranges (Vol. 001-114) are indexed in archival_index.json so any 13-digit HCAD account automatically resolves its exact Harris County Archives box and shelf location, with digitized BLA packets hydrated for priority historic properties (including 1127 Key St, 1001 Bayland Ave, 2000 Smith St, and 727 Arlington St) and a reading-room pull sheet generated for ongoing batch photography.",
           "howCrossChecked": "Directly resolves discrepancies where HCAD CAMA defaults to 1920, 1930, or modern remodel years (such as 1995) by supplying the original City of Houston building permit number, date, and builder recorded on the pre-1980 field card.",
-          "pipelineScript": "app/js/archivalHelpers.js"
+          "pipelineScript": "app/js/archivalHelpers.js",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 14,
+            "fidelityTier": "inventory_only_pull_needed",
+            "coveredSummary": "915 / 915 BLA Card archival box ranges (Vol. 001-114) indexed (100% call-number lookup); 4 full multi-page BLA card PDFs digitized & hydrated (1127 Key St, 1001 Bayland Ave, 2000 Smith St, 727 Arlington St)",
+            "universeSummary": "915 archival boxes of pre-1980 Tax Assessor Building & Land Assessment (BLA) cards at 11525 Todd St, Suite 300 (covering 23 active Watchlist parcels, 2,219 Audit Queue parcels in 81 boxes, and 828 curated historic overrides in 164 boxes)",
+            "whatIsMissing": "While 100% of pre-1984 13-digit HCAD accounts resolve their exact Box and Shelf Location in the app, 19 of the 23 pre-1984 Watchlist parcels, 2,215 of the 2,219 Audit Queue parcels, and 824 of the 828 curated historic overrides have not yet had their physical paper BLA cards photographed in the reading room.",
+            "pass2AndGapClosurePlan": "Execute reading-room photography batches using docs/HARRIS_COUNTY_ARCHIVES_PULL_SHEET.md: Batch 1 pulls the remaining 19 Watchlist BLA cards; Batch 2 photographs the top 30 dense historic-district boxes (Boxes 064, 078, 290, 291A, etc.) covering 600+ Heights, Norhill, Old Sixth Ward, and Montrose contradiction parcels, extracting original COH building permit numbers, builders, footprint sketches, and vintage Polaroid photos."
+          }
         },
         {
           "id": "hca_cr037_block_books",
@@ -380,7 +425,16 @@
           "whatItProvides": "Annual lot-by-lot rendered land and improvement valuations from 1915 to 1997 (pinpointing the exact tax year a building was constructed or expanded, such as John H. Kirby's 1927 improvement jump from $29,175 to $56,250 at 2000 Smith St) plus 19th-century MC003 Abstracts of Title.",
           "howCrossChecked": "Cross-checks gap years between City Directory editions and pre-permit additions by verifying the exact tax year improvement values jumped on the county tax roll.",
           "pipelineScript": "app/js/archivalHelpers.js",
-          "howAndWhenPlanned": "Active in production: all 119 CR001 Block Book volumes (1915-1997) and MC003 Abstracts of Title are indexed in archival_index.json with digitized 1915-1927 Block Book and 1970 CR067 Tax Roll sheets hydrated in the Property Drawer History tab."
+          "howAndWhenPlanned": "Active in production: all 119 CR001 Block Book volumes (1915-1997) and MC003 Abstracts of Title are indexed in archival_index.json with digitized 1915-1927 Block Book and 1970 CR067 Tax Roll sheets hydrated in the Property Drawer History tab.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 12,
+            "fidelityTier": "inventory_only_pull_needed",
+            "coveredSummary": "119 / 119 bound Block Book volumes (1915-1997) & 7 MC003 Abstracts indexed (100% Vol/Page lookup); 2 Block Book TIFF volumes (1915-1927_015_230.tif & 020_015.tif) + 1970 CR067 Tax Roll sheet hydrated",
+            "universeSummary": "640 total bound Block Book volumes across 5 eras (1915-1927 [already digitized as 300-DPI TIFFs on Archives server], 1928-1935, 1936-1941, 1942-1952, 1997) + 167 MC003 Abstract of Title books + online 1997 hctax.net block book maps",
+            "whatIsMissing": "1915-1927 bound Block Books are already digitized as 1915-1927_VVV_PPP.tif files at Harris County Archives, but 399 of the 401 distinct TIFF files covering our 2,219 Historical Audit Queue parcels (and 564 of the 566 TIFFs covering Curated Overrides) have not yet been copied from the reading-room workstation. Additionally, 160 of the 167 MC003 Abstract books in Pathfinder - Abstracts1.pdf and the online 1997 hctax.net block book PDFs are not yet parsed at block level.",
+            "pass2AndGapClosurePlan": "In a single reading-room visit to 11525 Todd St, Suite 300, copy the 401 pre-digitized 1915-1927_VVV_PPP.tif files onto an external USB drive and run OCR/VLM table extraction on 'BY WHOM RENDERED' and annual improvement values (pinpointing exact construction years for 2,219 audit parcels), parse all 167 MC003 Abstract of Title entries from Pathfinder - Abstracts1.pdf, and index the online 1997 hctax.net/Property/blockbooks/ PDF maps."
+          }
         }
       ]
     },
@@ -411,7 +465,16 @@
           "whatItProvides": "Historical grantor/grantee transfers, instrument numbers, file dates, and pre-formatted search helpers for Real Property, Probate, and Assumed Name (DBA) records.",
           "howCrossChecked": "Combined with HCAD new_own_dt and Texas SOS filings to trace property transfers through trusts, estates, and shell entities.",
           "pipelineScript": "app/js/clerkSearchHelpers.js",
-          "howAndWhenPlanned": "Active in production across all 152 prefix shards."
+          "howAndWhenPlanned": "Active in production across all 152 prefix shards.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 88,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "1,239,007 accounts in owners_001..970.json.gz + 1,210,554 accounts in permits_001..970.json.gz across 152 deterministic RFC 1952 gzipped shards + 1-click Clerk RP/Probate/DBA search pills",
+            "universeSummary": "All 1.24M standing/referenced HCAD accounts across 152 3-digit HCAD prefix shards",
+            "whatIsMissing": "100% of HCAD-linked Clerk file numbers (1,724,304 tokens) and 130,474 TPIA-enriched historic/confidential parcel deed chains are sharded and live. The remaining gap is linking Probate estate cause numbers and Assumed Name (DBA) certificates when a property transfers by inheritance or unincorporated trade name without a Warranty Deed.",
+            "pass2AndGapClosurePlan": "Cross-check gaps between consecutive HCAD owner surnames (where no Warranty Deed appears in RPIInstruments.txt) against the Harris County Clerk Probate Index to automatically annotate inherited family transfers."
+          }
         },
         {
           "id": "hc_clerk_tpia_bulk_index",
@@ -432,7 +495,16 @@
           "whatItProvides": "Complete machine-readable Harris County Clerk Real Property index (1961-2026) and Maps & Condos Plat index (1913-2026), linking pre-2004 Grantor -> Grantee warranty deeds, historic Mechanic's Lien / Builders Contract filings (contractor name + contract amount), Deeds of Trust, calibrated original subdivision plat years, and Texas GLO land grants.",
           "howCrossChecked": "Bridges the gap between 1959 (last indexed City Directory) and 2005 (earliest online HCAD CAMA roll) so historic properties carry continuous 20th-century Grantor -> Grantee ownership chains and verified original subdivision plat dates.",
           "pipelineScript": "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
-          "howAndWhenPlanned": "Active in production: 7.68 GiB Harris County Clerk Data Sales custom order (11 annual Real Property archives 1961-2026 + Maps & Condos Index 1913-2026) streamed via cli.py --mode ingest-tpia into permits_<prefix3>.json.gz, owners_<prefix3>.json.gz, and overlays.json."
+          "howAndWhenPlanned": "Active in production: 7.68 GiB Harris County Clerk Data Sales custom order (11 annual Real Property archives 1961-2026 + Maps & Condos Index 1913-2026) streamed via cli.py --mode ingest-tpia into permits_<prefix3>.json.gz, owners_<prefix3>.json.gz, and overlays.json.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 86,
+            "extractionFidelityPct": 68,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "7.68 GiB (12 files, 100% of 1960-2026 RP & 1823-2026 Maps/Condos) streamed: 556,927 / 687,010 target instruments matched (81.1%) -> 130,474 permit shards (494,306 deeds, 9,683 mechanic's liens, 336,053 deeds of trust), 25,705 pre-2004 owner chains & 2,606 calibrated plats",
+            "universeSummary": "2,592,510 candidate instruments (687,010 target conveyances/liens/deeds of trust in 1960-2026 RPIInstruments.txt), 391.1 MiB RPRelDoc.txt, 58,722 Maps/Condos rows (5,573 HCAD subdivisions), plus un-digitized 1836-1960 Deed Books",
+            "whatIsMissing": "(1) On the local 7.68 GiB files already on disk: 130,083 target 1960-2026 instruments went unmatched in Pass 1 because Tier 2 legal matching was scoped to 188,200 historic/confidential parcels, skipped replatted lots with >4 child townhomes (max_parcels_per_legal_key=4), and did not parse 'L23-24 B4' lot/block strings inside the free-text Comment column of RPLegalDesc.txt; 2,967 of 5,573 HCAD subdivisions missed plat calibration due to 'SEC'/'ADDN' abbreviation differences; and RPRelDoc.txt (391 MiB) was not traversed; (2) Pre-1960 Volume Gap: Clerk SQL tables start Nov 1, 1960 (except pre-1960 RESTR rows).",
+            "pass2AndGapClosurePlan": "(Pass 2A - Re-Run Local 7.68 GiB Cache) Add Comment-field Lot/Block regex extraction, a fuzzy Clerk-to-HCAD subdivision alias table (calibrating >90% of all 5,573 subdivisions), pre-replat parent-lot propagation (when FileDate < replat year), and 1-hop RPRelDoc.txt graph traversal; (Pass 2B - Pre-1960 Deed Books) Digitize and OCR the 1836-1960 General Index to Deeds (Grantor/Grantee ledgers) at Harris County Archives / Clerk."
+          }
         }
       ]
     },
@@ -463,7 +535,16 @@
           "whatItProvides": "Unmasked billing taxpayer names on current tax statements (often visible even when HCAD web display shows 'Current Owner') and multi-year tax delinquency status.",
           "howCrossChecked": "Used as Tier 3 of the 6-Tier Ownership Unmasking protocol when HCAD's public CAMA display suppresses an individual owner's name.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production via 1-click Watchlist & Property Drawer verification links."
+          "howAndWhenPlanned": "Active in production via 1-click Watchlist & Property Drawer verification links.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 35,
+            "fidelityTier": "inventory_only_pull_needed",
+            "coveredSummary": "100% 1-click account copy & statement portal launcher across all 1.55M parcels + 28 Watchlist properties",
+            "universeSummary": "All 1.55M Harris County Tax Assessor-Collector accounts (including 33,183 HCAD Sec. 25.025 confidential accounts and delinquent tax accounts)",
+            "whatIsMissing": "Currently operates as an on-demand 1-click staff verification link rather than an automated batch feed of multi-year tax delinquency flags across pre-1976 buildings.",
+            "pass2AndGapClosurePlan": "Integrate the Harris County Tax Office monthly Delinquent Tax Roll bulk extract in Phase 3 (Q1 2027) to automatically flag pre-1940 historic structures with 3+ years of delinquent property taxes (while strictly preserving Sec. 25.025 homeowner privacy)."
+          }
         }
       ]
     },
@@ -495,7 +576,16 @@
           "whatItProvides": "Early notice when a historic building enters tax foreclosure, court-ordered receivership, or public right-of-way condemnation before a speculative buyer acquires it at auction.",
           "howCrossChecked": "Will cross-check monthly Harris County Constable tax sale parcels against pre-1976 buildings and Watchlist items.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by ingesting the monthly Harris County Precinct tax sale parcel lists and matching HCAD account numbers against the Atlas."
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by ingesting the monthly Harris County Precinct tax sale parcel lists and matching HCAD account numbers against the Atlas.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 0,
+            "extractionFidelityPct": 0,
+            "fidelityTier": "unfetched_gap",
+            "coveredSummary": "0% ingested (Planned Phase 3 roadmap feed; schema & matcher target defined)",
+            "universeSummary": "Monthly Harris County Precinct 1-8 Constable Tax Sale lists & District Court tax foreclosure / municipal receivership dockets (~150-400 parcels/month)",
+            "whatIsMissing": "100% unfetched: monthly Constable tax foreclosure auction lists and District Court receivership filings are not yet ingested into the daily sweep.",
+            "pass2AndGapClosurePlan": "Ingest the monthly Harris County Constable Precinct tax sale parcel lists and HCAD delinquent tax suit flags in Phase 3 (Q2 2027) via pipeline/atlas_pipeline/fetch_plat_and_watchlist.py, matching 13-digit HCAD accounts against pre-1976 buildings to alert staff 30-60 days before auction."
+          }
         }
       ]
     },
@@ -528,7 +618,16 @@
           "whatItProvides": "Application numbers, subdivision names, application types, special requests (variances/reconsiderations), HCAD account numbers, acreage, lot counts, developer/applicant names, and Super Neighborhoods.",
           "howCrossChecked": "Every parcel is spatially and account-matched against the Atlas's 1.44M buildings to flag pre-1976 structures, lot splits (1 lot into 2-4 townhome lots), reserve consolidations, Historic Districts, and repeat developers.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production; supports both automated pipeline ingestion and instant drag-and-drop .xlsx/.csv upload in plat-monitor.html."
+          "howAndWhenPlanned": "Active in production; supports both automated pipeline ingestion and instant drag-and-drop .xlsx/.csv upload in plat-monitor.html.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 96,
+            "extractionFidelityPct": 95,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "727 filings across 3 active 2026 cycles (716 consolidated properties) with multi-HCAD & tax-exempt ('X*') age lookup, spatial intersection, and cross-cycle carry-forward",
+            "universeSummary": "Biweekly City of Houston Planning Commission Plat Tracker spreadsheets (26 cycles/year, ~6,500 filings/year across Houston & ETJ)",
+            "whatIsMissing": "Current 2026 biweekly cycles are 100% ingested and cross-checked against all 1.51M buildings. Historical Plat Tracker spreadsheets from 2018-2025 are not yet backfilled into a multi-year longitudinal subdivision split ledger.",
+            "pass2AndGapClosurePlan": "Backfill archived 2018-2025 COH Plat Tracker spreadsheets and recorded Clerk replats to trace multi-year developer assemblage patterns and stalled replats across historic neighborhoods."
+          }
         },
         {
           "id": "coh_pc_agenda_outline_pdf",
@@ -548,7 +647,16 @@
           "whatItProvides": "Official agenda item numbers, public hearing flags, staff recommendations (Approve/Defer), and Section K Development Plat Variances (DPVs) which are omitted from Plat Tracker spreadsheets.",
           "howCrossChecked": "Diffs the published Agenda Outline PDF against the Plat Tracker cycle spreadsheet to mark which filings are actually on the meeting agenda vs. 'Cycle Filing Only - Not on Agenda'.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 95,
+            "extractionFidelityPct": 92,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% of active biweekly Agenda Outline PDFs (Sections I-K), Page-3 Section K Development Plat Variances (DPVs), and historical 2026 PH-* Public Hearing notice PDFs parsed",
+            "universeSummary": "Biweekly Planning Commission Draft & Final Agenda Outline PDFs + Section K DPV tables + Public Hearing Notice PDFs",
+            "whatIsMissing": "100% of agenda items and Section K DPV table rows are extracted for active cycles; individual multi-page staff report variance packets (uploaded 48 hours before meetings for contested variances) are linked as PDFs rather than full-text extracted for site-plan dimensions.",
+            "pass2AndGapClosurePlan": "Add Pass-2 PDF text and site-plan elevation extraction on contested Section VI variance and Section K DPV staff packets affecting pre-1940 buildings."
+          }
         },
         {
           "id": "coh_pc_minutes_pdf",
@@ -568,7 +676,16 @@
           "whatItProvides": "Official Commission actions taken at each prior meeting (Approved, Deferred 2 Weeks, Withdrawn, Disapproved, or Cycle Filing Only - Not on Agenda).",
           "howCrossChecked": "Linked across cycles by HCAD account, canonical plat name, and street address so repeat deferrals show the actual Commission action taken at each prior meeting date rather than repeating manual notes.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 94,
+            "extractionFidelityPct": 92,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% of 2026 post-meeting Draft & Approved Minutes PDFs parsed and linked across cycles by HCAD ID, canonical plat name, and street address",
+            "universeSummary": "Biweekly Planning Commission Post-Meeting Minutes PDFs (recording Approved, Deferred 2 Weeks, Withdrawn, or Disapproved actions)",
+            "whatIsMissing": "2026 cycle actions are 100% linked; verbatim verbal conditions of approval stated during Planning Commission hearings (when a variance is approved subject to tree or facade preservation conditions) only appear in full meeting transcripts/video.",
+            "pass2AndGapClosurePlan": "Supplement parsed Minutes PDF action badges with automated extraction of staff condition bullet points from final post-meeting action letters."
+          }
         }
       ]
     },
@@ -602,7 +719,16 @@
           "whatItProvides": "Alteration, addition, new construction, relocation, and demolition COA filings across Houston's 22 historic districts, including staff recommendations and HAHC decisions.",
           "howCrossChecked": "Matched by HCAD account and normalized street address against watched properties and compared against citywide structural demolitions to measure historic district protection efficacy.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 92,
+            "extractionFidelityPct": 90,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "403 COA, COR, Demolition & Designation filings across 283 parcels (29 monthly HAHC meetings 2024-2026 YTD) + 2020-2026 District Action Summaries",
+            "universeSummary": "Monthly HAHC agendas, staff reports & action minutes (2015-2026 across all 23 COH Historic Districts & Protected Landmarks)",
+            "whatIsMissing": "2020-2026 COA filings and demolition benchmarks are fully tracked; individual parcel-level HAHC COA staff report PDFs from 2015-2019 (prior to the City's 2020 ArcGIS/tracker format) are only summarized at district level.",
+            "pass2AndGapClosurePlan": "Backfill 2015-2019 monthly HAHC agenda PDFs via Wayback CDX and houstontx.gov/planning/Commissions/HAHC.html to provide a complete 12-year parcel-level COA history."
+          }
         },
         {
           "id": "coh_landmarks_districts_gis",
@@ -624,7 +750,16 @@
           "whatItProvides": "Official polygon boundaries of Houston's 22 Historic Districts, SMLS/SMBL conservation lots, and point/polygon locations of City Landmarks and Protected Landmarks.",
           "howCrossChecked": "Spatial point-in-polygon intersection during Pass 1 Plat Screening and Map Tile generation to distinguish legally protected landmarks from unprotected landmarks.",
           "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 98,
+            "extractionFidelityPct": 86,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "509 COH Landmarks (482 / 509 [94.7%] official PDFs + 490 / 501 standing HCAD links), 23 / 23 Historic Districts (6,169 survey rows across 5,537 HCAD parcels), 1 Heritage District & 60 Potential HDs",
+            "universeSummary": "509 Designated COH Landmarks & Protected Landmarks, 23 Designated Historic Districts (6,169 survey rows), 1 Heritage District, and 60 Surveyed Potential Historic Districts",
+            "whatIsMissing": "(1) 27 post-2016 COH Landmark Designation Report PDFs remain unpublished on houstontx.gov (tracked in Missing_Landmark_PDFs_TPIA); (2) 565 of the 6,169 Historic District survey rows (9.2%) lacked a direct 13-digit HCAD match due to corner addresses or address ranges; and (3) Pass-1 extraction on the 628 cached Landmark PDF texts pulled year, style, architect, and summary, but not original builder/contractor, construction cost, or embedded historical photos.",
+            "pass2AndGapClosurePlan": "(Pass 2A) Run structured schema extraction over all 628 cached PDF texts in pipeline/cache/landmark_pdf_texts.json to extract original builder, original cost, first owner, and embedded elevation photos; (Pass 2B) Resolve the 565 unmatched HD survey rows via corner-lot alt_addresses and spatial blockface matching; (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
+          }
         }
       ]
     },
@@ -657,7 +792,16 @@
           "whatItProvides": "Project numbers, permit numbers, issue dates, permit descriptions ('DEMO RES/BLDG', 'REMODEL', etc.), and contractor names.",
           "howCrossChecked": "Translated into plain-English risk badges via permitPlainEnglish.js; requires Two-Key corroboration (permit + post-permit imagery/field check or HCAD improvement drop) before marking a building Demolished.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_live_permits.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 95,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "3,900+ structural demolition permits (2020-2026 YTD, Net Full Main-Building Teardowns vs. garages/pools) + 20 active 45-day alerts (226 Stage 1 Sewer + 181 Stage 2 Demo, 97 paired projects)",
+            "universeSummary": "City of Houston Permitting Center daily WebFOCUS feed + weekly Sold Permits .xlsx (Types SD/4D Demolition vs. Type 13 Remodel)",
+            "whatIsMissing": "2020-2026 structural demolition permits are 100% ingested with Two-Key corroboration and garage/pool/canopy exclusion. Pre-2020 City of Houston weekly Sold Permits spreadsheets (2010-2019) are not yet merged into the Lost Houston Cohort 5 teardown ledger.",
+            "pass2AndGapClosurePlan": "Harvest archived 2010-2019 COH Sold Permits spreadsheets (via COH Open Data & Wayback) and cross-check against 2005-2020 HCAD building_res disappearances to expand Cohort 5 verified pre-1940 teardowns back to 2010."
+          }
         },
         {
           "id": "hpc_water_wastewater_disconnect",
@@ -677,7 +821,16 @@
           "whatItProvides": "Early-warning utility disconnect permits that frequently precede a formal structural demolition permit by 2 to 6 weeks.",
           "howCrossChecked": "Correlated with DSHS asbestos abatement notifications and Plat Tracker filings to trigger Tier 1 escalation.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 93,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "226 Stage 1 Type 12/4P Plumbing Sewer Disconnect alerts tracked & paired by 8-digit project number with Stage 2 SD/4D Demolition permits",
+            "universeSummary": "All City of Houston Type 12 / 4P plumbing & sewer disconnect permits on pre-1976 and watched parcels",
+            "whatIsMissing": "100% of daily WebFOCUS and weekly XLS plumbing disconnects are captured and paired by 8-digit project number; however, standalone water-meter pull requests handled inside Public Works utility billing (before a plumbing permit is sold) only surface in iPermits portal searches.",
+            "pass2AndGapClosurePlan": "Continue daily 7:00 AM CT automated Stage 1 Sewer Disconnect pairing and flag any pre-1940 property with a Stage 1 Sewer Disconnect for immediate 1-click ILMS Project Number inspection."
+          }
         },
         {
           "id": "hpc_ilms_plan_review",
@@ -697,7 +850,16 @@
           "whatItProvides": "Architectural plan review status, trade review holds, and scope of proposed site work once a project number is obtained from Row 2 Building Permits.",
           "howCrossChecked": "Placed directly below Row 2 (Building Permits Search) in the Plans & Use category so staff can copy a project number from Row 2 straight into Row 3 (ILMS).",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 30,
+            "fidelityTier": "inventory_only_pull_needed",
+            "coveredSummary": "100% 1-click Project Number & Address copy launcher in Watchlist Row 3 across all 28 watched properties and active permit alerts",
+            "universeSummary": "Houston Permitting Center ILMS Plan Review Portal (commercial & residential plan review holds, trade reviews, and scope of work)",
+            "whatIsMissing": "ILMS plan review milestones (structural, planning, HPO historic preservation hold flags) require session-gated portal lookup by 8-digit project number and are not included in the public weekly Sold Permits XLS (which only lists permits after they are paid and sold).",
+            "pass2AndGapClosurePlan": "Automate headless ILMS project-number status polling for the 8-digit project numbers discovered in Watchlist Row 2 and Stream 4 active permit alerts so staff see 'In Plan Review - Historic Preservation Hold' automatically."
+          }
         }
       ]
     },
@@ -730,7 +892,16 @@
           "whatItProvides": "Neighborhood context, Council District representation, and Chapter 42 SMLS/SMBL lot-split protection status.",
           "howCrossChecked": "Flags plat applications located near or within SMLS/SMBL blocks where minimum lot size rules can block townhome replats.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 98,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "88 Super Neighborhoods, 11 Council Districts (A-K), 1,387 Neighborhoods (Peter Brown GeoPDF + COH GIS), 910 Ch. 42 SMLS/SMBL polygons (163 sunset alerts) & 4,242 Scorecards",
+            "universeSummary": "All City of Houston municipal, neighborhood, Council District, and Chapter 42 SMLS/SMBL protection boundaries",
+            "whatIsMissing": "100% of enacted SMLS/SMBL polygons and 2026-2031 20-year sunset dates (Ord. No. 2015-639) are indexed; pending SMLS/SMBL block applications (filed by neighbors but not yet voted on by Planning Commission) are published as monthly PDF lists rather than in the live COH GIS layer.",
+            "pass2AndGapClosurePlan": "Scrape the monthly 'Pending SMLS/SMBL Applications' table on houstontx.gov/planning/DevelopRegs/Min-Lot_Size-Min_Bldg_Line.html so blocks with an active pending application are highlighted in the Ch. 42 Calculator."
+          }
         },
         {
           "id": "coh_public_works_abandonment",
@@ -750,7 +921,16 @@
           "whatItProvides": "Requests to abandon public alleys, streets, or utility easements required before assembling multi-block redevelopment reserves.",
           "howCrossChecked": "Cross-checked with multi-lot reserve replats on the Planning Commission agenda.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active as an assisted check; automated JRC agenda PDF scraping planned for Q2 2027."
+          "howAndWhenPlanned": "Active as an assisted check; automated JRC agenda PDF scraping planned for Q2 2027.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 25,
+            "fidelityTier": "inventory_only_pull_needed",
+            "coveredSummary": "1-click Watchlist Row 12 check across all 28 watched properties",
+            "universeSummary": "City of Houston Joint Referral Committee (JRC) street, alley, and utility easement abandonment applications & City Council motion agendas",
+            "whatIsMissing": "Currently an assisted 1-click check on Watchlist Row 12; weekly City Council agenda motions for JRC street/alley abandonments (often the earliest signal of a multi-block developer assemblage) are not yet automatically parsed.",
+            "pass2AndGapClosurePlan": "Add automated weekly City Council agenda PDF keyword scanning ('Joint Referral Committee', 'abandonment and sale of', 'alley') in fetch_plat_and_watchlist.py (Phase 3, Q2 2027)."
+          }
         }
       ]
     },
@@ -782,7 +962,16 @@
           "whatItProvides": "Open dangerous building investigations, hearing notices, and emergency city-ordered demolition filings.",
           "howCrossChecked": "Matches 311 / DON case addresses and HCAD IDs against pre-1976 structures and generates a one-click staff alert summary.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 95,
+            "extractionFidelityPct": 88,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "Daily 7:00 AM CT COH 311 API sweep of watched parcels + instant in-browser DONDB*.csv Dangerous Buildings matcher against all 1.51M buildings",
+            "universeSummary": "COH 311 Structural Standards service requests + Department of Neighborhoods (DON) Dangerous Buildings active investigation & hearing docket",
+            "whatIsMissing": "Daily 311 Structural Standards complaints are swept automatically and DONDB*.csv files match 100% of buildings on drop, but DON's quarterly Administrative Hearing Demolition Order PDFs require manual CSV drop or PDF parsing.",
+            "pass2AndGapClosurePlan": "Add automated monthly scraping of published DON Building and Standards Commission (BSC) hearing notice agendas to flag city-ordered demolition hearings 14 days in advance."
+          }
         }
       ]
     },
@@ -814,7 +1003,16 @@
           "whatItProvides": "Facility names, street addresses, abatement start/end dates, demolition start dates, and operator/contractor names at least 10 working days before wrecking begins.",
           "howCrossChecked": "Frequently provides the earliest public confirmation of an impending commercial or institutional demolition prior to City of Houston permit issuance.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 94,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% of active Houston / Harris County commercial & public building 10-day advance asbestos abatement and demolition notifications swept daily at 7:00 AM CT",
+            "universeSummary": "Texas DSHS Asbestos Program / Texas Open Data Portal Socrata feed (all commercial/public abatement & demolition notices in Harris County)",
+            "whatIsMissing": "100% of active commercial/institutional DSHS filings are captured (note: under NESHAP federal regulations, single-family residential structures of <=4 units are exempt from DSHS asbestos notification unless demolished as part of a larger commercial/urban renewal project).",
+            "pass2AndGapClosurePlan": "Archive historical DSHS notifications longitudinally to track multi-phase commercial campus abatements that precede demolition permits by 6-12 months."
+          }
         }
       ]
     },
@@ -846,7 +1044,16 @@
           "whatItProvides": "Governing principals, registered agents, managing members, and shared tax mailing addresses behind single-purpose acquisition LLCs, with corporate suffix commas stripped automatically so LLCs are never split in two.",
           "howCrossChecked": "Links seemingly unrelated shell LLCs (e.g. '123 Main LLC' and '456 Oak Holdings LLC') that share a registered agent or suite address into a single developer portfolio.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production; Sales Taxpayer Search placed at top of Row 6 above Franchise Tax Account Status per staff workflow."
+          "howAndWhenPlanned": "Active in production; Sales Taxpayer Search placed at top of Row 6 above Franchise Tax Account Status per staff workflow.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 86,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "1,546,683 parcels classified into 6 ownership tiers; 195 named multi-LLC/institutional portfolios (54,000+ parcels) unmasked via Texas Comptroller Socrata API (9cir-efmm.json) & bipartite mailing-address graph",
+            "universeSummary": "All corporate, LLC, LP, and trust property owners in Harris County cross-referenced against Texas Comptroller Active Franchise Tax & Public Information Reports",
+            "whatIsMissing": "Top 1,000 multi-LLC portfolios and 195 named monographs are unmasked in ownership_portfolios.json. Single-parcel Delaware/Wyoming LLCs whose Texas Comptroller mailing address points only to a commercial registered agent (e.g., CT Corporation or Registered Agents Inc.) require Texas SOS Public Information Report (PIR) officer/director table joins to unmask the natural-person beneficial owner.",
+            "pass2AndGapClosurePlan": "Ingest the Texas Comptroller Franchise Tax Officer & Director bulk table (PIR governing persons) to link single-parcel shell LLCs that share an individual managing member even when they use generic registered-agent mailing addresses."
+          }
         }
       ]
     },
@@ -880,7 +1087,16 @@
           "whatItProvides": "State-level historic designations, marker narratives, and 60-day RTHL/SAL notice protections.",
           "howCrossChecked": "Cross-checked with City of Houston landmark status and ETJ rural tract plat filings to warn of historic cemeteries and farmsteads.",
           "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 95,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "596 Official Texas Historical Markers, RTHLs, SALs & Historic Texas Cemeteries in Harris County ingested with full marker inscription narratives",
+            "universeSummary": "All 596 Texas Historical Commission (THC Atlas) markers, Recorded Texas Historic Landmarks (RTHLs), and State Antiquities Landmarks in Harris County",
+            "whatIsMissing": "100% of official THC Atlas markers and RTHLs are mapped and full-text searchable; countywide reconnaissance-level THC Historic Resources Survey rows from the 1980s-1990s (outside COH Historic Districts) are only partially digitized in THC Atlas.",
+            "pass2AndGapClosurePlan": "Synchronize quarterly with THC Atlas GIS exports and feed newly completed Preservation Houston Walk-the-Block field surveys directly back into THC Survey Form v3/2013 TSV/JSON format (#thcSurvey=1)."
+          }
         }
       ]
     },
@@ -914,7 +1130,16 @@
           "whatItProvides": "NRHP reference numbers, listing dates, architect/builder attributions, periods of significance, and district contributing/non-contributing boundaries.",
           "howCrossChecked": "Combined with City of Houston Protected Landmark records to flag NRHP buildings that are eligible for federal/state rehabilitation tax credits but lack municipal demolition protection.",
           "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 90,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "12 NRHP Historic Districts + 238 Individual NRHP Listings (222 extant + 16 demolished/relocated) with 8-digit zero-padded refnums & 187 scanned nomination PDFs",
+            "universeSummary": "All 12 NRHP Districts and 238 Individual NRHP properties in Harris County (NPS / THC National Register holdings)",
+            "whatIsMissing": "100% of NRHP listings and district polygons are mapped and linked to THC/NPS AssetDetail PDFs. Inside the 12 multi-hundred-building NRHP Districts (such as Houston Heights MPS and Boulevard Oaks), individual Contributing vs. Non-Contributing building tables inside the 1980s PDF nomination packets can be further parsed for original builder names.",
+            "pass2AndGapClosurePlan": "Run Pass-2 OCR table extraction on the 12 NRHP District nomination PDFs (especially the Houston Heights Multiple Property Submission) to extract per-building historic names and builder credits."
+          }
         }
       ]
     },
@@ -947,7 +1172,16 @@
           "whatItProvides": "Identifies whether a historic building sits inside a FEMA Special Flood Hazard Area or floodway where Substantial Damage (>50% market value) rules trigger elevation or demolition pressure.",
           "howCrossChecked": "Will cross-check post-storm remodel/repair permits and elevation variances against pre-1976 historic housing stock.",
           "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
-          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) using Harris County Flood Control District (HCFCD) / FEMA MAAPnext effective polygons."
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) using Harris County Flood Control District (HCFCD) / FEMA MAAPnext effective polygons.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 0,
+            "extractionFidelityPct": 0,
+            "fidelityTier": "unfetched_gap",
+            "coveredSummary": "0% ingested (Planned Phase 3 spatial overlay; HCFCD open bayou channels already mapped in historical_waterways)",
+            "universeSummary": "FEMA National Flood Hazard Layer (NFHL) & HCFCD MAAPnext 100-year (Zone AE), 500-year (Zone X-shaded), and Regulatory Floodway polygons across 22 Harris County watersheds",
+            "whatIsMissing": "100% unfetched: while 1,957 historical bayous, creeks, oxbows, and buried gullies are mapped in overlays.json, parcel-level FEMA flood zone tags (Zone AE / Floodway Substantial Damage >50% demolition risk) are not yet stamped on buildings.",
+            "pass2AndGapClosurePlan": "Integrate FEMA NFHL / HCFCD effective floodplain polygons in Phase 3 (Q2 2027) via pipeline/atlas_pipeline/build_tiles.py to tag pre-1976 buildings subject to FEMA 50% Substantial Damage elevation/teardown rules."
+          }
         }
       ]
     },
@@ -978,7 +1212,16 @@
           "whatItProvides": "Detects Phase I/II environmental cleanup and tank pull registrations that frequently precede commercial tract assembly and historic industrial/retail demolition by 3 to 9 months.",
           "howCrossChecked": "Will cross-check TCEQ VCP and PST site registrations against pre-1976 commercial and industrial buildings.",
           "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
-          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) via TCEQ Open Data GIS endpoints to give earlier warning on historic industrial, warehouse, and mid-century commercial properties."
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) via TCEQ Open Data GIS endpoints to give earlier warning on historic industrial, warehouse, and mid-century commercial properties.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 0,
+            "extractionFidelityPct": 0,
+            "fidelityTier": "unfetched_gap",
+            "coveredSummary": "0% ingested (Planned Phase 4 commercial/industrial early-warning feed)",
+            "universeSummary": "TCEQ Voluntary Cleanup Program (VCP), Innocent Owner/Operator (IOP), and Petroleum Storage Tank (PST) removal filings in Harris County",
+            "whatIsMissing": "100% unfetched: Phase I/II environmental site assessments, dry-cleaner remediation filings, and underground gas-station tank pulls are not yet cross-checked against pre-1976 commercial/industrial structures.",
+            "pass2AndGapClosurePlan": "Query TCEQ Open Data GIS REST endpoints in Phase 4 (Q3 2027) via fetch_plat_and_watchlist.py to provide 3-to-9-month advance warning before historic warehouses, auto showrooms, and mid-century retail strips are assembled for redevelopment."
+          }
         }
       ]
     },
@@ -1010,7 +1253,16 @@
           "whatItProvides": "Original building permit numbers, exact filing dates, owner at construction, builder/contractor name, architect name, number of rooms/stories, and construction cost in historic dollars.",
           "howCrossChecked": "Cross-checked with HCAD erection dates and City Directories to prove exact construction dates and attribute previously uncredited builders and architects.",
           "pipelineScript": "pipeline/atlas_pipeline/build_contractors_index.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 38,
+            "extractionFidelityPct": 48,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "42,000+ historic building permits + 18 T.G.C.A. Monthly Bulletin issues (1922-1924, 952 pages) + Russell Brown (1917, 1929) & T. D. Howe monographs -> 3,800+ contractor/architect attributions",
+            "universeSummary": "~165,000 City of Houston building permits issued 1905-1951 (HMRC RG B 0005 ledgers) + ~7,200 published contract awards in 1917-1945 builder trade journals",
+            "whatIsMissing": "(1) Volume Gap: ~123,000 building permit entries across the 1905-1951 HMRC microfilm/bound ledgers (outside already-transcribed priority neighborhoods and 1922-1924 T.G.C.A. issues) have not yet been digitized; (2) Pass-1 Fidelity Gap on Scanned T.G.C.A. Issues: Two-column OCR wrapping in the 952 scanned T.G.C.A. pages caused line-based regex parsers to miss ~47% of wrapped sub-contract rows and lot/block-only contract awards.",
+            "pass2AndGapClosurePlan": "(Pass 2A) Run layout-aware VLM table row extraction across all 952 cached T.G.C.A. Monthly Bulletin pages in ContentDM (books & p17006coll39) and resolve lot/block-only rows via our Clerk/HCAD subdivision index; (Pass 2B) Batch-digitize and OCR the remaining 1905-1951 HMRC Building Permit Ledger microfilm reels."
+          }
         },
         {
           "id": "hmrc_photographs_architectural",
@@ -1032,7 +1284,16 @@
           "whatItProvides": "Archival street-level photographs, newspaper clippings, and architect biographies for notable Houston structures.",
           "howCrossChecked": "Linked to building_photos.json and Property Watchlist History & Archival Research Notes.",
           "pipelineScript": "app/public/data/building_photos.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 85,
+            "extractionFidelityPct": 68,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "6 HPL ContentDM architectural collections (1,836 deduplicated Houston items) + 135 TARO finding aids (64,379 folders) scanned -> 595 parcel-linked archival citations & +154 curated photos (492 total)",
+            "universeSummary": "6 HPL ContentDM architectural collections (1,836 items across Barnstone, Lopez, Vertical Files, 1980 Survey, Schmidt Moderne, Lloyd Morgan & Jones) + HMRC/Woodson/UTAAA TARO collections",
+            "whatIsMissing": "100% of the 6 HPL ContentDM architectural collections (1,836 items) and 135 TARO XML finding aids (64,379 folders) were scanned, but Pass 1 only linked items/folders containing an explicit street number or exact landmark name (leaving ~1,100 client-surname-titled TARO folders and ~120 intersection-titled HPL photos unlinked).",
+            "pass2AndGapClosurePlan": "Cross-join un-addressed TARO/HPL items titled by '(Client Surname, Neighborhood, Year)' or '(Street A at Street B)' against our 51,778 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index to link ~1,200+ additional architectural drawings and photographs."
+          }
         }
       ]
     },
@@ -1064,7 +1325,16 @@
           "whatItProvides": "Year-by-year household heads, spouses, occupations, employers, homeowner vs. renter symbols, and exact scan deep links to the printed Street Guide or Alphabetical page.",
           "howCrossChecked": "Combines the post-1907 Street Guide ('Directory of Householders' by street and house number) with the Alphabetical Resident section (which captures residents and occupations even when a street page was torn or omitted, and resolves pre-1911 street numbers).",
           "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
-          "howAndWhenPlanned": "Active in production; corpus-wide full-volume alphabetical + street-guide reconciliation sweep in progress to eliminate OCR gaps on streets like Bayland Ave and Key St."
+          "howAndWhenPlanned": "Active in production; corpus-wide full-volume alphabetical + street-guide reconciliation sweep in progress to eliminate OCR gaps on streets like Bayland Ave and Key St.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 82,
+            "extractionFidelityPct": 54,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "67 / 78 target directory editions (39 HPL 1866-1926 + 28 Ancestry 1927-1968 years across 31 volumes; 4,351 spreads / 2,341,689 OCR lines scanned) -> 51,778 HCAD parcels matched (273,677 sightings, 139,792 occupant rows)",
+            "universeSummary": "78 Houston City Directory editions (1866-1968: 39 pre-1927 HPL volumes [~28,000 pages], 31 post-1926 Ancestry volumes [14,131 A-Z + Street Guide pages], and 11 un-digitized 1931-1963 microfiche gap years) covering ~185,000 pre-1968 addresses",
+            "whatIsMissing": "(1) Pass-1 Fidelity Gap on 15 Scanned Street Guides (2,652/2,652 pages scanned at step=1, 58% fidelity): ~42% of householder lines were dropped where multi-column streets continue across columns/pages without repeating the bold street header, or on '1/2' rear/duplex units; (2) Pass-1 Fidelity Gap on 23 Alphabetical A-Z Volumes (1,699 / 11,479 pages sampled at step=4..18 = 14.8%): 9,780 Alphabetical pages not yet swept at step=1; (3) Pre-1927 HPL On-Demand Scope: Queried for 7,541 priority addresses rather than a full ~28,000-page dump + 1911 renumbering crosswalk; (4) Volume Gap: 11 un-digitized public-domain years (1931, 1933, 1938, 1943, 1944, 1947, 1950, 1960-1963).",
+            "pass2AndGapClosurePlan": "(Pass 2A) Re-parse all 2,652 cached Street Guide pages with a multi-column continuation header state machine + VLM layout parser (+85,000 listings); (Pass 2B) Sweep all 9,780 remaining Ancestry Alphabetical A-Z pages at step=1 (+120,000 listings); (Pass 2C) Dump all ~28,000 HPL 1866-1926 pages with the 1911-1912 Old-to-New Street Number crosswalk; (Pass 2D) Digitize the 11 missing 1931-1963 microfiche gap years from Rice Fondren Kelley Center open stacks (Call No. F394 .H8 P62)."
+          }
         }
       ]
     },
@@ -1096,7 +1366,16 @@
           "whatItProvides": "Visual confirmation of whether the footprint on a lot in 1907, 1924, or 1951 matches the extant structure today or represents an earlier demolished dwelling.",
           "howCrossChecked": "Prevents false early-date overrides when a lot had an 1890s cottage that was later replaced by a 1920s bungalow or 1940s commercial building.",
           "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
-          "howAndWhenPlanned": "Sheet index active in production; full vector footprint segmentation across the 1924-1925 and 1950-1951 volumes planned for Phase 3 (Q2 2027)."
+          "howAndWhenPlanned": "Sheet index active in production; full vector footprint segmentation across the 1924-1925 and 1950-1951 volumes planned for Phase 3 (Q2 2027).",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 78,
+            "extractionFidelityPct": 18,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "16 digitized volumes / 878 sheets indexed (626 LOC IIIF + 252 UT PCL local WebP plates, 1877-1955) + 18 georeferenced historical map layers + 6 Old Sixth Ward sheets vectorized (1,207 footprints) + 73 Lost Houston plates",
+            "universeSummary": "~1,120 total Houston Sanborn sheets (878 public-domain 1877-1955 LOC/UT PCL sheets + ~242 sheets in 1925 Vol. 5 [Montrose/Courtlandt], 1925 Vol. 7 [Heights], and 1952-1970 paste-up updates) containing ~140,000 historic building footprints",
+            "whatIsMissing": "(1) Pass-1 Fidelity Gap on Existing 878 Sheets: 872 of the 878 sheets are indexed only as sheet-level polygons rather than segmented building footprints, Sanborn material colors (Yellow=Frame, Pink=Brick, Blue=Stone), story numbers, and pre-1911 curb house numbers; (2) Volume Gap (22%): 1925 Vol. 5 (Montrose/Courtlandt/Broadacres), 1925 Vol. 7 (Heights), and 1952-1970 revisions are not in LOC or UT PCL public-domain sets.",
+            "pass2AndGapClosurePlan": "(Pass 2A) Run our calibrated 1.220 px/ft seam-stitching and CV/VLM footprint + RGB material color + curb-number OCR pipeline across all 872 remaining LOC/UT PCL sheets; (Pass 2B) Acquire 1925 Vols. 5 & 7 and 1952-1970 paste-up sheets via HPL MY Link / Rice Fondren ProQuest Digital Sanborn Maps."
+          }
         }
       ]
     },
@@ -1128,7 +1407,16 @@
           "whatItProvides": "Verified architect attributions, original client names, and design dates for residential, civic, and commercial landmarks.",
           "howCrossChecked": "Cross-checked with AIA Houston Architecture Guide entries and HMRC building permits.",
           "pipelineScript": "app/public/data/curated_buildings.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 90,
+            "extractionFidelityPct": 52,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "1915 Red Book of Houston (970 African American sites + 85 Quartex plates, 100% ingested), 112 Rice campus buildings, 10 georeferenced Fondren GIS map/aerial layers & Woodson TARO finding aids",
+            "universeSummary": "Rice Woodson Research Center architectural papers (Watkin, Staub, Barnstone, Jenkins, Morehead), 1915 Red Book (970 sites), and Fondren GIS historical maps/aerials",
+            "whatIsMissing": "100% of the 1915 Red Book (970 sites: 29 surviving, 323 rebuilt, 618 cleared) and Fondren GIS layers are integrated. In Woodson's architectural manuscript collections (e.g., William Ward Watkin and John F. Staub papers), Pass 1 matched folders with street addresses in the EAD XML title, leaving client-surname-only folders unlinked.",
+            "pass2AndGapClosurePlan": "Cross-join Woodson architectural folder client names and dates against our 1915-1968 City Directory and Clerk Grantor/Grantee indexes to link client-titled residential commissions in Broadacres, River Oaks, Shadyside, and Courtlandt Place."
+          }
         }
       ]
     },
@@ -1160,7 +1448,16 @@
           "whatItProvides": "Historical narratives, original developer brochures, and cultural context for underrepresented neighborhood landmarks.",
           "howCrossChecked": "Integrated into curated_buildings.json and guided story tours.",
           "pipelineScript": "app/public/data/curated_buildings.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 85,
+            "extractionFidelityPct": 55,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "169 UH Main & Downtown campus buildings + UH Special Collections TARO finding aids (uhsc) + East End / Third Ward landmark narratives",
+            "universeSummary": "University of Houston Special Collections architectural & neighborhood archives (uhsc TARO finding aids, historic subdivision brochures, and campus facilities GIS)",
+            "whatIsMissing": "100% of UH campus structures and EAD XML finding aids were scanned, but historic developer subdivision brochures (recording original architectural style restrictions and minimum construction cost covenants in 1920s-1950s additions) are only linked at collection level rather than per-subdivision overlay.",
+            "pass2AndGapClosurePlan": "Extract subdivision-level developer marketing dates, original homebuilder rosters, and minimum cost covenants from UH Special Collections subdivision brochures into overlays.json['platted_subdivisions']."
+          }
         }
       ]
     },
@@ -1191,7 +1488,16 @@
           "whatItProvides": "Direct clickable deep links to the exact digitized page image (distinguishing Alphabetical Resident entries from Back-of-Book Street Guide entries so links always open the page where the resident appears).",
           "howCrossChecked": "Verified via pipeline/atlas_pipeline/enrich_from_city_directories.py so alphabetical-only entries never point to a neighboring street's Street Guide page.",
           "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 82,
+            "extractionFidelityPct": 78,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "51,778 HCAD parcels linked to exact ContentDM pointer IDs (p) and Ancestry dbId=2469 image IDs (ai) + 37-year (1927-1963) USCO copyright audit (26 Class A registrations, 0 renewals -> 100% public domain)",
+            "universeSummary": "70 digitized Houston City Directory volume entries (39 HPL ContentDM 1866-1926 + 31 Ancestry 1927-1968 volumes) + 244 USCO copyright catalog records",
+            "whatIsMissing": "100% of matched sightings carry verified image/pointer deep links distinguishing Street Guide vs. Alphabetical pages, and 100% of 1927-1963 copyright records are audited. However, because Ancestry image links require a free HPL MY Link card or Ancestry login, public visitors without a library session cannot view the raw 1927-1963 public-domain page images inline inside the Atlas without logging in.",
+            "pass2AndGapClosurePlan": "Because our USCO audit proved 0 Class R/RE renewals across all 37 years (1927-1963 = 100% US public domain), host cropped public-domain Street Guide snippets or Internet Archive mirrors for verified historic landmarks."
+          }
         },
         {
           "id": "us_census_1900_1950_ed",
@@ -1210,7 +1516,16 @@
           "whatItProvides": "Household family composition, ages, birthplaces, home value or monthly rent, and occupations recorded every 10 years by federal census enumerators.",
           "howCrossChecked": "Will cross-check City Directory household heads against 1930, 1940, and 1950 U.S. Census sheets.",
           "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
-          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) using NARA / Steve Morse Unified 1930-1950 Houston Enumeration District street tables."
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) using NARA / Steve Morse Unified 1930-1950 Houston Enumeration District street tables.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 0,
+            "extractionFidelityPct": 0,
+            "fidelityTier": "unfetched_gap",
+            "coveredSummary": "0% ingested (Planned Phase 4 decennial census household cross-check)",
+            "universeSummary": "6 U.S. Federal Decennial Census cycles (1900, 1910, 1920, 1930, 1940, 1950) across Houston / Harris County Enumeration Districts",
+            "whatIsMissing": "100% unfetched: decennial census household rosters (recording exact home value or monthly rent, homeowner vs. renter status, family members, ages, birthplaces, and occupations every 10 years, including unincorporated Harris County areas outside City Directory bounds) are not yet linked.",
+            "pass2AndGapClosurePlan": "Integrate Steve Morse / NARA Unified 1910-1950 Houston Enumeration District (ED) street-to-ED tables and FamilySearch/NARA public-domain 1900-1950 census household indexes in Phase 4 (Q3 2027)."
+          }
         }
       ]
     },
@@ -1243,7 +1558,16 @@
           "whatItProvides": "Contemporary newspaper announcements of contract awards, grand openings, architect credits, and modern redevelopment news articles.",
           "howCrossChecked": "Attached via the Watchlist Building History & Archival Research box and Row 14 News & Media Coverage checks.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 65,
+            "extractionFidelityPct": 45,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "Curated landmark & Lost Houston newspaper citations (Houston Post, Houston Chronicle, Houston Press) + 1-click Watchlist Row 14 News & Media search launchers across all 28 watched properties",
+            "universeSummary": "UNT Portal to Texas History & Houston Public Library digital newspaper archives (1880-1985 Sunday Real Estate & Building sections)",
+            "whatIsMissing": "Curated landmarks and Watchlist dossiers include historic newspaper citations and 1-click news search pills, but Sunday Real Estate & Building sections of the Houston Post and Houston Chronicle (which published weekly lists of building permits, architect renderings, and subdivision grand openings from 1900 to 1975) have not been bulk-harvested via OCR.",
+            "pass2AndGapClosurePlan": "Run targeted UNT Portal to Texas History (texashistory.unt.edu) API queries for 'building permit', 'contract let', and 'architect' across digitized Houston newspapers to extract pre-1905 and 1952-1975 construction announcements."
+          }
         }
       ]
     },
@@ -1275,7 +1599,16 @@
           "whatItProvides": "Verified street-level photographs, photographer credits, and license links displayed in the Main Atlas and automatically surfaced in the Watchlist Property Photo box.",
           "howCrossChecked": "Matched by building_id, HCAD account number, and normalized street address so Watchlist entries automatically display curated street photography when available.",
           "pipelineScript": "app/public/data/building_photos.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 92,
+            "extractionFidelityPct": 85,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "492 curated archival & street-level photographs (293 standing + 199 Lost Houston across 135 sites) in building_photos.json + live zero-key Wikimedia Commons GeoSearch & landmark bitmap search",
+            "universeSummary": "Curated Houston landmarks, 359 Good Brick winners, 622 Lost Houston sites, and live Wikimedia Commons / LOC HABS / NARA repositories",
+            "whatIsMissing": "100% of standing landmarks have live Commons/HABS fallback and 135 Lost Houston sites have curated archival photos (with strict evaluateCommonsCandidate off-topic filtering). However, 489 of the 622 demolished structures in Lost_Houston_Catalog (primarily Cohort 4 vanished 1915 Red Book sites and Cohort 5 2020-2026 teardowns) still have a blank archival_photo_url in Filter View #7 (824622008).",
+            "pass2AndGapClosurePlan": "Work through the 489-site Lost_Houston_Catalog photo backfill queue (gid=824622001, Filter View #7) using Pass-2 HAIF Invision CDN image harvesting, pre-teardown Google Street View (2007-2025) captures, and HMRC photo collection matching."
+          }
         }
       ]
     },
@@ -1308,7 +1641,16 @@
           "whatItProvides": "Visual proof of roof geometry and construction epoch for 1938-1975 buildings in areas never mapped by Sanborn Fire Insurance atlases.",
           "howCrossChecked": "Verifies whether HCAD's '1950' default date represents a 1940s wartime house or a late-1950s ranch house, and confirms when Lost Houston demolitions occurred.",
           "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
-          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by integrating public-domain TNRIS (Texas Natural Resources Information System) / USGS historical orthophoto XYZ tiles and coordinate deep links."
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by integrating public-domain TNRIS (Texas Natural Resources Information System) / USGS historical orthophoto XYZ tiles and coordinate deep links.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 35,
+            "extractionFidelityPct": 30,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "17 georeferenced HPL / Rice Fondren historical aerial & map rasters (1930, 1938, 1941, 1947, 1950, 1953, 1956, 1963, 1964, 1965, 1969, 1977, 1995) live in Spyglass Lens",
+            "universeSummary": "Countywide historical vertical orthophoto flights (1938, 1944, 1953, 1957, 1964, 1973, 1978, 1989, 1995) from USDA, USGS, TxDOT, TNRIS, and COH GIMS",
+            "whatIsMissing": "We already serve 10 citywide HPL HistoricHouston aerial layers (1917-1995) and 7 localized Rice/South Main aerials (1930-1969) in the Spyglass Lens, but outer post-WWII neighborhoods (annexed in 1949, 1956, and 1965 outside the inner loop) have lower resolution in the 1941/1950 COH GIMS mosaics and have not had automated roofline change detection run across 1944 vs. 1957 vs. 1973 TNRIS frames.",
+            "pass2AndGapClosurePlan": "Integrate high-resolution public-domain TNRIS / USGS 1944, 1953, and 1973 orthophoto tile pyramids in Phase 3 (Q2 2027) and run automated roof-presence checks on pre-1976 outer-loop subdivisions."
+          }
         }
       ]
     },
@@ -1341,7 +1683,16 @@
           "whatItProvides": "Architectural style classifications, original construction stories, restoration awards, and curated street-level photography.",
           "howCrossChecked": "Linked by HCAD account and building ID so any plat or permit affecting a Good Brick winner or curated landmark immediately triggers a Tier 1 alert.",
           "pipelineScript": "app/public/data/curated_buildings.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 98,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "359 / 359 place-based Good Brick Awards (1979-2026 across 339 snapped footprint sites, 100% geocoded), 2,406 curated overrides, 9 walking tours (53 stops) & 6 guided chapters",
+            "universeSummary": "All 460 Preservation Houston Good Brick Awards (1979-2026: 359 place-based building awards + 91 non-place book/person/program awards + 10 headers) & PH curated landmark files",
+            "whatIsMissing": "100% of place-based Good Brick Awards (1979-2026) are snapped to verified building footprints with 0 undated entries. Physical paper nomination binders from early Good Brick cycles (1979-1998) at Preservation Houston's office contain additional interior/before-restoration slides and contractor credits not listed on the web summary page.",
+            "pass2AndGapClosurePlan": "Digitize before-and-after restoration slides and craftsperson/contractor credits from Preservation Houston's 1979-1998 Good Brick archival binders into building_photos.json and curated_overrides.json."
+          }
         },
         {
           "id": "ph_lost_houston_registry",
@@ -1363,7 +1714,16 @@
           "whatItProvides": "Historical narratives, demolition dates, replacement land uses, and archival photos of demolished Houston landmarks.",
           "howCrossChecked": "Watchlist properties require Two-Key confirmation (e.g. COH Demo Permit + post-permit visual/news confirmation or HCAD improvement value drop to $0) before graduating to 'Confirmed Demolished -> Lost Houston'.",
           "pipelineScript": "app/public/data/lost_houston.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 92,
+            "extractionFidelityPct": 84,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "622 verified demolished structures across 5 cohorts (86 curated monuments, 8 COH landmarks, 15 NRHPs, 205 vanished 1915 Red Book sites, 310 permit-verified 2020-2026 pre-1940 teardowns)",
+            "universeSummary": "Significant demolished Houston landmarks (1837-2026) + pre-1940 historic buildings demolished across Harris County",
+            "whatIsMissing": "(1) Pre-2020 Residential/Commercial Teardowns (2005-2019): Cohort 5 currently covers permit-verified 2020-2026 pre-1940 teardowns (310 sites), whereas thousands of pre-1940 bungalows and commercial buildings demolished between 2005 and 2019 (visible in our 22-year 2005-2026 HCAD rolls when improvement values dropped to $0 or yr_impr jumped to 2006-2019 townhomes) have not yet been promoted into a 2005-2019 Lost Houston cohort; (2) 489 of the 622 existing Lost Houston sites need archival photo backfill.",
+            "pass2AndGapClosurePlan": "(Pass 2A) Mine our 22-year (2005-2026) HCAD historical CAMA archive + 2007-2019 Google Street View / 1924-1951 Sanborn footprints to reconstruct pre-1940 buildings demolished between 2005 and 2019; (Pass 2B) Complete the 489-site Lost_Houston_Catalog photo backfill queue."
+          }
         }
       ]
     },
@@ -1395,7 +1755,16 @@
           "whatItProvides": "Authoritative architect names, firm histories, and architectural style classifications (Art Deco, Moderne, Mid-Century Modern, Craftsman, Victorian, etc.).",
           "howCrossChecked": "Used alongside HMRC building permits to verify original construction dates and design authorship.",
           "pipelineScript": "app/public/data/curated_buildings.json",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 90,
+            "extractionFidelityPct": 85,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "46 Architect & Builder Portfolio Monographs, 30 Architectural Style Monographs, +5,118 HPO style attributions & 1,200+ AIA / Houston Mod attributed structures",
+            "universeSummary": "AIA Houston Architectural Guide (Stephen Fox), Houston Mod mid-century modern registry, and HPO/HMRC architect attributions",
+            "whatIsMissing": "Major civic, commercial, and designated residential works are comprehensively attributed. Suburban mid-century modern subdivisions (1950-1975 in Memorial, Meyerland, Briargrove, Sharpstown, and Clear Lake) still have hundreds of custom architect-designed residences attributed only to 'Residential' in HCAD CAMA.",
+            "pass2AndGapClosurePlan": "Cross-reference Houston Mod open-house archives, 1950-1970 Houston Home & Garden / Chronicle architectural features, and TARO mid-century architect job lists (Barnstone, Kamrath, Wilson Morris Crain & Anderson, Caudill Rowlett Scott, Neuhaus & Taylor) to expand mid-century residential attributions."
+          }
         },
         {
           "id": "haif_community_search",
@@ -1416,7 +1785,16 @@
           "whatItProvides": "Renderings, broker marketing flyers ('tear-down / lot value only'), developer site plans, and neighborhood civic association discussions.",
           "howCrossChecked": "Surfaced in Watchlist Rows 10, 13, 14, and 15 to capture pre-permit marketing and media coverage before formal demolition permits are filed.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 38,
+            "fidelityTier": "pass1_needs_pass2",
+            "coveredSummary": "29,467 / 29,467 HAIF threads crawled via Wayback CDX -> 3,385 URL-slug/page-1 threads linked to 3,892 HCAD parcels (5,576 links, +474 building names, +172 forum photos) + 1-click Watchlist Row 10/13/14/15 launchers",
+            "universeSummary": "29,467 HAIF threads across 97 subforums (~8,900 building-specific threads) + active LoopNet/HAR/Crexi commercial teardown listings",
+            "whatIsMissing": "While 100% of the 29,467 HAIF thread URLs were crawled, Pass 1 matched addresses primarily from topic URL slugs and page-1 headers (3,385 threads), leaving ~5,500 building threads whose street address or architect appears only inside post body text (or on pages 2..20) un-linked to HCAD parcels.",
+            "pass2AndGapClosurePlan": "Run Pass-2 full-text post-body address/intersection extraction and Invision CDN (media.invisioncic.com) image harvesting across the remaining 26,082 cached HAIF threads."
+          }
         }
       ]
     },
@@ -1447,7 +1825,16 @@
           "whatItProvides": "Instant zero-key parcel-centered aerial photography in the Watchlist Property Photo box whenever a custom or curated street photo is not yet uploaded.",
           "howCrossChecked": "Combined with automatic HCAD coordinate backfill so every watched property displays an immediate roof/lot preview alongside 1-click 360-degree Google Street View.",
           "pipelineScript": "app/plat-monitor.html",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 100,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% of geocoded Watchlist (28/28) & Atlas parcels (1.55M) + z=18 roof crops in Historian Rapid Audit Modal (capped at maxzoom 16 on basemap to prevent placeholder tiles)",
+            "universeSummary": "Esri World Imagery MapServer dynamic bbox export & tile service across Harris County",
+            "whatIsMissing": "100% coverage and fidelity for current orthoimagery previews.",
+            "pass2AndGapClosurePlan": "Active in production with automatic HCAD parcel centroid backfill and multi-vintage historical aerial toggle support."
+          }
         },
         {
           "id": "google_street_view_360",
@@ -1469,7 +1856,16 @@
           "whatItProvides": "Street-level facade verification and multi-year Street View time-machine imagery (2007-2026) to inspect architectural integrity or confirm recent demolitions.",
           "howCrossChecked": "Placed both in the Watchlist top header bar and inside the top-of-card Property Photo box for instant visual verification.",
           "pipelineScript": "app/plat-monitor.html",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 90,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% 1-click coordinate & address Street View Time Machine (2007-2026) deep links across all 1.51M buildings & 28 Watchlist properties",
+            "universeSummary": "Google Maps 360-degree Street View panoramas across all public streets in Harris County (2007-2026)",
+            "whatIsMissing": "100% of public-street properties launch directly into Street View Time Machine; gated private streets (e.g., Shadyside or gated memorial enclaves) and rear alley carriage houses lack street-level camera coverage.",
+            "pass2AndGapClosurePlan": "Supplement gated-street and rear-structure views with oblique aerial photography and Walk-the-Block field survey camera uploads."
+          }
         }
       ]
     },
@@ -1505,7 +1901,16 @@
           "whatItProvides": "Multi-user real-time persistence for tier confirmations, 15-point checklist entries, inline entry edits/removals, custom property photos, and archival Drive links without ever overwriting staff edits during automated sweeps.",
           "howCrossChecked": "Uses per-field ISO timestamps (tierUpdatedAt, notesUpdatedAt, historySummaryUpdatedAt, deletedCheckKeys) to merge static JSON, Cloud Sheet rows, and localStorage deterministically.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 100,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "14 synchronized Moderation & Watchlist tabs (Admin Hub, Pending, Approved, Audit Queue, Lost Houston, Field Surveys, 1927 Cutoff, HAHC Candidates, Plat & Watchlist Sync, SOPs 1-16)",
+            "universeSummary": "Preservation Houston 14-tab Google Sheet Admin Control Center & 3-way field-timestamp LWW merge engine",
+            "whatIsMissing": "100% operational across all 14 tabs with per-field ISO timestamps (tierUpdatedAt, notesUpdatedAt, historySummaryUpdatedAt, deletedCheckKeys) preventing any automated sweep from overwriting staff edits.",
+            "pass2AndGapClosurePlan": "Active in production with 45-second live polling, offline IndexedDB queue sync, and daily GitHub Actions synchronization."
+          }
         },
         {
           "id": "gdrive_archival_evidence",
@@ -1527,9 +1932,442 @@
           "whatItProvides": "Converts pasted Google Drive image share links automatically into embeddable preview thumbnails and stores property-level archival folders and per-check evidence links.",
           "howCrossChecked": "Displayed directly inside the Watchlist Property Photo card, Building History & Archival Research box, and Chronological Findings Log.",
           "pipelineScript": "app/js/watchlistSyncHelpers.js",
-          "howAndWhenPlanned": "Active in production."
+          "howAndWhenPlanned": "Active in production.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 100,
+            "extractionFidelityPct": 95,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "Automatic Google Drive share-link to embeddable thumbnail converter + 6 digitized Harris County Archives BLA/Block Book/Tax Roll packets + 65 locally mirrored Subdivision Deed PDFs",
+            "universeSummary": "Preservation Houston Google Drive Evidence Vault & locally mirrored public/deeds/ and public/data/sanborn_ut/ assets",
+            "whatIsMissing": "Share links convert 100% automatically when Drive file permissions are set to 'Anyone with the link can view'; restricted Drive files require permission opening or local mirroring into app/public/.",
+            "pass2AndGapClosurePlan": "Continue mirroring high-value primary archival packets (CR001 Block Books, BLA cards, and subdivision deed restrictions) into deterministic repository metadata and open-access vaults."
+          }
         }
       ]
     }
-  ]
+  ],
+  "fidelityDefinitions": [
+    {
+      "id": "pass2_complete",
+      "label": "High Fidelity / Complete Extraction (85-100%)",
+      "shortLabel": "High Fidelity (85-100%)",
+      "color": "#10b981",
+      "badgeBg": "rgba(16, 185, 129, 0.14)",
+      "badgeBorder": "rgba(16, 185, 129, 0.45)",
+      "description": "Both source volume coverage and structured parcel/building-level field extraction are 85-100% complete across the target universe."
+    },
+    {
+      "id": "pass1_needs_pass2",
+      "label": "Pass 1 Extracted \u00b7 Needs Pass 2 Deep Re-Extraction",
+      "shortLabel": "Needs Pass-2 Re-Extraction",
+      "color": "#38bdf8",
+      "badgeBg": "rgba(56, 189, 248, 0.14)",
+      "badgeBorder": "rgba(56, 189, 248, 0.45)",
+      "description": "Source volumes or bulk files have already been downloaded/scanned, but Pass 1 only extracted a subset of pages, addresses, or fields (such as un-headered City Directory Street Guide columns, sampled Alphabetical pages, Clerk TPIA Comment-field lots, or Sanborn sheet bounds without building-level polygons)."
+    },
+    {
+      "id": "inventory_only_pull_needed",
+      "label": "Catalog / Call-Number Indexed \u00b7 Physical or Portal Pull Needed",
+      "shortLabel": "Catalog Indexed \u00b7 Pull Needed",
+      "color": "#f59e0b",
+      "badgeBg": "rgba(245, 158, 11, 0.14)",
+      "badgeBorder": "rgba(245, 158, 11, 0.45)",
+      "description": "100% of box/volume call numbers or pre-filled 1-click portal queries are indexed across all parcels, with sample records digitized and a prioritized reading-room or scraper batch queue ready."
+    },
+    {
+      "id": "unfetched_gap",
+      "label": "0% Extracted \u00b7 Unfetched Roadmap Source",
+      "shortLabel": "Unfetched Gap (0%)",
+      "color": "#a855f7",
+      "badgeBg": "rgba(168, 85, 247, 0.14)",
+      "badgeBorder": "rgba(168, 85, 247, 0.45)",
+      "description": "Identified institutional dataset not yet fetched into the repository, with a concrete acquisition endpoint, TPIA/archive mechanism, and target milestone."
+    }
+  ],
+  "deepDiveSpotlights": [
+    {
+      "id": "spotlight_city_directories",
+      "title": "1. Houston City Directories (1866-1968): Volume Coverage vs. Pass-2 OCR & Alphabetical Re-Extraction",
+      "institution": "HPL / HMRC ContentDM + Ancestry Collection 2469 + Rice Fondren Microfiche",
+      "linkedFeedIds": [
+        "directories_street_guide_alpha",
+        "ancestry_ia_directory_page_links"
+      ],
+      "headlineMetric": "51,778 HCAD parcels matched (273,677 sightings) vs. ~185,000 pre-1968 Houston addresses",
+      "volumeCoveragePct": 82,
+      "extractionFidelityPct": 54,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We have cataloged 67 of the 78 target directory editions from 1866 to 1968 (39 pre-1927 HPL volumes + 28 distinct post-1926 Ancestry years across 31 volume entries, leaving 11 un-digitized 1931-1963 microfiche gap years). However, even inside the volumes we already scanned (4,351 spreads / 2,341,689 raw OCR lines), Pass 1 captured ~54% of recoverable parcel-level resident & business entries.",
+      "whyPass1MissedData": "Three specific fidelity bottlenecks reduced Pass-1 yield on already-scanned volumes: (1) In the 15 post-1926 Street & Avenue Guide volumes (where we scanned 100% of the 2,652 Street Guide pages at step=1), long streets spanning multiple columns or page turns frequently omit a repeated bold street header at the top of continuation columns, causing OCR line parsers to drop ~35-42% of householder lines until the next printed street header; (2) In the 23 post-1926 Alphabetical Resident (A-Z) volumes (11,479 total pages), Pass 1 sampled every 4th to 18th spread (1,699 spreads = 14.8% of Alphabetical pages) and skipped 1957 (133 pages); and (3) In the 39 pre-1927 HPL volumes (1866-1926), Pass 1 ran targeted phrase queries for 7,541 historic-core addresses rather than dumping all ~28,000 pages, and pre-1911 directories use pre-ordinance house numbers before Houston's 1911-1912 street renumbering.",
+      "howWeWillFillGaps": "Four-part Pass-2 execution plan: (Pass 2A) Re-parse all 2,652 cached Street Guide pages with a sequential page-to-page column-header state machine + VLM layout segmentation to recover ~85,000+ dropped continuation-column listings, plus retain '1/2' rear garage apartments and commercial tenants; (Pass 2B) Sweep the remaining 9,780 post-1926 Alphabetical A-Z pages on Ancestry (dbId=2469) at step=1 (especially alphabetical-only years 1937, 1946, 1948, 1951, 1953, 1955, 1957, 1958, 1959, 1968) to recover ~120,000+ additional household heads and spouses; (Pass 2C) Execute a full-page dmGetItemInfo OCR dump across all ~28,000 pages of the 39 HPL 1866-1926 volumes paired with the 1911-1912 Directory Old-to-New Street Number crosswalk table; and (Pass 2D) Digitize the 11 missing public-domain editions (1931, 1933, 1938, 1943, 1944, 1947, 1950, 1960, 1961, 1962, 1963 - 100% USCO cleared with 0 renewals) from open-stacks microfiche Call No. F394 .H8 P62 at Rice Fondren Library Kelley Center.",
+      "subCohorts": [
+        {
+          "label": "1927-1965 Street & Avenue Guides (15 Ancestry Vols)",
+          "extractedLabel": "2,652 / 2,652 pages scanned (step=1); ~235,000 parcel sightings matched",
+          "universeLabel": "2,652 pages (~405,000 printed door-by-door address lines)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 58,
+          "gapNote": "100% of pages scanned, but ~42% of lines lost on multi-column street continuations without repeated headers, OCR '1'/'l' house-number typos, and skipped '1/2' rear/duplex units."
+        },
+        {
+          "label": "1927-1968 Alphabetical Resident A-Z Sections (23 Ancestry Vols)",
+          "extractedLabel": "1,699 / 11,479 pages sampled (step=4..18); ~38,677 sightings matched",
+          "universeLabel": "11,479 Alphabetical A-Z pages (~1.9M resident/spouse/employer lines)",
+          "volumeCoveragePct": 15,
+          "extractionFidelityPct": 22,
+          "gapNote": "9,780 Alphabetical pages not yet fetched at step=1 (including 1957 with 0/133 pages fetched); Pass 2 step=1 sweep will 5x Alphabetical coverage."
+        },
+        {
+          "label": "1912-1926 Post-Renumbering HPL ContentDM Volumes (13 Vols)",
+          "extractedLabel": "7,541 historic-core addresses queried -> 3,055 matched parcels + 4,682 absences",
+          "universeLabel": "~16,500 pages (~65,000 unique Houston addresses by 1926)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 34,
+          "gapNote": "All 13 volumes online, but queried on-demand for 7,541 priority parcels; full-volume page-by-page OCR dump will index all ~65,000 1912-1926 addresses."
+        },
+        {
+          "label": "1866-1911 Pre-Renumbering HPL ContentDM Volumes (26 Vols)",
+          "extractedLabel": "26 / 26 volumes online -> 1,120 pre-1912 sightings on un-renumbered streets",
+          "universeLabel": "~11,500 pages (~28,000 pre-1911 Houston addresses)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 18,
+          "gapNote": "Houston's 1911-1912 street renumbering ordinance changed house numbers across the 19th-century wards; requires digitizing the 1911-12 Directory Old-to-New Street Number conversion table."
+        },
+        {
+          "label": "1931-1963 Un-Digitized Public-Domain Gap Years (11 Editions)",
+          "extractedLabel": "0 / 11 volumes digitized (USCO copyright clearance 100% complete: 0 renewals)",
+          "universeLabel": "11 editions (1931, 1933, 1938, 1943, 1944, 1947, 1950, 1960-1963)",
+          "volumeCoveragePct": 0,
+          "extractionFidelityPct": 0,
+          "gapNote": "Not on Ancestry or HPL ContentDM; physical microfiche held in open stacks at Rice Fondren Library Kelley Center (F394 .H8 P62) and HPL Ideson (977.64112 M878)."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_clerk_tpia",
+      "title": "2. Harris County Clerk Real Property & Plats (1823-2026): 7.68 GiB Local TPIA Dump vs. Pass-2 Deep Linkage",
+      "institution": "Harris County Clerk Data Sales (7.68 GiB Custom Order #6816066) & Historical Deed Books",
+      "linkedFeedIds": [
+        "hc_clerk_tpia_bulk_index",
+        "hc_clerk_address_shards"
+      ],
+      "headlineMetric": "556,927 of 687,010 target 1960-2026 instruments matched (81.1%) across 130,474 parcels; 2,606 / 5,573 plats calibrated",
+      "volumeCoveragePct": 86,
+      "extractionFidelityPct": 68,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We have 100% of the Harris County Clerk's machine-readable Real Property Index from Nov 1, 1960 to Nov 13, 2026 (RPIInstruments.txt 1.64 GiB, RPLegalDesc.txt 1.18 GiB, RPNames.txt 4.47 GiB, RPRelDoc.txt 391 MiB) and 100% of the Maps & Condos Index from 1823 to 2026 (58,722 rows) on local disk. In Pass 1, Tier 1 matched 285,705 exact file numbers and Tier 2 matched 271,222 legal descriptions across 130,474 parcels, leaving ~130,083 target instruments and 391 MiB of related-document links ready for Pass-2 re-extraction.",
+      "whyPass1MissedData": "Four conservative Pass-1 filters left recoverable data inside the local 7.68 GiB files: (1) To keep permits_*.json.gz at 73.4 MiB inside GitHub Pages' 980 MiB limit, Tier 2 legal-description matching (SubDivision + Section + Block + Lot) was scoped to 188,200 pre-1945/landmark/confidential target HCAD accounts rather than all 1,239,007 countywide accounts; (2) When a historic single-family lot (e.g., Lot 1, Block 12) was later replatted into >4 townhome parcels (Lots 1A..1F), max_parcels_per_legal_key=4 skipped attaching the pre-replat 1960s-1990s deeds; (3) ~95,000 older Clerk rows store lot/block tokens ('L23-24 B4') or metes-and-bounds tract names inside the free-text Comment column of RPLegalDesc.txt rather than structured Lot/Block columns, or use abbreviated subdivision strings ('HGTS', 'NORHILL ADDN') that differed from HCAD lgl_2; and (4) RPRelDoc.txt (391 MiB linking releases of mechanic's liens and mortgage assignments back to parent instruments) was not traversed in Pass 1.",
+      "howWeWillFillGaps": "Four-part Pass-2 execution plan on local disk + archival deed books: (Pass 2A) Parse 'L<N> B<M>' and 'TR <N>' tokens from RPLegalDesc.txt Comment and apply a fuzzy Clerk-to-HCAD subdivision synonym dictionary across all 5,573 subdivisions (raising plat calibration from 2,606 [46.8%] to >5,000 [90%+]); (Pass 2B) Propagate pre-replat historical deeds (where Clerk FileDate < HCAD replat year) onto all child townhome accounts on a subdivided lot, bypassing the 4-parcel ambiguity cap for pre-split dates; (Pass 2C) Traverse RPRelDoc.txt (391 MiB) so Release of Lien filings lacking a legal description inherit the parcel match of their parent Mechanic's Lien or Deed of Trust; and (Pass 2D) Digitize/OCR the pre-1960 General Index to Deeds (1836-1960 Grantor/Grantee ledgers at Harris County Archives / Clerk) to bridge 1836-1960 conveyances.",
+      "subCohorts": [
+        {
+          "label": "Tier 1 Exact Clerk File-Number Match (1960-2026 RPIInstruments)",
+          "extractedLabel": "285,705 / 285,705 HCAD-referenced Clerk file numbers matched",
+          "universeLabel": "285,705 Clerk file numbers cited in HCAD deeds.txt & 22-year rolls",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 96,
+          "gapNote": "Near-100% match on exact Clerk file numbers; remaining 4% are pre-1979 Book/Volume/Page citations without a modern 7-digit film code."
+        },
+        {
+          "label": "Tier 2 Subdivision/Section/Block/Lot Match on Historic Core (188,200 Parcels)",
+          "extractedLabel": "271,222 / 401,305 pre-2004 conveyances, mechanic's liens & deeds of trust matched",
+          "universeLabel": "401,305 target historic-core instruments in local 7.68 GiB cache",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 68,
+          "gapNote": "130,083 target instruments on local disk need Comment-field Lot/Block regex parsing, subdivision alias mapping, and pre-replat parent-lot propagation."
+        },
+        {
+          "label": "Maps & Condos Subdivision Plat Index (1823-2026, 58,722 Filings)",
+          "extractedLabel": "2,606 calibrated subdivisions + 2,053 replats + 3,081 GLO surveys",
+          "universeLabel": "5,573 HCAD platted subdivisions (58,722 Clerk map/condo rows on disk)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 47,
+          "gapNote": "100% of Clerk map index is on local disk; fuzzy normalization of 'SEC'/'ADDN'/'REPLAT' naming differences will calibrate the remaining 2,967 HCAD subdivisions."
+        },
+        {
+          "label": "Related-Document Cross-Reference Graph (RPRelDoc.txt, 391.1 MiB)",
+          "extractedLabel": "0 / ~8.2M related-instrument edges traversed in Pass 1",
+          "universeLabel": "391.1 MiB RPRelDoc.txt on local disk (links releases & amendments to original filings)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 0,
+          "gapNote": "File is already downloaded locally; Pass-2 1-hop graph join will link un-propertied Release of Lien rows back to their parent Mechanic's Lien."
+        },
+        {
+          "label": "Pre-1960 Grantor/Grantee Deed Books (1836-1960 County Clerk Ledgers)",
+          "extractedLabel": "Pre-1960 RESTR restrictions + 65 deed PDFs + 4 HCA parcels",
+          "universeLabel": "1836-1960 Harris County Deed Books & Grantor/Grantee Indexes",
+          "volumeCoveragePct": 8,
+          "extractionFidelityPct": 8,
+          "gapNote": "Clerk SQL index starts Nov 1, 1960 (except pre-1960 RESTR rows); requires OCR of 1836-1960 Grantor/Grantee Index books at Harris County Archives / Clerk."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_hca_cr001",
+      "title": "3. Harris County Archives Pre-1983 Tax Records (CR001 BLA Cards & Block Books): 100% Box Inventory vs. Physical Card Pulls",
+      "institution": "Harris County Archives (11525 Todd St, Suite 300) & hctax.net Online 1997 Block Books",
+      "linkedFeedIds": [
+        "hca_cr051_field_cards",
+        "hca_cr037_block_books"
+      ],
+      "headlineMetric": "100% of 915 BLA Boxes & 119 Block Book Volumes indexed by HCAD ID; 6 primary packets digitized vs. 401 priority Block Book TIFFs",
+      "volumeCoveragePct": 100,
+      "extractionFidelityPct": 12,
+      "fidelityTier": "inventory_only_pull_needed",
+      "summary": "Every pre-1984 13-digit HCAD account (VVV-PPP-SSS-IIII, Vol 001..150) is deterministically mapped to its exact Harris County Archives CR001 Building & Land Assessment (BLA) Card box (915 boxes) and bound Block Book volume (119 volumes, 1915-1997). However, while call-number resolution is 100% complete, actual digitized card/page extraction has only been performed on 6 initial parcels (1127 Key St, 1001 Bayland Ave, 2000 Smith St, 727 Arlington St, Block 19 Heights, and Braeswood Block 20).",
+      "whyPass1MissedData": "Physical BLA cards (mid-1920s to 1980, containing original COH building permit numbers, builder names, measured footprint sketches, and vintage Polaroid photos) sit in 915 paper boxes at 11525 Todd St, Suite 300, while the bound 1915-1927 Block Books are already digitized as 300-DPI Group 4 TIFFs (1915-1927_VVV_PPP.tif) on the Harris County Archives reading-room server but are not posted on a public web server. Additionally, the Harris County Tax Office hosts 1997-series block book maps online at hctax.net/Property/blockbooks/default.aspx that have not yet been bulk-linked.",
+      "howWeWillFillGaps": "Three-stage archival extraction plan using docs/HARRIS_COUNTY_ARCHIVES_PULL_SHEET.md: (Stage 1 - Priority 1 Watchlist) Pull and photograph the 23 pre-1984 active Watchlist BLA cards and Block Book pages (23 boxes); (Stage 2 - Priority 2 Audit Queue USB Copy) Request bulk USB copy of the 401 pre-digitized 1915-1927_VVV_PPP.tif Block Book files at 11525 Todd St, which cover 2,219 (79.5%) of the 2,791 Historical Audit Queue contradictions in a single visit; and (Stage 3 - Priority 3 Curated Landmarks & Online 1997 Maps) Photograph the 164 BLA boxes covering 828 curated historic overrides and index the online 1997 hctax.net block book PDF maps.",
+      "subCohorts": [
+        {
+          "label": "CR001 Call-Number & Shelf-Location Resolver (Vol 001..114)",
+          "extractedLabel": "915 / 915 BLA boxes + 119 / 119 Block Book volumes + 7 MC003 abstracts indexed",
+          "universeLabel": "All pre-1984 Harris County tax accounts (Vol 001..150)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 100,
+          "gapNote": "100% of pre-1984 HCAD accounts automatically display their exact Box, Volume, Page, Item, and Shelf Location in the Property Inspector."
+        },
+        {
+          "label": "Priority 1: Active Property Watchlist Pre-1984 Parcels (23 Accounts)",
+          "extractedLabel": "4 digitized packets ingested (1127 Key, 1001 Bayland, 2000 Smith, 727 Arlington)",
+          "universeLabel": "23 pre-1984 Watchlist parcels across 23 BLA boxes & 23 Block Book TIFFs",
+          "volumeCoveragePct": 17,
+          "extractionFidelityPct": 17,
+          "gapNote": "19 remaining Watchlist parcels pre-sorted by Box and Shelf Location in Section 2 of docs/HARRIS_COUNTY_ARCHIVES_PULL_SHEET.md."
+        },
+        {
+          "label": "Priority 2: Historical Audit Queue Contradictions (2,219 Pre-1984 Parcels)",
+          "extractedLabel": "2 / 401 pre-digitized 1915-1927_VVV_PPP.tif Block Book files ingested",
+          "universeLabel": "401 distinct 1915-1927 Block Book TIFFs & 81 BLA boxes covering 2,219 audit parcels",
+          "volumeCoveragePct": 1,
+          "extractionFidelityPct": 1,
+          "gapNote": "Because 1915-1927 Block Books are already digitized as TIFFs on the Archives workstation, copying 401 TIFFs to USB resolves 2,219 contradictions (5.5 parcels per TIFF)."
+        },
+        {
+          "label": "Priority 3: Curated Historic Overrides (828 Pre-1984 13-Digit Parcels)",
+          "extractedLabel": "4 / 828 BLA card packets digitized",
+          "universeLabel": "828 parcels across 164 BLA boxes & 566 Block Book pages",
+          "volumeCoveragePct": 1,
+          "extractionFidelityPct": 1,
+          "gapNote": "Targeted reading-room photography of the top 30 boxes (covering 60%+ of dense Historic District blocks in Heights, Norhill, Old Sixth Ward, and Montrose)."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_sanborn_maps",
+      "title": "4. Sanborn Fire Insurance Maps (1877-1970): 878 Indexed Raster Sheets vs. Parcel-Level Footprint & Material Extraction",
+      "institution": "Library of Congress (626 IIIF Sheets), UT Austin PCL (252 Plates) & ProQuest / Briscoe Post-1951",
+      "linkedFeedIds": [
+        "sanborn_iiif_sheet_index"
+      ],
+      "headlineMetric": "878 / ~1,120 historic sheets indexed (78%); 6 / 878 sheets vectorized at building level (1,207 footprints in Old Sixth Ward)",
+      "volumeCoveragePct": 78,
+      "extractionFidelityPct": 18,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We have indexed 100% of the public-domain LOC IIIF (10 volumes, 626 sheets, 1885-1955) and UT Austin PCL (6 volumes, 252 sheets / 504 local WebP plates, 1877-1948) Houston Sanborn holdings (878 total sheets), plus calibrated 6 stitched 1924 sheets (Sheets 205-210 in Old Sixth Ward at 1.220 px/ft) into 1,207 building footprints and linked 73 Lost Houston plates. However, 872 of the 878 sheets are currently used only as sheet-level bounding boxes rather than parcel-level extracted footprints, material colors, story counts, and pre-1911 curb numbers.",
+      "whyPass1MissedData": "Two distinct gaps exist: (1) Volume Gap (22% missing sheets): Montrose, Courtlandt Place, Broadacres, Westmoreland, and Avondale fell into 1925 Volume 5, while Houston Heights East/South/West fell into 1925 Volume 7 (neither digitized in public-domain LOC/UT PCL sets), and post-1951 paste-up revisions (1952-1970) sit behind ProQuest Digital Sanborn Maps; (2) Fidelity Gap on Existing 878 Sheets (82% un-extracted): Each Sanborn sheet contains 150-300 individual building outlines color-coded by construction material (Yellow = Frame, Pink = Brick, Blue = Stone/Concrete, Gray = Iron), story numbers (1, 2, 1.5), building use ('D' Dwelling, 'S' Store, 'A' Auto Garage), and pre-1911 street numbers along the curb that Pass 1 did not segment.",
+      "howWeWillFillGaps": "Two-track Pass-2 plan: (Pass 2A - Automated Seam-Stitching, Footprint Segmentation & Color/Curb OCR on Existing 878 Sheets) Run our calibrated 1.220 px/ft multi-sheet grid registration and CV/VLM polygon extractor across all 878 LOC + UT PCL sheets to extract ~140,000 historic building footprints, sample interior RGB material colors (resolveSanbornMaterialColors), and OCR curb-line house numbers (creating an automated pre-1911 to post-1912 address crosswalk); (Pass 2B - Acquire 1925 Vol. 5 & Vol. 7 + 1952-1970 Editions) Harvest 1925 Vol. 5 (Montrose/Courtlandt), 1925 Vol. 7 (Heights), and 1952-1970 paste-up sheets via HPL MY Link / Rice Fondren ProQuest Digital Sanborn access.",
+      "subCohorts": [
+        {
+          "label": "LOC IIIF & UT PCL Public-Domain Sheet Index (16 Volumes, 1877-1955)",
+          "extractedLabel": "878 / 878 public-domain sheets indexed with sheet-level bounds & local WebP mirrors",
+          "universeLabel": "878 public-domain Houston sheets (626 LOC IIIF + 252 UT PCL)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 100,
+          "gapNote": "100% of public-domain LOC and UT PCL Houston sheets are browsable in #sanborn-browser-modal and immune to UT Anubis PoW gates."
+        },
+        {
+          "label": "Building-Level Footprint, Material Color & Pre-1911 Curb Number Extraction",
+          "extractedLabel": "6 / 878 sheets vectorized (1,207 Old Sixth Ward 1924 footprints + 73 Lost Houston sites)",
+          "universeLabel": "878 sheets (~140,000 historic building footprints & pre-1911 curb numbers)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 14,
+          "gapNote": "872 already-downloaded/IIIF sheets await Pass-2 1.220 px/ft stitching, polygon segmentation, material color sampling, and curb-number OCR."
+        },
+        {
+          "label": "1925 Vol. 5 (Montrose/Courtlandt), 1925 Vol. 7 (Heights) & 1952-1970 Revisions",
+          "extractedLabel": "0 / ~242 sheets fetched (mapped via General Index 201k/301k sector keys)",
+          "universeLabel": "~242 sheets across 1925 Vols. 5 & 7 and 1952-1970 paste-up updates",
+          "volumeCoveragePct": 0,
+          "extractionFidelityPct": 0,
+          "gapNote": "Accessible on microfilm/ProQuest Digital Sanborn Maps via Houston Public Library MY Link card or Rice Fondren Library."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_hpo_landmarks_surveys",
+      "title": "5. COH HPO Landmark Reports (482/509) & Historic District Surveys (23/23): Missing 27 TPIA PDFs & Pass-2 Full-Text Mining",
+      "institution": "City of Houston Office of Historic Preservation (HPO) & HAHC",
+      "linkedFeedIds": [
+        "coh_landmarks_districts_gis",
+        "coh_hahc_coa_tracker"
+      ],
+      "headlineMetric": "482 / 509 Landmark PDFs (94.7%) & 23 / 23 HD Surveys (6,169 rows, 90.8% parcel-matched) ingested",
+      "volumeCoveragePct": 96,
+      "extractionFidelityPct": 82,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We have recovered 482 of the 509 (94.7%) official City of Houston Landmark Designation Report PDFs (fixing 11 server filename typos and recovering +34 post-2016 PDFs from HAHC packets and Wayback CDX) and 100% of the 23 COH Historic District parcel survey inventories (6,169 rows across 5,537 matched HCAD parcels). However, 27 post-2016 landmark PDFs remain unpublished on the City's server, 565 HD survey rows lacked a direct 13-digit HCAD match, and Pass-1 PDF parsing only extracted top-level summary fields from the 628 cached PDF texts.",
+      "whyPass1MissedData": "(1) Volume Gap: 27 post-2016 landmarks have 'USER_ILMS_HOLD' or dead links on houstontx.gov (tracked in Missing_Landmark_PDFs_TPIA); (2) HD Survey Matching Gap: 565 of the 6,169 survey rows (9.2%) use corner street addresses, ranges ('727-729 Arlington'), or pre-replat HCAD IDs that missed strict 1-to-1 HCAD matching; and (3) PDF Text Fidelity Gap: All 628 downloaded landmark/staff report PDFs are full-text cached in pipeline/cache/landmark_pdf_texts.json, but Pass 1 regex extraction only pulled year_built, architect, style, and a 1-paragraph summary, leaving original builder/contractor names, original construction cost, original client/owner names, and embedded historical photographs inside the PDFs unextracted.",
+      "howWeWillFillGaps": "(Pass 2A - Full-Text Structured Extraction on 628 Cached Landmark PDFs) Run a schema-guided extraction pass over pipeline/cache/landmark_pdf_texts.json to populate original_builder, construction_cost, original_owner, legal chain, and embedded elevation photos across all 482 landmarks; (Pass 2B - Corner & Range Resolver for 565 Unmatched HD Survey Rows) Cross-match the 565 unmatched hpo_district_surveys.json rows using corner-lot alt_addresses, odd/even house-number range expansion, and spatial point-in-parcel fallback; (Pass 2C - Fulfill 27 Missing Landmark PDFs) Ingest the 27 remaining post-2016 HPO designation reports upon fulfillment of the Missing_Landmark_PDFs_TPIA open-records checklist.",
+      "subCohorts": [
+        {
+          "label": "COH Landmark Designation Report PDFs (509 Designated Landmarks)",
+          "extractedLabel": "482 / 509 official PDFs linked (94.7%) + 187 NRHP secondary_pdf_url fallbacks",
+          "universeLabel": "509 designated COH Landmarks & Protected Landmarks (628 cached PDF texts)",
+          "volumeCoveragePct": 95,
+          "extractionFidelityPct": 76,
+          "gapNote": "27 post-2016 PDFs pending HPO TPIA fulfillment; 628 cached PDF texts in landmark_pdf_texts.json ready for Pass-2 builder, cost, and embedded-photo extraction."
+        },
+        {
+          "label": "COH Historic District Parcel Survey Inventories (23 / 23 Districts)",
+          "extractedLabel": "6,169 / 6,169 survey rows harvested; 5,604 rows matched to 5,537 HCAD parcels (+5,118 styles)",
+          "universeLabel": "6,169 surveyed structures across all 23 designated COH Historic Districts",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 91,
+          "gapNote": "565 survey rows (9.2%) with address ranges or corner-lot addresses ready for Pass-2 alt_addresses and spatial blockface matching."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_taro_hpl_hmrc",
+      "title": "6. TARO 2.0 (64,379 Folders), HPL ContentDM & HMRC Contractor Ledgers: Client-Surname Cross-Join & VLM Table Parsing",
+      "institution": "Texas Archival Resources Online (12 Repositories) & HPL / HMRC Special Collections",
+      "linkedFeedIds": [
+        "hmrc_historic_permits_1905_1951",
+        "hmrc_photographs_architectural",
+        "rice_architectural_collections",
+        "uh_neighborhood_archival_collections"
+      ],
+      "headlineMetric": "135 TARO finding aids (64,379 folders) + 1,836 HPL items + 952 T.G.C.A. pages scanned -> 595 archival links & 3,800+ contractor credits",
+      "volumeCoveragePct": 72,
+      "extractionFidelityPct": 46,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We scanned 100% of the 135 Houston/Harris County EAD XML finding aids across 12 TARO 2.0 repositories (64,379 archival folders), 6 HPL ContentDM architectural collections (1,836 items), and 18 monthly issues of the T.G.C.A. Monthly Bulletin (1922-1924, 952 pages). However, Pass 1 only linked 595 TARO/HPL records (to 362 parcel keys & 236 addresses) because Pass 1 required an explicit street number or exact landmark name in the folder title.",
+      "whyPass1MissedData": "(1) Client-Surname Folder Titles in TARO (64,379 Scanned Folders): In architectural archives like William Ward Watkin, John Staub, Alfred C. Finn, MacKie & Kamrath, and Wilson, Morris, Crain & Anderson, thousands of project folders are titled by client surname and year ('Residence for Mr. & Mrs. J. H. Garrett, River Oaks, 1937' or 'Henke & Pillot Store #4, 1929') without a street address in the XML <unittitle>; (2) Multi-Column OCR Wrapping in T.G.C.A. Bulletins (952 Scanned Pages): Two-column contract award tables wrap owner, architect, contractor, and dollar amounts across lines, causing regex parsers to miss ~48% of sub-contract rows; and (3) HMRC 1905-1951 Permit Ledgers: ~42,000 permits are indexed out of ~165,000 total permits in the physical/microfilm ledgers.",
+      "howWeWillFillGaps": "(Pass 2A - TARO Client-Name + Year <-> City Directory & Clerk Grantor/Grantee Cross-Join) Match un-addressed TARO architectural folder tuples (Client Surname, Neighborhood, Year) against our 51,778 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index to resolve ~1,200+ client-named architectural drawing folders to exact HCAD parcels; (Pass 2B - VLM Table Parser on 952 Cached T.G.C.A. Pages) Re-extract all 18 T.G.C.A. Monthly Bulletin issues using layout-aware table row segmentation; and (Pass 2C - HMRC 1905-1951 Permit Ledger Reel Digitization) Complete OCR transcription of the remaining 1905-1951 City of Houston building permit ledger reels at HMRC.",
+      "subCohorts": [
+        {
+          "label": "TARO 2.0 Architectural Finding Aids (135 Collections, 64,379 Folders)",
+          "extractedLabel": "64,379 folders scanned -> 342 explicit-address/landmark folders matched",
+          "universeLabel": "~1,800 identifiable Houston building commissions inside 64,379 folders",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 38,
+          "gapNote": "100% of XML folders are cached locally; cross-joining client-surname folder titles against City Directories & Clerk deeds will unlock ~1,100+ additional commissions."
+        },
+        {
+          "label": "HPL ContentDM 6 Architectural Photo & Drawing Collections (1,836 Items)",
+          "extractedLabel": "1,836 / 1,836 items scanned -> 253 parcel/address matches (+154 curated photos)",
+          "universeLabel": "1,836 digitized architectural renderings, survey photos & vertical files",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 68,
+          "gapNote": "Remaining ~120 unlinked HPL items have intersection-only locations ('Main at Lamar') or historic business names solvable via City Directory lookup."
+        },
+        {
+          "label": "T.G.C.A. Monthly Bulletin (1922-1924, 952 Pages) & Contractor Monographs",
+          "extractedLabel": "952 / 952 pages scanned -> 3,800+ contractor & architect attributions",
+          "universeLabel": "952 pages (~7,200 published contract & sub-contract awards)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 53,
+          "gapNote": "Pass-2 VLM multi-column table extraction on the 952 cached pages will recover wrapped rows and lot/block-only contract awards."
+        },
+        {
+          "label": "HMRC City of Houston Building Permit Ledgers (1905-1951, RG B 0005)",
+          "extractedLabel": "42,000+ historic permits indexed across priority inner-loop neighborhoods",
+          "universeLabel": "~165,000 total City of Houston building permits issued 1905-1951",
+          "volumeCoveragePct": 26,
+          "extractionFidelityPct": 26,
+          "gapNote": "Remaining ~123,000 ledger entries on microfilm/bound volumes at HMRC Julia Ideson Building slated for batch OCR + 1911 renumbering crosswalk."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_haif_community",
+      "title": "7. Houston Architecture Info Forum (HAIF, 29,467 Threads): URL-Slug Matching vs. Pass-2 Post-Body & Image Mining",
+      "institution": "Houston Architecture Info Forum (HAIF via Wayback CDX & Invision CDN)",
+      "linkedFeedIds": [
+        "haif_community_search",
+        "aia_mod_architect_index"
+      ],
+      "headlineMetric": "29,467 / 29,467 threads crawled (100%); 3,385 threads linked to 3,892 HCAD parcels (5,576 links, +474 names, +172 photos)",
+      "volumeCoveragePct": 100,
+      "extractionFidelityPct": 38,
+      "fidelityTier": "pass1_needs_pass2",
+      "summary": "We crawled 100% of the 29,467 unique HAIF topic threads across 97 subforums via the Internet Archive Wayback Machine CDX API. In Pass 1, we extracted street addresses and landmark tokens from topic URL slugs ('<building>-at-<number>-<street>') and page-1 headers, linking 3,385 threads to 3,892 HCAD properties. However, ~5,500 additional building-specific threads store the street address, architect credit, or teardown photo inside post body text or on pages 2..N rather than in the URL slug.",
+      "whyPass1MissedData": "Topic URL slugs on HAIF only contain an explicit street address when a moderator titled the thread '<Project Name> At <Address>'. Older historic threads in '23-historic-houston', '36-houston-mod', and '78-architects-developers-builders-and-designs' use titles like 'Abandoned Mid-Century Bank On Ost' or 'John Staub House In Broadacres', where the exact street address, archival clipping, and media.invisioncic.com image URLs appear inside the discussion posts.",
+      "howWeWillFillGaps": "(Pass 2A - Post-Body Address, Architect & Demolition Date Extraction) Parse cached HTML post bodies across the remaining 26,082 HAIF threads (and multi-page continuations) for street addresses, intersection references, and architect names; (Pass 2B - Invision CDN Image Harvester) Extract direct https://media.invisioncic.com/w329674/... image URLs (which serve HTTP 200 without Cloudflare challenges) from matched Historic Houston and Houston Mod threads to expand Lost Houston photo coverage (closing the 489-site Lost_Houston_Catalog photo backfill queue).",
+      "subCohorts": [
+        {
+          "label": "HAIF Topic Thread Index & URL-Slug Address Matcher (97 Subforums)",
+          "extractedLabel": "29,467 / 29,467 threads indexed; 3,385 slug/page-1 threads matched to 3,892 parcels",
+          "universeLabel": "29,467 total threads (~8,900 parcel-specific architectural/development threads)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 38,
+          "gapNote": "100% of thread URLs indexed; ~5,500 additional building threads have street addresses inside post body text rather than the URL slug."
+        },
+        {
+          "label": "HAIF Embedded Archival & Demolition Photography (media.invisioncic.com)",
+          "extractedLabel": "172 verified forum photographs linked across 89 HCAD properties",
+          "universeLabel": "~2,500 historic & teardown photographs hosted on Invision CDN",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 15,
+          "gapNote": "Pass-2 post-body image extraction targeted at the 489 un-photographed Lost Houston sites in Lost_Houston_Catalog (filterViewId=824622008)."
+        }
+      ]
+    },
+    {
+      "id": "spotlight_hcad_longitudinal",
+      "title": "8. HCAD Appraisal Rolls & Permits (1988-2026): 100% Post-2005 Coverage vs. 1988-2004 Server-Conversion Gap",
+      "institution": "Harris Central Appraisal District (HCAD PDATA, Open Records & ArcGIS)",
+      "linkedFeedIds": [
+        "hcad_cama_annual",
+        "hcad_historical_rolls",
+        "hcad_arcgis_live",
+        "hcad_permits_bulk"
+      ],
+      "headlineMetric": "1,507,897 / 1,507,897 footprints dated (100%); 22 / 22 annual rolls (2005-2026, 1,239,007 accounts) ingested; 1988-2004 bridged via Clerk TPIA",
+      "volumeCoveragePct": 94,
+      "extractionFidelityPct": 92,
+      "fidelityTier": "pass2_complete",
+      "summary": "We have ingested 100% of HCAD's surviving digital CAMA certified appraisal rolls (22 annual editions from 2005 through 2026 across 1,239,007 accounts in 152 gzipped shards), 100% of HCAD's 1,300,027 permit rows and 914,980 appraiser inspection notes, and resolved 100.00% of Harris County's 1,507,897 building footprints to a verified or inferred year (0 undated). For 1988-2004, HCAD Open Records confirmed on Nov 11, 2026 that pre-2005 CAMA tables were lost during agency server conversions.",
+      "whyPass1MissedData": "(1) HCAD 1988-2004 Server-Conversion Loss: HCAD no longer holds 1988-2004 electronic CAMA snapshots, and 89,970 pre-1988 accounts carry a default '01/02/1988' acquisition date from when HCAD digitized 1983 Tax Assessor microfilm rolls; (2) Rounded-Decade Placeholders: 3,047 Historic Core parcels in HCAD still carry un-overridden rounded decade estimates (1920, 1930, 1940) where HCAD appraisers estimated age after 1984 computerization.",
+      "howWeWillFillGaps": "(1) Because HCAD lost its 1988-2004 electronic tables, we bypass that gap directly by combining the 1960-2004 Harris County Clerk TPIA deed index (already on local disk!) with the 1915-1997 Harris County Archives CR001 Block Books and 1970-1983 CR067 Microfilm Tax Rolls; (2) The remaining 3,047 Historic Core rounded-decade estimates (c. 1920/1930) are queued in Historical_Audit_Queue for automated calibration via Pass-2 City Directory, Sanborn footprint, and CR001 Block Book value-jump cross-checks.",
+      "subCohorts": [
+        {
+          "label": "2005-2026 Annual Certified Ownership Rolls (22 Annual Editions)",
+          "extractedLabel": "22 / 22 rolls (1,239,007 accounts, 845,850 multi-tenure chains, 1.72M deed tokens)",
+          "universeLabel": "All 22 surviving digital HCAD PDATA certified rolls (2005-2026)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 98,
+          "gapNote": "100% of surviving digital HCAD rolls ingested with Current-Tenure-Only Sec. 25.025 redaction and pre-acquisition Clerk TPIA deed pairing."
+        },
+        {
+          "label": "1984-2004 Pre-PDATA Electronic CAMA Gap (Bridged via Clerk + HCA)",
+          "extractedLabel": "25,705 pre-2004 owner chains + 130,474 deed shards bridged via Clerk TPIA",
+          "universeLabel": "~188,200 historic/inner-core parcels needing pre-2005 tenure chains",
+          "volumeCoveragePct": 70,
+          "extractionFidelityPct": 68,
+          "gapNote": "HCAD confirmed 1988-2004 CAMA files were lost in server conversions; Pass-2 Clerk TPIA legal-description expansion bridges 1960-2004."
+        },
+        {
+          "label": "Historic Core Rounded-Decade Placeholder Resolution (1900, 1920, 1930, 1940)",
+          "extractedLabel": "2,406 curated overrides + 51,778 City Directory calibrations applied",
+          "universeLabel": "5,453 original Historic Core rounded-decade parcels (3,047 remaining)",
+          "volumeCoveragePct": 100,
+          "extractionFidelityPct": 64,
+          "gapNote": "3,047 remaining rounded-decade parcels flagged as 'c. YYYY (HCAD Est.)' and queued for Pass-2 City Directory + CR001 Block Book calibration."
+        }
+      ]
+    }
+  ],
+  "corpusCompletenessSummary": {
+    "totalInstitutions": 29,
+    "totalFeeds": 46,
+    "averageVolumeCoveragePct": 84,
+    "averageExtractionFidelityPct": 67,
+    "fidelityTierCounts": {
+      "pass2_complete": 24,
+      "inventory_only_pull_needed": 5,
+      "pass1_needs_pass2": 13,
+      "unfetched_gap": 4
+    },
+    "keyTakeaway": "Across all 46 institutional data feeds (29 institutions), the Atlas has achieved 84% average source-universe acquisition coverage but 67% average parcel-level extraction fidelity. 13 feeds already have raw scans, bulk SQL tables, or XML finding aids on local disk or online where a targeted Pass-2 deep re-extraction (without waiting on new external orders) can unlock hundreds of thousands of additional resident listings, pre-2004 deeds, historic building footprints, and architect attributions, while 5 catalog-indexed feeds have exact box/page/microfiche call numbers ready for physical or portal pulls."
+  }
 }

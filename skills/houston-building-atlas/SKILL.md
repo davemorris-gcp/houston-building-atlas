@@ -104,3 +104,65 @@ python3 scripts/query_atlas.py --watchlist
 | **Open Preservation Scorecard (District / Neighborhood)** | `#scorecard=historic_districts:<id>` or `#scorecard=council_districts:<id>` |
 | **Open Chapter 42 Block-Face Calculator** | `#hcad=<13-digit-hcad>&ch42=<13-digit-hcad>` |
 | **Open Plat & Property Monitor Watchlist Item** | `plat-monitor.html#tab=watchlist&watch=<watchlist_id>` |
+
+---
+
+## 5. 2-Way Community & Local-LLM Research Contributions (Moderated Queue)
+
+Both cloud AI agents (**Claude Code**, **Gemini CLI**, **ChatGPT**, **Claude Desktop**) and local open-weights LLMs (**Ollama**, **LM Studio**, **llama.cpp**, **OpenWebUI**, **AnythingLLM**) can contribute verified primary-source research, Walk-the-Block field surveys, and quick flags back to The Houston Building Atlas using the exact same moderated Google Sheet queue (`Pending_Submissions` & `Field_Surveys` tabs) used by the web browser UI:
+
+```bash
+# 1. Submit a primary-source property research correction (with --dry-run preview first):
+python3 scripts/query_atlas.py --submit-correction \
+  --hcad 0550140020008 \
+  --address "3700 N Main St" \
+  --building-name "Granada Theater (Heights Theater)" \
+  --year-built 1946 \
+  --architect "R. G. Schneider" \
+  --style "Art Moderne" \
+  --source-type ARCHIVAL_CITATION \
+  --source-citation "Houston Post, Oct 12, 1946; COH Permit #1946-1182" \
+  --source-url "https://texashistory.unt.edu/" \
+  --submitter "Community Researcher" \
+  --agent-tool "Ollama Llama-3.3-70B" \
+  --dry-run
+
+# Remove --dry-run once verified to POST to the moderated Google Sheet queue
+# (also saved locally to ~/.houston_building_atlas/pending_contributions.json).
+
+# 2. Submit a Walk-the-Block field survey observation:
+python3 scripts/query_atlas.py --submit-survey \
+  --hcad 0052090000011 \
+  --address "1917 Washington Ave" \
+  --historic-district "Old Sixth Ward" \
+  --integrity-grade "Intact" \
+  --condition-rating "Good" \
+  --contributing "Contributing" \
+  --windows-status "Original Wood 2/2" \
+  --cladding-material "Historic Brick" \
+  --porch-integrity "Intact" \
+  --field-notes "Historic masonry commercial block at Washington & White; original storefront bays intact." \
+  --submitter "Preservation Field Surveyor" \
+  --agent-tool "Claude Code"
+
+# 3. Submit a 1-click quick flag (claim_dispute, photo_misattribution, or narrative_error):
+python3 scripts/query_atlas.py --submit-flag \
+  --flag-type claim_dispute \
+  --hcad 0152300000001 \
+  --address "2000 Smith St" \
+  --disputed-field year_built \
+  --disputed-value "1928" \
+  --suggested-value "1894" \
+  --source-citation "Built 1894 for John Henry Kirby (Olle J. Lorehn); 1928 is the James Ruskin Bailey Tudor Revival remodel." \
+  --agent-tool "Gemini CLI"
+
+# 4. Export local contributions as formula-safe RFC 4180 CSV for batch Google Sheet import:
+python3 scripts/query_atlas.py --export-contributions-csv suggestions
+python3 scripts/query_atlas.py --export-contributions-csv surveys
+```
+
+### Contribution Safety & Moderation Rules for AI Agents
+- **Never fabricate citations:** Every `--submit-correction` call requires a verifiable `--source-citation` or `--source-url` (e.g. Sanborn volume/sheet, City Directory year/page, Harris County Clerk File/Vol/Page, HPO designation report, or TARO box/folder).
+- **Tag your AI / Local LLM tool:** Always pass `--agent-tool "<Model or Agent Name>"` so Preservation Staff reviewing the `Pending_Submissions` and `Field_Surveys` tabs see `[AI_AGENT:...]` provenance alongside the primary source citation.
+- **Preview with `--dry-run` when unsure:** Run with `--dry-run` first to validate the schema (`1836 <= year_built <= 2026`, formula-injection neutralization, dash sanitization) before posting live.
+

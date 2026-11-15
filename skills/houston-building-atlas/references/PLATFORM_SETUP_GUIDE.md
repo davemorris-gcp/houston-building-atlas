@@ -54,3 +54,45 @@ You do not need to install a Skill or create a Project to use the AI Research Co
    > *"A Houston property record shows a COH Type 12 permit for 'BLD DEMO/SEWER DISC' under project #26090093 and an HCAD appraiser note reading '4/1/26 NC ... CDU @ GD'. Translate both into plain English for a homeowner or journalist."*
 6. **Council District Preservation & Demolition Comparison (`District C vs. Citywide`):**
    > *"Compare pre-1940 historic building stock, protected building counts, and 2020-2026 demolitions in Houston City Council District C against the citywide totals, with links to both Atlas Scorecards."*
+
+---
+
+## Option 4: Local LLMs & Coding Agents (`Ollama`, `LM Studio`, `llama.cpp`, `Claude Code`, `Gemini CLI`)
+
+You can run 100% local open-weights models (`Llama 3.3`, `Qwen 2.5 Coder`, `Gemma 3`, `DeepSeek R1`, `Mistral`) or terminal coding agents (`Claude Code`, `Gemini CLI`, `OpenWebUI`, `AnythingLLM`) against the Houston Building Atlas - and even contribute verified research back to the moderated dataset:
+
+### 1. Local LLM Context & Tool Setup (`Ollama` / `LM Studio` / `llama.cpp`)
+1. Download [`llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt), [`SKILL.md`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/SKILL.md), and [`query_atlas.py`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.py) (or [`query_atlas.mjs`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.mjs)).
+2. For **Ollama**, create a local `Modelfile` that embeds `SKILL.md` as the system prompt:
+   ```dockerfile
+   FROM llama3.3
+   PARAMETER temperature 0.2
+   PARAMETER num_ctx 32768
+   SYSTEM """
+   You are an expert Houston architectural historian powered by The Houston Building Atlas.
+   Use query_atlas.py or llms-full.txt to verify construction dates, architects, deed chains, and demolition permits, and use --submit-correction / --submit-survey / --submit-flag to contribute verified primary-source findings back to the moderated Atlas queue.
+   """
+   ```
+   Then run:
+   ```bash
+   ollama create houston-atlas -f Modelfile
+   ollama run houston-atlas
+   ```
+3. For **LM Studio**, **OpenWebUI**, or **AnythingLLM**, attach `llms-full.txt` to your local workspace/RAG knowledge base and enable `query_atlas.py` (or `query_atlas.mjs`) as a local command/MCP tool.
+
+### 2. Contributing Research Back from a Local LLM or CLI Agent (2-Way Loop)
+When your local LLM or terminal agent discovers a primary-source construction date, architect attribution, archival photograph, or field survey observation, it can submit the structured record directly into Preservation Houston's moderated Google Sheet queue (`Pending_Submissions` and `Field_Surveys` tabs):
+```bash
+# Preview payload with --dry-run, then omit --dry-run to submit to the moderated queue:
+python3 query_atlas.py --submit-correction \
+  --hcad 0550140020008 \
+  --address "3700 N Main St" \
+  --year-built 1946 \
+  --architect "R. G. Schneider" \
+  --style "Art Moderne" \
+  --source-type ARCHIVAL_CITATION \
+  --source-citation "Houston Post, Oct 12, 1946; COH Permit #1946-1182" \
+  --agent-tool "Ollama Llama-3.3"
+```
+Every submission is also logged to `~/.houston_building_atlas/pending_contributions.json` and can be exported as a formula-safe CSV via `python3 query_atlas.py --export-contributions-csv suggestions`.
+
