@@ -2132,7 +2132,7 @@ def test_js_python_hpo_normalization_and_style_parity() -> None:
 
 def test_pass2_nrhp_nomination_metadata_and_haif_architect_extraction() -> None:
     """Verify Pass-2 NRHP nomination metadata and HAIF architect extraction achieve 100% NRHP date/style coverage."""
-    from nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA, extract_haif_architects
+    from atlas_pipeline.nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA, extract_haif_architects
 
     assert len(CURATED_NRHP_NOMINATION_METADATA) >= 75
     assert CURATED_NRHP_NOMINATION_METADATA["84000388"]["architect"] == "William Ward Watkin"

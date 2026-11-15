@@ -20,10 +20,16 @@ from crawl_haif_forum import (
     norm_addr,
     norm_addr_nodir,
 )
-from nrhp_nomination_metadata import (
-    enrich_nrhp_and_cross_catalog,
-    extract_haif_architects,
-)
+try:
+    from atlas_pipeline.nrhp_nomination_metadata import (
+        enrich_nrhp_and_cross_catalog,
+        extract_haif_architects,
+    )
+except ImportError:
+    from nrhp_nomination_metadata import (
+        enrich_nrhp_and_cross_catalog,
+        extract_haif_architects,
+    )
 
 
 def infer_subforum_from_slug(slug: str, existing_subforum: str) -> str:

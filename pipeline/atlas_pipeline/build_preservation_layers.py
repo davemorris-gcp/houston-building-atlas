@@ -817,7 +817,10 @@ def main() -> None:
 
     # Apply matched HCAD / building_id / COH landmark cross-links onto nrhp_properties
     nrhp_by_hcad: dict[str, dict] = {}
-    from nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA
+    try:
+        from atlas_pipeline.nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA
+    except ImportError:
+        from nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA
     nrhp_by_bld_id: dict[str, dict] = {}
     for e_idx, (_, matched_b_feat) in nrhp_best_match.items():
         np = nrhp_prop_features[e_idx]["properties"]
