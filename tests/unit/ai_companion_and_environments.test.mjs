@@ -619,10 +619,14 @@ test("UT-AI-7: Interactive Animated System & LLM Architecture Diagram upholds no
   assert.ok(html.includes("End-User Cloud &amp; Local LLM Tools (2-Way Skill)"));
   assert.ok(!/[\u2013\u2014]/.test(html), "Architecture diagram HTML must not contain U+2013 or U+2014 dashes");
   assert.ok(!html.includes("admin.html"), "Architecture diagram must not reference nonexistent admin.html");
+  assert.ok(html.includes("var(--arch-node-bg"), "Architecture diagram nodes must use theme-adaptive --arch-node-bg variable");
+  assert.ok(html.includes("var(--arch-lane-bg"), "Architecture diagram lanes must use theme-adaptive --arch-lane-bg variable");
+  assert.ok(html.includes("var(--ink"), "Architecture diagram text must use theme-adaptive --ink variable");
 
   const ecosystemHtml = fs.readFileSync(path.join(APP_DIR, "data-ecosystem.html"), "utf8");
   assert.ok(ecosystemHtml.includes('data-view-mode="architecture"'));
   assert.ok(ecosystemHtml.includes("renderArchitectureDiagramSectionHtml"));
+  assert.ok(ecosystemHtml.includes("--arch-canvas-bg: #eef2f6"), "data-ecosystem.html must define light-theme --arch-canvas-bg");
   assert.ok(ecosystemHtml.includes('href="index.html#audit=1"'));
   assert.ok(ecosystemHtml.includes('href="index.html#admin=1"'));
   assert.ok(!ecosystemHtml.includes('href="admin.html"'), "data-ecosystem.html must not link to nonexistent admin.html");

@@ -28,6 +28,18 @@
       --danger: #ef4444;
       --shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
       --grid-line: rgba(56, 189, 248, 0.05);
+      --arch-canvas-bg: #080e1a;
+      --arch-lane-bg: #0d1627;
+      --arch-lane-border: #1e293b;
+      --arch-node-bg: #111a2e;
+      --arch-packet-core: #ffffff;
+      --arch-cyan: #38bdf8;
+      --arch-purple: #a78bfa;
+      --arch-blue: #60a5fa;
+      --arch-rose: #fb7185;
+      --arch-emerald: #34d399;
+      --arch-amber: #f59e0b;
+      --arch-violet: #c084fc;
     }
 
     [data-theme="light"] {
@@ -49,6 +61,18 @@
       --danger: #b91c1c;
       --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
       --grid-line: rgba(2, 132, 199, 0.06);
+      --arch-canvas-bg: #eef2f6;
+      --arch-lane-bg: #f8fafc;
+      --arch-lane-border: #cbd5e1;
+      --arch-node-bg: #ffffff;
+      --arch-packet-core: #0f172a;
+      --arch-cyan: #0284c7;
+      --arch-purple: #7c3aed;
+      --arch-blue: #2563eb;
+      --arch-rose: #e11d48;
+      --arch-emerald: #059669;
+      --arch-amber: #d97706;
+      --arch-violet: #9333ea;
     }
 
     * {
@@ -887,12 +911,13 @@
       margin-bottom: 14px;
     }
     .arch-canvas-wrap {
-      background: #080e1a;
+      background: var(--arch-canvas-bg, #080e1a);
       border: 1px solid var(--border-strong);
       border-radius: 14px;
       padding: 12px;
       box-shadow: var(--shadow);
       overflow-x: auto;
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
     .arch-inspector-card {
       margin-top: 16px;
@@ -1132,7 +1157,7 @@
   </div>
 
   <script type="module">
-    import { renderArchitectureDiagramSectionHtml } from "./js/architectureDiagram.js?v=20261115a";
+    import { renderArchitectureDiagramSectionHtml } from "./js/architectureDiagram.js?v=20261115c";
 
     let catalog = null;
     const initialHash = String(window.location.hash || "").toLowerCase();

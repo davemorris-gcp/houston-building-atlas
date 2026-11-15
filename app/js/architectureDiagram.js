@@ -677,6 +677,21 @@ function _esc(str) {
     .replace(/"/g, "&quot;");
 }
 
+const ACCENT_CSS_VAR_MAP = Object.freeze({
+  "#38bdf8": "var(--arch-cyan, #38bdf8)",
+  "#a78bfa": "var(--arch-purple, #a78bfa)",
+  "#60a5fa": "var(--arch-blue, #60a5fa)",
+  "#fb7185": "var(--arch-rose, #fb7185)",
+  "#34d399": "var(--arch-emerald, #34d399)",
+  "#f59e0b": "var(--arch-amber, #f59e0b)",
+  "#c084fc": "var(--arch-violet, #c084fc)",
+});
+
+function _themeAccent(hexColor) {
+  const key = String(hexColor || "").trim().toLowerCase();
+  return ACCENT_CSS_VAR_MAP[key] || hexColor;
+}
+
 /**
  * Wrap a string into lines that strictly fit within `maxChars` per line without truncating words.
  */
@@ -746,7 +761,7 @@ export function renderArchitectureDiagramSectionHtml({
           id="arch_path_${_esc(edge.id)}"
           d="${_esc(edge.path)}"
           fill="none"
-          stroke="${_esc(edge.color)}"
+          stroke="${_esc(_themeAccent(edge.color))}"
           stroke-width="${isActive ? "2.4" : "1.4"}"
           stroke-opacity="${opacity}"
           stroke-dasharray="${isActive ? "6 5" : "3 5"}"
@@ -754,12 +769,12 @@ export function renderArchitectureDiagramSectionHtml({
         ${
           isActive && isPlaying
             ? `
-          <circle r="5" fill="${_esc(edge.color)}" filter="url(#archPacketGlow)">
+          <circle r="5" fill="${_esc(_themeAccent(edge.color))}" filter="url(#archPacketGlow)">
             <animateMotion dur="${durStr}" repeatCount="indefinite" rotate="auto">
               <mpath href="#arch_path_${_esc(edge.id)}" />
             </animateMotion>
           </circle>
-          <circle r="3.5" fill="#ffffff" opacity="0.85">
+          <circle r="3.5" fill="var(--arch-packet-core, #ffffff)" opacity="0.85">
             <animateMotion dur="${durStr}" begin="${(baseDur / 2).toFixed(2)}s" repeatCount="indefinite" rotate="auto">
               <mpath href="#arch_path_${_esc(edge.id)}" />
             </animateMotion>
@@ -784,10 +799,11 @@ export function renderArchitectureDiagramSectionHtml({
 
     const titleStartY = 42;
     const titleLineHeight = 16;
+    const nodeAccent = _themeAccent(node.color);
     const titleSvg = titleLines
       .map(
         (line, idx) =>
-          `<text x="14" y="${titleStartY + idx * titleLineHeight}" fill="#f8fafc" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="700">${_esc(line)}</text>`
+          `<text x="14" y="${titleStartY + idx * titleLineHeight}" fill="var(--ink, #f8fafc)" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="700">${_esc(line)}</text>`
       )
       .join("");
 
@@ -796,7 +812,7 @@ export function renderArchitectureDiagramSectionHtml({
     const subSvg = subLines
       .map(
         (line, idx) =>
-          `<text x="14" y="${subStartY + idx * subLineHeight}" fill="${idx === 0 ? "#cbd5e1" : "#94a3b8"}" font-family="Inter, system-ui, sans-serif" font-size="11">${_esc(line)}</text>`
+          `<text x="14" y="${subStartY + idx * subLineHeight}" fill="${idx === 0 ? "var(--ink-2, #cbd5e1)" : "var(--muted, #94a3b8)"}" font-family="Inter, system-ui, sans-serif" font-size="11">${_esc(line)}</text>`
       )
       .join("");
 
@@ -814,8 +830,8 @@ export function renderArchitectureDiagramSectionHtml({
           width="${node.w}"
           height="${node.h}"
           rx="10"
-          fill="#111a2e"
-          stroke="${_esc(node.color)}"
+          fill="var(--arch-node-bg, #111a2e)"
+          stroke="${_esc(nodeAccent)}"
           stroke-width="${strokeW}"
         />
         <g clip-path="url(#arch_clip_${_esc(node.id)})">
@@ -825,10 +841,10 @@ export function renderArchitectureDiagramSectionHtml({
             width="${Math.min(node.w - 24, node.badge.length * 6.8 + 16)}"
             height="18"
             rx="4"
-            fill="${_esc(node.color)}"
-            fill-opacity="0.18"
+            fill="${_esc(nodeAccent)}"
+            fill-opacity="0.16"
           />
-          <text x="18" y="21" fill="${_esc(node.color)}" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+          <text x="18" y="21" fill="${_esc(nodeAccent)}" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
             ${_esc(node.badge)}
           </text>
           ${titleSvg}
@@ -909,41 +925,41 @@ export function renderArchitectureDiagramSectionHtml({
 
           <!-- Background Swimlanes -->
           <g clip-path="url(#arch_zone_clip_1)">
-            <rect x="18" y="18" width="462" height="332" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-            <text x="62" y="45" fill="#38bdf8" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+            <rect x="18" y="18" width="462" height="332" rx="14" fill="var(--arch-lane-bg, #0d1627)" stroke="var(--arch-lane-border, #1e293b)" stroke-width="1.5" />
+            <text x="62" y="45" fill="var(--arch-cyan, #38bdf8)" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
               1. DEVELOPER COMPUTER &amp; AGENTIC AI CODING LOOP
             </text>
-            <text x="62" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+            <text x="62" y="63" fill="var(--muted, #94a3b8)" font-family="Inter, system-ui, sans-serif" font-size="10.5">
               Reads 46 Feeds -&gt; Frontier LLMs -&gt; GitHub &amp; Sheet/Apps Script Push
             </text>
           </g>
 
           <g clip-path="url(#arch_zone_clip_2)">
-            <rect x="18" y="366" width="462" height="504" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-            <text x="62" y="393" fill="#60a5fa" font-family="Inter, system-ui, sans-serif" font-size="11.5" font-weight="700">
+            <rect x="18" y="366" width="462" height="504" rx="14" fill="var(--arch-lane-bg, #0d1627)" stroke="var(--arch-lane-border, #1e293b)" stroke-width="1.5" />
+            <text x="62" y="393" fill="var(--arch-blue, #60a5fa)" font-family="Inter, system-ui, sans-serif" font-size="11.5" font-weight="700">
               2. EXTERNAL PRIMARY SOURCES (29 ORGS / 46 FEEDS)
             </text>
-            <text x="62" y="411" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+            <text x="62" y="411" fill="var(--muted, #94a3b8)" font-family="Inter, system-ui, sans-serif" font-size="10.5">
               Read by Developer / Agent LLMs (Local ETL) &amp; GitHub Actions Batch Jobs
             </text>
           </g>
 
           <g clip-path="url(#arch_zone_clip_3)">
-            <rect x="510" y="18" width="500" height="852" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-            <text x="528" y="45" fill="#34d399" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+            <rect x="510" y="18" width="500" height="852" rx="14" fill="var(--arch-lane-bg, #0d1627)" stroke="var(--arch-lane-border, #1e293b)" stroke-width="1.5" />
+            <text x="528" y="45" fill="var(--arch-emerald, #34d399)" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
               3. GITHUB PLATFORM, RUNTIME TILES &amp; 2-WAY MODERATION
             </text>
-            <text x="528" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+            <text x="528" y="63" fill="var(--muted, #94a3b8)" font-family="Inter, system-ui, sans-serif" font-size="10.5">
               GitHub Actions ETL · Pages Static CDN · WebGL2 Tiles · Sheet &amp; Apps Script
             </text>
           </g>
 
           <g clip-path="url(#arch_zone_clip_4)">
-            <rect x="1038" y="18" width="494" height="852" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-            <text x="1056" y="45" fill="#f59e0b" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+            <rect x="1038" y="18" width="494" height="852" rx="14" fill="var(--arch-lane-bg, #0d1627)" stroke="var(--arch-lane-border, #1e293b)" stroke-width="1.5" />
+            <text x="1056" y="45" fill="var(--arch-amber, #f59e0b)" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
               4. END-USER PERSONAS &amp; CLOUD / LOCAL LLM COMPANIONS
             </text>
-            <text x="1056" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+            <text x="1056" y="63" fill="var(--muted, #94a3b8)" font-family="Inter, system-ui, sans-serif" font-size="10.5">
               PH Monitoring · PH Research · Public Enthusiasts · Local/Cloud LLMs (2-Way)
             </text>
           </g>
@@ -960,7 +976,7 @@ export function renderArchitectureDiagramSectionHtml({
       <div class="arch-inspector-card" id="archNodeInspector">
         <div class="arch-inspector-head">
           <div>
-            <span class="mono-tag" style="color:${_esc(selectedNode.color)}">${_esc(selectedNode.zone)}</span>
+            <span class="mono-tag" style="color:${_esc(_themeAccent(selectedNode.color))}">${_esc(selectedNode.zone)}</span>
             <h3 style="margin:6px 0 2px;font-size:19px;color:var(--ink)">${_esc(selectedNode.title)}</h3>
             <div style="font-size:13px;color:var(--ink-2)">${_esc(selectedNode.details?.summary || selectedNode.subtitle)}</div>
           </div>
