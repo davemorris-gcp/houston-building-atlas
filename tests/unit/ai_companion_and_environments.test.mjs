@@ -591,7 +591,19 @@ test("UT-AI-7: Interactive Animated System & LLM Architecture Diagram upholds no
   assert.equal(ARCHITECTURE_FLOW_MODES.length, 5);
   assert.ok(TECH_STACK_LOGOS.length >= 8);
   assert.ok(ARCHITECTURE_NODES.length >= 10);
-  assert.ok(ARCHITECTURE_EDGES.length >= 14);
+  assert.ok(ARCHITECTURE_EDGES.length >= 19);
+
+  const edgeIds = new Set(ARCHITECTURE_EDGES.map((e) => e.id));
+  for (const reqEdge of [
+    "edge_cadastre_to_dev",
+    "edge_permits_to_dev",
+    "edge_pres_to_llm",
+    "edge_archives_to_llm",
+    "edge_dev_to_github",
+    "edge_dev_to_sheet",
+  ]) {
+    assert.ok(edgeIds.has(reqEdge), `Expected architecture diagram edge ${reqEdge}`);
+  }
 
   const html = renderArchitectureDiagramSectionHtml({
     activeFlowMode: "all",

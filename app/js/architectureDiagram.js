@@ -4,8 +4,9 @@
  * Interactive Animated System & LLM Data-Flow Architecture Diagram (`app/js/architectureDiagram.js`).
  *
  * Illustrates the complete end-to-end architecture of The Houston Building Atlas:
- *   1. Developer Workstation (Antigravity / Claude Code -> Frontier LLM Providers -> Git Push)
- *   2. Consolidated External Data Sources (5 organized domain clusters covering 29 institutions / 46 feeds)
+ *   1. Developer Workstation (Antigravity / Claude Code reading external data sources, querying Frontier LLMs,
+ *      and pushing code/data to GitHub AND schema/code updates to Google Sheets & Apps Script)
+ *   2. Consolidated External Data Sources (4 organized domain clusters covering 29 institutions / 46 feeds)
  *   3. Live Runtime Map Tile & Layer Providers (OpenFreeMap, Esri Imagery, LOC Sanborn IIIF, PMTiles HTTP 206)
  *   4. GitHub Platform (Code Compilation, GitHub Actions Batch ETL, 6 Synthesis Engines & GitHub Pages CDN)
  *   5. Code Libraries, Languages & Tooling Stack with Inline SVG Project Logos
@@ -21,21 +22,21 @@ export const ARCHITECTURE_FLOW_MODES = Object.freeze([
     label: "🔄 All System Flows (Full Lifecycle)",
     shortLabel: "All Flows",
     description:
-      "Simultaneously animates agentic development, scheduled GitHub Actions ETL, live WebGL2 map tile streaming, and 2-way community + local-LLM contributions.",
+      "Simultaneously animates agentic development (reading primary sources + pushing to GitHub & Google Sheets/Apps Script), scheduled GitHub Actions ETL, live WebGL2 map streaming, and 2-way community + local-LLM contributions.",
   },
   {
     id: "dev_cicd",
-    label: "💻 1. Agentic Dev & GitHub CI/CD",
-    shortLabel: "1. Dev & CI/CD",
+    label: "💻 1. Agentic Dev, Source Research & Deploys",
+    shortLabel: "1. Agentic Dev",
     description:
-      "Developer Workstation running Antigravity & Claude Code queries frontier LLMs (Gemini, Claude, GPT) to author code & data pipelines and pushes to GitHub Actions + Pages.",
+      "Developer Computer & AI coding agents (Antigravity / Claude Code + Gemini, Claude, OpenAI) read and audit the 46 external data feeds, push code & shards to GitHub, and deploy schema & webhook code to the Google Sheet & Apps Script hub.",
   },
   {
     id: "batch_etl",
     label: "🏛️ 2. Multi-Agency Batch ETL (37 Datasets)",
     shortLabel: "2. Batch ETL",
     description:
-      "GitHub Actions & Python/uv pipelines ingest 5 consolidated external data clusters (HCAD, County Clerk, COH Permits/Plats/HPO, Sanborn/Directories, TARO/HPL) into static PMTiles & .json.gz shards.",
+      "Developer local uv pipelines and GitHub Actions ingest 4 consolidated external data clusters (HCAD, County Clerk, COH Permits/Plats/HPO, Sanborn/Directories, TARO/HPL) into static PMTiles & .json.gz shards.",
   },
   {
     id: "live_runtime",
@@ -97,6 +98,13 @@ export const TECH_STACK_LOGOS = Object.freeze([
     svg: `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="6" cy="6" r="3" fill="none" stroke="#60a5fa" stroke-width="2"/><circle cx="18" cy="6" r="3" fill="none" stroke="#34d399" stroke-width="2"/><circle cx="12" cy="18" r="3" fill="none" stroke="#a78bfa" stroke-width="2"/><path d="M8.5 7.5L11 15.5M15.5 7.5L13 15.5M9 6h6" stroke="#94a3b8" stroke-width="1.8"/></svg>`,
   },
   {
+    id: "google_sheets_apps_script",
+    name: "Google Sheets & Apps Script",
+    role: "14-Tab Moderation Hub, `doPost` Webhook & CSV Override Sync",
+    badgeColor: "#34D399",
+    svg: `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#10b981"/><path fill="#ffffff" d="M7 8h10v2H7V8zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg>`,
+  },
+  {
     id: "chartjs",
     name: "Chart.js + SVG Canvas",
     role: "Era Histograms, District Scorecards & 24x36 Blueprint Posters",
@@ -118,21 +126,22 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "dev_workstation",
     zone: "1. Developer Workstation & Agentic AI Loop",
     title: "Developer Computer (Antigravity & Claude Code)",
-    subtitle: "Local IDE, Git Worktree, 4-Layer Test Runner (`pytest` + `node:test` + Playwright)",
+    subtitle:
+      "Reads 46 External Feeds · Runs Local uv ETL & 4-Layer Tests · Pushes to GitHub & Google Sheet/Apps Script",
     badge: "DEV & AGENT HOST",
     color: "#38bdf8",
-    flowModes: ["all", "dev_cicd"],
-    x: 150,
-    y: 115,
-    w: 260,
-    h: 92,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 94,
+    w: 398,
+    h: 112,
     details: {
       summary:
-        "Developer workstation running Antigravity (Jetski) and Claude Code CLI agents against the local repository and 37-dataset pipeline.",
+        "Developer workstation running Antigravity (Jetski) and Claude Code CLI agents that directly fetch and analyze external primary-source data, build shards, and push updates to GitHub and the Google Sheet / Apps Script moderation hub.",
       components: [
-        "Antigravity / Jetski & Claude Code autonomous coding and data-audit agents",
-        "Local Python 3.12 (`uv`) ETL execution & 850+ gzipped shard generation",
-        "4-Layer Verification Gate: 118+ Python unit tests, 31 Node.js ESM suites, and 115 Playwright browser assertions",
+        "Direct Primary-Source Ingestion: fetches HCAD bulk zips, County Clerk TPIA deeds, COH permits/plats, Sanborn volumes, 1866-1926 City Directories, and TARO finding aids",
+        "GitHub Code & Data Push: compiles `buildings.pmtiles` and 850+ `.json.gz` shards and runs 4-layer verification (`pytest`, `node:test`, Playwright) before `git push`",
+        "Google Sheet & Apps Script Deployment: configures the 14-tab moderation workbook structure, formula rules, and `doPost`/`doGet` Apps Script webhook code",
       ],
       codePaths: ["pipeline/atlas_pipeline/", "app/js/", "tests/unit/run_all.mjs"],
     },
@@ -141,42 +150,44 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "frontier_llm_apis",
     zone: "1. Developer Workstation & Agentic AI Loop",
     title: "Frontier LLM Providers (Gemini · Claude · OpenAI)",
-    subtitle: "Multi-Agent Code Generation, Historical OCR Audit & Cross-Check Synthesis",
+    subtitle:
+      "Analyzes Primary-Source Records · Multi-Agent Code Generation · Historical OCR & Cross-Check Synthesis",
     badge: "AGENT LLM APIS",
     color: "#a78bfa",
-    flowModes: ["all", "dev_cicd"],
-    x: 150,
-    y: 235,
-    w: 260,
-    h: 86,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 224,
+    w: 398,
+    h: 110,
     details: {
       summary:
-        "Cloud LLM APIs invoked by Antigravity and Claude Code during development and historical data auditing.",
+        "Cloud LLM APIs invoked by Antigravity and Claude Code to inspect raw external data feeds, audit OCR transcripts, and author pipeline/UI code.",
       components: [
-        "Google Gemini Pro / Flash: multi-source archival synthesis & OCR verification",
-        "Anthropic Claude Opus / Sonnet: code generation, test authoring & HCAD shorthand parsers",
-        "OpenAI GPT: cross-checking historical architect biographies & subdivision deed restrictions",
+        "Google Gemini Pro / Flash: primary-source archival synthesis, Sanborn/directory OCR verification & contradiction auditing",
+        "Anthropic Claude Opus / Sonnet: code generation, test authoring & HCAD appraiser shorthand parsers",
+        "OpenAI GPT: cross-checking historical architect biographies, subdivision deed restrictions & TARO finding aids",
       ],
       codePaths: ["skills/houston-building-atlas/SKILL.md", "pipeline/atlas_pipeline/build_ai_companion.py"],
     },
   },
 
-  // Zone 2: Consolidated External Data Sources (5 Domain Clusters + Live Tile Providers)
+  // Zone 2: Consolidated External Data Sources (4 Domain Clusters)
   {
     id: "src_cadastre_deeds",
     zone: "2. Consolidated External Primary Data Sources (29 Orgs / 46 Feeds)",
     title: "Tax Cadastre, Deeds & County Archives",
-    subtitle: "HCAD (1.51M structures · 22 rolls 2005-2026) · County Clerk (1836-2026) · HC Archives",
+    subtitle:
+      "HCAD (1.51M structures · 22 rolls 2005-2026) · County Clerk (1836-2026) · Harris County Archives",
     badge: "9 FEEDS · COUNTY",
     color: "#60a5fa",
-    flowModes: ["all", "batch_etl"],
-    x: 150,
-    y: 365,
-    w: 260,
-    h: 82,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 432,
+    w: 398,
+    h: 98,
     details: {
       summary:
-        "Consolidated county property appraisal, 22-year certified ownership chains, 5-era deed records (1836-2026), and 1983-1985 microfilm rolls.",
+        "Consolidated county property appraisal, 22-year certified ownership chains, 5-era deed records (1836-2026), and 1983-1985 microfilm rolls read by both Developer/Agent LLMs and GitHub batch pipelines.",
       components: [
         "HCAD CAMA Real & Building Data (`1,507,897` structures + 22 annual certified rolls `2005-2026` + `01/02/1988` baseline)",
         "Harris County Clerk Real Property (`1960-2026`), Historical Deed Volumes (`1836-1960`), and Plats (`MC.aspx`, `1823-2026`)",
@@ -189,14 +200,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "src_permits_plats",
     zone: "2. Consolidated External Primary Data Sources (29 Orgs / 46 Feeds)",
     title: "Permits, Subdivision Plats & Environmental",
-    subtitle: "COH 2-Stage Permits (1.30M) · Biweekly Plat Tracker · TX DSHS Asbestos · FEMA Flood",
+    subtitle:
+      "COH 2-Stage Permits (1.30M) · Biweekly Plat Tracker · TX DSHS Asbestos · FEMA NFHL Flood Zones",
     badge: "8 FEEDS · CITY/STATE",
     color: "#fb7185",
-    flowModes: ["all", "batch_etl"],
-    x: 150,
-    y: 462,
-    w: 260,
-    h: 82,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 542,
+    w: 398,
+    h: 98,
     details: {
       summary:
         "Municipal building/demolition permits, biweekly Planning Commission subdivision replats, state asbestos abatement notices, and federal floodplains.",
@@ -212,14 +224,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "src_preservation_surveys",
     zone: "2. Consolidated External Primary Data Sources (29 Orgs / 46 Feeds)",
     title: "Statutory Preservation & Landmark Surveys",
-    subtitle: "COH HPO Landmarks (509) · 23 Historic Districts (6,169 rows) · NRHP · THC · Lost Houston",
+    subtitle:
+      "COH HPO Landmarks (509) · 23 Historic Districts (6,169 rows) · NRHP · THC · Lost Houston (623)",
     badge: "10 FEEDS · STATUTORY",
     color: "#34d399",
-    flowModes: ["all", "batch_etl"],
-    x: 150,
-    y: 559,
-    w: 260,
-    h: 82,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 652,
+    w: 398,
+    h: 98,
     details: {
       summary:
         "Local, state, federal, and nonprofit historic designations, parcel-by-parcel district inventories, and demolished landmark catalogs.",
@@ -235,17 +248,18 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "src_maps_archives",
     zone: "2. Consolidated External Primary Data Sources (29 Orgs / 46 Feeds)",
     title: "Sanborn Maps, City Directories & Archives",
-    subtitle: "16 Sanborn Vols (878 sheets) · 39 City Directories (1866-1926) · 65 TARO/HPL Collections",
+    subtitle:
+      "16 Sanborn Vols (878 sheets) · 39 City Directories (1866-1926) · 65 TARO & HPL Archival Collections",
     badge: "19 FEEDS · ARCHIVAL",
     color: "#f59e0b",
-    flowModes: ["all", "batch_etl"],
-    x: 150,
-    y: 656,
-    w: 260,
-    h: 82,
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    x: 62,
+    y: 762,
+    w: 398,
+    h: 98,
     details: {
       summary:
-        "Historical cartography, pre-1926 street directories, university/library finding aids, and historical photography.",
+        "Historical cartography, pre-1926 street directories, university/library finding aids, and historical photography analyzed by Developer/Agent LLMs and ETL pipelines.",
       components: [
         "16 Digitized Sanborn Fire Insurance Map Volumes (`1877-1955`, `878` sheets across Library of Congress & UT PCL)",
         "39 Houston City Directories (`1866-1926`) & 1915 *Red Book of Houston*",
@@ -255,24 +269,25 @@ export const ARCHITECTURE_NODES = Object.freeze([
     },
   },
 
-  // Zone 3: GitHub Platform (CI/CD, Batch ETL, Synthesis & Pages CDN)
+  // Zone 3: GitHub Platform, Runtime Tile Servers & Google Sheet / Apps Script Hub
   {
     id: "github_actions_etl",
-    zone: "3. GitHub Platform (Code Compilation, Batch ETL & Static CDN)",
+    zone: "3. GitHub Platform, Runtime Tile Servers & 2-Way Moderation",
     title: "GitHub Repository & Actions Batch Pipelines",
-    subtitle: "Automated CI/CD (`ci.yml`), Scheduled Permit/Watchlist Refresh & 6 Cross-Check Engines",
+    subtitle:
+      "Automated 4-Layer CI/CD (`deploy-pages.yml`), Daily Permit/Watchlist Refresh & 6 Cross-Check Engines",
     badge: "GITHUB ACTIONS",
     color: "#38bdf8",
     flowModes: ["all", "dev_cicd", "batch_etl", "two_way_contribute"],
-    x: 560,
-    y: 170,
-    w: 300,
-    h: 120,
+    x: 545,
+    y: 94,
+    w: 430,
+    h: 145,
     details: {
       summary:
         "GitHub hosts the canonical codebase, runs automated 4-layer CI tests, executes scheduled batch ETL jobs, and merges approved community/LLM overrides.",
       components: [
-        "Workflows: `ci.yml`, `deploy-pages.yml`, `plat-monitor-refresh.yml`, `sync-curated-overrides.yml`",
+        "Workflows: `deploy-pages.yml` (4-layer verification + deploy), `update_live_permits.yml` (daily 7 AM CT), `external-link-health.yml` (weekly Monday 8 AM CT)",
         "6 Cross-Check Synthesis Engines: Chronology Provenance, 22-Year Ownership & Sec. 25.025 Shield, Demolition & Plat Monitor, Sanborn/Directory Linker, Portfolio & Scorecard Compiler, and AI Companion Builder",
         "Compiles raw spatial/tabular feeds into zero-cost static shards with deterministic cache-busting",
       ],
@@ -281,16 +296,17 @@ export const ARCHITECTURE_NODES = Object.freeze([
   },
   {
     id: "github_pages_cdn",
-    zone: "3. GitHub Platform (Code Compilation, Batch ETL & Static CDN)",
+    zone: "3. GitHub Platform, Runtime Tile Servers & 2-Way Moderation",
     title: "GitHub Pages Static CDN & Sharded Data Lake",
-    subtitle: "`buildings.pmtiles` (121 MB) · 850+ `.json.gz` Shards · `/llms.txt` & `/llms-full.txt` · Web Apps",
+    subtitle:
+      "`buildings.pmtiles` (121 MB) · 850+ `.json.gz` Shards · `/llms.txt` & `/llms-full.txt` · Static Web Apps",
     badge: "STATIC HTTPS CDN",
     color: "#34d399",
     flowModes: ["all", "dev_cicd", "batch_etl", "live_runtime"],
-    x: 560,
-    y: 335,
-    w: 300,
-    h: 125,
+    x: 545,
+    y: 278,
+    w: 430,
+    h: 145,
     details: {
       summary:
         "Zero-backend static HTTPS hosting serving the 3 web applications, HTTP 206 byte-range vector tiles, 850+ gzipped shards, and the AI Research Companion bundle.",
@@ -304,16 +320,17 @@ export const ARCHITECTURE_NODES = Object.freeze([
   },
   {
     id: "live_tile_providers",
-    zone: "3. GitHub Platform & Runtime Map Tile Providers",
+    zone: "3. GitHub Platform, Runtime Tile Servers & 2-Way Moderation",
     title: "External Runtime Map Tile & Imagery Systems",
-    subtitle: "OpenFreeMap Vector Basemaps · Esri World Imagery & Wayback · LOC IIIF Sanborn Tiles · Mapillary",
+    subtitle:
+      "OpenFreeMap Vector Basemaps · Esri World Imagery & Wayback · LOC IIIF Sanborn Tiles · Mapillary Photos",
     badge: "LIVE WEBGL2 TILES",
     color: "#c084fc",
     flowModes: ["all", "live_runtime"],
-    x: 560,
-    y: 495,
-    w: 300,
-    h: 105,
+    x: 545,
+    y: 462,
+    w: 430,
+    h: 135,
     details: {
       summary:
         "External tile servers and IIIF endpoints queried directly by the user's browser alongside `buildings.pmtiles`.",
@@ -322,28 +339,29 @@ export const ARCHITECTURE_NODES = Object.freeze([
         "Esri World Imagery & Historical Aerial Wayback tile layers",
         "Library of Congress IIIF Sanborn Fire Insurance Map overlays & Wikimedia Commons / Mapillary street photos",
       ],
-      codePaths: ["app/js/mapManager.js", "app/public/data/sanborn_catalog.json"],
+      codePaths: ["app/js/mapController.js", "app/public/data/sanborn_catalog.json"],
     },
   },
   {
     id: "moderation_sheet_loop",
-    zone: "3. 2-Way Moderation & Community Sync Pipeline",
+    zone: "3. GitHub Platform, Runtime Tile Servers & 2-Way Moderation",
     title: "Moderated Google Sheet & Apps Script Webhook",
-    subtitle: "`Pending_Submissions` & `Field_Surveys` Tabs -> Curator Review -> `curated_overrides.json`",
+    subtitle:
+      "14-Tab Workbook (`Pending_Submissions`, `Field_Surveys`, `Approved_Edits`) · Dev Schema & `doPost` Push",
     badge: "2-WAY MODERATION",
     color: "#f59e0b",
-    flowModes: ["all", "two_way_contribute"],
-    x: 560,
-    y: 635,
-    w: 300,
-    h: 103,
+    flowModes: ["all", "dev_cicd", "two_way_contribute"],
+    x: 545,
+    y: 636,
+    w: 430,
+    h: 165,
     details: {
       summary:
-        "Unified 2-way moderation pipeline accepting research corrections, Walk-the-Block field surveys, and quick flags from both web browser users and local/cloud LLM agents.",
+        "Unified 14-tab Google Sheet & Apps Script moderation hub whose tab structure, validation rules, and webhook code are deployed from the Developer Computer, receiving browser & LLM contributions and syncing approved edits back to GitHub.",
       components: [
-        "Google Apps Script Webhook (`DEFAULT_SUBMISSION_WEBHOOK_URL`) routing into `Pending_Submissions` and `Field_Surveys` tabs",
-        "Formula-injection neutralization (`sanitizeSpreadsheetCell`) & `[AI_AGENT:<Tool>]` provenance tagging",
-        "Approved rows sync via `sync_curated_overrides.py` into `app/public/data/curated_overrides.json` on GitHub",
+        "Developer Schema & Code Push: Developer Computer pushes 14-tab workbook schemas, formula validation rules, and Apps Script `doPost`/`doGet` webhook logic",
+        "Google Apps Script Webhook (`DEFAULT_SUBMISSION_WEBHOOK_URL`) routing browser & CLI/LLM submissions into `Pending_Submissions` and `Field_Surveys` tabs",
+        "Approved rows publish via live CSV (`Approved_Edits`) and sync via `sync_curated_overrides.py` into `app/public/data/curated_overrides.json` on GitHub",
       ],
       codePaths: ["app/js/curatedEdits.js", "pipeline/atlas_pipeline/sync_curated_overrides.py"],
     },
@@ -354,14 +372,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "user_ph_monitoring",
     zone: "4. End-User Personas & Local/Cloud AI Companions",
     title: "Preservation Staff (City & County Monitoring)",
-    subtitle: "Monitors Biweekly COH Planning Commission Plats, 15-Point Watchlist & Demo/Asbestos Alerts",
+    subtitle:
+      "Monitors Biweekly COH Planning Commission Plats, 15-Point Watchlist & Demolition / Asbestos Alerts",
     badge: "STAFF · MONITORING",
     color: "#fb7185",
     flowModes: ["all", "live_runtime"],
-    x: 1010,
-    y: 120,
-    w: 280,
-    h: 118,
+    x: 1068,
+    y: 94,
+    w: 448,
+    h: 145,
     details: {
       summary:
         "Preservation Staff and advocates tracking biweekly City of Houston Planning Commission subdivision agendas, demolition permits, and endangered landmarks.",
@@ -377,14 +396,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "user_ph_research",
     zone: "4. End-User Personas & Local/Cloud AI Companions",
     title: "Preservation Staff (Archival Research & Curation)",
-    subtitle: "Authors Landmark Designations, Generates 1-Click THC Survey Forms & Moderates Submissions",
+    subtitle:
+      "Authors Landmark Designations, Generates 1-Click THC Survey Forms & Moderates Queue (`#audit=1`)",
     badge: "STAFF · RESEARCH",
     color: "#38bdf8",
     flowModes: ["all", "live_runtime", "two_way_contribute"],
-    x: 1010,
-    y: 268,
-    w: 280,
-    h: 118,
+    x: 1068,
+    y: 270,
+    w: 448,
+    h: 145,
     details: {
       summary:
         "Preservation Staff conducting primary-source building research, preparing HAHC / THC survey nominations, and reviewing community & AI submissions.",
@@ -400,14 +420,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "user_public_enthusiasts",
     zone: "4. End-User Personas & Local/Cloud AI Companions",
     title: "Public, Homeowners & Walk-the-Block Surveyors",
-    subtitle: "Explores 1.51M Buildings, Traces House Histories & Submits Browser Corrections / Field Surveys",
+    subtitle:
+      "Explores 1.51M Buildings, Traces House Histories & Submits Browser Corrections / Field Surveys",
     badge: "PUBLIC · 2-WAY WEB",
     color: "#34d399",
     flowModes: ["all", "live_runtime", "two_way_contribute"],
-    x: 1010,
-    y: 416,
-    w: 280,
-    h: 125,
+    x: 1068,
+    y: 446,
+    w: 448,
+    h: 150,
     details: {
       summary:
         "Members of the public, homeowners, neighborhood civic clubs, students, and journalists exploring Houston's architectural history and contributing back.",
@@ -423,14 +444,15 @@ export const ARCHITECTURE_NODES = Object.freeze([
     id: "user_local_cloud_llms",
     zone: "4. End-User Personas & Local/Cloud AI Companions",
     title: "End-User Cloud & Local LLM Tools (2-Way Skill)",
-    subtitle: "Claude Code · Gemini · ChatGPT · Ollama · LM Studio · llama.cpp (`query_atlas.py` / `.mjs`)",
+    subtitle:
+      "Claude Code · Gemini · ChatGPT · Ollama · LM Studio · llama.cpp (`query_atlas.py` / `query_atlas.mjs`)",
     badge: "LOCAL & CLOUD LLMS",
     color: "#f59e0b",
     flowModes: ["all", "live_runtime", "two_way_contribute"],
-    x: 1010,
-    y: 572,
-    w: 280,
-    h: 166,
+    x: 1068,
+    y: 626,
+    w: 448,
+    h: 175,
     details: {
       summary:
         "End users running their own Cloud AI (`Claude`, `Gemini`, `ChatGPT`) or Local Open-Weights LLMs (`Ollama`, `LM Studio`, `llama.cpp`, `OpenWebUI`, `Claude Code`, `Gemini CLI`) to research AND contribute back to the Atlas.",
@@ -449,36 +471,81 @@ export const ARCHITECTURE_NODES = Object.freeze([
 ]);
 
 export const ARCHITECTURE_EDGES = Object.freeze([
-  // Flow 1: Dev & CI/CD
+  // Flow 1: Agentic Dev reads External Primary Sources, queries Frontier LLMs, and pushes to GitHub + Google Sheet/Apps Script
   {
     id: "edge_dev_to_llm",
     from: "dev_workstation",
     to: "frontier_llm_apis",
-    label: "Prompts & Data Audits",
+    label: "Prompts, Code & Data Audits",
     color: "#a78bfa",
     flowModes: ["all", "dev_cicd"],
-    path: "M 280 207 L 280 235",
+    path: "M 261 206 L 261 224",
+  },
+  {
+    id: "edge_cadastre_to_dev",
+    from: "src_cadastre_deeds",
+    to: "dev_workstation",
+    label: "Read HCAD Rolls & Clerk TPIA Deeds",
+    color: "#60a5fa",
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    path: "M 62 475 L 36 475 L 36 145 L 62 145",
+  },
+  {
+    id: "edge_permits_to_dev",
+    from: "src_permits_plats",
+    to: "dev_workstation",
+    label: "Read COH Permits, Plats & DSHS Feeds",
+    color: "#fb7185",
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    path: "M 62 585 L 36 585 L 36 165 L 62 165",
+  },
+  {
+    id: "edge_pres_to_llm",
+    from: "src_preservation_surveys",
+    to: "frontier_llm_apis",
+    label: "Read HPO Surveys, NRHP, THC & Lost Houston",
+    color: "#34d399",
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    path: "M 62 695 L 44 695 L 44 265 L 62 265",
+  },
+  {
+    id: "edge_archives_to_llm",
+    from: "src_maps_archives",
+    to: "frontier_llm_apis",
+    label: "Read Sanborn Maps, 1866-1926 Directories & TARO",
+    color: "#f59e0b",
+    flowModes: ["all", "dev_cicd", "batch_etl"],
+    path: "M 62 805 L 44 805 L 44 290 L 62 290",
   },
   {
     id: "edge_dev_to_github",
     from: "dev_workstation",
     to: "github_actions_etl",
-    label: "git push (Code, Shards & Tests)",
+    label: "git push (Code, Shards & 4-Layer Tests)",
     color: "#38bdf8",
     flowModes: ["all", "dev_cicd"],
-    path: "M 410 160 C 480 160, 490 205, 560 205",
+    path: "M 460 140 C 500 140, 505 145, 545 145",
+  },
+  {
+    id: "edge_dev_to_sheet",
+    from: "dev_workstation",
+    to: "moderation_sheet_loop",
+    label: "Push 14-Tab Sheet Schema, Formulas & Apps Script Code",
+    color: "#f59e0b",
+    flowModes: ["all", "dev_cicd", "two_way_contribute"],
+    path: "M 460 185 C 512 185, 500 680, 545 680",
   },
   {
     id: "edge_actions_to_pages",
     from: "github_actions_etl",
     to: "github_pages_cdn",
-    label: "Build & Deploy Static Bundle",
+    label: "Build & Deploy Verified Static Bundle",
     color: "#34d399",
     flowModes: ["all", "dev_cicd", "batch_etl"],
-    path: "M 710 290 L 710 335",
+    path: "M 760 239 L 760 278",
   },
 
-  // Flow 2: Batch ETL from 4 Consolidated Source Clusters
+  // Flow 2: Batch ETL from 4 Consolidated Source Clusters to GitHub Actions
   {
     id: "edge_cadastre_to_etl",
     from: "src_cadastre_deeds",
@@ -486,7 +553,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "HCAD + Clerk ETL",
     color: "#60a5fa",
     flowModes: ["all", "batch_etl"],
-    path: "M 410 405 C 485 405, 485 235, 560 235",
+    path: "M 460 480 C 502 480, 502 175, 545 175",
   },
   {
     id: "edge_permits_to_etl",
@@ -495,7 +562,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "COH Permits/Plats + DSHS",
     color: "#fb7185",
     flowModes: ["all", "batch_etl"],
-    path: "M 410 500 C 495 500, 495 250, 560 250",
+    path: "M 460 590 C 508 590, 508 192, 545 192",
   },
   {
     id: "edge_pres_to_etl",
@@ -504,7 +571,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "HPO/NRHP/THC/Lost",
     color: "#34d399",
     flowModes: ["all", "batch_etl"],
-    path: "M 410 598 C 505 598, 505 265, 560 265",
+    path: "M 460 700 C 514 700, 514 208, 545 208",
   },
   {
     id: "edge_archives_to_etl",
@@ -513,7 +580,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "Sanborn/Directories/TARO",
     color: "#f59e0b",
     flowModes: ["all", "batch_etl"],
-    path: "M 410 695 C 515 695, 515 280, 560 280",
+    path: "M 460 810 C 520 810, 520 224, 545 224",
   },
 
   // Flow 3: Live Runtime Queries & Map Tiles to End-User Personas
@@ -524,7 +591,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "plat-monitor.html + Alerts JSON",
     color: "#fb7185",
     flowModes: ["all", "live_runtime"],
-    path: "M 860 365 C 935 365, 935 178, 1010 178",
+    path: "M 975 315 C 1020 315, 1020 165, 1068 165",
   },
   {
     id: "edge_pages_to_research",
@@ -533,7 +600,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "4-Tab Dossiers + THC Form",
     color: "#38bdf8",
     flowModes: ["all", "live_runtime"],
-    path: "M 860 385 C 935 385, 935 325, 1010 325",
+    path: "M 975 342 C 1020 342, 1020 342, 1068 342",
   },
   {
     id: "edge_pages_to_public",
@@ -542,7 +609,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "HTTP 206 PMTiles + Shards",
     color: "#34d399",
     flowModes: ["all", "live_runtime"],
-    path: "M 860 410 C 935 410, 935 465, 1010 465",
+    path: "M 975 370 C 1020 370, 1020 495, 1068 495",
   },
   {
     id: "edge_tiles_to_public",
@@ -551,7 +618,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "Vector/Aerial/Sanborn Tiles",
     color: "#c084fc",
     flowModes: ["all", "live_runtime"],
-    path: "M 860 545 C 935 545, 935 495, 1010 495",
+    path: "M 975 530 C 1020 530, 1020 530, 1068 530",
   },
   {
     id: "edge_pages_to_llms",
@@ -560,7 +627,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "/llms-full.txt + .json.gz Shards",
     color: "#f59e0b",
     flowModes: ["all", "live_runtime"],
-    path: "M 860 435 C 935 435, 935 615, 1010 615",
+    path: "M 975 400 C 1020 400, 1020 675, 1068 675",
   },
 
   // Flow 4: 2-Way Community & Local LLM Contributions back to the Atlas
@@ -571,7 +638,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "Browser Edits, Photos & Surveys",
     color: "#34d399",
     flowModes: ["all", "two_way_contribute"],
-    path: "M 1010 520 C 940 520, 940 665, 860 665",
+    path: "M 1068 570 C 1020 570, 1020 715, 975 715",
   },
   {
     id: "edge_llms_to_sheet",
@@ -580,7 +647,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "CLI / Local LLM (--submit-correction / --submit-survey)",
     color: "#f59e0b",
     flowModes: ["all", "two_way_contribute"],
-    path: "M 1010 695 C 940 695, 940 705, 860 705",
+    path: "M 1068 755 C 1020 755, 1020 755, 975 755",
   },
   {
     id: "edge_research_moderates_sheet",
@@ -589,7 +656,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "Curator Review & Approval",
     color: "#38bdf8",
     flowModes: ["all", "two_way_contribute"],
-    path: "M 1010 365 C 955 365, 955 645, 860 645",
+    path: "M 1068 388 C 1028 388, 1028 675, 975 675",
   },
   {
     id: "edge_sheet_to_github",
@@ -598,7 +665,7 @@ export const ARCHITECTURE_EDGES = Object.freeze([
     label: "sync_curated_overrides.py -> GitHub",
     color: "#f59e0b",
     flowModes: ["all", "two_way_contribute"],
-    path: "M 560 685 C 510 685, 510 265, 560 265",
+    path: "M 545 735 C 510 735, 510 232, 545 232",
   },
 ]);
 
@@ -608,6 +675,33 @@ function _esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * Wrap a string into lines that strictly fit within `maxChars` per line without truncating words.
+ */
+export function wrapSvgTextLines(text, maxChars = 48, maxLines = 3) {
+  const words = String(text ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return [];
+  const lines = [];
+  let cur = "";
+  for (let i = 0; i < words.length; i += 1) {
+    const w = words[i];
+    const cand = cur ? `${cur} ${w}` : w;
+    if (cand.length <= maxChars || !cur) {
+      cur = cand;
+    } else if (lines.length < maxLines - 1) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = cand;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 export function renderArchitectureDiagramSectionHtml({
@@ -632,6 +726,14 @@ export function renderArchitectureDiagramSectionHtml({
       >${_esc(m.label)}</button>
     `;
   }).join("");
+
+  const svgClipPathsHtml = ARCHITECTURE_NODES.map(
+    (node) => `
+      <clipPath id="arch_clip_${_esc(node.id)}">
+        <rect x="2" y="2" width="${node.w - 4}" height="${node.h - 4}" rx="9" />
+      </clipPath>
+    `
+  ).join("");
 
   const svgEdgesHtml = ARCHITECTURE_EDGES.map((edge, idx) => {
     const isActive = edge.flowModes.includes(activeModeObj.id);
@@ -674,18 +776,29 @@ export function renderArchitectureDiagramSectionHtml({
     const isSelected = node.id === selectedNode.id;
     const strokeW = isSelected ? "3" : isActive ? "2" : "1.2";
     const opacity = isActive ? "1" : "0.42";
-    const subLines = [];
-    const words = String(node.subtitle || "").split(" ");
-    let cur = "";
-    for (const w of words) {
-      if ((cur + " " + w).trim().length > 44 && subLines.length < 1) {
-        subLines.push(cur.trim());
-        cur = w;
-      } else {
-        cur = (cur + " " + w).trim();
-      }
-    }
-    if (cur) subLines.push(cur.slice(0, 48));
+
+    const maxTitleChars = Math.max(36, Math.floor((node.w - 30) / 7.5));
+    const maxSubChars = Math.max(44, Math.floor((node.w - 30) / 6.2));
+    const titleLines = wrapSvgTextLines(node.title, maxTitleChars, 2);
+    const subLines = wrapSvgTextLines(node.subtitle, maxSubChars, 3);
+
+    const titleStartY = 42;
+    const titleLineHeight = 16;
+    const titleSvg = titleLines
+      .map(
+        (line, idx) =>
+          `<text x="14" y="${titleStartY + idx * titleLineHeight}" fill="#f8fafc" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="700">${_esc(line)}</text>`
+      )
+      .join("");
+
+    const subStartY = titleStartY + titleLines.length * titleLineHeight + 4;
+    const subLineHeight = 14.5;
+    const subSvg = subLines
+      .map(
+        (line, idx) =>
+          `<text x="14" y="${subStartY + idx * subLineHeight}" fill="${idx === 0 ? "#cbd5e1" : "#94a3b8"}" font-family="Inter, system-ui, sans-serif" font-size="11">${_esc(line)}</text>`
+      )
+      .join("");
 
     return `
       <g
@@ -705,29 +818,22 @@ export function renderArchitectureDiagramSectionHtml({
           stroke="${_esc(node.color)}"
           stroke-width="${strokeW}"
         />
-        <rect
-          x="10"
-          y="8"
-          width="${Math.min(node.w - 20, node.badge.length * 7.2 + 16)}"
-          height="18"
-          rx="4"
-          fill="${_esc(node.color)}"
-          fill-opacity="0.18"
-        />
-        <text x="16" y="20" fill="${_esc(node.color)}" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
-          ${_esc(node.badge)}
-        </text>
-        <text x="12" y="41" fill="#f8fafc" font-family="Inter, sans-serif" font-size="13" font-weight="700">
-          ${_esc(node.title)}
-        </text>
-        <text x="12" y="59" fill="#cbd5e1" font-family="Inter, sans-serif" font-size="11">
-          ${_esc(subLines[0] || "")}
-        </text>
-        ${
-          subLines[1]
-            ? `<text x="12" y="74" fill="#94a3b8" font-family="Inter, sans-serif" font-size="10.5">${_esc(subLines[1])}</text>`
-            : ""
-        }
+        <g clip-path="url(#arch_clip_${_esc(node.id)})">
+          <rect
+            x="12"
+            y="9"
+            width="${Math.min(node.w - 24, node.badge.length * 6.8 + 16)}"
+            height="18"
+            rx="4"
+            fill="${_esc(node.color)}"
+            fill-opacity="0.18"
+          />
+          <text x="18" y="21" fill="${_esc(node.color)}" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+            ${_esc(node.badge)}
+          </text>
+          ${titleSvg}
+          ${subSvg}
+        </g>
       </g>
     `;
   }).join("");
@@ -757,7 +863,7 @@ export function renderArchitectureDiagramSectionHtml({
         <div>
           <h2 class="sector-title" id="archDiagramHeading">⚡ Interactive Animated System, Agent &amp; 2-Way LLM Architecture Diagram</h2>
           <p class="sector-desc">
-            End-to-end visual blueprint showing how <strong>Antigravity &amp; Claude Code</strong> on the developer workstation, <strong>GitHub Actions &amp; GitHub Pages</strong>, <strong>5 consolidated primary-source data clusters (37 datasets)</strong>, <strong>live WebGL2 map tile providers</strong>, and <strong>4 end-user &amp; Local/Cloud LLM personas</strong> interact and contribute back over time.
+            End-to-end visual blueprint showing how <strong>Antigravity &amp; Claude Code</strong> on the developer workstation read and audit the <strong>46 primary-source feeds</strong> with <strong>Frontier LLMs</strong>, push code and shards to <strong>GitHub Actions &amp; Pages</strong> plus schema/webhook updates to the <strong>Google Sheet &amp; Apps Script Hub</strong>, and power <strong>4 end-user &amp; Local/Cloud LLM personas</strong>.
           </p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -780,7 +886,7 @@ export function renderArchitectureDiagramSectionHtml({
       <div class="arch-canvas-wrap">
         <svg
           id="archAnimatedSvg"
-          viewBox="0 0 1330 765"
+          viewBox="0 0 1550 885"
           width="100%"
           height="auto"
           role="img"
@@ -794,37 +900,53 @@ export function renderArchitectureDiagramSectionHtml({
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <clipPath id="arch_zone_clip_1"><rect x="18" y="18" width="462" height="332" rx="14" /></clipPath>
+            <clipPath id="arch_zone_clip_2"><rect x="18" y="366" width="462" height="504" rx="14" /></clipPath>
+            <clipPath id="arch_zone_clip_3"><rect x="510" y="18" width="500" height="852" rx="14" /></clipPath>
+            <clipPath id="arch_zone_clip_4"><rect x="1038" y="18" width="494" height="852" rx="14" /></clipPath>
+            ${svgClipPathsHtml}
           </defs>
 
           <!-- Background Swimlanes -->
-          <rect x="20" y="20" width="415" height="315" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-          <text x="36" y="48" fill="#38bdf8" font-family="Inter, sans-serif" font-size="13" font-weight="700">
-            1. DEVELOPER COMPUTER &amp; AGENTIC AI CODING LOOP
-          </text>
-          <text x="36" y="66" fill="#94a3b8" font-family="Inter, sans-serif" font-size="11">
-            Antigravity / Claude Code -> Frontier LLMs -> Git Push to GitHub
-          </text>
+          <g clip-path="url(#arch_zone_clip_1)">
+            <rect x="18" y="18" width="462" height="332" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
+            <text x="62" y="45" fill="#38bdf8" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+              1. DEVELOPER COMPUTER &amp; AGENTIC AI CODING LOOP
+            </text>
+            <text x="62" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+              Reads 46 Feeds -&gt; Frontier LLMs -&gt; GitHub &amp; Sheet/Apps Script Push
+            </text>
+          </g>
 
-          <rect x="20" y="345" width="415" height="405" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-          <text x="36" y="360" fill="#60a5fa" font-family="Inter, sans-serif" font-size="12" font-weight="700">
-            2. CONSOLIDATED EXTERNAL PRIMARY SOURCES (29 ORGS / 46 FEEDS)
-          </text>
+          <g clip-path="url(#arch_zone_clip_2)">
+            <rect x="18" y="366" width="462" height="504" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
+            <text x="62" y="393" fill="#60a5fa" font-family="Inter, system-ui, sans-serif" font-size="11.5" font-weight="700">
+              2. EXTERNAL PRIMARY SOURCES (29 ORGS / 46 FEEDS)
+            </text>
+            <text x="62" y="411" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+              Read by Developer / Agent LLMs (Local ETL) &amp; GitHub Actions Batch Jobs
+            </text>
+          </g>
 
-          <rect x="455" y="20" width="435" height="730" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-          <text x="475" y="48" fill="#34d399" font-family="Inter, sans-serif" font-size="13" font-weight="700">
-            3. GITHUB PLATFORM, RUNTIME TILE SERVERS &amp; 2-WAY MODERATION
-          </text>
-          <text x="475" y="66" fill="#94a3b8" font-family="Inter, sans-serif" font-size="11">
-            GitHub Actions Batch ETL · GitHub Pages Static CDN · Live WebGL2 Tiles · Google Sheet Queue
-          </text>
+          <g clip-path="url(#arch_zone_clip_3)">
+            <rect x="510" y="18" width="500" height="852" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
+            <text x="528" y="45" fill="#34d399" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+              3. GITHUB PLATFORM, RUNTIME TILES &amp; 2-WAY MODERATION
+            </text>
+            <text x="528" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+              GitHub Actions ETL · Pages Static CDN · WebGL2 Tiles · Sheet &amp; Apps Script
+            </text>
+          </g>
 
-          <rect x="910" y="20" width="400" height="730" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
-          <text x="930" y="48" fill="#f59e0b" font-family="Inter, sans-serif" font-size="13" font-weight="700">
-            4. END-USER PERSONAS &amp; CLOUD / LOCAL LLM COMPANIONS
-          </text>
-          <text x="930" y="66" fill="#94a3b8" font-family="Inter, sans-serif" font-size="11">
-            PH Monitoring · PH Research · Public Enthusiasts · Local/Cloud LLMs (Read + Write)
-          </text>
+          <g clip-path="url(#arch_zone_clip_4)">
+            <rect x="1038" y="18" width="494" height="852" rx="14" fill="#0d1627" stroke="#1e293b" stroke-width="1.5" />
+            <text x="1056" y="45" fill="#f59e0b" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700">
+              4. END-USER PERSONAS &amp; CLOUD / LOCAL LLM COMPANIONS
+            </text>
+            <text x="1056" y="63" fill="#94a3b8" font-family="Inter, system-ui, sans-serif" font-size="10.5">
+              PH Monitoring · PH Research · Public Enthusiasts · Local/Cloud LLMs (2-Way)
+            </text>
+          </g>
 
           <!-- Animated Data-Flow Conduits -->
           ${svgEdgesHtml}
