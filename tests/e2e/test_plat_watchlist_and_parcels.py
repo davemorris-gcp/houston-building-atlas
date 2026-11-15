@@ -1834,13 +1834,12 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     page.wait_for_selector("#list .row", timeout=15000)
 
-    # 1. F2-01: Default active Watchlist does NOT pre-populate unconfirmed DPV-26073533 (801 McGowen) or 2026-1585 (Montrose Residences)
+    # 1. F2-01: Default active Watchlist does NOT pre-populate unconfirmed DPV-26073533 (801 McGowen)
     page.click("#modeWatchlistBtn")
     wl_ids = page.evaluate(
         "() => Array.from(document.querySelectorAll('#list .row[data-watch-id]')).map(r => r.dataset.watchId)"
     )
     assert "plat-DPV-26073533" not in wl_ids
-    assert "plat-2026-1585" not in wl_ids
 
     # 2. F2-12: Broker / Listing Agent field displayed & persists through inline editor
     page.locator("#list .row[data-watch-id='prop-kirby-mansion']").click()

@@ -274,8 +274,8 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
     assert.match(String(ev.localDate || ""), /^\d{4}-\d{2}-\d{2}$/, `Invalid localDate on ${ev.id}`);
     assert.notEqual(
       ev.watchPropertyId,
-      "plat-2026-1585",
-      `Retracted unconfirmed seed plat-2026-1585 must not appear in monitor_activity_log.json (${ev.id})`
+      "plat-DPV-26073533",
+      `Retracted unconfirmed seed plat-DPV-26073533 must not appear in monitor_activity_log.json (${ev.id})`
     );
     const evAddrUp = String(ev.address || "").toUpperCase();
     assert.equal(

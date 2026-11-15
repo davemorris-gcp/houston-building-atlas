@@ -950,27 +950,36 @@ def main() -> None:
         json.dumps(overlays, separators=(",", ":"))
     )
 
-    # Update search_index.json with HAHC COA parcel entries (replacing any prior hahc_coa entries)
+    # Update search_index.json with HAHC COA parcel entries (preserving enriched fields from prior hahc_coa rows)
+    prior_hahc_by_id = {
+        row["id"]: row
+        for row in search_index
+        if isinstance(row, dict) and row.get("kind") == "hahc_coa" and row.get("id")
+    }
     filtered_si = [row for row in search_index if row.get("kind") != "hahc_coa"]
     for feat in features:
         p = feat["properties"]
         lon, lat = feat["geometry"]["coordinates"]
         label_prefix = "HAHC Agenda" if p["has_active_agenda"] else "HAHC COA"
         dist_tag = p["historic_district"] or p["landmark_name"] or "Houston"
-        filtered_si.append(
-            {
-                "kind": "hahc_coa",
-                "id": p["id"],
-                "hcad_num": p["hcad_num"],
-                "name": f"{label_prefix}: {p['address']} ({p['latest_app_type']})",
-                "address": p["address"],
-                "district": dist_tag,
-                "year_built": p["year_built"],
-                "lon": lon,
-                "lat": lat,
-                "keywords": f"HAHC COA Certificate of Appropriateness {p['latest_app_type']} {dist_tag} {p['latest_outcome']}",
-            }
-        )
+        prior_row = prior_hahc_by_id.get(p["id"]) or {}
+        si_entry = {
+            "kind": "hahc_coa",
+            "id": p["id"],
+            "hcad_num": p["hcad_num"],
+            "name": f"{label_prefix}: {p['address']} ({p['latest_app_type']})",
+            "address": p["address"],
+            "district": dist_tag,
+            "year_built": p["year_built"],
+            "lon": lon,
+            "lat": lat,
+            "keywords": f"HAHC COA Certificate of Appropriateness {p['latest_app_type']} {dist_tag} {p['latest_outcome']}",
+        }
+        for enriched_key in ("architect", "builder", "style", "decade", "landmark_code"):
+            val = p.get(enriched_key) or prior_row.get(enriched_key)
+            if val is not None and val != "":
+                si_entry[enriched_key] = val
+        filtered_si.append(si_entry)
     (DATA_DIR / "search_index.json").write_text(
         json.dumps(filtered_si, separators=(",", ":"))
     )
