@@ -605,6 +605,69 @@ def normalize_hpo_street_address_keys(raw_addr: str | None) -> list[str]:
     return keys
 
 
+_COMPOUND_STREET_ALIASES: dict[str, str] = {
+    "GLENVALLEY": "GLEN VALLEY",
+    "GLENVISTA": "GLEN VISTA",
+    "PECANVILLAS": "PECAN VILLAS",
+    "GLENPRAIRIE": "GLEN PRAIRIE",
+    "DELEON": "DE LEON",
+    "GLENDALE": "GLEN DALE",
+    "GLENDELL": "GLEN DELL",
+    "GLENBRAE": "GLEN BRAE",
+    "GLENCREST": "GLEN CREST",
+    "GLENHEATH": "GLEN HEATH",
+    "GLENLEA": "GLEN LEA",
+    "GLENLOCH": "GLEN LOCH",
+    "BISMARK": "BISMARCK",
+    "SOUTHBLVD": "SOUTH BLVD",
+    "NORTHBLVD": "NORTH BLVD",
+}
+
+
+def _expand_hpo_survey_candidate_keys(raw_addr: str | None) -> list[str]:
+    """Generate expanded normalized street keys for HPO survey and GIS parcel cross-linking."""
+    if not raw_addr:
+        return []
+    s = clean_hpo_text(str(raw_addr)).strip()
+    out: list[str] = []
+
+    def _add_all(cand: str) -> None:
+        for k in normalize_hpo_street_address_keys(cand):
+            if k not in out:
+                out.append(k)
+            for k_src, k_dst in _COMPOUND_STREET_ALIASES.items():
+                if k_src in k:
+                    k2 = re.sub(rf"\b{k_src}\b", k_dst, k)
+                    if k2 not in out:
+                        out.append(k2)
+                if k_dst in k:
+                    k3 = re.sub(rf"\b{k_dst}\b", k_src, k)
+                    if k3 not in out:
+                        out.append(k3)
+
+    _add_all(s)
+    s_clean = re.sub(r"\s*\([^)]*\)\s*", " ", s).strip()
+    s_clean = re.sub(r"\s+[A-Z0-9]{1,3}$", "", s_clean)
+    s_clean = re.sub(r"^(\d+)\s+(?:[A-D](?:\s*&\s*[A-D])?|1/2)\s+", r"\1 ", s_clean, flags=re.I)
+    s_clean = re.sub(r"^(\d+)-[A-D]\s+", r"\1 ", s_clean, flags=re.I)
+    if s_clean != s:
+        _add_all(s_clean)
+    for m_c in re.finditer(r"^(\d{1,5})\s*(?:,|&|\band\b)\s*(\d{1,5})\s+(.+)$", s_clean, re.I):
+        _add_all(f"{m_c.group(1)} {m_c.group(3)}")
+        _add_all(f"{m_c.group(2)} {m_c.group(3)}")
+    m_rng = re.match(r"^\s*(\d{1,5})\s*[-/]+\s*(\d{1,5})\s+(.+)$", s_clean)
+    if m_rng:
+        n1_s, n2_s, rest = m_rng.groups()
+        if len(n2_s) < len(n1_s):
+            n2_s = n1_s[: len(n1_s) - len(n2_s)] + n2_s
+        n1_i, n2_i = int(n1_s), int(n2_s)
+        if 0 < (n2_i - n1_i) <= 20:
+            for step_n in range(n1_i, n2_i + 1, 2):
+                _add_all(f"{step_n} {rest}")
+    return out
+
+
+
 def _parse_year_token(raw_yr: str) -> tuple[str, int]:
     yr_s = clean_hpo_text(raw_yr or "").strip()
     if not yr_s or yr_s.lower() in ("-", "n/a", "na", "none", "unknown"):
@@ -1131,14 +1194,21 @@ def _parse_single_line_layout(text: str, lay: str) -> list[dict[str, Any]]:
         if not m:
             continue
         captured = dict(zip(group_names, m.groups(), strict=True))
+        raw_addr = captured["addr"]
+        raw_legal = captured["legal"]
+        if lay == "NORHILL_STATUS_LAST":
+            parts_nh = re.split(r"\s+(?=(?:LTS?|TRS?|BLK)\s+\d)", raw_addr, maxsplit=1, flags=re.I)
+            if len(parts_nh) == 2:
+                raw_addr = parts_nh[0].strip()
+                raw_legal = f"{parts_nh[1].strip()} {raw_legal.strip()}".strip()
         yr_raw, yr_int = _parse_year_token(captured.get("yr", ""))
         style_clean = " ".join((captured.get("style") or "").split())
         if lay == "HIGH_FIRST_WARD_YEAR_LAST" and style_clean.lower() in ("vacant", "n/a"):
             style_clean = ""
         rows.append(
             _make_survey_row(
-                address=captured["addr"],
-                legal_desc=captured["legal"],
+                address=raw_addr,
+                legal_desc=raw_legal,
                 survey_year_raw=yr_raw,
                 survey_year=yr_int,
                 survey_status=STATUS_EXPAND[captured["status"].upper()],
@@ -1929,6 +1999,66 @@ class HarvestBundlePaths:
     surveys: Path
 
 
+def _extract_block_lot_tokens(legal_s: str, dist_name: str = "") -> list[tuple[str, str]]:
+    """Extract `(block, lot)` tuples from a GIS or HPO survey legal description string."""
+    s = re.sub(r"\bN/A\b", "", (legal_s or "").upper()).strip()
+    if not s:
+        return []
+    m_hfw = re.match(r"^(\d+[A-D]?)\s+(\d{2,3})\s+(?:BAKER|SHEARN|SABINE)\b", s)
+    if m_hfw:
+        return [(m_hfw.group(2).lstrip("0") or "0", m_hfw.group(1).lstrip("0") or "0")]
+    m_av = re.match(r"^(\d{1,2})\s+(\d{1,2}[A-D]?)$", s)
+    if m_av and "Avondale" in dist_name:
+        return [(m_av.group(1).lstrip("0") or "0", m_av.group(2).lstrip("0") or "0")]
+    m_hh = re.match(
+        r"^(?:HOUSTON\s+HEIGHTS\s+|BRUNNER\s+)?(\d{2,3})\s+(\d+[A-D]?(?:\s*(?:,|&|AND)\s*\d+[A-D]?)*)$",
+        s,
+    )
+    if m_hh and ("Heights" in dist_name or "Brunner" in dist_name):
+        b_h = m_hh.group(1).lstrip("0") or "0"
+        return [
+            (b_h, t.strip().lstrip("0"))
+            for t in re.split(r"[\s,&]+|AND", m_hh.group(2))
+            if t.strip().lstrip("0")
+        ]
+    m_b = re.search(
+        r"\b(?:BLK|BLOCK|BLKS)\s*([0-9A-Z]+)"
+        r"|(?:AVONDON|AVONDALE|AUDUBON|WESTMORELAND|NORHILL|GLENBROOK|FREEDMEN|WOODLAND|GERMANTOWN|STARKWEATHER|COURTLANDT|BROADACRES|BOULEVARD|MONTROSE|MAIN|HEIGHTS|BRUNNER)\s+(?:EAST\s+|WEST\s+|SOUTH\s+|NORTH\s+)?([0-9]+)\b",
+        s,
+    )
+    blk = (m_b.group(1) or m_b.group(2)) if m_b else ""
+    if not blk and dist_name in (
+        "Shadow Lawn Historic District",
+        "Broadacres Historic District",
+        "Courtlandt Place Historic District",
+        "West Eleventh Place Historic District",
+    ):
+        blk = "1"
+    if not blk:
+        m_end = re.search(r"\b(\d{1,3})\s*$", s)
+        if m_end and ("LT" in s or "TR" in s or "LOT" in s or "TRACT" in s):
+            blk = m_end.group(1)
+    if not blk:
+        return []
+    blk = blk.lstrip("0") or "0"
+    lots: set[str] = set()
+    for m_rng in re.finditer(
+        r"\b(?:LTS?|LOTS?|TRS?|TRACTS?)\s*(\d+)\s*(?:THRU|THROUGH|-|TO)\s*(\d+)\b", s
+    ):
+        a_i, b_i = int(m_rng.group(1)), int(m_rng.group(2))
+        if 0 <= (b_i - a_i) <= 24:
+            for k_i in range(a_i, b_i + 1):
+                lots.add(str(k_i))
+    for m_l in re.finditer(
+        r"\b(?:LTS?|LOTS?|TRS?|TRACTS?)\s*([0-9A-Z]+(?:\s*(?:,|&|AND|\s)\s*[0-9A-Z]+)*)", s
+    ):
+        for tok in re.split(r"[\s,&]+|AND", m_l.group(1)):
+            tok = tok.strip().lstrip("0")
+            if tok and re.match(r"^\d+[A-D]?$", tok) and tok not in ("BLK", "BLOCK", "THRU"):
+                lots.add(tok)
+    return [(blk, lt) for lt in sorted(lots)]
+
+
 @dataclass
 class HarvestInputs:
     """Typed workspace inputs and pre-indexed HCAD/address maps for the Milestone 12 harvester."""
@@ -1948,6 +2078,7 @@ class HarvestInputs:
     suppressed_redirect: dict[str, str] = field(default_factory=dict)
     effective_split_campus_hcads: set[str] = field(default_factory=set)
     gis_addr_by_dist: dict[str, dict[str, list[str]]] = field(default_factory=dict)
+    gis_blk_lot_by_dist: dict[str, dict[tuple[str, str], list[str]]] = field(default_factory=dict)
     gis_addr_any: dict[str, set[str]] = field(default_factory=dict)
     gis_addrs_by_hcad: dict[str, list[str]] = field(default_factory=dict)
     known_addrs_by_hcad: dict[str, list[str]] = field(default_factory=dict)
@@ -2276,6 +2407,9 @@ def _load_harvest_inputs(cdir: Path, odir: Path) -> HarvestInputs:
     for ov_k, ov_v in overrides.items():
         if not isinstance(ov_v, dict):
             continue
+        if ov_v.get("suppress_only") and int(ov_v.get("year_built") or 0) != 0:
+            ov_v["year_built"] = None
+            ov_v["decade"] = None
         if ov_v.get("landmark_summary"):
             ov_v["landmark_summary"] = _scrub_personal_header_names(str(ov_v["landmark_summary"]))
         if ov_v.get("source_citation"):
@@ -2340,13 +2474,20 @@ def _load_harvest_inputs(cdir: Path, odir: Path) -> HarvestInputs:
         if site_addr:
             inputs.gis_addrs_by_hcad.setdefault(hc, []).append(site_addr)
             inputs.known_addrs_by_hcad.setdefault(hc, []).append(site_addr)
-        for ak in normalize_hpo_street_address_keys(site_addr):
+        for ak in _expand_hpo_survey_candidate_keys(site_addr):
             inputs.gis_addr_any.setdefault(ak, set()).add(hc)
             if canon_d:
                 dist_bucket = inputs.gis_addr_by_dist.setdefault(canon_d, {})
                 lst = dist_bucket.setdefault(ak, [])
                 if hc not in lst:
                     lst.append(hc)
+        if canon_d:
+            lg_str = f"{props.get('Legal_Dscr_1') or ''} {props.get('Legal_Dscr_2') or ''}"
+            bl_bucket = inputs.gis_blk_lot_by_dist.setdefault(canon_d, {})
+            for bl_tok in _extract_block_lot_tokens(lg_str, canon_d):
+                bl_lst = bl_bucket.setdefault(bl_tok, [])
+                if hc not in bl_lst:
+                    bl_lst.append(hc)
 
     for bfeat in buildings_fc.get("features") or []:
         bp = bfeat.get("properties") or {}
@@ -2358,7 +2499,7 @@ def _load_harvest_inputs(cdir: Path, odir: Path) -> HarvestInputs:
             b_addr = clean_hpo_text(str(bp.get("address") or "")).strip()
             if b_addr:
                 inputs.known_addrs_by_hcad.setdefault(hc, []).append(b_addr)
-            for ak in normalize_hpo_street_address_keys(b_addr):
+            for ak in _expand_hpo_survey_candidate_keys(b_addr):
                 inputs.addr_to_bld_hcads.setdefault(ak, set()).add(hc)
 
     for ov_k, ov_v in overrides.items():
@@ -2369,7 +2510,7 @@ def _load_harvest_inputs(cdir: Path, odir: Path) -> HarvestInputs:
             ov_addr = clean_hpo_text(str(ov_v.get("address") or "")).strip()
             if ov_addr:
                 inputs.known_addrs_by_hcad.setdefault(hc, []).append(ov_addr)
-            for ak in normalize_hpo_street_address_keys(ov_addr):
+            for ak in _expand_hpo_survey_candidate_keys(ov_addr):
                 inputs.addr_to_bld_hcads.setdefault(ak, set()).add(hc)
 
     return inputs
@@ -2598,9 +2739,18 @@ def _build_hpo_district_surveys_bundle(
 
             p_addr = prow["address"]
             p_alt = str(prow.get("alt_address") or "")
+            p_legal = str(prow.get("legal_desc") or "")
+            if not p_alt and p_legal:
+                m_see = re.search(
+                    r"\b(?:See|aka)\s+(\d{1,5}(?:\s*[-/]\s*\d{1,5})?\s+[A-Za-z0-9\s.]{2,35})",
+                    p_legal,
+                    re.I,
+                )
+                if m_see:
+                    p_alt = re.sub(r"\s+\d{2,3}\s*$", "", m_see.group(1).strip()).strip()
             p_dir = _extract_leading_directional(p_addr) or _extract_leading_directional(p_alt)
-            cand_keys = normalize_hpo_street_address_keys(p_addr)
-            for alt_k in normalize_hpo_street_address_keys(p_alt):
+            cand_keys = _expand_hpo_survey_candidate_keys(p_addr)
+            for alt_k in _expand_hpo_survey_candidate_keys(p_alt):
                 if alt_k not in cand_keys:
                     cand_keys.append(alt_k)
 
@@ -2627,9 +2777,18 @@ def _build_hpo_district_surveys_bundle(
                     matched_hc = gis_hits[0]
                     break
             if not matched_hc and dist_bbox:
-                shard_hits = _load_address_shard_candidates(
-                    addr_shards_dir, shard_cache, p_addr, p_alt
-                )
+                shard_hits: list[tuple[str, float, float, int]] = []
+                shard_queries = [
+                    q_a
+                    for q_a in [p_addr, p_alt, *cand_keys]
+                    if q_a and (not p_dir or _extract_leading_directional(q_a) == p_dir)
+                ]
+                for q_addr in shard_queries:
+                    shard_hits.extend(
+                        _load_address_shard_candidates(
+                            addr_shards_dir, shard_cache, q_addr, p_alt
+                        )
+                    )
                 in_box = [
                     hc_s
                     for h in shard_hits
@@ -2644,6 +2803,52 @@ def _build_hpo_district_surveys_bundle(
                 uniq_box = list(dict.fromkeys(in_box))
                 if len(uniq_box) == 1:
                     matched_hc = uniq_box[0]
+                elif len(uniq_box) > 1:
+                    dist_box = [
+                        hc_u for hc_u in uniq_box if inputs.gis_dist_by_hcad.get(hc_u) == dist_name
+                    ]
+                    if len(dist_box) == 1:
+                        matched_hc = dist_box[0]
+            if not matched_hc:
+                for ak in cand_keys:
+                    if p_dir and _extract_leading_directional(ak) != p_dir:
+                        continue
+                    bld_cands = [
+                        hc_b
+                        for hc_b in (
+                            (inputs.addr_to_bld_hcads.get(ak) or set())
+                            | (inputs.gis_addr_any.get(ak) or set())
+                        )
+                        if (
+                            inputs.gis_dist_by_hcad.get(hc_b) == dist_name
+                            or not inputs.gis_dist_by_hcad.get(hc_b)
+                        )
+                        and not _hcad_has_opposing_directional(
+                            p_addr, hc_b, gis_addrs_by_hcad, p_alt
+                        )
+                        and not _hcad_has_opposing_directional(
+                            p_addr, hc_b, inputs.known_addrs_by_hcad, p_alt
+                        )
+                    ]
+                    if len(bld_cands) == 1:
+                        matched_hc = bld_cands[0]
+                        break
+            if not matched_hc and p_legal:
+                dist_bl_map = inputs.gis_blk_lot_by_dist.get(dist_name) or {}
+                for bl_tok in _extract_block_lot_tokens(p_legal, dist_name):
+                    bl_cands = [
+                        hc_bl
+                        for hc_bl in (dist_bl_map.get(bl_tok) or [])
+                        if not _hcad_has_opposing_directional(
+                            p_addr, hc_bl, gis_addrs_by_hcad, p_alt
+                        )
+                        and not _hcad_has_opposing_directional(
+                            p_addr, hc_bl, inputs.known_addrs_by_hcad, p_alt
+                        )
+                    ]
+                    if len(bl_cands) == 1:
+                        matched_hc = bl_cands[0]
+                        break
 
             canonical_row = SurveyParcelRow(
                 sid=sid,
@@ -2757,10 +2962,13 @@ def _sync_overlay_landmarks_and_districts(
     districts_summary: dict[str, dict[str, Any]],
 ) -> tuple[int, int]:
     """Synchronize `overlays.json` landmark and historic-district features with harvested metadata."""
+    from .build_permits_and_contractors import extract_landmark_pdf_contractor_data
+
     coh_landmarks = inputs.coh_landmarks
     overlays = inputs.overlays
     enriched_landmarks = lm_result.enriched_landmarks
     raw_demod_objids = lm_result.raw_demod_objids
+    pdf_contractors = extract_landmark_pdf_contractor_data()
 
     lm_by_objid = {r["objectid"]: r for r in enriched_landmarks if r.get("objectid") is not None}
     lm_by_name_addr = {(r["name"], r["address"]): r for r in enriched_landmarks}
@@ -2818,6 +3026,20 @@ def _sync_overlay_landmarks_and_districts(
         if enr.get("pdf_summary") and not lp.get("pdf_summary"):
             lp["pdf_summary"] = _scrub_personal_header_names(str(enr["pdf_summary"]))
             changed = True
+        rurl = str(lp.get("report_pdf_url") or "")
+        pinfo = pdf_contractors.get(rurl) if rurl else None
+        if isinstance(pinfo, dict):
+            lm_c = str(lp.get("landmark_code") or enr.get("plm_num") or enr.get("lm_num") or "HPO").strip()
+            if pinfo.get("builder") and not lp.get("builder"):
+                lp["builder"] = pinfo["builder"]
+                lp["builder_source"] = f"City of Houston Landmark Designation Report ({lm_c})"
+                changed = True
+            if pinfo.get("original_cost") and not lp.get("original_cost"):
+                lp["original_cost"] = pinfo["original_cost"]
+                changed = True
+            if pinfo.get("original_permit") and not lp.get("original_permit"):
+                lp["original_permit"] = pinfo["original_permit"]
+                changed = True
         if changed:
             overlay_landmarks_updated += 1
 
@@ -2891,6 +3113,9 @@ def _apply_landmark_and_survey_backfills(
     slab_hcads: set[str] = struct_flags["slab_hcads"]
     rebuilt_hcads: set[str] = struct_flags["rebuilt_hcads"]
 
+    from .build_permits_and_contractors import extract_landmark_pdf_contractor_data
+
+    pdf_contractors = extract_landmark_pdf_contractor_data()
     overlay_landmarks_updated, overlay_districts_updated = _sync_overlay_landmarks_and_districts(
         inputs, lm_result, districts_summary
     )
@@ -2969,6 +3194,17 @@ def _apply_landmark_and_survey_backfills(
                 bp["architect"] = clean_enr_arch
             if enr.get("final_style") and is_replaceable_style_value(bp.get("style")) and not b_is_post_lm:
                 bp["style"] = enr["final_style"]
+            pinfo_b = pdf_contractors.get(pdf_url) if pdf_url else None
+            if isinstance(pinfo_b, dict) and not b_is_post_lm:
+                if pinfo_b.get("builder") and not bp.get("builder"):
+                    bp["builder"] = pinfo_b["builder"]
+                    bp["builder_source"] = (
+                        f"City of Houston Landmark Designation Report ({lm_code or 'HPO'})"
+                    )
+                if pinfo_b.get("original_cost") and not bp.get("original_cost"):
+                    bp["original_cost"] = pinfo_b["original_cost"]
+                if pinfo_b.get("original_permit") and not bp.get("original_permit"):
+                    bp["original_permit"] = pinfo_b["original_permit"]
 
         hc_survey_sids = survey_by_hcad.get(hc) or []
         has_lm_conflict = _has_parcel_survey_conflict(
@@ -3013,6 +3249,17 @@ def _apply_landmark_and_survey_backfills(
                 ov["bld_style"] = enr["final_style"]
             if clean_enr_summary and not ov.get("landmark_summary") and not ov_is_post_lm:
                 ov["landmark_summary"] = clean_enr_summary
+            pinfo_ov = pdf_contractors.get(pdf_url) if pdf_url else None
+            if isinstance(pinfo_ov, dict) and not ov_is_post_lm:
+                if pinfo_ov.get("builder") and not ov.get("builder"):
+                    ov["builder"] = pinfo_ov["builder"]
+                    ov["builder_source"] = (
+                        f"City of Houston Landmark Designation Report ({lm_code or 'HPO'})"
+                    )
+                if pinfo_ov.get("original_cost") and not ov.get("original_cost"):
+                    ov["original_cost"] = pinfo_ov["original_cost"]
+                if pinfo_ov.get("original_permit") and not ov.get("original_permit"):
+                    ov["original_permit"] = pinfo_ov["original_permit"]
         elif (
             ov is None
             and not multi_lm_hcad

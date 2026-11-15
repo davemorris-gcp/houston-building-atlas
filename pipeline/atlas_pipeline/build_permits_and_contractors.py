@@ -970,6 +970,7 @@ def extract_landmark_pdf_contractor_data() -> dict:
                 r"(?:general\s+contractor|building\s+contractor|master\s+builder|contractor)\s+(?:was\s+|were\s+)?([A-Z][A-Za-z0-9\s.,&'\-]{3,65}?(?:Company|Co\.|Corp\.|Corporation|Inc\.|Brothers|Bros\.|& Son|& Sons|Builders|Construction|Contracting))",
                 r"(?:built|constructed|erected)\s+(?:in\s+\d{4}\s+)?by\s+(?:general\s+contractor\s+|contractor\s+|builder\s+)?([A-Z][A-Za-z0-9\s.,&'\-]{3,65}?(?:Company|Co\.|Corp\.|Corporation|Inc\.|Brothers|Bros\.|& Son|& Sons|Builders|Construction|Contracting))",
                 r"mechanic['’]?s\s+lien\s+(?:contract\s+)?(?:with|to)\s+(?:contractor\s+|builder\s+)?([A-Z][A-Za-z .,&'\-]{4,55})",
+                r"contracted\s+with\s+(?:contractor\s+|builder\s+)?([A-Z][A-Za-z0-9 .,&'\-]{4,55}?)\s+(?:to\s+(?:build|construct|erect)|for\s+\$)",
             ]:
                 m_nar = re.search(pat, text)
                 if m_nar:
@@ -1014,7 +1015,7 @@ def extract_landmark_pdf_contractor_data() -> dict:
 
         # 4. Extract original dollar cost
         m_cost = re.search(
-            r"(?:cost\s+of|estimated\s+cost\s+of|valued\s+at|contract\s+for|mechanic['’]?s\s+lien\s+(?:contract\s+)?for|built\s+for|constructed\s+for|permit\s+for)\s+(\$[0-9,]{3,15}(?:\.\d{2})?)",
+            r"(?:cost\s+of(?:\s+construction)?(?:\s+was)?|estimated\s+cost\s+of|valued\s+at|contract\s+(?:in\s+the\s+amount\s+of|for)|mechanic['’]?s\s+lien\s+(?:contract\s+)?(?:in\s+the\s+amount\s+of|for)|built\s+(?:at\s+a\s+cost\s+of|for)|constructed\s+(?:at\s+a\s+cost\s+of|for)|permit\s+(?:in\s+the\s+amount\s+of|for))\s+(\$[0-9,]{3,15}(?:\.\d{2})?)",
             text,
             re.IGNORECASE,
         )
@@ -1023,7 +1024,7 @@ def extract_landmark_pdf_contractor_data() -> dict:
 
         # 5. Extract building permit or mechanic's lien reference
         m_perm = re.search(
-            r"(?:Building\s+Permit\s+(?:No\.?|#)\s*[A-Za-z0-9\-]+|permit\s+was\s+issued\s+(?:on\s+)?[A-Za-z]+\s+\d{1,2},?\s+\d{4}|mechanic['’]?s\s+lien\s+contract\s+dated\s+[A-Za-z]+\s+\d{1,2},?\s+\d{4})",
+            r"(?:Building\s+Permit\s+(?:No\.?|#)\s*[A-Za-z0-9\-]+|building\s+permit\s+(?:in\s+the\s+amount\s+of\s+\$[0-9,]+|for\s+\$[0-9,]+)|permit\s+was\s+issued\s+(?:on\s+)?[A-Za-z]+\s+\d{1,2},?\s+\d{4}|mechanic['’]?s\s+lien\s+(?:contract\s+)?(?:dated|executed|filed)\s+(?:on\s+)?[A-Za-z]+\s+\d{1,2},?\s+\d{4})",
             text,
             re.IGNORECASE,
         )
@@ -1031,12 +1032,18 @@ def extract_landmark_pdf_contractor_data() -> dict:
             permit_info = m_perm.group(0).strip()
 
         if builder or cost or permit_info:
-            results[url] = {
+            rec = {
                 "builder": builder,
                 "original_cost": cost,
                 "original_permit": permit_info,
                 "source_url": url,
             }
+            results[url] = rec
+            results[url.replace(" ", "%20")] = rec
+            if isinstance(raw_entry, dict) and raw_entry.get("url"):
+                u2 = str(raw_entry["url"]).strip()
+                results[u2] = rec
+                results[u2.replace(" ", "%20")] = rec
 
     return results
 
