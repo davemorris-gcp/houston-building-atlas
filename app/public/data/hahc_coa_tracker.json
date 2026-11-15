@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-14T17:36:22Z",
+  "generated_at": "2026-11-15T18:21:26Z",
   "source_url": "https://www.houstontx.gov/planning/Commissions/HAHC.html",
   "current_cycle": {
     "meeting_date": "2026-11-05",
@@ -881,7 +881,7 @@
         {
           "hcad_num": "0051440000009",
           "address": "2007 Shearn St",
-          "year_built": 1930,
+          "year_built": 1900,
           "meeting_date": "2024-11-07",
           "app_type": "Alteration - Windows, Siding",
           "app_category": "addition_alteration",
@@ -895,7 +895,7 @@
         {
           "hcad_num": "0051220000009",
           "address": "1711 Shearn St",
-          "year_built": 1930,
+          "year_built": 1920,
           "meeting_date": "2024-09-12",
           "app_type": "Alteration - Addition",
           "app_category": "addition_alteration",
@@ -980,7 +980,7 @@
         {
           "hcad_num": "0201020000015",
           "address": "1810 Cortlandt St",
-          "year_built": 1920,
+          "year_built": 1911,
           "meeting_date": "2026-05-21",
           "app_type": "Alteration - Addition New Construction - Garage or",
           "app_category": "new_construction",
@@ -994,7 +994,7 @@
         {
           "hcad_num": "0201020000015",
           "address": "1810 Cortlandt St",
-          "year_built": 1920,
+          "year_built": 1911,
           "meeting_date": "2026-05-21",
           "app_type": "Carport",
           "app_category": "addition_alteration",
@@ -1177,7 +1177,7 @@
         {
           "hcad_num": "0210190000009",
           "address": "515 Columbia St",
-          "year_built": 1920,
+          "year_built": 1908,
           "meeting_date": "2026-10-08",
           "app_type": "Garage or Carport",
           "app_category": "addition_alteration",
@@ -1234,7 +1234,7 @@
         {
           "hcad_num": "0201410000016",
           "address": "1505 Tulane St",
-          "year_built": 1930,
+          "year_built": 1918,
           "meeting_date": "2026-11-05",
           "app_type": "Alteration - Addition",
           "app_category": "addition_alteration",
@@ -1248,7 +1248,7 @@
         {
           "hcad_num": "0201410000016",
           "address": "1505 Tulane St",
-          "year_built": 1930,
+          "year_built": 1918,
           "meeting_date": "2026-11-05",
           "app_type": "New Construction - Garage",
           "app_category": "new_construction",
@@ -1318,7 +1318,7 @@
         {
           "hcad_num": "0201410000016",
           "address": "1505 Tulane St",
-          "year_built": 1930,
+          "year_built": 1918,
           "meeting_date": "2026-10-08",
           "app_type": "Alteration - Addition New Construction -",
           "app_category": "new_construction",
@@ -1332,7 +1332,7 @@
         {
           "hcad_num": "0201410000016",
           "address": "1505 Tulane St",
-          "year_built": 1930,
+          "year_built": 1918,
           "meeting_date": "2026-10-08",
           "app_type": "Garage",
           "app_category": "addition_alteration",
@@ -2297,7 +2297,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-11-05",
@@ -2316,7 +2316,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-11-05",
@@ -2449,7 +2449,7 @@
       "hcad_num": "0210190000009",
       "lng": -95.39315,
       "lat": 29.780281,
-      "year_built": 1920
+      "year_built": 1908
     },
     {
       "meeting_date": "2026-10-08",
@@ -2582,7 +2582,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-10-08",
@@ -2601,7 +2601,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-10-08",
@@ -2886,7 +2886,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-09-10",
@@ -2905,7 +2905,7 @@
       "hcad_num": "0201410000016",
       "lng": -95.402913,
       "lat": 29.798196,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2026-09-10",
@@ -3323,7 +3323,7 @@
       "hcad_num": "0202000000026",
       "lng": -95.402049,
       "lat": 29.791498,
-      "year_built": 1930
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-08-13",
@@ -3741,7 +3741,7 @@
       "hcad_num": "0202000000026",
       "lng": -95.402049,
       "lat": 29.791498,
-      "year_built": 1930
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-05-21",
@@ -3855,7 +3855,7 @@
       "hcad_num": "0372960000003",
       "lng": -95.378468,
       "lat": 29.788313,
-      "year_built": 1920
+      "year_built": 1911
     },
     {
       "meeting_date": "2026-05-21",
@@ -4045,7 +4045,7 @@
       "hcad_num": "0201020000015",
       "lng": -95.395254,
       "lat": 29.802402,
-      "year_built": 1920
+      "year_built": 1911
     },
     {
       "meeting_date": "2026-05-21",
@@ -4064,7 +4064,7 @@
       "hcad_num": "0201020000015",
       "lng": -95.395254,
       "lat": 29.802402,
-      "year_built": 1920
+      "year_built": 1911
     },
     {
       "meeting_date": "2026-05-21",
@@ -4216,7 +4216,7 @@
       "hcad_num": "0202000000026",
       "lng": -95.402049,
       "lat": 29.791498,
-      "year_built": 1930
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-05-21",
@@ -4444,7 +4444,7 @@
       "hcad_num": "0210180000019",
       "lng": -95.392699,
       "lat": 29.78073,
-      "year_built": 1920
+      "year_built": 1912
     },
     {
       "meeting_date": "2026-04-23",
@@ -4463,7 +4463,7 @@
       "hcad_num": "0210180000019",
       "lng": -95.392699,
       "lat": 29.78073,
-      "year_built": 1920
+      "year_built": 1912
     },
     {
       "meeting_date": "2026-04-23",
@@ -4805,7 +4805,7 @@
       "hcad_num": "0202000000026",
       "lng": -95.402049,
       "lat": 29.791498,
-      "year_built": 1930
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-04-23",
@@ -4976,7 +4976,7 @@
       "hcad_num": "0201100000010",
       "lng": -95.393636,
       "lat": 29.800579,
-      "year_built": 1940
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-02-12",
@@ -4995,7 +4995,7 @@
       "hcad_num": "0201100000010",
       "lng": -95.393636,
       "lat": 29.800579,
-      "year_built": 1940
+      "year_built": 1920
     },
     {
       "meeting_date": "2026-02-12",
@@ -5166,7 +5166,7 @@
       "hcad_num": "0372850000012",
       "lng": -95.377131,
       "lat": 29.787052,
-      "year_built": 1920
+      "year_built": 1900
     },
     {
       "meeting_date": "2026-01-15",
@@ -5204,7 +5204,7 @@
       "hcad_num": "0372810000012",
       "lng": -95.37578,
       "lat": 29.787653,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2026-01-15",
@@ -5299,7 +5299,7 @@
       "hcad_num": "0202160000019",
       "lng": -95.393932,
       "lat": 29.789883,
-      "year_built": 1920
+      "year_built": 1915
     },
     {
       "meeting_date": "2026-01-15",
@@ -5394,7 +5394,7 @@
       "hcad_num": "0372850000012",
       "lng": -95.377131,
       "lat": 29.787052,
-      "year_built": 1920
+      "year_built": 1900
     },
     {
       "meeting_date": "2025-12-11",
@@ -5546,7 +5546,7 @@
       "hcad_num": "0201850000017",
       "lng": -95.394906,
       "lat": 29.793321,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-11-06",
@@ -5679,7 +5679,7 @@
       "hcad_num": "0201850000015",
       "lng": -95.395114,
       "lat": 29.793037,
-      "year_built": 1920
+      "year_built": 1908
     },
     {
       "meeting_date": "2025-11-06",
@@ -5850,7 +5850,7 @@
       "hcad_num": "0201360000005",
       "lng": -95.396937,
       "lat": 29.799181,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-10-09",
@@ -6135,7 +6135,7 @@
       "hcad_num": "0201510000019",
       "lng": -95.399899,
       "lat": 29.797196,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-09-11",
@@ -6173,7 +6173,7 @@
       "hcad_num": "0201950000005",
       "lng": -95.39583,
       "lat": 29.79182,
-      "year_built": 1920
+      "year_built": 1913
     },
     {
       "meeting_date": "2025-09-11",
@@ -6287,7 +6287,7 @@
       "hcad_num": "0372810000012",
       "lng": -95.37578,
       "lat": 29.787653,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-08-14",
@@ -6401,7 +6401,7 @@
       "hcad_num": "0201870000006",
       "lng": -95.392543,
       "lat": 29.793639,
-      "year_built": 1920
+      "year_built": 1905
     },
     {
       "meeting_date": "2025-08-14",
@@ -6610,7 +6610,7 @@
       "hcad_num": "0372810000012",
       "lng": -95.37578,
       "lat": 29.787653,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-07-17",
@@ -6876,7 +6876,7 @@
       "hcad_num": "0210210000014",
       "lng": -95.395928,
       "lat": 29.779952,
-      "year_built": 1920
+      "year_built": 1910
     },
     {
       "meeting_date": "2025-06-05",
@@ -7313,7 +7313,7 @@
       "hcad_num": "0202530000007",
       "lng": -95.393304,
       "lat": 29.784278,
-      "year_built": 1920
+      "year_built": 1915
     },
     {
       "meeting_date": "2025-02-27",
@@ -7636,7 +7636,7 @@
       "hcad_num": "0201850000015",
       "lng": -95.395114,
       "lat": 29.793037,
-      "year_built": 1920
+      "year_built": 1908
     },
     {
       "meeting_date": "2025-02-27",
@@ -7655,7 +7655,7 @@
       "hcad_num": "0201850000015",
       "lng": -95.395114,
       "lat": 29.793037,
-      "year_built": 1920
+      "year_built": 1908
     },
     {
       "meeting_date": "2025-02-27",
@@ -8073,7 +8073,7 @@
       "hcad_num": "0201700000023",
       "lng": -95.402096,
       "lat": 29.794892,
-      "year_built": 1930
+      "year_built": 1918
     },
     {
       "meeting_date": "2024-12-12",
@@ -8301,7 +8301,7 @@
       "hcad_num": "0051440000009",
       "lng": -95.378628,
       "lat": 29.774186,
-      "year_built": 1930
+      "year_built": 1900
     },
     {
       "meeting_date": "2024-11-07",
@@ -8776,7 +8776,7 @@
       "hcad_num": "0051220000009",
       "lng": -95.375257,
       "lat": 29.77421,
-      "year_built": 1930
+      "year_built": 1920
     },
     {
       "meeting_date": "2024-09-12",
@@ -8833,7 +8833,7 @@
       "hcad_num": "0201860000007",
       "lng": -95.39364,
       "lat": 29.793423,
-      "year_built": 1920
+      "year_built": 1911
     },
     {
       "meeting_date": "2024-09-12",
@@ -9365,7 +9365,7 @@
       "hcad_num": "0372920000004",
       "lng": -95.378588,
       "lat": 29.785806,
-      "year_built": 1930
+      "year_built": 1910
     },
     {
       "meeting_date": "2024-06-20",
@@ -9574,7 +9574,7 @@
       "hcad_num": "0202530000007",
       "lng": -95.393304,
       "lat": 29.784278,
-      "year_built": 1920
+      "year_built": 1915
     },
     {
       "meeting_date": "2024-05-09",
@@ -9612,7 +9612,7 @@
       "hcad_num": "0210180000019",
       "lng": -95.392699,
       "lat": 29.78073,
-      "year_built": 1920
+      "year_built": 1912
     },
     {
       "meeting_date": "2024-05-09",
@@ -9973,7 +9973,7 @@
       "hcad_num": "0201700000011",
       "lng": -95.401531,
       "lat": 29.795049,
-      "year_built": 1920
+      "year_built": 1913
     },
     {
       "meeting_date": "2024-03-14",
