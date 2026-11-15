@@ -817,6 +817,7 @@ def main() -> None:
 
     # Apply matched HCAD / building_id / COH landmark cross-links onto nrhp_properties
     nrhp_by_hcad: dict[str, dict] = {}
+    from nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA
     nrhp_by_bld_id: dict[str, dict] = {}
     for e_idx, (_, matched_b_feat) in nrhp_best_match.items():
         np = nrhp_prop_features[e_idx]["properties"]
@@ -832,6 +833,21 @@ def main() -> None:
             nrhp_by_bld_id[bid] = np
         if byr >= 1836:
             np["year_built"] = byr
+        for k_attr in ("architect", "builder", "style"):
+            if bp.get(k_attr) and not np.get(k_attr):
+                np[k_attr] = bp[k_attr]
+    for feat in nrhp_prop_features:
+        np = feat["properties"]
+        cur = CURATED_NRHP_NOMINATION_METADATA.get(str(np.get("refnum") or ""), {})
+        if cur:
+            for k_attr in ("year_built", "architect", "builder", "style", "hcad_num"):
+                if cur.get(k_attr):
+                    np[k_attr] = cur[k_attr]
+    for e_idx, (_, matched_b_feat) in nrhp_best_match.items():
+        np = nrhp_prop_features[e_idx]["properties"]
+        bp = matched_b_feat.get("properties") or {}
+        hcad = str(np.get("hcad_num") or bp.get("hcad_num") or "").strip()
+        bid = str(np.get("building_id") or bp.get("id") or bp.get("building_id") or "").strip()
         # Ensure matched individual NRHP footprint is in buildings.geojson if not already
         if (
             bid

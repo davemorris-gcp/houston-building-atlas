@@ -37,7 +37,7 @@ STREET_SUFFIXES = {
     "st", "street", "ave", "avenue", "blvd", "boulevard", "rd", "road",
     "dr", "drive", "ln", "lane", "way", "pkwy", "parkway", "fwy", "freeway",
     "hwy", "highway", "ct", "court", "pl", "place", "cir", "circle", "sq", "square",
-    "ter", "terrace", "trl", "trail", "loop"
+    "ter", "terrace", "trl", "trail", "loop", "spdwy", "speedway", "esplanade", "row"
 }
 DIRS = {
     "n": "N", "s": "S", "e": "E", "w": "W",
@@ -66,7 +66,11 @@ KNOWN_HOUSTON_ARCHITECTS = [
     "Barnstone & Aubry", "Eugene Aubry", "Wirtz, Calhoun",
     "R. D. Steele", "Reuben D. Steele", "Olle & Lorehn",
     "W. D. Van Siclen", "F. S. Glover", "H. C. Cooke", "Lewis Sterling Green",
-    "Green & Briscoe", "James Ruskin Bailey", "Bailey & McGinty", "Harry D. Payne"
+    "Green & Briscoe", "James Ruskin Bailey", "Bailey & McGinty", "Harry D. Payne",
+    "Burdette Keeland", "Preston M. Bolton", "Bolton & Barnstone", "Hugo V. Neuhaus",
+    "Cowell & Neuhaus", "Hamilton Brown", "A. Carroll Brodnax", "Charles Tapley",
+    "Anderson Todd", "Ulrich Franzen", "Paul Rudolph", "W. D. Bordeaux",
+    "Giesecke & Harris", "Salisbury & McHale", "Briscoe & Dixon"
 ]
 
 
@@ -74,21 +78,27 @@ def extract_slug_addresses(slug: str):
     tokens = slug.lower().split("-")
     results = []
     for i, tok in enumerate(tokens):
-        if tok.isdigit() and 2 <= len(tok) <= 5 and int(tok) > 0:
-            for j in range(i + 2, min(len(tokens), i + 6)):
+        if tok.isdigit() and 1 <= len(tok) <= 5 and int(tok) > 0:
+            start_mid = i + 1
+            nums = [tok]
+            if start_mid < len(tokens) and tokens[start_mid].isdigit() and len(tokens[start_mid]) == len(tok):
+                nums.append(tokens[start_mid])
+                start_mid += 1
+            for j in range(start_mid + 1, min(len(tokens), start_mid + 5)):
                 if tokens[j] in STREET_SUFFIXES:
-                    mid = tokens[i + 1 : j]
-                    if not mid:
+                    mid = tokens[start_mid : j]
+                    if not mid or any(m in {"block", "of", "and", "to", "at", "in", "on", "for"} for m in mid):
                         continue
-                    if mid[0] in DIRS and len(mid) >= 2:
-                        street_core = " ".join(mid[1:]).upper()
-                        norm_with_dir = f"{tok} {DIRS[mid[0]]} {street_core}"
-                        norm_no_dir = f"{tok} {street_core}"
-                        results.append((norm_with_dir, norm_no_dir, "-".join(tokens[i : j + 1])))
-                    else:
-                        street_core = " ".join(mid).upper()
-                        norm = f"{tok} {street_core}"
-                        results.append((norm, norm, "-".join(tokens[i : j + 1])))
+                    for n_tok in nums:
+                        if mid[0] in DIRS and len(mid) >= 2:
+                            street_core = " ".join(mid[1:]).upper()
+                            norm_with_dir = f"{n_tok} {DIRS[mid[0]]} {street_core}"
+                            norm_no_dir = f"{n_tok} {street_core}"
+                            results.append((norm_with_dir, norm_no_dir, "-".join(tokens[i : j + 1])))
+                        else:
+                            street_core = " ".join(mid).upper()
+                            norm = f"{n_tok} {street_core}"
+                            results.append((norm, norm, "-".join(tokens[i : j + 1])))
                     break
     return results
 

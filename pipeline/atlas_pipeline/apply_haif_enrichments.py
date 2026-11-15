@@ -13,11 +13,16 @@ import re
 from collections import defaultdict
 from crawl_haif_forum import (
     DETAILS_CACHE_PATH,
+    GENERIC_NAME_STOPWORDS,
     TOPICS_PATH,
     clean_title_from_slug,
     extract_slug_addresses,
     norm_addr,
     norm_addr_nodir,
+)
+from nrhp_nomination_metadata import (
+    enrich_nrhp_and_cross_catalog,
+    extract_haif_architects,
 )
 
 
@@ -99,7 +104,7 @@ def main():
             "date": det.get("date_created") or f"{t['ts'][:4]}-{t['ts'][4:6]}-{t['ts'][6:8]}",
             "excerpt": det.get("excerpt") or "",
             "years": det.get("years_mentioned") or [],
-            "architects": det.get("architects_mentioned") or [],
+            "architects": extract_haif_architects(title, det.get("excerpt") or "", det.get("architects_mentioned") or []),
             "photos": det.get("photos") or [],
             "is_demo": is_demo,
         }
@@ -388,7 +393,7 @@ def main():
 
     photos_doc["by_hcad"] = by_hcad_photos
     with open("app/public/data/building_photos.json", "w") as f:
-        json.dump(photos_doc, f, indent=2)
+        json.dump(photos_doc, f, separators=(",", ":"))
     print(f"Updated building_photos.json: +{added_photo_urls} direct HAIF forum photos across {added_photo_props} HCAD properties")
 
     # 5. Build client-side `app/public/data/haif_index.json` so ANY of the 3,000+ matched HCAD parcels
@@ -405,7 +410,7 @@ def main():
         for tid in valid_tids:
             if str(tid) not in compact_threads:
                 r = tid_to_record[tid]
-                compact_threads[str(tid)] = {
+                entry = {
                     "t": r["title"],
                     "f": r["subforum"],
                     "u": r["url"],
@@ -414,6 +419,9 @@ def main():
                     "e": r["excerpt"],
                     "m": 1 if r["is_demo"] else 0,
                 }
+                if r.get("architects"):
+                    entry["a"] = ", ".join(r["architects"][:2])
+                compact_threads[str(tid)] = entry
 
     for norm_a, tids in slug_addr_to_tids.items():
         valid_tids = [tid for tid in tids[:3] if tid in tid_to_record]
@@ -423,7 +431,7 @@ def main():
         for tid in valid_tids:
             if str(tid) not in compact_threads:
                 r = tid_to_record[tid]
-                compact_threads[str(tid)] = {
+                entry = {
                     "t": r["title"],
                     "f": r["subforum"],
                     "u": r["url"],
@@ -432,6 +440,43 @@ def main():
                     "e": r["excerpt"],
                     "m": 1 if r["is_demo"] else 0,
                 }
+                if r.get("architects"):
+                    entry["a"] = ", ".join(r["architects"][:2])
+                compact_threads[str(tid)] = entry
+
+    # 5b. Enrich overlays.json["nrhp_properties"] across all catalogs + CURATED_NRHP_NOMINATION_METADATA
+    hpo_doc = {}
+    if os.path.exists("app/public/data/hpo_district_surveys.json"):
+        with open("app/public/data/hpo_district_surveys.json") as f:
+            hpo_doc = json.load(f)
+    nrhp_stats = enrich_nrhp_and_cross_catalog(
+        overlays_doc, overrides, buildings_fc, hpo_doc,
+        tid_to_record, by_hcad_idx, by_addr_idx, topics,
+        norm_addr, norm_addr_nodir, GENERIC_NAME_STOPWORDS,
+    )
+    for k, tids in by_hcad_idx.items():
+        for tid in tids:
+            if str(tid) not in compact_threads and tid in tid_to_record:
+                r = tid_to_record[tid]
+                entry = {
+                    "t": r["title"], "f": r["subforum"], "u": r["url"],
+                    "w": r["wb_url"], "d": r["date"], "e": r["excerpt"],
+                    "m": 1 if r["is_demo"] else 0,
+                }
+                if r.get("architects"):
+                    entry["a"] = ", ".join(r["architects"][:2])
+                compact_threads[str(tid)] = entry
+
+    with open("app/public/data/curated_overrides.json", "w") as f:
+        json.dump(overrides_doc, f, separators=(",", ":"))
+    with open("app/public/data/buildings.geojson", "w") as f:
+        json.dump(buildings_fc, f, separators=(",", ":"))
+    with open("app/public/data/overlays.json", "w") as f:
+        json.dump(overlays_doc, f, separators=(",", ":"))
+    print(
+        f"Updated NRHP properties: {nrhp_stats['nrhp_arch_count']} with architect/builder, "
+        f"{nrhp_stats['nrhp_style_count']} with style, {nrhp_stats['nrhp_haif_count']} with haif_threads"
+    )
 
     haif_index_payload = {
         "threads": compact_threads,
@@ -443,12 +488,32 @@ def main():
     sz_kb = os.path.getsize("app/public/data/haif_index.json") / 1024.0
     print(f"Wrote app/public/data/haif_index.json ({sz_kb:.1f} KB): {len(compact_threads)} threads, {len(by_hcad_idx)} HCAD/building keys, {len(by_addr_idx)} street addresses")
 
-    # 6. Enrich search_index.json so users can search HAIF building names or "HAIF"
+    # 6. Enrich search_index.json so users can search HAIF building names, NRHP architects/styles, or "HAIF"
     with open("app/public/data/search_index.json") as f:
         search_doc = json.load(f)
     items = search_doc.get("items", search_doc) if isinstance(search_doc, dict) else search_doc
+    nrhp_by_id = {
+        str(f["properties"].get("id") or ""): f["properties"]
+        for f in overlays_doc.get("nrhp_properties", {}).get("features", [])
+        if f.get("properties", {}).get("id")
+    }
     search_enriched = 0
     for item in items:
+        if item.get("type") == "nrhp_property" and item.get("id") in nrhp_by_id:
+            np = nrhp_by_id[item["id"]]
+            if np.get("year_built"):
+                item["year_built"] = int(np["year_built"])
+            if np.get("architect"):
+                item["architect"] = np["architect"]
+            if np.get("builder"):
+                item["builder"] = np["builder"]
+            if np.get("style"):
+                item["style"] = np["style"]
+            kw = item.get("keywords") or ""
+            for extra_tok in (np.get("architect") or "", np.get("builder") or "", np.get("style") or ""):
+                if extra_tok and extra_tok not in kw:
+                    kw = f"{kw} {extra_tok}".strip()
+            item["keywords"] = kw
         key = item.get("id") if "#" in str(item.get("id", "")) else (item.get("hcad") or item.get("hcad_num") or item.get("id"))
         addr = item.get("address") or item.get("a") or ""
         tids = by_hcad_idx.get(str(key)) or (by_addr_idx.get(norm_addr(addr)) if addr else None)

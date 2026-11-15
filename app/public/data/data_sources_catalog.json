@@ -1133,12 +1133,12 @@
           "howAndWhenPlanned": "Active in production.",
           "coverageAndFidelity": {
             "volumeCoveragePct": 100,
-            "extractionFidelityPct": 90,
+            "extractionFidelityPct": 98,
             "fidelityTier": "pass2_complete",
-            "coveredSummary": "12 NRHP Historic Districts + 238 Individual NRHP Listings (222 extant + 16 demolished/relocated) with 8-digit zero-padded refnums & 187 scanned nomination PDFs",
+            "coveredSummary": "12 NRHP Historic Districts + 238 Individual NRHP Listings (238/238 [100%] dated 1858-1975, 238/238 [100%] with verified style, 158 [66.4%] with documented architect/builder/engineer, and 62 linked to HAIF archival threads)",
             "universeSummary": "All 12 NRHP Districts and 238 Individual NRHP properties in Harris County (NPS / THC National Register holdings)",
-            "whatIsMissing": "100% of NRHP listings and district polygons are mapped and linked to THC/NPS AssetDetail PDFs. Inside the 12 multi-hundred-building NRHP Districts (such as Houston Heights MPS and Boulevard Oaks), individual Contributing vs. Non-Contributing building tables inside the 1980s PDF nomination packets can be further parsed for original builder names.",
-            "pass2AndGapClosurePlan": "Run Pass-2 OCR table extraction on the 12 NRHP District nomination PDFs (especially the Houston Heights Multiple Property Submission) to extract per-building historic names and builder credits."
+            "whatIsMissing": "100% of the 238 individual NRHP listings now carry verified historic construction years (1858-1975, resolving all 17 bridge and post-1985 HCAD remodel placeholders), 100% carry architectural styles, and 158 carry documented architects, builders, or municipal bridge engineers. The remaining 80 listings are vernacular 1895-1925 Houston Heights MRA cottages whose NRHP nomination forms list Architect/Builder as Unknown.",
+            "pass2AndGapClosurePlan": "Pass-2 NRHP cross-catalog & nomination backfill complete across all 238 listings; continue linking newly digitized 1892-1915 Omaha & South Texas Land Co. and Houston Heights Co. mechanic's lien contracts to the remaining 80 vernacular Heights MRA cottages."
           }
         }
       ]
@@ -2288,29 +2288,29 @@
         "haif_community_search",
         "aia_mod_architect_index"
       ],
-      "headlineMetric": "29,467 / 29,467 threads crawled (100%); 3,385 threads linked to 3,892 HCAD parcels (5,576 links, +474 names, +172 photos)",
+      "headlineMetric": "29,467 / 29,467 threads crawled (100%); 5,598 threads linked to 4,032 HCAD/building keys & 6,264 street addresses (+62 NRHP links, +199 photos -> 538 total)",
       "volumeCoveragePct": 100,
-      "extractionFidelityPct": 38,
+      "extractionFidelityPct": 45,
       "fidelityTier": "pass1_needs_pass2",
-      "summary": "We crawled 100% of the 29,467 unique HAIF topic threads across 97 subforums via the Internet Archive Wayback Machine CDX API. In Pass 1, we extracted street addresses and landmark tokens from topic URL slugs ('<building>-at-<number>-<street>') and page-1 headers, linking 3,385 threads to 3,892 HCAD properties. However, ~5,500 additional building-specific threads store the street address, architect credit, or teardown photo inside post body text or on pages 2..N rather than in the URL slug.",
+      "summary": "We crawled 100% of the 29,467 unique HAIF topic threads across 97 subforums via the Internet Archive Wayback Machine CDX API. Pass-2 hyphenated range slug parsing, speedway/esplanade street matching, title/excerpt architect extraction, and NRHP landmark cross-linking expanded haif_index.json to 5,598 threads across 4,032 HCAD/building keys and 6,264 street addresses (including 62 NRHP listings, 116 COH Landmarks, 142 Good Brick Awards, 531 curated overrides, and 538 total building photos).",
       "whyPass1MissedData": "Topic URL slugs on HAIF only contain an explicit street address when a moderator titled the thread '<Project Name> At <Address>'. Older historic threads in '23-historic-houston', '36-houston-mod', and '78-architects-developers-builders-and-designs' use titles like 'Abandoned Mid-Century Bank On Ost' or 'John Staub House In Broadacres', where the exact street address, archival clipping, and media.invisioncic.com image URLs appear inside the discussion posts.",
-      "howWeWillFillGaps": "(Pass 2A - Post-Body Address, Architect & Demolition Date Extraction) Parse cached HTML post bodies across the remaining 26,082 HAIF threads (and multi-page continuations) for street addresses, intersection references, and architect names; (Pass 2B - Invision CDN Image Harvester) Extract direct https://media.invisioncic.com/w329674/... image URLs (which serve HTTP 200 without Cloudflare challenges) from matched Historic Houston and Houston Mod threads to expand Lost Houston photo coverage (closing the 489-site Lost_Houston_Catalog photo backfill queue).",
+      "howWeWillFillGaps": "(Pass 2A Complete - Range Slug, Architect & NRHP Cross-Linker) Expanded slug address extraction to hyphenated address ranges and speedways, extracted architect credits across titles/excerpts, and linked 62 NRHP listings and +27 additional direct Invision CDN photos (538 total in building_photos.json); (Pass 2B - Multi-Page Post-Body Mining) Parse post bodies across the remaining unlinked Historic Houston and Houston Mod threads to recover post-body-only street addresses and Lost Houston teardown photos.",
       "subCohorts": [
         {
-          "label": "HAIF Topic Thread Index & URL-Slug Address Matcher (97 Subforums)",
-          "extractedLabel": "29,467 / 29,467 threads indexed; 3,385 slug/page-1 threads matched to 3,892 parcels",
+          "label": "HAIF Topic Thread Index & URL-Slug / Landmark Matcher (97 Subforums)",
+          "extractedLabel": "29,467 / 29,467 threads indexed; 5,598 threads linked across 4,032 property keys & 6,264 street addresses",
           "universeLabel": "29,467 total threads (~8,900 parcel-specific architectural/development threads)",
           "volumeCoveragePct": 100,
-          "extractionFidelityPct": 38,
-          "gapNote": "100% of thread URLs indexed; ~5,500 additional building threads have street addresses inside post body text rather than the URL slug."
+          "extractionFidelityPct": 45,
+          "gapNote": "100% of thread URLs indexed; Pass-2 added hyphenated range slugs, speedway suffixes, architect credits, and 62 NRHP property links."
         },
         {
           "label": "HAIF Embedded Archival & Demolition Photography (media.invisioncic.com)",
-          "extractedLabel": "172 verified forum photographs linked across 89 HCAD properties",
+          "extractedLabel": "199 verified forum photographs linked across 116 HCAD properties (538 total curated photos)",
           "universeLabel": "~2,500 historic & teardown photographs hosted on Invision CDN",
           "volumeCoveragePct": 100,
-          "extractionFidelityPct": 15,
-          "gapNote": "Pass-2 post-body image extraction targeted at the 489 un-photographed Lost Houston sites in Lost_Houston_Catalog (filterViewId=824622008)."
+          "extractionFidelityPct": 22,
+          "gapNote": "Pass-2 added +27 direct Invision CDN archival photos; remaining post-body image extraction targeted at Lost_Houston_Catalog."
         }
       ]
     },

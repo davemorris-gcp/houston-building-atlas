@@ -2129,3 +2129,30 @@ def test_js_python_hpo_normalization_and_style_parity() -> None:
     assert js_res["district_aliases"] == HPO_DISTRICT_NAME_ALIASES
     assert js_res["alias_resolved"] == HPO_DISTRICT_NAME_ALIASES
 
+
+def test_pass2_nrhp_nomination_metadata_and_haif_architect_extraction() -> None:
+    """Verify Pass-2 NRHP nomination metadata and HAIF architect extraction achieve 100% NRHP date/style coverage."""
+    from nrhp_nomination_metadata import CURATED_NRHP_NOMINATION_METADATA, extract_haif_architects
+
+    assert len(CURATED_NRHP_NOMINATION_METADATA) >= 75
+    assert CURATED_NRHP_NOMINATION_METADATA["84000388"]["architect"] == "William Ward Watkin"
+    assert CURATED_NRHP_NOMINATION_METADATA["00000291"]["year_built"] == 1947
+    assert CURATED_NRHP_NOMINATION_METADATA["94000354"]["architect"] == "Joseph Finger"
+
+    extracted = extract_haif_architects("Karl Kamrath Home At 3448 Locke Ln", "Designed by Fred MacKie and Karl Kamrath")
+    assert "MacKie & Kamrath" in extracted
+
+    overlays_doc = json.loads((REPO_ROOT / "app" / "public" / "data" / "overlays.json").read_text(encoding="utf-8"))
+    nrhp_feats = overlays_doc["nrhp_properties"]["features"]
+    assert len(nrhp_feats) == 238
+    for feat in nrhp_feats:
+        p = feat["properties"]
+        yr = int(p.get("year_built") or 0)
+        assert 1850 <= yr <= 1985, f"NRHP {p.get('refnum')} {p.get('name')} has invalid year_built={yr}"
+        assert p.get("style"), f"NRHP {p.get('refnum')} {p.get('name')} missing style"
+    arch_or_bldr = sum(1 for f in nrhp_feats if f["properties"].get("architect") or f["properties"].get("builder"))
+    haif_linked = sum(1 for f in nrhp_feats if f["properties"].get("haif_threads"))
+    assert arch_or_bldr >= 155
+    assert haif_linked >= 60
+
+
