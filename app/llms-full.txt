@@ -1565,7 +1565,7 @@ Properties with National Register (NRHP), Recorded Texas Historic Landmark (RTHL
 
 ---
 
-## Section 8: Linked Archival Finding Aids (66 TARO 2.0 & HPL Collections)
+## Section 8: Linked Archival Finding Aids (70 TARO 2.0 & HPL Collections)
 
 | Collection ID | Repository | Title | Linked Parcels | Finding Aid URL |
 | :--- | :--- | :--- | :--- | :--- |
@@ -1585,7 +1585,9 @@ Properties with National Register (NRHP), Recorded Texas Historic Landmark (RTHL
 | `taro:houpub/00044` | HMRC / Houston Public Library | City of Houston Aviation Department Collection RG.A.0005 | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00044.xml) |
 | `taro:houpub/00048` | HMRC / Houston Public Library | Y. Frank Jungman Collection MSS.0175 | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00048.xml) |
 | `taro:houpub/00071` | HMRC / Houston Public Library | Joseph Stephen Cullinan Collection: An Inventory of His Microfilmed Records at the Houston Metropolitan Research Center, Houston Public Library | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00071.xml) |
+| `taro:houpub/00076` | HMRC / Houston Public Library | Westmoreland Historic District Collection: An Inventory of Records at the Houston Metropolitan Research Center, Houston Public Library | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00076.xml) |
 | `taro:houpub/00079` | HMRC / Houston Public Library | River Oaks Collection: An Inventory of Records at the Houston Metropolitan Research Center, Houston Public Library | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00079.xml) |
+| `taro:houpub/00139` | HMRC / Houston Public Library | Richmond Corridor Building Survey MSS.1444 | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00139.xml) |
 | `taro:houpub/00205` | HMRC / Houston Public Library | John A. Milroy Collection and the McKinney Papers | 0 | [Finding Aid](https://txarchives.org/houpub/finding_aids/00205.xml) |
 | `taro:ricewrc/00013` | Rice Woodson Research Center | Guide to the William Ward Watkin Papers, 1903-1956 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00013.xml) |
 | `taro:ricewrc/00023` | Rice Woodson Research Center | Guide to the Builders: Herman & George R. Brown Book Research Files, 1898-1989 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00023.xml) |
@@ -1595,6 +1597,7 @@ Properties with National Register (NRHP), Recorded Texas Historic Landmark (RTHL
 | `taro:ricewrc/00047` | Rice Woodson Research Center | Guide to Ralph Anderson, Jr. papers, 1860-1989 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00047.xml) |
 | `taro:ricewrc/00134` | Rice Woodson Research Center | Guide to the Harris Masterson I papers,1860-1942, bulk 1880-1920 MS 468 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00134.xml) |
 | `taro:ricewrc/00342` | Rice Woodson Research Center | Guide to the Cleveland Sewall house architectural drawings, 1923-1926, 1940 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00342.xml) |
+| `taro:ricewrc/00419` | Rice Woodson Research Center | Guide to the Harrie Thomas Lindeberg architectural drawings, 1920 MS 312 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00419.xml) |
 | `taro:ricewrc/00426` | Rice Woodson Research Center | Guide to the William Lukes Collection of Houston Photographic Research Materials, 1969-1974 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00426.xml) |
 | `taro:ricewrc/00427` | Rice Woodson Research Center | Guide to the Arthur E. Jones Architectural Records, 1936-1989 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00427.xml) |
 | `taro:ricewrc/00437` | Rice Woodson Research Center | Guide to the Ray Watkin Strange personal papers, 1912-2009 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00437.xml) |
@@ -1606,6 +1609,7 @@ Properties with National Register (NRHP), Recorded Texas Historic Landmark (RTHL
 | `taro:ricewrc/00606` | Rice Woodson Research Center | Guide to the Rice University Treasurer's Office records regarding Town Lot Sales Records and Rice Hotel and Houston Endowment, 1868-1986 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00606.xml) |
 | `taro:ricewrc/00694` | Rice Woodson Research Center | Guide to the William T. Cannady Architectural Projects Records, 1956-2024 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00694.xml) |
 | `taro:ricewrc/00698` | Rice Woodson Research Center | Guide to the Weber-Staub-Briscoe architectural ironwork collection, 1909-2019 MS 586 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00698.xml) |
+| `taro:ricewrc/00709` | Rice Woodson Research Center | Guide to the Anderson Todd architectural academic and career papers, 1943-2019 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00709.xml) |
 | `taro:ricewrc/00846` | Rice Woodson Research Center | Guide to the Jesse H. Jones Corporate and Property records, 1836-2008 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00846.xml) |
 | `taro:ricewrc/00937` | Rice Woodson Research Center | Guide to the Lenard Gabert, Sr. Architectural Records, 1930-2002 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00937.xml) |
 | `taro:ricewrc/00963` | Rice Woodson Research Center | Guide to the Brochsteins Inc. Corporate Records MS 717 | 0 | [Finding Aid](https://txarchives.org/ricewrc/finding_aids/00963.xml) |
