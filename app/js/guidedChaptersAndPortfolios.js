@@ -516,9 +516,9 @@ export const FEATURED_PORTFOLIO_PRESETS = [
   { kind: "architect", query: "Fretz Construction", label: "Fretz Construction Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s-1960s Houston Commercial, Industrial & Institutional Contractor", workCount: 3, lostCount: 2 },
   { kind: "architect", query: "Independence Heights Vernacular Builder", label: "Independence Heights Builders", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Black Contractors in Texas's First Black Municipality", workCount: 3, lostCount: 3 },
   // Craftsman, Bungalow & Streetcar Suburbs
-  { kind: "style", query: "Bungalow", label: "Bungalow (All Variants)", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows", workCount: 1979, lostCount: 275 },
-  { kind: "style", query: "Craftsman", label: "Craftsman Style", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves", workCount: 1101, lostCount: 328 },
-  { kind: "style", query: "Cottage", label: "Gable-Front & Pyramid Cottages", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages", workCount: 196, lostCount: 4 },
+  { kind: "style", query: "Bungalow", label: "Bungalow (All Variants)", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows", workCount: 1980, lostCount: 275 },
+  { kind: "style", query: "Craftsman", label: "Craftsman Style", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves", workCount: 1102, lostCount: 328 },
+  { kind: "style", query: "Cottage", label: "Gable-Front & Pyramid Cottages", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages", workCount: 197, lostCount: 4 },
   { kind: "style", query: "Foursquare", label: "American Foursquare", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1925 · Two-Story Cubic Massing, Hipped Dormer & Full Porch", workCount: 78, lostCount: 1 },
   { kind: "style", query: "Prairie", label: "Prairie School", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1925 · Low Hipped Roofs, Horizontal Banding & Broad Eaves", workCount: 66, lostCount: 6 },
   // Victorian & 19th-Century Styles

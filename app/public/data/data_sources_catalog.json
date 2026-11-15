@@ -270,8 +270,8 @@
             "fidelityTier": "pass2_complete",
             "coveredSummary": "1,546,683 parcels & 1,507,897 dated building footprints (100.00% dated, 0 undated) across 5 quadrant .pmtiles shards",
             "universeSummary": "All 1,546,683 Harris County real property accounts & 1.51M structures in HCAD 2026 CAMA (real_acct, building_res, building_other, exterior, extra_features, parcel_tieback)",
-            "whatIsMissing": "100% of current HCAD tables are ingested (including exterior.txt per-building base/upper story areas and extra_features_detail1/2). The only fidelity limitation is upstream HCAD data quality: 3,047 Historic Core structures still carry un-overridden rounded decade estimates (1900, 1920, 1930, 1940) from 1984 computerization.",
-            "pass2AndGapClosurePlan": "Maintain 100% annual roll sync via cli.py --mode annual-refresh each July/August and October/November, while systematically replacing the remaining 3,047 Historic Core rounded-decade estimates using Pass-2 City Directory, Sanborn, and Harris County Archives CR001 Block Book value-jump overrides."
+            "whatIsMissing": "100% of current HCAD tables are ingested (including exterior.txt per-building base/upper story areas and extra_features_detail1/2). The only fidelity limitation is upstream HCAD data quality: 2,544 Historic Core <=1926 structures still carry un-overridden rounded decade estimates (1890, 1900, 1910, 1920) after Pass-2 dual-source HPO Survey + City Directory calibration promoted 330 replacement-safe pre-1927 structures (403 / 2,798 total audit queue items resolved across 2,816 curated overrides).",
+            "pass2AndGapClosurePlan": "Maintain 100% annual roll sync via cli.py --mode annual-refresh each July/August and October/November, while systematically replacing the remaining Historic Core rounded-decade estimates using Pass-2 City Directory, Sanborn, and Harris County Archives CR001 Block Book value-jump overrides."
           }
         },
         {
@@ -755,10 +755,10 @@
             "volumeCoveragePct": 98,
             "extractionFidelityPct": 93,
             "fidelityTier": "pass2_complete",
-            "coveredSummary": "509 COH Landmarks (482 / 509 [94.7%] official PDFs + 490 / 501 standing HCAD links + 56 PDF builders & 40 costs), 23 / 23 Historic Districts (6,065 / 6,169 survey rows [98.3%] matched across 5,900 HCAD parcels), 1 Heritage District & 60 Potential HDs",
+            "coveredSummary": "509 COH Landmarks (482 / 509 [94.7%] official PDFs + 490 / 501 standing HCAD links + 56 PDF builders & 40 costs), 23 / 23 Historic Districts (6,065 / 6,169 survey rows [98.3%] matched across 5,900 HCAD parcels + 330 Pass-2 dual-source pre-1927 audit queue overrides), 1 Heritage District & 60 Potential HDs",
             "universeSummary": "509 Designated COH Landmarks & Protected Landmarks, 23 Designated Historic Districts (6,169 survey rows), 1 Heritage District, and 60 Surveyed Potential Historic Districts",
             "whatIsMissing": "(1) 27 post-2016 COH Landmark Designation Report PDFs remain unpublished on houstontx.gov (tracked in Missing_Landmark_PDFs_TPIA); (2) Only 104 of the 6,169 Historic District survey rows (1.7%, mostly 0-numbered vacant lots or unplatted parkways) lack a direct 13-digit HCAD match after Pass-2 compound-street, range, corner-lot, and block+lot resolution.",
-            "pass2AndGapClosurePlan": "(Pass 2A Complete) Extracted original builder/contractor, construction cost, and mechanic's lien/permit dates across all 628 cached Landmark PDF texts; (Pass 2B Complete) Lifted Historic District survey parcel linkage from 5,604 to 6,065 / 6,169 rows (98.3%, +461 rows across 5,900 HCAD parcels); (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
+            "pass2AndGapClosurePlan": "(Pass 2A Complete) Extracted original builder/contractor, construction cost, and mechanic's lien/permit dates across all 628 cached Landmark PDF texts; (Pass 2B Complete) Lifted Historic District survey parcel linkage from 5,604 to 6,065 / 6,169 rows (98.3%, +461 rows across 5,900 HCAD parcels) and promoted 330 replacement-safe dual-source pre-1927 HPO Survey + City Directory audit queue overrides; (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
           }
         }
       ]
