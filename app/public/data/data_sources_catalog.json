@@ -107,7 +107,7 @@
       "id": "county_appraisal_tax",
       "name": "1. County Appraisal, Tax & Real Property Records",
       "shortName": "County Appraisal & Tax",
-      "icon": "\ud83c\udfdb\ufe0f",
+      "icon": "🏛️",
       "color": "#38bdf8",
       "description": "Harris Central Appraisal District (HCAD), Harris County Archives, Harris County Clerk, and Tax Assessor-Collector records governing parcel boundaries, building dates, deeds, and historic tax rolls."
     },
@@ -115,7 +115,7 @@
       "id": "city_permits_planning",
       "name": "2. City of Houston Planning, Permitting & Code Enforcement",
       "shortName": "City Planning & Permits",
-      "icon": "\ud83d\udea7",
+      "icon": "🚧",
       "color": "#f97316",
       "description": "Planning & Development (Plat Tracker, Planning Commission, Historic Preservation / HAHC), Houston Permitting Center (iPermits / ILMS), Public Works GIS, and Department of Neighborhoods."
     },
@@ -123,7 +123,7 @@
       "id": "state_federal_regulatory",
       "name": "3. State & Federal Environmental, Corporate & Historic Agencies",
       "shortName": "State & Federal Agencies",
-      "icon": "\u2696\ufe0f",
+      "icon": "⚖️",
       "color": "#a78bfa",
       "description": "Texas Department of State Health Services (DSHS asbestos notifications), Texas Comptroller, Secretary of State, Texas Historical Commission (THC), National Park Service (NRHP), FEMA, and USGS."
     },
@@ -131,7 +131,7 @@
       "id": "archives_directories_maps",
       "name": "4. Special Collections, City Directories & Historic Cartography",
       "shortName": "Archives, Directories & Maps",
-      "icon": "\ud83d\udcdc",
+      "icon": "📜",
       "color": "#facc15",
       "description": "Houston Public Library HMRC, Morrison & Fourmy / Polk City Directories (1866-1959), Library of Congress & UT Dolph Briscoe Center Sanborn Fire Insurance Maps, Rice University Fondren Library, and Wikimedia Commons."
     },
@@ -139,7 +139,7 @@
       "id": "preservation_civic_research",
       "name": "5. Preservation Houston & Civic Architectural Research",
       "shortName": "Preservation & Civic Research",
-      "icon": "\ud83e\uddf1",
+      "icon": "🧱",
       "color": "#34d399",
       "description": "Preservation Houston curated landmarks, Good Brick Awards, Lost Houston demolition registry, AIA Houston architectural guides, Houston Mod, and Houston Architecture Info Forum (HAIF)."
     },
@@ -147,7 +147,7 @@
       "id": "spatial_imagery_cloud",
       "name": "6. Spatial Basemaps, Aerial Imagery & Cloud Sync Infrastructure",
       "shortName": "Spatial Imagery & Cloud Sync",
-      "icon": "\ud83d\udef0\ufe0f",
+      "icon": "🛰️",
       "color": "#f472b6",
       "description": "Esri World Imagery parcel aerials, Google Maps Street View, OpenFreeMap / CARTO vector basemaps, and the 13-tab Google Sheets + Apps Script 3-way cloud synchronization hub."
     }
@@ -157,7 +157,7 @@
       "id": "date_integrity",
       "name": "Construction Date Integrity & Rounding Override Engine",
       "shortName": "Date Integrity Engine",
-      "icon": "\ud83d\udd70\ufe0f",
+      "icon": "🕰️",
       "color": "#38bdf8",
       "summary": "Detects HCAD placeholder decade defaults (1900, 1920, 1930, 1940, 1950) and cross-checks City Directories, HMRC building permits, Sanborn maps, and Harris County Archives tax rolls to establish verified construction years.",
       "outputArtifacts": [
@@ -170,7 +170,7 @@
       "id": "ownership_unmasking",
       "name": "6-Tier Ownership Unmasking & Chain-of-Title Engine",
       "shortName": "Ownership & LLC Unmasking",
-      "icon": "\ud83d\udd11",
+      "icon": "🔑",
       "color": "#a78bfa",
       "summary": "Builds multi-decade ownership chains (2005-2026 HCAD certified rolls + Clerk deeds), unmasks Texas Tax Code Sec. 25.025 Current Owner shields, and links shell LLCs across portfolios using mailing addresses and Texas Comptroller / SOS officer records.",
       "outputArtifacts": [
@@ -183,7 +183,7 @@
       "id": "demolition_watch",
       "name": "8-Agency Daily Demolition & Early-Warning Sweep Engine",
       "shortName": "Daily Demolition Watch",
-      "icon": "\ud83d\udea8",
+      "icon": "🚨",
       "color": "#ef4444",
       "summary": "Runs daily at 7:00 AM CT across COH structural demo permits, water/wastewater disconnects, DSHS asbestos abatement notices, HAHC COA filings, HCAD deeds, and Dangerous Building hearing orders, enforcing Two-Key confirmation before graduating buildings to Lost Houston.",
       "outputArtifacts": [
@@ -196,7 +196,7 @@
       "id": "plat_triage",
       "name": "Biweekly Subdivision Plat Triage & Cross-Cycle Continuity Engine",
       "shortName": "Plat Agenda Triage",
-      "icon": "\ud83d\udcd0",
+      "icon": "📐",
       "color": "#f97316",
       "summary": "Cross-checks biweekly Planning Commission Plat Tracker spreadsheets, Agenda Outline PDFs (including Section K Development Plat Variances), and Post-Meeting Minutes against pre-1976 buildings, historic districts, and watched developers, consolidating repeat filings across cycles.",
       "outputArtifacts": [
@@ -208,7 +208,7 @@
       "id": "directory_genealogy",
       "name": "Resident Genealogy, Contractor & Sanborn Evolution Engine",
       "shortName": "Resident & Contractor History",
-      "icon": "\ud83d\udcd6",
+      "icon": "📖",
       "color": "#facc15",
       "summary": "Links 39 Houston City Directory volumes (1866-1959) via dual pass (Street Guide + Alphabetical Resident Directory) with 1905-1951 HMRC building permits, historic street renumbering (1911), and Sanborn Fire Insurance Map footprints.",
       "outputArtifacts": [
@@ -221,7 +221,7 @@
       "id": "landmark_protection",
       "name": "Landmark, Historic District & Preservation Status Engine",
       "shortName": "Landmark & Protection Status",
-      "icon": "\ud83c\udfdb\ufe0f",
+      "icon": "🏛️",
       "color": "#10b981",
       "summary": "Reconciles City of Houston Protected Landmarks, City Landmarks, 22 local Historic Districts, National Register (NRHP) properties, Recorded Texas Historic Landmarks (RTHL), and Good Brick Award winners to determine legal demolition protection vs. unprotected risk.",
       "outputArtifacts": [
@@ -1838,7 +1838,7 @@
         },
         {
           "id": "google_street_view_360",
-          "name": "Google Maps 360\u00b0 Street View & Historical Street View Panoramas",
+          "name": "Google Maps 360° Street View & Historical Street View Panoramas",
           "status": "assisted_hitl",
           "frequencyId": "on_demand_hitl",
           "frequencyLabel": "1-Click Coordinate & Address Panorama Launch",
@@ -1958,7 +1958,7 @@
     },
     {
       "id": "pass1_needs_pass2",
-      "label": "Pass 1 Extracted \u00b7 Needs Pass 2 Deep Re-Extraction",
+      "label": "Pass 1 Extracted · Needs Pass 2 Deep Re-Extraction",
       "shortLabel": "Needs Pass-2 Re-Extraction",
       "color": "#38bdf8",
       "badgeBg": "rgba(56, 189, 248, 0.14)",
@@ -1967,8 +1967,8 @@
     },
     {
       "id": "inventory_only_pull_needed",
-      "label": "Catalog / Call-Number Indexed \u00b7 Physical or Portal Pull Needed",
-      "shortLabel": "Catalog Indexed \u00b7 Pull Needed",
+      "label": "Catalog / Call-Number Indexed · Physical or Portal Pull Needed",
+      "shortLabel": "Catalog Indexed · Pull Needed",
       "color": "#f59e0b",
       "badgeBg": "rgba(245, 158, 11, 0.14)",
       "badgeBorder": "rgba(245, 158, 11, 0.45)",
@@ -1976,7 +1976,7 @@
     },
     {
       "id": "unfetched_gap",
-      "label": "0% Extracted \u00b7 Unfetched Roadmap Source",
+      "label": "0% Extracted · Unfetched Roadmap Source",
       "shortLabel": "Unfetched Gap (0%)",
       "color": "#a855f7",
       "badgeBg": "rgba(168, 85, 247, 0.14)",
@@ -2190,7 +2190,8 @@
           "extractionFidelityPct": 0,
           "gapNote": "Accessible on microfilm/ProQuest Digital Sanborn Maps via Houston Public Library MY Link card or Rice Fondren Library."
         }
-      ]
+      ],
+      "currentCapturedLabel": "878 / 878 Sheets Indexed (16 Volumes, 121 Featured Landmark & Index Sheets)"
     },
     {
       "id": "spotlight_hpo_landmarks_surveys",
@@ -2276,7 +2277,8 @@
           "extractionFidelityPct": 26,
           "gapNote": "Remaining ~123,000 ledger entries on microfilm/bound volumes at HMRC Julia Ideson Building slated for batch OCR + 1911 renumbering crosswalk."
         }
-      ]
+      ],
+      "currentCapturedLabel": "698 Archival Items (479 Parcels / 333 Addresses), 511 Photos & 245 T.G.C.A. Contract Awards (171 Contractor Overrides)"
     },
     {
       "id": "spotlight_haif_community",

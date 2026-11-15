@@ -11,7 +11,10 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "app" / "public" / "data"
@@ -99,10 +102,27 @@ CURATED_UT_LABELS = {
     "txu-sanborn-houston-1877-2": "Sheet 2: Main St Commercial Core, Courthouse Square & Cotton Presses (May 1877)",
     "txu-sanborn-houston-1877-3": "Sheet 3: Railroad Depots, Sawmills & Industrial Wharves (May 1877)",
     "txu-sanborn-houston-1877-4": "Sheet 4: Southern Main St, Churches & Foundry Blocks (May 1877)",
+    "txu-sanborn-houston-1917-vol1-128": "Sheet 128: WWI-Era East End & Second Ward Industrial Expansion (1917 Vol. 1 Supp.)",
+    "txu-sanborn-houston-1917-vol1-131": "Sheet 131: North Side & Near Northside Streetcar Additions (1917 Vol. 1 Supp.)",
+    "txu-sanborn-houston-1917-vol2-91": "Sheet 91: South End & Montrose WWI-Era Residential Expansion (1917 Vol. 2 Supp.)",
+    "txu-sanborn-houston-1917-vol2-97": "Sheet 97: Houston Heights & West End Supplemental Blocks (1917 Vol. 2 Supp.)",
+    "txu-sanborn-houston-1919-vol1-128": "Sheet 128: Post-WWI East End & Turning Basin Expansion (1919 Vol. 1 Supp.)",
+    "txu-sanborn-houston-1919-vol1-132": "Sheet 132: Near Northside & Fifth Ward Supplemental Blocks (1919 Vol. 1 Supp.)",
+    "txu-sanborn-houston-1919-vol2-91": "Sheet 91: Montrose & South End Post-WWI Additions (1919 Vol. 2 Supp.)",
+    "txu-sanborn-houston-1919-vol2-98": "Sheet 98: Newly Annexed Houston Heights & West End Blocks (1919 Vol. 2 Supp.)",
+    "txu-sanborn-houston-1924-vol02-201": "Sheet 201: First Ward & Washington Ave Rail Corridor (1924 Vol. 2)",
+    "txu-sanborn-houston-1924-vol02-208": "Sheet 208: Old Sixth Ward Historic District (Washington, Sabine, State, Kane, Lubbock, 1924)",
+    "txu-sanborn-houston-1924-vol02-225": "Sheet 225: Near Northside, Fulton & Quitman Streetcar Corridor (1924 Vol. 2)",
+    "txu-sanborn-houston-1924-vol02-259": "Sheet 259: Woodland Heights & Woodland Park (Bayland, Woodland, Morrison, 1924)",
     "txu-sanborn-houston-1924-vol02-273": "Sheet 273: Norhill (Key Ave, Merrill, Omar, Highland, Norhill Blvd & Studewood, 1924)",
     "txu-sanborn-houston-1924-vol02-275": "Sheet 275: North Norhill (Temple, Cottage, Melwood, Frigate, 14th St & Studewood, 1924)",
-    "txu-sanborn-houston-1924-vol02-259": "Sheet 259: Woodland Heights & Woodland Park (Bayland, Woodland, Morrison, 1924)",
-    "txu-sanborn-houston-1924-vol02-208": "Sheet 208: Old Sixth Ward Historic District (Washington, Sabine, State, Kane, Lubbock, 1924)",
+    "txu-sanborn-houston-1924-vol03-301": "Sheet 301: West End, Washington Ave & Brunner Corridor (1924 Vol. 3)",
+    "txu-sanborn-houston-1924-vol03-318": "Sheet 318: Montrose Boulevard, Avondale & Westmoreland Historic Blocks (1924 Vol. 3)",
+    "txu-sanborn-houston-1924-vol03-342": "Sheet 342: Houston Heights Boulevard & Commercial Heart (1924 Vol. 3)",
+    "txu-sanborn-houston-1924-vol03-365": "Sheet 365: North Houston Heights & 19th Street Retail Strip (1924 Vol. 3)",
+    "txu-sanborn-houston-1948-vol06-601": "Sheet 601: Second Ward & Navigation Boulevard Industrial Core (1925-1948 Vol. 6)",
+    "txu-sanborn-houston-1948-vol06-620": "Sheet 620: East End & Eastwood Historic Subdivision (1925-1948 Vol. 6)",
+    "txu-sanborn-houston-1948-vol06-645": "Sheet 645: Magnolia Park, Canal Street & Harrisburg Corridor (1925-1948 Vol. 6)",
 }
 
 

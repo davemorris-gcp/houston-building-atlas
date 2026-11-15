@@ -474,6 +474,40 @@ def build_sanborn_catalog() -> dict:
             {"sheet": 7, "label": "Sheet 7: MKT Freight Depot, Dickson Car Wheel Co. & Planters Compress"},
             {"sheet": 68, "label": "Sheet 68: Fifth Ward Steam Cotton Compress & Special Industrial Risks"},
         ],
+        "sanborn08580_015": [
+            {"sheet": 1201, "label": "Sheet 1201: Inner Loop Residential & Commercial Corridor (1925-1946 Vol. 12)"},
+            {"sheet": 1215, "label": "Sheet 1215: South End & Boulevard Subdivisions (1925-1946 Vol. 12)"},
+            {"sheet": 1240, "label": "Sheet 1240: Inner Loop Institutional & School Blocks (1925-1946 Vol. 12)"},
+            {"sheet": 1301, "label": "Sheet 1301: Outer Addition & Streetcar Subdivisions (1925-1946 Vol. 12)"},
+            {"sheet": 1327, "label": "Sheet 1327: Special Risks & Industrial Sidings (1925-1946 Vol. 12)"},
+        ],
+        "sanborn08580_016": [
+            {"sheet": 1501, "label": "Sheet 1501: Turning Basin Wharves & Ship Channel Docks (1925-1950 Vol. 15)"},
+            {"sheet": 1510, "label": "Sheet 1510: Manchester Terminal, Cotton Compresses & Grain Elevators (1925-1950 Vol. 15)"},
+            {"sheet": 1525, "label": "Sheet 1525: Harrisburg Industrial Corridor & Rail Yards (1925-1950 Vol. 15)"},
+            {"sheet": 1601, "label": "Sheet 1601: Ship Channel Refineries & Chemical Terminals (1925-1950 Vol. 15)"},
+            {"sheet": 1701, "label": "Sheet 1701: Deepwater Marine Terminals & Special Industrial Risks (1925-1950 Vol. 15)"},
+        ],
+        "sanborn08580_027": [
+            {"sheet": 1102, "label": "Sheet 1102: South Main Street, Midtown & Wheeler/Blodgett Blocks (1924-1950 Vol. 11)"},
+            {"sheet": 1112, "label": "Sheet 1112: Museum District, Hermann Park & Rice Institute Frontage (1924-1950 Vol. 11)"},
+            {"sheet": 1122, "label": "Sheet 1122: Texas Medical Center & Hermann Hospital Precinct (1924-1950 Vol. 11)"},
+            {"sheet": 1136, "label": "Sheet 1136: 2000 Smith St / Block 417 SSBB (John Henry Kirby Mansion & Fourth Ward Border)"},
+            {"sheet": 1145, "label": "Sheet 1145: Shamrock Hotel Site & South Main Boulevard (1924-1950 Vol. 11)"},
+        ],
+        "sanborn08580_028": [
+            {"sheet": 1201, "label": "Sheet 1201: Inner Loop Residential Additions (1925-1950 Vol. 12)"},
+            {"sheet": 1215, "label": "Sheet 1215: South End & Boulevard Subdivisions (1925-1950 Vol. 12)"},
+            {"sheet": 1240, "label": "Sheet 1240: Mid-Century Institutional & School Precincts (1925-1950 Vol. 12)"},
+            {"sheet": 1301, "label": "Sheet 1301: Post-WWII Garden Subdivisions (1925-1950 Vol. 12)"},
+            {"sheet": 1328, "label": "Sheet 1328: Outlying Commercial Centers & Special Risks (1925-1950 Vol. 12)"},
+        ],
+        "sanborn08580_030": [
+            {"sheet": 1, "label": "Sheet 1: Post-WWII Supplemental Subdivisions & Commercial Strips (1924-1955 Supp.)"},
+            {"sheet": 10, "label": "Sheet 10: Mid-Century Shopping Centers & Garden Apartments (1924-1955 Supp.)"},
+            {"sheet": 25, "label": "Sheet 25: Post-WWII Industrial & Warehouse Additions (1924-1955 Supp.)"},
+            {"sheet": 41, "label": "Sheet 41: Outer Loop Annexation Blocks (1924-1955 Supp.)"},
+        ],
     }
 
     existing_sheets_by_vid = {}
@@ -517,7 +551,7 @@ def build_sanborn_catalog() -> dict:
             if code == "titl":
                 s["label"] = f"Title Sheet ({date_str})"
                 s["is_featured"] = True
-            elif code in ("ind1", "ind2"):
+            elif code in ("ind", "ind1", "ind2"):
                 s["label"] = f"Graphic Index & Street Key ({date_str})"
                 s["is_featured"] = True
             elif code == "0000":
