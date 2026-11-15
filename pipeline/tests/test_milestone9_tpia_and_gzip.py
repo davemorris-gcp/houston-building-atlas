@@ -1306,3 +1306,44 @@ def test_hcco_nested_zip_subdivision_plat_calibration_and_replat_regex(tmp_path:
     ]
 
 
+def test_pass2_clerk_subd_canonicalization_and_comment_to_range() -> None:
+    from atlas_pipeline.ingest_tpia_clerk_and_hcad import (
+        LegalCrosswalkKey,
+        extract_clerk_row_legal_keys,
+        normalize_legal_subdivision_name,
+    )
+
+    # 1. Subdivision token canonicalization (FST -> FOREST, FMS -> FARMS, HTS -> HEIGHTS, VLG -> VILLAGE, U/R stripped)
+    assert normalize_legal_subdivision_name("OAK FST SEC 2") == normalize_legal_subdivision_name("OAK FOREST SEC 2")
+    assert normalize_legal_subdivision_name("MEMORIAL FMS U/R") == normalize_legal_subdivision_name("MEMORIAL FARMS")
+    assert normalize_legal_subdivision_name("HOUSTON HTS") == normalize_legal_subdivision_name("HOUSTON HEIGHTS")
+
+    # 2. Comment-embedded lot ranges with TO (`L12 TO 14 B39`) and block-first (`B4 L17`) when Lot/Block columns are blank
+    keys_range = extract_clerk_row_legal_keys(
+        {
+            "subdivision": "OAK FST",
+            "section": "",
+            "block": "",
+            "lot": "",
+            "comment": "SEC 2 L12 TO 14 B39",
+        }
+    )
+    assert keys_range == [
+        LegalCrosswalkKey("OAK FOREST", "2", "39", "LOT", "12"),
+        LegalCrosswalkKey("OAK FOREST", "2", "39", "LOT", "13"),
+        LegalCrosswalkKey("OAK FOREST", "2", "39", "LOT", "14"),
+    ]
+
+    keys_blk_first = extract_clerk_row_legal_keys(
+        {
+            "subdivision": "HOUSTON HTS",
+            "section": "",
+            "block": "",
+            "lot": "",
+            "comment": "B4 L17",
+        }
+    )
+    assert keys_blk_first == [LegalCrosswalkKey("HOUSTON HEIGHTS", "", "4", "LOT", "17")]
+
+
+

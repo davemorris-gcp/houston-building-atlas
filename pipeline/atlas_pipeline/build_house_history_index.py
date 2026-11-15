@@ -271,6 +271,7 @@ def extract_post1926_occupants(
     }
     alpha_head_by_page_surname: dict[tuple[int, str, str], str] = {}
     alpha_spouse_by_page_surname: dict[tuple[int, str, str], str] = {}
+    alpha_rich_by_yr_fam: dict[tuple[int, tuple[str, str]], tuple[str, str]] = {}
     rich_family_years: dict[tuple[str, str], list[int]] = {}
     for s in sorted_sightings:
         y_v = int(s["y"])
@@ -291,6 +292,10 @@ def extract_post1926_occupants(
         if _has_specific_occ(s):
             if key_t not in alpha_head_by_page_surname:
                 alpha_head_by_page_surname[key_t] = n_v
+            r_spec = sanitize_text(str(s.get("r") or "")).strip()[:44]
+            fk_a = _person_family_key(n_v)
+            if fk_a[0] and (y_v, fk_a) not in alpha_rich_by_yr_fam:
+                alpha_rich_by_yr_fam[(y_v, fk_a)] = (n_v, r_spec)
         else:
             r_str = sanitize_text(str(s.get("r") or "")).strip()
             if r_str in ("City Directory Resident", "") and key_t not in alpha_spouse_by_page_surname:
@@ -328,6 +333,14 @@ def extract_post1926_occupants(
                         n_val = f"{head_n} ({sp_given})"[:44]
                 elif n_raw.upper() == sp_n.upper() and r_raw in ("City Directory Resident", ""):
                     continue
+        elif s.get("sec") == "sg" and len(n_raw.split()) >= 2 and r_raw in ("Street Guide Occupant", "City Directory Resident", ""):
+            fk_sg = _person_family_key(n_raw)
+            alpha_hit = alpha_rich_by_yr_fam.get((y_val, fk_sg)) if fk_sg[0] else None
+            if alpha_hit:
+                first_tok = n_raw.split()[0].rstrip(".")
+                if len(first_tok) <= 2 and len(alpha_hit[0]) > len(n_val):
+                    n_val = alpha_hit[0][:44]
+                r_raw = alpha_hit[1][:44]
 
         if r_raw in ("City Directory Resident", "Street Guide Occupant", ""):
             r_val = (
@@ -413,6 +426,175 @@ def extract_occupants_from_citydir_citation(
     if len(short_excerpt) >= 4:
         return [[yr, sanitize_text(short_excerpt), "City Directory Listing"]]
     return []
+
+
+_RE_ITEM_HDR = re.compile(
+    r"(?:^|\n)\s*([A-Z][A-Z0-9\s\.\-&']{1,26}?)\s*(?:\([^)\n]{1,45}\)\s*)?"
+    r"(?:[\u2014\u2013\-]{1,2}\s*(?:Begins|From|Runs|Extends)|,\s*from\b|\bContinued\b|\bCont'd\b)",
+    re.IGNORECASE,
+)
+_RE_ITEM_ALPHA = re.compile(
+    r"\b(?:r|h|res|bds)\s+(\d{2,5})\s+(?:[NSEW]\.?\s+)?([A-Za-z][A-Za-z0-9\.\s]{1,20}?)(?=[,\.;\n\(]|\s+\d|\s*$)",
+    re.IGNORECASE,
+)
+_RE_ITEM_SG_NUM = re.compile(
+    r"(?:^|[\n\r;,\s])\s*(\d{2,5})(?:\s*1/2)?\s+([A-Z][A-Za-z\.\s',&\-]{2,42})"
+)
+
+
+_RE_ITEM_SPACED_DIGITS = re.compile(r"\b(?:\d\s+){2,4}\d\b")
+_RE_ITEM_SPACED_LETTERS = re.compile(r"\b(?:[A-Za-z]\s+){3,}[A-Za-z]\b")
+
+
+def _scan_cached_pre1927_item_pages(
+    cur: sqlite3.Cursor,
+    by_hcad: dict[str, dict],
+    absent_pre1926: list[str],
+    audit_addr_yr: dict[str, tuple[str, int]],
+    ovr_by_hcad: dict[str, dict],
+    anc_by_hcad: dict[str, dict],
+    confidential_hcads: set[str],
+) -> int:
+    """Pass-2 multi-column Street Guide + Alphabetical scanner over cached pre-1927 item_cache OCR pages."""
+    from atlas_pipeline.city_directory_audit import parse_street_address as parse_address
+
+    try:
+        page_rows = cur.execute(
+            "SELECT pointer, year, transc FROM item_cache WHERE transc IS NOT NULL AND transc != '' ORDER BY year ASC, pointer ASC"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return 0
+    if not page_rows:
+        return 0
+
+    addr_index: dict[tuple[str, str], list[tuple[str, str, int]]] = {}
+    all_hcads = set(audit_addr_yr.keys()) | set(ovr_by_hcad.keys()) | set(anc_by_hcad.keys())
+    for hc in sorted(all_hcads):
+        if len(hc) != 13 or hc in confidential_hcads:
+            continue
+        ov = ovr_by_hcad.get(hc) or {}
+        if ov.get("suppress_only") or ov.get("is_demolished_vacant"):
+            continue
+        aud_addr, aud_yr = audit_addr_yr.get(hc, ("", 0))
+        anc_rec = anc_by_hcad.get(hc) if isinstance(anc_by_hcad, dict) else None
+        addr = str(ov.get("address") or aud_addr or (anc_rec or {}).get("addr") or "").strip()
+        yr_built = int(ov.get("year_built") or aud_yr or (anc_rec or {}).get("atlas_yr") or 0)
+        if yr_built > 1935 and hc not in audit_addr_yr and hc not in by_hcad:
+            continue
+        parsed_addr = parse_address(addr)
+        if not parsed_addr:
+            continue
+        num, st = str(parsed_addr[0] or ""), str(parsed_addr[1] or "")
+        if not num or len(st) < 3:
+            continue
+        st_u = st.upper()
+        stems = {st_u}
+        if len(parsed_addr) >= 3 and isinstance(parsed_addr[2], (list, tuple, set)):
+            for al_p in parsed_addr[2]:
+                if al_p:
+                    stems.add(str(al_p).upper())
+        for k, aliases in HISTORIC_STREET_ALIASES.items():
+            if st_u == k.upper() or st_u.startswith(k.upper() + " "):
+                for al in aliases:
+                    f_nm = str(al.get("former") or "").strip().upper()
+                    if f_nm:
+                        stems.add(f_nm)
+        for s_cand in stems:
+            toks = [t for t in s_cand.split() if len(t) >= 2 and t not in ("NORTH", "SOUTH", "EAST", "WEST")]
+            if toks:
+                addr_index.setdefault((num, toks[0]), []).append((hc, addr, yr_built))
+                if len(toks) >= 2:
+                    addr_index.setdefault((num, f"{toks[0]} {toks[1]}"), []).append((hc, addr, yr_built))
+    if not addr_index:
+        return 0
+
+    hits_by_hcad: dict[str, dict[int, tuple[int, str, str, bool]]] = {}
+    for item_ptr, yr, raw_txt in page_rows:
+        yr_i = int(yr)
+        txt = _RE_ITEM_SPACED_DIGITS.sub(
+            lambda m: re.sub(r"\s+", "", m.group(0)),
+            _RE_ITEM_SPACED_LETTERS.sub(lambda m: re.sub(r"\s+", "", m.group(0)), raw_txt),
+        )
+        hdrs = list(_RE_ITEM_HDR.finditer(txt))
+        for i_h, mh in enumerate(hdrs):
+            st_hdr = re.sub(
+                r"\b(?:ST|STREET|AVE|AVENUE|BLVD|RD|DR|PL|CT|LN)\b\.?", "", mh.group(1).upper()
+            ).strip(" .,-'")
+            if not st_hdr:
+                continue
+            sec = txt[mh.end() : (hdrs[i_h + 1].start() if i_h + 1 < len(hdrs) else len(txt))]
+            for m_num in _RE_ITEM_SG_NUM.finditer(sec):
+                cands = addr_index.get((m_num.group(1), st_hdr))
+                if not cands:
+                    continue
+                occ_nm = sanitize_text(re.sub(r"\s+", " ", m_num.group(2)).strip(" ,;.-"))[:64]
+                if len(occ_nm) < 3 or occ_nm.lower() in ("same", "vacant", "cor", "houston city"):
+                    continue
+                for hc, _addr, _yb in cands:
+                    prev = hits_by_hcad.setdefault(hc, {}).get(yr_i)
+                    if prev is None:
+                        hits_by_hcad[hc][yr_i] = (int(item_ptr), occ_nm, "Street Guide Occupant", True)
+
+        for ma in _RE_ITEM_ALPHA.finditer(txt):
+            st_raw = re.sub(
+                r"\b(?:ST|STREET|AVE|AVENUE|BLVD|RD|DR|PL|CT|LN)\b\.?", "", ma.group(2).upper()
+            ).strip(" .,-'")
+            toks = [t for t in st_raw.split() if len(t) >= 2]
+            if not toks:
+                continue
+            cands = addr_index.get((ma.group(1), toks[0])) or (
+                addr_index.get((ma.group(1), f"{toks[0]} {toks[1]}")) if len(toks) >= 2 else None
+            )
+            if not cands:
+                continue
+            line_start = txt.rfind("\n", max(0, ma.start() - 140), ma.start())
+            seg = re.sub(r"\s+", " ", txt[(line_start + 1 if line_start >= 0 else max(0, ma.start() - 100)) : ma.end()]).strip(" ,;.-")
+            occ_t = extract_occupants_from_citydir_citation(seg, yr_i, cands[0][1])
+            nm = occ_t[0][1] if occ_t else sanitize_text(seg[:56])
+            rl = occ_t[0][2] if occ_t else "City Directory Resident"
+            for hc, _addr, _yb in cands:
+                prev = hits_by_hcad.setdefault(hc, {}).get(yr_i)
+                if prev is None or prev[2] == "Street Guide Occupant":
+                    hits_by_hcad[hc][yr_i] = (int(item_ptr), nm, rl, False)
+
+    added_or_enriched = 0
+    absent_set = set(absent_pre1926)
+    for hc, yr_map in sorted(hits_by_hcad.items()):
+        yrs_found = sorted(yr_map.keys())
+        first_yr = yrs_found[0]
+        first_ptr, first_nm, first_rl, _ = yr_map[first_yr]
+        _, addr_str, yb = (audit_addr_yr.get(hc) or ("", 0))[0], (
+            (ovr_by_hcad.get(hc) or {}).get("address")
+            or (audit_addr_yr.get(hc) or ("", 0))[0]
+            or ((anc_by_hcad.get(hc) or {}).get("addr") if isinstance(anc_by_hcad, dict) else "")
+        ), int((ovr_by_hcad.get(hc) or {}).get("year_built") or (audit_addr_yr.get(hc) or ("", 0))[1] or ((anc_by_hcad.get(hc) or {}).get("atlas_yr") if isinstance(anc_by_hcad, dict) else 0) or 0)
+        if hc in by_hcad:
+            cur_e = by_hcad[hc]
+            cur_e["y"] = sorted(set(cur_e.get("y") or []) | set(yrs_found))
+            cur_e.setdefault("p", first_ptr)
+            cur_r = list(cur_e.get("r") or [])
+            for y_k in yrs_found[:3]:
+                _, n_k, r_k, _ = yr_map[y_k]
+                tup = [y_k, n_k, r_k]
+                if tup not in cur_r and len(cur_r) < 5:
+                    cur_r.append(tup)
+            if cur_r:
+                cur_r.sort(key=lambda r: int(r[0]))
+                cur_e["r"] = cur_r[:5]
+            added_or_enriched += 1
+        elif yb > 0 and (yb - 4 <= first_yr <= max(1926, yb + 6)):
+            by_hcad[hc] = {
+                "e": first_yr,
+                "y": yrs_found,
+                "p": first_ptr,
+                "c": sanitize_text(f"{first_yr} Houston City Directory: {first_nm} ({first_rl}) at {addr_str}")[:160],
+                "f": "confirmed",
+                "r": [[y_k, yr_map[y_k][1], yr_map[y_k][2]] for y_k in yrs_found[:4]],
+            }
+            added_or_enriched += 1
+    return added_or_enriched
+
+
 
 
 def build_index(
@@ -521,6 +703,7 @@ def build_index(
 
     by_hcad: dict[str, dict] = {}
     absent_pre1926: list[str] = []
+    audit_addr_yr: dict[str, tuple[str, int]] = {}
 
     for hcad_num, fjson in cur.execute(
         "SELECT hcad_num, finding_json FROM audit_results ORDER BY hcad_num ASC"
@@ -529,6 +712,10 @@ def build_index(
         if not hcad_clean:
             continue
         data = json.loads(fjson)
+        audit_addr_yr[hcad_clean] = (
+            str(data.get("address") or "").strip(),
+            int(data.get("hcad_year_built") or 0),
+        )
         earliest = data.get("earliest_dir_year")
         matched = data.get("matched_dir_years") or []
         classification = data.get("classification") or ""
@@ -593,10 +780,8 @@ def build_index(
                 "r": merged_occ[:5],
             }
 
-    conn.close()
-
-    post_1926_extended_count = 0
-    post_1926_new_parcel_count = 0
+    confidential_hcads: set[str] = set()
+    anc_by_hcad: dict = {}
     if anc_path is not None and anc_path.exists():
         try:
             from atlas_pipeline.harvest_taro_and_hpl_archives import load_confidential_hcad_set
@@ -612,8 +797,24 @@ def build_index(
             confidential_hcads = set()
 
         anc_doc = json.loads(anc_path.read_text(encoding="utf-8"))
-        anc_by_hcad = anc_doc.get("by_hcad") if isinstance(anc_doc, dict) else {}
-        if isinstance(anc_by_hcad, dict):
+        if isinstance(anc_doc, dict) and isinstance(anc_doc.get("by_hcad"), dict):
+            anc_by_hcad = anc_doc["by_hcad"]
+
+    pre1927_item_cache_hits = _scan_cached_pre1927_item_pages(
+        cur,
+        by_hcad,
+        absent_pre1926,
+        audit_addr_yr,
+        ovr_by_hcad,
+        anc_by_hcad,
+        confidential_hcads,
+    )
+    conn.close()
+
+    post_1926_extended_count = 0
+    post_1926_new_parcel_count = 0
+    if anc_by_hcad:
+        if True:
             for raw_hc, anc_rec in sorted(anc_by_hcad.items()):
                 hc_clean = re.sub(r"\D", "", str(raw_hc or ""))
                 if len(hc_clean) != 13 or hc_clean in confidential_hcads:
@@ -708,6 +909,7 @@ def build_index(
         "collection_url": "https://cdm17006.contentdm.oclc.org/digital/collection/citydir",
         "volume_count": len(volumes),
         "verified_hit_count": len(by_hcad),
+        "pre_1927_item_cache_parcel_count": pre1927_item_cache_hits,
         "post_1926_extended_parcel_count": post_1926_extended_count,
         "post_1926_new_parcel_count": post_1926_new_parcel_count,
         "audited_absent_count": len(absent_pre1926),
@@ -741,7 +943,8 @@ def main() -> None:
         f"Wrote {OUTPUT_JSON} ({size_kb:.1f} KB): "
         f"{payload['volume_count']} volumes, "
         f"{payload['verified_hit_count']} verified parcel hits "
-        f"(+{payload.get('post_1926_new_parcel_count', 0)} new 1927-1968 parcels, "
+        f"(+{payload.get('pre_1927_item_cache_parcel_count', 0)} Pass-2 pre-1927 cached-page parcels, "
+        f"+{payload.get('post_1926_new_parcel_count', 0)} new 1927-1968 parcels, "
         f"+{payload.get('post_1926_extended_parcel_count', 0)} extended pre-1927 parcels), "
         f"{payload['audited_absent_count']} audited pre-1927 absences."
     )

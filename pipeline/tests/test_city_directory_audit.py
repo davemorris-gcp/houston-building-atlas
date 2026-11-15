@@ -189,3 +189,36 @@ def test_sync_curated_edits_merges_only_approved_rows(tmp_path: Path) -> None:
     assert props["year_built"] == 1928
     assert props["original_hcad_year"] == 1920
     assert props["is_curated_override"] is True
+
+
+def test_pass2_multicol_street_guide_and_alpha_crosscheck() -> None:
+    from atlas_pipeline.build_house_history_index import extract_post1926_occupants
+    from atlas_pipeline.city_directory_audit import verify_address_in_ocr
+
+    # 1. Parenthetical ward header + letter-spaced OCR + >1,200 char multi-column Street Guide section
+    filler = "1100 Smith John\n" * 95
+    ocr_ward = f"BAKER (5th ward)—Begins at San Jacinto\n{filler}1 2 0 4  B a k e r  H e n r y\n"
+    snip_ward = verify_address_in_ocr(ocr_ward, 1204, "BAKER")
+    assert snip_ward is not None
+    assert "1204" in snip_ward
+
+    # 2. Running page-top continuation header
+    ocr_running = (
+        "ARLINGTON MORRISON & FOURMY DIRECTORY CO.'S ASHLAND\n"
+        "1418 Miller Chas H\n"
+        "ASHLAND (Heights)—From 300 W 11th north\n"
+    )
+    snip_run = verify_address_in_ocr(ocr_running, 1418, "ARLINGTON")
+    assert snip_run is not None
+
+    # 3. Post-1926 Street Guide <-> Alphabetical cross-check upgrades abbreviated initials and generic role
+    sightings = [
+        {"y": 1932, "n": "Wc Adams", "r": "Street Guide Occupant", "sec": "sg", "img": "00812"},
+        {"y": 1932, "n": "Wm C Adams (Eliz)", "r": "Chemist (Texas Co)", "sec": "alpha", "img": "00144"},
+    ]
+    _sorted_s, post_yrs, _first_img, occ_tuples = extract_post1926_occupants(sightings, max_tuples=4)
+    assert post_yrs == [1932]
+    assert len(occ_tuples) == 1
+    assert occ_tuples[0][1] == "Wm C Adams (Eliz)"
+    assert occ_tuples[0][2] == "Chemist (Texas Co)"
+

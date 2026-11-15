@@ -105,10 +105,45 @@ _RE_SUBD_STRIP_SUFFIX = re.compile(
     r"|(?:(?:FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH|[0-9]+(?:ST|ND|RD|TH))\s+)?"
     r"AMEND(?:ED|MENT|ING)?"
     r"|DECLARATION\s+OF\s+CONDOMINIUM(?:S)?"
-    r"|ADDITION|ADDN|ADD|SUBDIVISION|SUBD|SUB|CONDOMINIUMS?|CONDOS?|TOWNHOMES?|T\s*/?\s*H"
+    r"|U\s*/?\s*R|UNREC(?:ORDED)?"
+    r"|ADDITION|ADDN|ADD|SUBDIVISION|SUBD|SUB|CONDOMINIUMS?|CONDOS?|TOWNHOMES?|TWNHMS?|THMS?|T\s*/?\s*H"
     r")\b",
     re.IGNORECASE,
 )
+_SUBD_TOKEN_CANON: dict[str, str] = {
+    "FST": "FOREST",
+    "FRST": "FOREST",
+    "FMS": "FARMS",
+    "FRMS": "FARMS",
+    "FRM": "FARMS",
+    "EST": "ESTATES",
+    "ESTS": "ESTATES",
+    "HTS": "HEIGHTS",
+    "HGTS": "HEIGHTS",
+    "VLG": "VILLAGE",
+    "VLGE": "VILLAGE",
+    "GDN": "GARDENS",
+    "GDNS": "GARDENS",
+    "MDW": "MEADOWS",
+    "MDWS": "MEADOWS",
+    "TER": "TERRACE",
+    "TERR": "TERRACE",
+    "MNR": "MANOR",
+    "CRK": "CREEK",
+    "SPG": "SPRINGS",
+    "SPGS": "SPRINGS",
+    "RDG": "RIDGE",
+    "XING": "CROSSING",
+    "PK": "PARK",
+    "PRK": "PARK",
+    "PL": "PLACE",
+    "PLC": "PLACE",
+    "CT": "COURT",
+    "CRT": "COURT",
+    "SQ": "SQUARE",
+    "HLS": "HILLS",
+    "WDS": "WOODS",
+}
 _RE_IS_REPLAT_DESC = re.compile(
     r"\b(?:PARTIAL\s+REPLAT|PAR\s+R\s*/?\s*P|REPLAT|R\s*/?\s*P|AMENDING\s+PLAT|AMENDED\s+PLAT|"
     r"AMEND(?:ED|MENT|ING)?|DECLARATION\s+OF\s+CONDOMINIUM)\b",
@@ -123,13 +158,18 @@ _RE_BLK_EXTRACT = re.compile(r"\b(?:BLK|BLOCK)\s*0*([0-9A-Z]{1,5})\b", re.IGNORE
 _RE_UNIT_EXTRACT = re.compile(r"\b(?:UNIT|APT|BLDG\s+[0-9A-Z]+\s+UNIT)\s*0*([0-9A-Z\-]{1,8})\b", re.IGNORECASE)
 _RE_RES_EXTRACT = re.compile(r"\b(?:RES(?:ERVE)?)\s+([0-9A-Z]{1,5})\b", re.IGNORECASE)
 _RE_LOT_MULTI = re.compile(
-    r"\b(?:LTS|LOTS|LT|LOT)\s+([0-9A-Z]{1,5}(?:\s*(?:&|AND|,|THRU|-)\s*[0-9A-Z]{1,5})*)\b",
+    r"\b(?:LTS|LOTS|LT|LOT)\s+([0-9A-Z]{1,5}(?:\s*(?:&|AND|,|THRU|TO|-)\s*[0-9A-Z]{1,5})*)\b",
     re.IGNORECASE,
 )
 _RE_TRACT_SINGLE = re.compile(r"\b(?:TR(?:ACT)?)\s*0*([0-9A-Z]{1,5})\b", re.IGNORECASE)
 _RE_COMMENT_LOT_BLK = re.compile(
-    r"\bL(?:OTS?|TS?)?\s*0*([0-9A-Z]{1,4}(?:\s*(?:&|AND|-|THRU)\s*0*[0-9A-Z]{1,4})?)"
-    r"\s+B(?:LOCKS?|LK)?\s*0*([0-9A-Z]{1,5})\b",
+    r"\b(?:L(?:OTS?|TS?)?|(?:PT|PART)\s+(?:L(?:OTS?|TS?)?\s*)?)\s*0*([0-9A-Z]{1,4}(?:\s*(?:&|AND|,|-|THRU|TO)\s*0*[0-9A-Z]{1,4})*)"
+    r"(?:\s+INCL(?:USIVE)?)?\s+B(?:LOCKS?|LK)?\s*0*([0-9A-Z]{1,5})\b",
+    re.IGNORECASE,
+)
+_RE_COMMENT_BLK_LOT = re.compile(
+    r"\bB(?:LOCKS?|LK)?\s*0*([0-9A-Z]{1,5})\s+(?:PT\s+|PART\s+)?L(?:OTS?|TS?)?\s*"
+    r"0*([0-9A-Z]{1,4}(?:\s*(?:&|AND|,|-|THRU|TO)\s*0*[0-9A-Z]{1,4})*)\b",
     re.IGNORECASE,
 )
 _RE_ABST_LINE = re.compile(r"^\s*ABST(?:RACT)?\b", re.IGNORECASE)
@@ -644,17 +684,20 @@ def normalize_legal_subdivision_name(raw_subd: str) -> tuple[str, str]:
         txt = txt[: m_sec.start()] + " " + txt[m_sec.end() :]
     txt = _RE_SUBD_STRIP_SUFFIX.sub(" ", txt)
     txt = _RE_NON_ALNUM.sub(" ", txt)
-    txt = _RE_MULTI_SPACE.sub(" ", txt).strip()
+    tokens = [_SUBD_TOKEN_CANON.get(tok, tok) for tok in txt.split() if tok]
+    txt = " ".join(tokens).strip()
     return txt, sec_found
 
 
 @functools.lru_cache(maxsize=131072)
 def _expand_lot_tokens_cached(raw_lot_expr: str, max_lots: int = 4) -> tuple[str, ...]:
     clean = sanitize_atlas_text(raw_lot_expr).upper().strip()
+    clean = re.sub(r"^(?:PT|PART|ALL|N|S|E|W|NE|NW|SE|SW|HLF|1/2)\s+", "", clean)
+    clean = re.sub(r"\s+INCL(?:USIVE)?$", "", clean).strip()
     if not clean:
         return ()
-    # Range expression "6 THRU 10" or "6-10"
-    m_range = re.fullmatch(r"0*(\d{1,4})\s*(?:THRU|-)\s*0*(\d{1,4})", clean)
+    # Range expression "6 THRU 10", "6 TO 10", or "6-10"
+    m_range = re.fullmatch(r"0*(\d{1,4})\s*(?:THRU|TO|-)\s*0*(\d{1,4})", clean)
     if m_range:
         lo, hi = int(m_range.group(1)), int(m_range.group(2))
         if 0 < lo <= hi and (hi - lo + 1) <= max_lots:
@@ -664,7 +707,7 @@ def _expand_lot_tokens_cached(raw_lot_expr: str, max_lots: int = 4) -> tuple[str
     out: list[str] = []
     for p in parts:
         tok = re.sub(r"[^0-9A-Z]", "", p)
-        if not tok:
+        if not tok or tok in ("PT", "PART", "ALL", "INCL", "INCLUSIVE", "THRU", "TO"):
             continue
         if tok.isdigit():
             tok = tok.lstrip("0") or "0"
@@ -770,6 +813,16 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
     raw_blk = _first_present(row, ("block", "blk", "subd_block"))
     blk_norm = re.sub(r"[^0-9A-Z]", "", raw_blk.upper()).lstrip("0") if raw_blk else ""
 
+    raw_comment = _first_present(row, ("comment", "misc"))
+    if not sec_norm and raw_comment:
+        m_csec = _RE_SEC_EXTRACT.search(raw_comment)
+        if m_csec:
+            sec_norm = m_csec.group(1).lstrip("0") or "0"
+    if not blk_norm and raw_comment:
+        m_cblk = _RE_BLK_EXTRACT.search(raw_comment)
+        if m_cblk:
+            blk_norm = m_cblk.group(1).lstrip("0") or "0"
+
     raw_unit = _first_present(row, ("unit", "unit_no", "condo_unit"))
     if raw_unit:
         u_clean = re.sub(r"[^0-9A-Z\-]", "", raw_unit.upper()).lstrip("0") or raw_unit.upper().strip()
@@ -794,8 +847,7 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
         if t_clean:
             return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "TR", t_clean)]
 
-    raw_comment = _first_present(row, ("comment", "misc"))
-    if raw_comment:
+    if raw_comment and raw_comment.strip().upper() != "SEE INSTRUMENT":
         m_cb = _RE_COMMENT_LOT_BLK.search(raw_comment)
         if m_cb:
             lots = _expand_lot_tokens(m_cb.group(1))
@@ -803,6 +855,25 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
             eff_blk = blk_norm or blk_c
             if lots:
                 return [LegalCrosswalkKey(subd_norm, sec_norm, eff_blk, "LOT", lt) for lt in lots]
+        m_bc = _RE_COMMENT_BLK_LOT.search(raw_comment)
+        if m_bc:
+            blk_c = re.sub(r"[^0-9A-Z]", "", m_bc.group(1).upper()).lstrip("0") or "0"
+            lots = _expand_lot_tokens(m_bc.group(2))
+            eff_blk = blk_norm or blk_c
+            if lots:
+                return [LegalCrosswalkKey(subd_norm, sec_norm, eff_blk, "LOT", lt) for lt in lots]
+        m_cu = _RE_UNIT_EXTRACT.search(raw_comment)
+        if m_cu:
+            uid = m_cu.group(1).lstrip("0") or m_cu.group(1)
+            return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "UNIT", uid)]
+        m_cl = _RE_LOT_MULTI.search(raw_comment)
+        if m_cl:
+            lots = _expand_lot_tokens(m_cl.group(1))
+            if lots:
+                return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "LOT", lt) for lt in lots]
+        m_ct = _RE_TRACT_SINGLE.search(raw_comment)
+        if m_ct:
+            return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "TR", m_ct.group(1))]
 
     return []
 
@@ -1442,18 +1513,34 @@ def ingest_clerk_tpia_tables(
                             continue
                         raw_blk = parts[4].strip()
                         blk_norm = re.sub(r"[^0-9A-Z]", "", raw_blk.upper()).lstrip("0") if raw_blk else ""
-                        raw_comment = parts[9].strip() if len(parts) > 9 else ""
-                        if (subd_norm, blk_norm) not in known_subd_blks and not (not blk_norm and raw_comment):
+                        raw_misc = parts[5].strip() if len(parts) > 5 else ""
+                        raw_unit = parts[7].strip() if len(parts) > 7 else ""
+                        raw_ab = parts[8].strip() if len(parts) > 8 else ""
+                        raw_outlot = parts[9].strip() if len(parts) > 9 else ""
+                        raw_tract = parts[10].strip() if len(parts) > 10 else ""
+                        raw_reserve = parts[11].strip() if len(parts) > 11 else ""
+                        raw_comment = parts[12].strip() if len(parts) > 12 else ""
+                        eff_comment = (
+                            raw_comment
+                            if raw_comment and raw_comment.upper() != "SEE INSTRUMENT"
+                            else raw_misc
+                        )
+                        if (subd_norm, blk_norm) not in known_subd_blks and not (
+                            not blk_norm
+                            and (eff_comment or raw_unit or raw_tract or raw_outlot or raw_reserve)
+                        ):
                             continue
                         row_d = {
                             "subdivision": raw_subd,
                             "section": parts[2].strip() if len(parts) > 2 else "",
                             "lot": parts[3].strip() if len(parts) > 3 else "",
                             "block": raw_blk,
-                            "tract": parts[7].strip() if len(parts) > 7 else "",
-                            "reserve": parts[8].strip() if len(parts) > 8 else "",
-                            "comment": raw_comment,
-                            "unit": parts[10].strip() if len(parts) > 10 else "",
+                            "misc": raw_misc,
+                            "unit": raw_unit,
+                            "outlot": raw_outlot,
+                            "tract": raw_tract,
+                            "reserve": raw_reserve,
+                            "comment": eff_comment,
                         }
                         matched_lks = [lk for lk in extract_clerk_row_legal_keys(row_d) if lk in legal_index]
                         if matched_lks:
@@ -1461,10 +1548,8 @@ def ingest_clerk_tpia_tables(
                             if fn_u:
                                 candidate_raw_fns.add(fn_u)
                                 pre_legal_by_fn.setdefault(fn_u, []).extend(matched_lks)
-                                raw_sv = parts[5].strip() if len(parts) > 5 else ""
-                                raw_ab = parts[6].strip() if len(parts) > 6 else ""
-                                if (raw_sv or raw_ab) and fn_u not in pre_surv_abst_by_fn:
-                                    pre_surv_abst_by_fn[fn_u] = (raw_sv, raw_ab)
+                                if raw_ab and fn_u not in pre_surv_abst_by_fn:
+                                    pre_surv_abst_by_fn[fn_u] = ("", raw_ab)
 
             if rp_reldoc_path.is_file() and candidate_raw_fns:
                 files_scanned += 1
@@ -1481,6 +1566,8 @@ def ingest_clerk_tpia_tables(
                         if p0 <= 0:
                             continue
                         p1 = line.find("|", p0 + 1)
+                        if p1 > p0 and line[p1 + 1 :].lstrip().upper().startswith("RELATED DOCKET"):
+                            continue
                         fn_u = line[:p0].strip().upper()
                         rel_u = (line[p0 + 1 : p1] if p1 > p0 else line[p0 + 1 :]).strip().upper()
                         if not fn_u or not rel_u:
@@ -1489,6 +1576,7 @@ def ingest_clerk_tpia_tables(
                             candidate_raw_fns.add(fn_u)
                             candidate_raw_fns.add(rel_u)
                             pre_reldoc_by_fn.setdefault(fn_u, []).append(rel_u)
+                            pre_reldoc_by_fn.setdefault(rel_u, []).append(fn_u)
 
     id_cols = {
         "file_no",
@@ -2206,6 +2294,12 @@ def run_tpia_ingestion(
     clerk_ml_by_acct: dict[str, list[tuple[str, str, str, str, str]]] = defaultdict(list)
     clerk_dt_by_acct: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
 
+    resolved_inst_to_hcads: dict[str, set[str]] = {
+        mk: set(accts) for mk, accts in tier1_inst_to_hcads.items() if accts
+    }
+    wave1_results: list[tuple[ClerkInstrumentRecord, set[str], bool]] = []
+    unmatched_for_wave2: list[ClerkInstrumentRecord] = []
+
     for inst in clerk_res["instruments"]:
         matched_hcads: set[str] = set(inst.explicit_hcads)
         matched_via_tier1 = False
@@ -2232,10 +2326,30 @@ def run_tpia_ingestion(
             if 1 <= len(legal_hits) <= max_parcels_per_legal_key:
                 matched_hcads |= legal_hits
 
-        if not matched_hcads:
+        if matched_hcads:
+            wave1_results.append((inst, matched_hcads, matched_via_tier1))
+            if inst.match_key and 1 <= len(matched_hcads) <= max_parcels_per_legal_key:
+                resolved_inst_to_hcads.setdefault(inst.match_key, set()).update(matched_hcads)
+        elif inst.related_match_keys:
+            unmatched_for_wave2.append(inst)
+        else:
             unmatched_instruments += 1
-            continue
 
+    # Wave 2: Propagate Tier-2 legal crosswalk matches across RPRelDoc related instruments
+    for inst in unmatched_for_wave2:
+        rel_hits_w2: set[str] = set()
+        for rmk in inst.related_match_keys:
+            r_accts = resolved_inst_to_hcads.get(rmk)
+            if r_accts:
+                rel_hits_w2.update(r_accts)
+        if 1 <= len(rel_hits_w2) <= max_parcels_per_legal_key:
+            wave1_results.append((inst, rel_hits_w2, False))
+            if inst.match_key:
+                resolved_inst_to_hcads.setdefault(inst.match_key, set()).update(rel_hits_w2)
+        else:
+            unmatched_instruments += 1
+
+    for inst, matched_hcads, matched_via_tier1 in wave1_results:
         if matched_via_tier1:
             tier1_matched_instruments += 1
         else:

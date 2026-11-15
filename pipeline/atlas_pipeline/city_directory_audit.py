@@ -145,7 +145,10 @@ def verify_address_in_ocr(ocr_text: str, house_num: int, street_stem: str) -> st
     if not ocr_text or house_num <= 0:
         return None
 
-    normalized = re.sub(r"\s+", " ", ocr_text)
+    # De-noise letter-spaced kerning (e.g., "7 4 0 2  B a n t a" -> "7402 Banta")
+    de_kerned = re.sub(r"\b(\d)\s+(\d)\s+(\d)(?:\s+(\d))?\b", lambda m: "".join(g for g in m.groups() if g), ocr_text)
+    de_kerned = re.sub(r"\b(?:[A-Za-z]\s+){3,}[A-Za-z]\b", lambda m: re.sub(r"\s+", "", m.group(0)), de_kerned)
+    normalized = re.sub(r"\s+", " ", de_kerned)
     num_str = str(house_num)
     stem_escaped = re.escape(street_stem)
 
@@ -164,14 +167,21 @@ def verify_address_in_ocr(ocr_text: str, house_num: int, street_stem: str) -> st
     if house_num < 10:
         return None
 
-    # Pattern 2: Reverse Street & Avenue Guide section ("KEY ST—From ..." followed by house numbers)
+    # Pattern 2: Reverse Street & Avenue Guide section ("KEY ST (5th ward)—From / Begins ..." or running page header)
     header_pat = re.compile(
-        rf"\b{stem_escaped}\s+(?:ST|AVE|AV|BLVD|DR|RD)?\s*(?:—|--|-)\s*From\b",
+        rf"\b{stem_escaped}(?:\s+(?:ST|AVE|AV|BLVD|BOUL|DR|RD|PL|CT|LN))?(?:\s*\([^)]{{1,40}}\))?\s*(?:—|--|-)\s*(?:From|Begins|Begin\*?|Runs|Extends|Continued|Cont'?d)\b"
+        rf"|(?:^|\b\d{{1,4}}\s+){stem_escaped}\s+(?:MORRISON\s*&\s*FOURMY|HOUSTON\s+STREET\s+DIRECTORY)",
         re.IGNORECASE,
     )
+    next_sec_pat = re.compile(
+        r"\b[A-Z0-9][A-Z0-9\s.]{1,24}(?:\([^)]{1,35}\))?\s*(?:—|--|-)\s*(?:From|Begins|Begin\*?|Runs|Extends)\b"
+    )
     for m_hdr in header_pat.finditer(normalized):
-        window = normalized[m_hdr.start() : min(len(normalized), m_hdr.end() + 1200)]
-        num_pat = re.compile(rf"\b{num_str}\s+[A-Z][a-z]+", re.IGNORECASE)
+        tail = normalized[m_hdr.end() :]
+        m_next = next_sec_pat.search(tail)
+        window_end = m_hdr.end() + m_next.start() if m_next else len(normalized)
+        window = normalized[m_hdr.start() : window_end]
+        num_pat = re.compile(rf"\b{num_str}\s+(?!intersects\b|vacant\b)[A-Z][a-zA-Z.]", re.IGNORECASE)
         m_num = num_pat.search(window)
         if m_num:
             s_start = max(0, m_num.start() - 20)
