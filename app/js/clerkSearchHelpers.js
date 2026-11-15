@@ -1161,8 +1161,36 @@ export function filterConfidentialOwnerHistoryAndDeeds(
   const redactedAcqDates = new Set();
 
   if (!isConfidential) {
+    const deedItemByMatchKey = new Map();
+    for (const d of deedsList) {
+      if (d?.matchKey && !deedItemByMatchKey.has(d.matchKey)) {
+        deedItemByMatchKey.set(d.matchKey, d);
+      }
+    }
+    const enrichedTenures = tenuresList.map((t) => {
+      if (!t || !t.deed?.matchKey || !deedItemByMatchKey.has(t.deed.matchKey)) {
+        return t;
+      }
+      const matchedIt = deedItemByMatchKey.get(t.deed.matchKey);
+      if (
+        (matchedIt.grantor || matchedIt.grantee) &&
+        !t.deed.grantor &&
+        !t.deed.grantee
+      ) {
+        return {
+          ...t,
+          deed: {
+            ...t.deed,
+            date: t.deed.date || matchedIt.date || "",
+            grantor: matchedIt.grantor || "",
+            grantee: matchedIt.grantee || t.ownerName,
+          },
+        };
+      }
+      return t;
+    });
     return {
-      tenures: tenuresList,
+      tenures: enrichedTenures,
       deeds: deedsList,
       mlItems: mlList,
       dtItems: dtList,
@@ -1185,7 +1213,7 @@ export function filterConfidentialOwnerHistoryAndDeeds(
       .trim()
       .toUpperCase();
     const tok = firstCopy.split(/\s+/)[0] || "";
-    return tok.length >= 3 ? tok : "";
+    return tok.length >= 2 && !/^\d+$/.test(tok) ? tok : "";
   };
   const _primaryTokenOfName = (nameStr) => {
     const clean = String(nameStr || "").trim();
@@ -1277,7 +1305,7 @@ export function filterConfidentialOwnerHistoryAndDeeds(
         safeDeed = null;
       }
     }
-    priorTenures.push(safeDeed === t.deed ? t : { ...t, deed: safeDeed });
+    priorTenures.push({ ...t, deed: safeDeed ? { ...safeDeed } : safeDeed });
   }
 
   if (priorTenures.length === 0) {
@@ -1296,10 +1324,19 @@ export function filterConfidentialOwnerHistoryAndDeeds(
     (acc, t) => Math.max(acc, Number(t.endYear) || 0),
     0
   );
-  const maxPriorStartYear = priorTenures.reduce(
-    (acc, t) => Math.max(acc, Number(t.startYear) || 0),
-    0
+  const minPriorStartYear = priorTenures.reduce(
+    (acc, t) => Math.min(acc, Number(t.startYear) || 9999),
+    9999
   );
+  const earliestPrior = priorTenures[priorTenures.length - 1] || priorTenures[0];
+  const earliestCutoffIso =
+    earliestPrior.isPreMainframe || earliestPrior.acqDate === "<=1988"
+      ? "1988-01-02"
+      : /^\d{4}-\d{2}-\d{2}$/.test(String(earliestPrior.acqDate || ""))
+      ? String(earliestPrior.acqDate)
+      : `${(Number(earliestPrior.startYear) || minPriorStartYear) - 1}-12-31`;
+  const earliestCutoffYear = Number(earliestCutoffIso.slice(0, 4)) || 0;
+
   const pairedPriorByKey = new Map();
   for (const t of priorTenures) {
     if (t.deed?.matchKey && !pairedPriorByKey.has(t.deed.matchKey)) {
@@ -1328,16 +1365,56 @@ export function filterConfidentialOwnerHistoryAndDeeds(
       continue;
     }
     if (pairedTenure) {
+      const pairedTok = _primaryTokenOf(pairedTenure);
+      if (
+        d.grantee &&
+        geTok &&
+        pairedTok &&
+        geTok !== pairedTok &&
+        !String(d.grantee).toUpperCase().includes(pairedTok)
+      ) {
+        continue;
+      }
+      if (!d.grantee && d.grantor && grTok && pairedTok && grTok === pairedTok) {
+        continue;
+      }
+      const effGrantor = d.grantor || "";
+      const effGrantee = d.grantee || pairedTenure.ownerName;
+      if (pairedTenure.deed && (effGrantor || effGrantee)) {
+        pairedTenure.deed = {
+          ...pairedTenure.deed,
+          date: pairedTenure.deed.date || d.date || "",
+          grantor: effGrantor,
+          grantee: effGrantee,
+        };
+      }
       safeDeeds.push(
-        d.grantor || d.grantee !== pairedTenure.ownerName
-          ? { ...d, grantor: "", grantee: pairedTenure.ownerName }
+        d.grantor !== effGrantor || d.grantee !== effGrantee
+          ? { ...d, grantor: effGrantor, grantee: effGrantee }
           : d
       );
       continue;
     }
     const yr = Number(String(d.date || "").slice(0, 4)) || 0;
-    if (yr > 0 && yr <= maxPriorStartYear && yr < maxPriorEndYear && yr < minRedactedStartYear) {
-      safeDeeds.push(d.grantor || d.grantee ? { ...d, grantor: "", grantee: "" } : d);
+    const dIso = String(d.date || "");
+    if (
+      yr > 0 &&
+      yr <= earliestCutoffYear &&
+      yr < maxPriorEndYear &&
+      yr < minRedactedStartYear &&
+      (!dIso || dIso.length < 10 || dIso <= earliestCutoffIso)
+    ) {
+      const earliestTok = _primaryTokenOf(earliestPrior);
+      if (
+        d.grantor &&
+        grTok &&
+        earliestTok &&
+        grTok === earliestTok &&
+        (!geTok || geTok !== earliestTok)
+      ) {
+        continue;
+      }
+      safeDeeds.push(d);
     }
   }
 
@@ -1354,7 +1431,18 @@ export function filterConfidentialOwnerHistoryAndDeeds(
     }
     const yr = Number(String(ml.date || "").slice(0, 4)) || 0;
     if (yr > 0 && yr < maxPriorEndYear && yr < minRedactedStartYear) {
-      safeMl.push(ml.ownerName ? { ...ml, ownerName: "" } : ml);
+      const matchesPriorTenureOwner =
+        mlOwnTok &&
+        priorTenures.some((t) => {
+          const tTok = _primaryTokenOf(t);
+          return (
+            tTok &&
+            tTok === mlOwnTok &&
+            yr >= Number(t.startYear) &&
+            yr <= Number(t.endYear)
+          );
+        });
+      safeMl.push(ml.ownerName && !matchesPriorTenureOwner ? { ...ml, ownerName: "" } : ml);
     }
   }
 
@@ -1618,7 +1706,8 @@ export function buildResearchKitDeedChainView(
             </button>`;
           })
           .join("");
-        const pairedDeedHtml = t.deed ? _renderClerkDeedPillHtml(t.deed) : "";
+        const effTenureDeed = t.deed || null;
+        const pairedDeedHtml = effTenureDeed ? _renderClerkDeedPillHtml(effTenureDeed) : "";
         const pillsBlock =
           ownerPillsHtml || pairedDeedHtml
             ? `<div class="rk-owner-tenure-pills">${pairedDeedHtml}${ownerPillsHtml}</div>`

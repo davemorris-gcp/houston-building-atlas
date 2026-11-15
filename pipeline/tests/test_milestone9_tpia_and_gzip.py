@@ -414,6 +414,7 @@ def test_enrich_permit_shards_confidential_scrubs_tpia_keys_without_attribute_er
         )
 
     acct_zip = cache_dir / "Real_acct_owner.zip"
+    acct_zip = cache_dir / "Real_acct_owner.zip"
     with zipfile.ZipFile(acct_zip, "w") as zf:
         zf.writestr(
             "real_acct.txt",
@@ -540,6 +541,7 @@ def test_tpia_hcad_pre2005_and_clerk_multi_format_crosswalk_dry_run_vs_apply(
     )
 
     # Build Real_acct_owner.zip with LOT, UNIT, RES, >4 ambiguous townhome lots, and confidential aka
+    acct_zip = cache_dir / "Real_acct_owner.zip"
     acct_zip = cache_dir / "Real_acct_owner.zip"
     with zipfile.ZipFile(acct_zip, "w") as zf:
         zf.writestr(
@@ -931,14 +933,46 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
 
     # Re-running TPIA ingestion when owners_062.json.gz already holds a current-tenure-redacted wire
     # ("2005-2019~20050310~20050123456~PRIOR SELLER" with 2020-2026 stripped) must keep 2020..2026 in
-    # redacted_years so a late-2019 confidential acquisition deed (RP-2019-999888) and a 2021 pre-election
-    # TPIA snapshot never attach to 0620820000021.
+    # redacted_years so a late-2019 confidential acquisition deed (RP-2019-999888), a 2021 pre-election
+    # TPIA snapshot, or a pre-2020 snapshot under an aka alias ("ALIAS SHIELDED") never attach to 0620820000021.
+    # Also verify that an empty-baseline confidential parcel (0620820000019) retains pre-2005 public tenures
+    # from extra_snaps without being tainted by the synthetic 2026 CURRENT OWNER snapshot, and that
+    # confidential pre-acquisition Mechanic's Liens (2008) survive while confidential-period M/Ls (2021) are scrubbed.
+    acct_zip = cache_dir / "Real_acct_owner.zip"
+    with zipfile.ZipFile(acct_zip, "w") as zf:
+        zf.writestr(
+            "real_acct.txt",
+            "\n".join(
+                [
+                    "acct\tsite_addr_1\tmailto\tlgl_1\tlgl_2",
+                    "0620820000019\t100 TEST ST\tPUBLIC DISPLAY\tLT 1 BLK 1\tNORHILL",
+                    "0620820000020\t102 TEST ST\tPUBLIC OWNER\tLT 2 BLK 1\tNORHILL",
+                    "0620820000021\t104 TEST ST\tCURRENT OWNER\tLT 3 BLK 1\tNORHILL",
+                ]
+            )
+            + "\n",
+        )
+        zf.writestr(
+            "owners.txt",
+            "\n".join(
+                [
+                    "acct\tln_num\tname\taka",
+                    "0620820000019\t1\tPUBLIC DISPLAY\tCONFIDENTIAL",
+                    "0620820000020\t1\tPUBLIC OWNER\t",
+                    "0620820000021\t1\tSHIELDED HOMEOWNER\tALIAS SHIELDED",
+                ]
+            )
+            + "\n",
+        )
     (hcad_dir / "snapshots.csv").write_text(
         "\n".join(
             [
                 "acct,yr,mailto,aka,new_own_dt,conf",
                 "0620820000016,2003,PRIOR OFFICER,,1998-05-01,1",
+                "0620820000019,1999,HISTORIC PUBLIC OWNER,,1995-04-12,0",
+                "0620820000019,2004,HISTORIC PUBLIC OWNER,,1995-04-12,0",
                 "0620820000019,2026,PUBLIC DISPLAY,CONFIDENTIAL,2020-01-01,0",
+                "0620820000021,2019,ALIAS SHIELDED,,2019-06-01,0",
                 "0620820000021,2021,SHIELDED HOMEOWNER,,2019-11-15,0",
             ]
         )
@@ -946,8 +980,11 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
         encoding="utf-8",
     )
     (clerk_dir / "conf_deed_2019.csv").write_text(
-        "acct,file_no,file_date,inst_type,grantor,grantee\n"
-        "0620820000021,RP-2019-999888,2019-11-15,W/D,PRIOR SELLER,SHIELDED HOMEOWNER\n",
+        "acct,file_no,file_date,inst_type,grantor,grantee,amount\n"
+        "0620820000021,RP-2019-999888,2019-11-15,W/D,PRIOR SELLER,SHIELDED HOMEOWNER,\n"
+        "0620820000021,20050123456,2005-03-10,W/D,EARLIER OWNER,PRIOR SELLER,\n"
+        "0620820000021,20080555555,2008-06-15,M/L,ROOFING CO,PRIOR SELLER,18500\n"
+        "0620820000021,RP-2021-666666,2021-08-20,M/L,POOL BUILDER INC,SHIELDED HOMEOWNER,45000\n",
         encoding="utf-8",
     )
     cli.main(
@@ -966,9 +1003,18 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
         ]
     )
     oh062_rerun = read_json_or_gzip_path(oh_dir / "owners_062.json.gz")
-    assert oh062_rerun["0620820000021"] == "2005-2019~20050310~20050123456~PRIOR SELLER"
+    p062_rerun = read_json_or_gzip_path(permits_dir / "permits_062.json.gz")
+    assert oh062_rerun["0620820000019"] == "1999-2004~19950412~~HISTORIC PUBLIC OWNER"
+    assert oh062_rerun["0620820000021"] == "2005-2018~20050310~20050123456~PRIOR SELLER"
     assert "999888" not in oh062_rerun["0620820000021"]
     assert "SHIELDED" not in oh062_rerun["0620820000021"]
+    assert "ALIAS" not in oh062_rerun["0620820000021"]
+    assert p062_rerun["0620820000021"]["d"] == "20050310:20050123456::D:EARLIER OWNER:PRIOR SELLER"
+    assert p062_rerun["0620820000021"]["ml"] == "20080615~20080555555~ROOFING CO~PRIOR SELLER~18500"
+    assert "666666" not in json.dumps(p062_rerun["0620820000021"])
+    assert "999888" not in json.dumps(p062_rerun["0620820000021"])
+    assert "SHIELDED" not in json.dumps(p062_rerun["0620820000021"])
+    assert "ALIAS" not in json.dumps(p062_rerun["0620820000021"])
 
     # Historical confidential tenure (2003) redacted from oh062 AND party names stripped from p062
     assert "PRIOR OFFICER" not in oh062["0620820000016"]

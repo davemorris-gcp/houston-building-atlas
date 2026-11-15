@@ -251,6 +251,53 @@ test("UT-2: ordinary isRedactedHomestead retains 2005-2026 tenures while all CON
   assert.ok(!JSON.stringify(preTl.events).includes("999888"));
   assert.ok(!JSON.stringify(preTl.events).includes("777666"));
 
+  // 2c. Verified pre-acquisition Grantor-to-Grantee deeds and prior-tenure Mechanic's Liens on confidential parcel
+  const richConfOh =
+    "2015-2019~20150401~R2015-149789~SMITH ROBERT|2005-2014~19901003~M876543~JONES MARY";
+  const richConfDeeds = [
+    "20200301:R2020-888999::D:SMITH ROBERT:SHIELDED HOMEOWNER",
+    "20150401:R2015-149789:101:D:JONES MARY:SMITH ROBERT",
+    "19901003:M876543::D:ORIGINAL BUILDER:JONES MARY",
+    "19750615:D555444::D:FOUNDER TRUST:ORIGINAL BUILDER",
+  ].join("|");
+  const richConfMl = [
+    "20210601~R2021-333444~ROOFING CO~SHIELDED HOMEOWNER~18000",
+    "20160501~R2016-222333~ACME BUILDERS~SMITH ROBERT~45000",
+  ].join("|");
+  const richConfRk = buildResearchKitDeedChainView(
+    "0620810030009",
+    "0620810030009",
+    { conf: 1, oh: richConfOh, d: richConfDeeds, ml: richConfMl },
+    "CONFIDENTIAL"
+  );
+  assert.ok(richConfRk.html.includes("JONES MARY -&gt; SMITH ROBERT"));
+  assert.ok(richConfRk.html.includes("ORIGINAL BUILDER -&gt; JONES MARY"));
+  assert.ok(richConfRk.html.includes("FOUNDER TRUST -&gt; ORIGINAL BUILDER"));
+  assert.ok(richConfRk.html.includes("for SMITH ROBERT"));
+  assert.ok(!richConfRk.html.includes("SHIELDED HOMEOWNER"));
+  assert.ok(!richConfRk.html.includes("888999"));
+  assert.ok(!richConfRk.html.includes("333444"));
+
+  const richConfTl = buildStewardshipTimelineModel({
+    featureProps: {
+      hcad_num: "0620810030009",
+      owner: "CONFIDENTIAL",
+      year_built: 1925,
+    },
+    permitShardRec: {
+      conf: 1,
+      oh: richConfOh,
+      d: richConfDeeds,
+      ml: richConfMl,
+    },
+  });
+  const richEventsJson = JSON.stringify(richConfTl.events);
+  assert.ok(richEventsJson.includes("JONES MARY -> SMITH ROBERT"));
+  assert.ok(richEventsJson.includes("FOUNDER TRUST -> ORIGINAL BUILDER"));
+  assert.ok(!richEventsJson.includes("SHIELDED HOMEOWNER"));
+  assert.ok(!richEventsJson.includes("888999"));
+  assert.ok(!richEventsJson.includes("333444"));
+
   // 3. Map-clicked ordinary homestead with empty/placeholder props.owner hydrates recordedOwner from active 2026 oh tenure
   const mapClickedXray = decodeParcelOwnershipXray({
     featureProps: {

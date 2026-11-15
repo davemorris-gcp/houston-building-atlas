@@ -1205,6 +1205,7 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
   let totalAccounts = 0;
   let totalCompressedBytes = 0;
   const benchmarkSamples = new Map();
+  const ownerHistoryByAcct = new Map();
 
   for (const fn of ohFiles) {
     const pfx = fn.slice(7, 10);
@@ -1246,12 +1247,15 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
     const keys = Object.keys(parsed);
     assert.ok(keys.length >= 1, `${fn} must contain at least 1 parcel account`);
     totalAccounts += keys.length;
+    for (const [ohAcct, ohWire] of Object.entries(parsed)) {
+      if (ohWire) ownerHistoryByAcct.set(ohAcct, ohWire);
+    }
 
     if (pfx === "001") {
       if ("0010020000001" in parsed) {
-        assert.equal(
+        assert.match(
           parsed["0010020000001"],
-          "2005-2011~20010117~~MOSEMAN ESTHER TRUST",
+          /^2005-2011~20010117~[A-Z0-9:-]*~MOSEMAN ESTHER TRUST$/,
           "Sec. 25.025 confidential account 0010020000001 must retain only its pre-confidential prior tenure (2005-2011 MOSEMAN ESTHER TRUST) while redacting the 2012-2026 confidential tenure"
         );
       }
@@ -1354,12 +1358,53 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
       if (rec.conf) {
         totalConfRecords += 1;
         assert.equal(rec.conf, 1, `Expected canonical conf === 1 on ${acct}`);
-        for (const forbiddenKey of ["d", "flip", "pid", "m", "co", "ml", "dt_lender"]) {
+        for (const forbiddenKey of ["ot", "flip", "pid", "m", "co", "dt_lender"]) {
           assert.equal(
             forbiddenKey in rec,
             false,
             `Sec. 25.025 confidential account ${acct} in ${pf} leaked forbidden key '${forbiddenKey}'`
           );
+        }
+        if ("d" in rec || "ml" in rec) {
+          const ohWire = ownerHistoryByAcct.get(acct) || "";
+          assert.ok(
+            ohWire.length > 0,
+            `Confidential account ${acct} in ${pf} has pre-acquisition 'd'/'ml' without verified prior tenures in owners_${pf.slice(8, 11)}.json.gz`
+          );
+          const maxPriorEndYear = Math.max(
+            ...ohWire.split("|").map((seg) => {
+              const span = seg.split("~")[0] || "";
+              const parts = span.split("-");
+              return Number(parts[parts.length - 1]) || 0;
+            })
+          );
+          assert.ok(
+            maxPriorEndYear > 0 && maxPriorEndYear < 2026,
+            `Confidential account ${acct} maxPriorEndYear (${maxPriorEndYear}) must be < 2026`
+          );
+          if ("d" in rec) {
+            for (const dSeg of String(rec.d).split("|")) {
+              const dYr = Number(dSeg.slice(0, 4)) || 0;
+              assert.ok(
+                dYr > 0 && dYr <= maxPriorEndYear,
+                `Confidential account ${acct} leaked post-prior-tenure deed '${dSeg}' (maxPriorEndYear=${maxPriorEndYear})`
+              );
+              assert.equal(
+                isConfidentialOwnerName(dSeg),
+                false,
+                `Confidential token in deed '${dSeg}' on ${acct}`
+              );
+            }
+          }
+          if ("ml" in rec) {
+            for (const mlSeg of String(rec.ml).split("|")) {
+              const mlYr = Number(mlSeg.slice(0, 4)) || 0;
+              assert.ok(
+                mlYr > 0 && mlYr <= maxPriorEndYear,
+                `Confidential account ${acct} leaked post-prior-tenure mechanic's lien '${mlSeg}' (maxPriorEndYear=${maxPriorEndYear})`
+              );
+            }
+          }
         }
       }
       if (acct === "0071270000013") {

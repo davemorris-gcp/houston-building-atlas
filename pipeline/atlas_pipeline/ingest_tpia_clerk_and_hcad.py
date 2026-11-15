@@ -48,7 +48,10 @@ import zipfile
 from atlas_pipeline.build_historical_ownership_2005_2026 import (
     HCAD_MAINFRAME_SENTINEL,
     MAX_OWNER_TENURES_PER_PARCEL,
+    OWNER_HISTORY_START_YEAR,
+    RE_OWNER_CARE_OF_TAIL,
     RollOwnerSnapshot,
+    are_same_owner_tenure,
     consolidate_account_tenures,
     encode_compact_owner_history,
     sanitize_wire_owner_name,
@@ -804,16 +807,63 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
     return []
 
 
+_PRIMARY_PARTY_STOPWORDS: frozenset[str] = frozenset({
+    "THE",
+    "ESTATE",
+    "OF",
+    "TRUST",
+    "TRUSTEE",
+    "TRUSTEES",
+    "HEIRS",
+    "ET",
+    "AL",
+    "ETAL",
+    "LIVING",
+    "REVOCABLE",
+    "FAMILY",
+})
+_RE_PARTY_DBA_TAIL = re.compile(r"\(\s*D\s*/?\s*B\s*/?\s*A\b.*$|\bD\s*/?\s*B\s*/?\s*A\b.*$", re.IGNORECASE)
+
+
+def _extract_primary_party_token(name: str) -> str:
+    """Extract the primary surname or lead entity token for Sec. 25.025 confidential party screening."""
+    if not name or is_confidential_owner_token(name) or is_placeholder_owner_token(name):
+        return ""
+    raw = RE_OWNER_CARE_OF_TAIL.sub("", str(name).upper())
+    raw = _RE_PARTY_DBA_TAIL.sub("", raw)
+    norm = re.sub(r"[^A-Z0-9\s]+", " ", raw).strip()
+    for tok in norm.split():
+        if len(tok) >= 2 and not tok.isdigit() and tok not in _PRIMARY_PARTY_STOPWORDS:
+            return tok
+    return ""
+
+
+def _party_matches_owner(party_name: str, owner_name: str, year: int) -> bool:
+    """Return True when a Clerk Grantor/Grantee string matches a consolidated HCAD roll owner name."""
+    if not party_name or not owner_name:
+        return False
+    if are_same_owner_tenure(
+        party_name, "", year, owner_name, "", year, has_intervening_deed=False
+    ):
+        return True
+    p_tok = _extract_primary_party_token(party_name)
+    o_tok = _extract_primary_party_token(owner_name)
+    return bool(p_tok and o_tok and p_tok == o_tok)
+
+
 def build_hcad_legal_crosswalk_index(
     real_acct_zip: Path | None,
     *,
     target_hcads: set[str] | None = None,
     max_parcels_per_legal_key: int = DEFAULT_MAX_PARCELS_PER_LEGAL_KEY,
+    out_conf_redacted_tokens: dict[str, set[str]] | None = None,
+    known_confidential_hcads: set[str] | None = None,
 ) -> tuple[dict[LegalCrosswalkKey, tuple[str, ...]], set[str], int]:
     """Stream `Real_acct_owner.zip -> real_acct.txt` to build an ambiguity-capped legal crosswalk + confidential set."""
     raw_buckets: dict[LegalCrosswalkKey, list[str]] = defaultdict(list)
     ambiguous_keys: set[LegalCrosswalkKey] = set()
     confidential_hcads: set[str] = set()
+    mailto_by_acct: dict[str, str] = {}
 
     if real_acct_zip is None or not Path(real_acct_zip).exists():
         return {}, confidential_hcads, 0
@@ -841,6 +891,12 @@ def build_hcad_legal_crosswalk_index(
                     mailto = parts[i_mailto].strip() if 0 <= i_mailto < len(parts) else ""
                     if mailto and is_confidential_owner_token(mailto):
                         confidential_hcads.add(acct)
+                    elif mailto and out_conf_redacted_tokens is not None and (
+                        target_hcads is None
+                        or acct in target_hcads
+                        or (known_confidential_hcads and acct in known_confidential_hcads)
+                    ):
+                        mailto_by_acct[acct] = mailto
                     if target_hcads is not None and acct not in target_hcads:
                         continue
                     l_lines = [
@@ -884,12 +940,31 @@ def build_hcad_legal_crosswalk_index(
                         continue
                     nm = parts[i_onm].strip()
                     aka = parts[i_oaka].strip() if 0 <= i_oaka < len(parts) else ""
-                    if (nm and is_confidential_owner_token(nm)) or (
+                    is_row_conf = (nm and is_confidential_owner_token(nm)) or (
                         aka and is_confidential_owner_token(aka)
+                    )
+                    acct_o = normalize_standing_hcad_token(parts[i_oa])
+                    if not acct_o:
+                        continue
+                    if is_row_conf:
+                        confidential_hcads.add(acct_o)
+                    if out_conf_redacted_tokens is not None and (
+                        is_row_conf
+                        or acct_o in confidential_hcads
+                        or (known_confidential_hcads and acct_o in known_confidential_hcads)
                     ):
-                        acct_o = normalize_standing_hcad_token(parts[i_oa])
-                        if acct_o:
-                            confidential_hcads.add(acct_o)
+                        for raw_s in (nm, aka):
+                            ptok = _extract_primary_party_token(raw_s)
+                            if ptok:
+                                out_conf_redacted_tokens.setdefault(acct_o, set()).add(ptok)
+
+    if out_conf_redacted_tokens is not None:
+        all_conf = confidential_hcads | (known_confidential_hcads or set())
+        for c_acct in all_conf:
+            m_str = mailto_by_acct.get(c_acct, "")
+            ptok = _extract_primary_party_token(m_str)
+            if ptok:
+                out_conf_redacted_tokens.setdefault(c_acct, set()).add(ptok)
 
     finalized = {k: tuple(sorted(v)) for k, v in raw_buckets.items() if 1 <= len(v) <= max_parcels_per_legal_key}
     return finalized, confidential_hcads, len(ambiguous_keys)
@@ -966,6 +1041,42 @@ def parse_existing_compact_deeds(
         if mkey:
             by_match[mkey] = (dt8, tok, deed_id, code, grantor, grantee)
     return by_match
+
+
+def _upsert_compact_deed_entry(
+    deed_map: dict[str, tuple[str, str, str, str, str, str]],
+    *,
+    dt8: str,
+    tok: str,
+    wcode: str = "D",
+    grantor: str = "",
+    grantee: str = "",
+    strip_parties: bool = False,
+    replace_partial_year_date: bool = False,
+) -> None:
+    """Upsert a single HCAD or Clerk conveyance into `deed_map` keyed by canonical `format_clerk_match_key(tok)`."""
+    mkey = format_clerk_match_key(tok)
+    if not mkey:
+        return
+    eff_gr = "" if strip_parties else grantor
+    eff_ge = "" if strip_parties else grantee
+    prev = deed_map.get(mkey)
+    if prev is None:
+        deed_map[mkey] = (dt8, tok, "", wcode or "D", eff_gr, eff_ge)
+        return
+    should_replace_dt = dt8 != "00000000" and (
+        prev[0] == "00000000" or (replace_partial_year_date and prev[0].endswith("0000"))
+    )
+    eff_dt = dt8 if should_replace_dt else prev[0]
+    eff_code = wcode if (prev[3] == "D" and wcode and wcode != "D") else prev[3]
+    deed_map[mkey] = (
+        eff_dt,
+        prev[1],
+        prev[2],
+        eff_code,
+        "" if strip_parties else (eff_gr or prev[4]),
+        "" if strip_parties else (eff_ge or prev[5]),
+    )
 
 
 def encode_compact_deed_records(
@@ -2027,6 +2138,7 @@ def run_tpia_ingestion(
                 if is_core_acct or (len(dt8_s) >= 4 and dt8_s[:4].isdigit() and int(dt8_s[:4]) < 2005):
                     tier1_inst_to_hcads[mkey].add(norm_a)
 
+    conf_oh_hcads: set[str] = set()
     for pfx, ohpath in iter_json_or_gzip_shard_keys(oh_dir, "owners_", r"\d{3}"):
         ohdoc = read_json_or_gzip_path(ohpath)
         oh_shards[pfx] = {str(k): str(v) for k, v in ohdoc.items() if isinstance(v, str)}
@@ -2035,7 +2147,15 @@ def run_tpia_ingestion(
             if not norm_a:
                 continue
             target_hcads.add(norm_a)
-            is_core_acct = (not is_large_clerk_dump) or (not core_hcads) or (norm_a in core_hcads)
+            is_conf_oh = norm_a in confidential_hcads
+            if is_conf_oh:
+                conf_oh_hcads.add(norm_a)
+            is_core_acct = (
+                (not is_large_clerk_dump)
+                or (not core_hcads)
+                or (norm_a in core_hcads)
+                or is_conf_oh
+            )
             for seg in wire.split("|"):
                 parts = seg.split("~", 3)
                 if len(parts) >= 3:
@@ -2049,11 +2169,18 @@ def run_tpia_ingestion(
                                 tier1_inst_to_hcads[mkey].add(norm_a)
 
     # 2. Build HCAD legal crosswalk index + confidential set from Real_acct_owner.zip (when available)
-    legal_target_hcads = core_hcads if (is_large_clerk_dump and core_hcads) else (target_hcads if target_hcads else None)
+    conf_redacted_tokens_by_acct: dict[str, set[str]] = defaultdict(set)
+    legal_target_hcads = (
+        (core_hcads | conf_oh_hcads)
+        if (is_large_clerk_dump and core_hcads)
+        else (target_hcads if target_hcads else None)
+    )
     legal_index, zip_conf_hcads, ambiguous_legal_keys_count = build_hcad_legal_crosswalk_index(
         eff_acct_zip if eff_acct_zip.exists() else None,
         target_hcads=legal_target_hcads,
         max_parcels_per_legal_key=max_parcels_per_legal_key,
+        out_conf_redacted_tokens=conf_redacted_tokens_by_acct,
+        known_confidential_hcads=confidential_hcads,
     )
     confidential_hcads |= zip_conf_hcads
 
@@ -2168,29 +2295,109 @@ def run_tpia_ingestion(
         existing_wire = oh_shards.get(pfx, {}).get(conf_acct, "")
         base_snaps, base_deeds = expand_compact_owner_history_to_snapshots(existing_wire)
         extra_snaps = list(hcad_res["snapshots_by_acct"].get(conf_acct, []))
-        raw_combined = base_snaps + extra_snaps
+        by_year_raw: dict[int, RollOwnerSnapshot] = {s.year: s for s in base_snaps}
+        for s_ext in extra_snaps:
+            prev_s = by_year_raw.get(s_ext.year)
+            by_year_raw[s_ext.year] = (
+                RollOwnerSnapshot(
+                    year=s_ext.year,
+                    owner_name=s_ext.owner_name or prev_s.owner_name,
+                    acq_dt=s_ext.acq_dt or prev_s.acq_dt,
+                    is_confidential=bool(s_ext.is_confidential or prev_s.is_confidential),
+                )
+                if prev_s is not None
+                else s_ext
+            )
+        raw_combined = [by_year_raw[yr] for yr in sorted(by_year_raw)]
+
+        redacted_tokens: set[str] = set(conf_redacted_tokens_by_acct.get(conf_acct, ()))
+        redacted_acq_dts: set[str] = set()
+        redacted_match_keys: set[str] = set()
+        active_seg_min_year: int | None = None
+
+        if existing_wire:
+            for seg in existing_wire.split("|"):
+                parts = seg.strip().split("~")
+                if len(parts) < 4:
+                    continue
+                m_sp = re.fullmatch(r"(\d{4})(?:-(\d{4}))?", parts[0].strip())
+                if not m_sp:
+                    continue
+                y0 = int(m_sp.group(1))
+                y1 = int(m_sp.group(2)) if m_sp.group(2) else y0
+                acq_s = parts[1].strip()
+                deed_s = parts[2].strip()
+                owner_s = "~".join(parts[3:]).strip()
+                if y1 >= active_tax_year or is_confidential_owner_token(owner_s):
+                    if active_seg_min_year is None or y0 < active_seg_min_year:
+                        active_seg_min_year = y0
+                    ptok = _extract_primary_party_token(owner_s)
+                    if ptok:
+                        redacted_tokens.add(ptok)
+                    if len(acq_s) == 8 and acq_s.isdigit():
+                        redacted_acq_dts.add(acq_s)
+                    if deed_s:
+                        mk_r = format_clerk_match_key(deed_s)
+                        if mk_r:
+                            redacted_match_keys.add(mk_r)
+
         has_active_in_base = any(s.year >= active_tax_year for s in base_snaps)
         nonconf_base_years = [
             s.year
             for s in base_snaps
-            if not s.is_confidential and not is_confidential_owner_token(s.owner_name)
+            if not s.is_confidential
+            and not is_confidential_owner_token(s.owner_name)
+            and _extract_primary_party_token(s.owner_name) not in redacted_tokens
+            and (active_seg_min_year is None or s.year < active_seg_min_year)
         ]
-        conf_floor_year = (
-            max(nonconf_base_years) + 1
-            if (nonconf_base_years and not has_active_in_base and max(nonconf_base_years) < active_tax_year)
-            else active_tax_year
-        )
+        nonconf_extra_years = [
+            s.year
+            for s in extra_snaps
+            if not s.is_confidential
+            and not is_confidential_owner_token(s.owner_name)
+            and _extract_primary_party_token(s.owner_name) not in redacted_tokens
+            and s.year < OWNER_HISTORY_START_YEAR
+        ]
+        if active_seg_min_year is not None:
+            conf_floor_year = active_seg_min_year
+        elif nonconf_base_years and not has_active_in_base and max(nonconf_base_years) < active_tax_year:
+            conf_floor_year = max(nonconf_base_years) + 1
+        elif not base_snaps and nonconf_extra_years:
+            conf_floor_year = max(nonconf_extra_years) + 1
+        else:
+            conf_floor_year = active_tax_year
+
+        for s in raw_combined:
+            ptok = _extract_primary_party_token(s.owner_name)
+            if (
+                s.year >= conf_floor_year
+                or s.is_confidential
+                or is_confidential_owner_token(s.owner_name)
+                or (ptok and ptok in redacted_tokens)
+                or (s.acq_dt and s.acq_dt in redacted_acq_dts)
+            ):
+                if ptok:
+                    redacted_tokens.add(ptok)
+                if len(s.acq_dt) == 8 and s.acq_dt.isdigit():
+                    redacted_acq_dts.add(s.acq_dt)
+
         combined_snaps = [
             RollOwnerSnapshot(
                 year=s.year,
                 owner_name=s.owner_name,
-                is_confidential=True if s.year >= conf_floor_year else s.is_confidential,
+                is_confidential=bool(
+                    s.year >= conf_floor_year
+                    or s.is_confidential
+                    or is_confidential_owner_token(s.owner_name)
+                    or (_extract_primary_party_token(s.owner_name) in redacted_tokens)
+                    or (s.acq_dt and s.acq_dt in redacted_acq_dts)
+                ),
                 acq_dt=s.acq_dt,
             )
             for s in raw_combined
         ]
         seen_years = {s.year for s in combined_snaps}
-        synth_acq_dt = f"{conf_floor_year}0101" if conf_floor_year < active_tax_year else ""
+        synth_acq_dt = f"{conf_floor_year}0101" if conf_floor_year <= active_tax_year else ""
         for redact_yr in range(conf_floor_year, active_tax_year + 1):
             if redact_yr not in seen_years:
                 combined_snaps.append(
@@ -2201,10 +2408,38 @@ def run_tpia_ingestion(
                         acq_dt=synth_acq_dt,
                     )
                 )
-        conf_deed_pairs: list[tuple[str, str]] = list(base_deeds)
-        for dt8, tok, _gr, _ge in hcad_res["deeds_by_acct"].get(conf_acct, ()):
-            conf_deed_pairs.append((dt8, tok))
-        for dt8, tok, _wc, _gr, _ge in clerk_conveyances_by_acct.get(conf_acct, ()):
+
+        nonconf_snaps = [
+            s
+            for s in combined_snaps
+            if not s.is_confidential and not is_confidential_owner_token(s.owner_name)
+        ]
+        conf_deed_pairs: list[tuple[str, str]] = [
+            (dt8, tok)
+            for dt8, tok in base_deeds
+            if dt8 not in redacted_acq_dts and format_clerk_match_key(tok) not in redacted_match_keys
+        ]
+        conf_candidate_deeds = [
+            (dt8, tok, gr, ge) for dt8, tok, gr, ge in hcad_res["deeds_by_acct"].get(conf_acct, ())
+        ] + [
+            (dt8, tok, gr, ge)
+            for dt8, tok, _wc, gr, ge in clerk_conveyances_by_acct.get(conf_acct, ())
+        ]
+        for dt8, tok, gr, ge in conf_candidate_deeds:
+            mk = format_clerk_match_key(tok)
+            if (
+                not mk
+                or mk in redacted_match_keys
+                or dt8 in redacted_acq_dts
+                or is_confidential_owner_token(gr)
+                or is_confidential_owner_token(ge)
+                or _extract_primary_party_token(gr) in redacted_tokens
+                or _extract_primary_party_token(ge) in redacted_tokens
+                or (len(dt8) >= 4 and dt8[:4].isdigit() and int(dt8[:4]) >= conf_floor_year)
+            ):
+                continue
+            if ge and not any(_party_matches_owner(ge, s.owner_name, s.year) for s in nonconf_snaps):
+                continue
             conf_deed_pairs.append((dt8, tok))
 
         prior_tenures = (
@@ -2212,7 +2447,7 @@ def run_tpia_ingestion(
                 combined_snaps,
                 deeds=conf_deed_pairs,
                 active_tax_year=active_tax_year,
-                max_tenures=MAX_OWNER_TENURES_PER_PARCEL,
+                max_tenures=max(MAX_OWNER_TENURES_PER_PARCEL, existing_wire.count("|") + 1),
             )
             if combined_snaps
             else []
@@ -2238,9 +2473,174 @@ def run_tpia_ingestion(
         prec = permit_shards.get(pfx, {}).get(conf_acct)
         if isinstance(prec, dict):
             before_prec = dict(prec)
-            for k_rm in ("d", "ot", "pid", "m", "co", "flip", *TPIA_PERMIT_SHARD_KEYS):
+            for k_rm in ("ot", "pid", "m", "co", "flip", "dt_lender"):
                 prec.pop(k_rm, None)
             prec["conf"] = 1
+
+            if not prior_tenures:
+                prec.pop("d", None)
+                prec.pop("ml", None)
+            else:
+                max_prior_end_year = max(t.end_year for t in prior_tenures)
+                for s in raw_combined:
+                    if s.year > max_prior_end_year:
+                        ptok = _extract_primary_party_token(s.owner_name)
+                        if ptok:
+                            redacted_tokens.add(ptok)
+                        if len(s.acq_dt) == 8 and s.acq_dt.isdigit():
+                            redacted_acq_dts.add(s.acq_dt)
+
+                paired_prior_by_mkey = {
+                    format_clerk_match_key(t.deed_token): t
+                    for t in prior_tenures
+                    if t.deed_token and format_clerk_match_key(t.deed_token)
+                }
+                earliest_prior = prior_tenures[-1]
+                earliest_cutoff_dt8 = (
+                    earliest_prior.acq_dt
+                    if (len(earliest_prior.acq_dt) == 8 and earliest_prior.acq_dt.isdigit())
+                    else (
+                        "19880102"
+                        if earliest_prior.acq_dt == HCAD_MAINFRAME_SENTINEL
+                        else f"{earliest_prior.start_year - 1}1231"
+                    )
+                )
+                earliest_cutoff_yr = (
+                    int(earliest_cutoff_dt8[:4]) if earliest_cutoff_dt8[:4].isdigit() else 0
+                )
+                is_core_conf = (
+                    (not is_large_clerk_dump) or (not core_hcads) or (conf_acct in core_hcads)
+                )
+
+                raw_conf_deed_map = parse_existing_compact_deeds(str(prec.get("d") or ""))
+                for dt8, tok, gr, ge in hcad_res["deeds_by_acct"].get(conf_acct, ()):
+                    _upsert_compact_deed_entry(
+                        raw_conf_deed_map,
+                        dt8=dt8,
+                        tok=tok,
+                        wcode="D",
+                        grantor=gr,
+                        grantee=ge,
+                    )
+                for dt8, tok, wcode, gr, ge in clerk_conveyances_by_acct.get(conf_acct, ()):
+                    _upsert_compact_deed_entry(
+                        raw_conf_deed_map,
+                        dt8=dt8,
+                        tok=tok,
+                        wcode=wcode or "D",
+                        grantor=gr,
+                        grantee=ge,
+                        replace_partial_year_date=True,
+                    )
+
+                safe_conf_deeds: list[tuple[str, str, str, str, str, str]] = []
+                for mk, (dt8, tok, deed_id, code, gr, ge) in raw_conf_deed_map.items():
+                    if (
+                        len(dt8) != 8
+                        or not dt8[:4].isdigit()
+                        or dt8 == "00000000"
+                        or mk in redacted_match_keys
+                        or is_confidential_owner_token(gr)
+                        or is_confidential_owner_token(ge)
+                        or _extract_primary_party_token(gr) in redacted_tokens
+                        or _extract_primary_party_token(ge) in redacted_tokens
+                    ):
+                        continue
+                    d_yr = int(dt8[:4])
+                    paired_t = paired_prior_by_mkey.get(mk)
+                    if dt8 in redacted_acq_dts and paired_t is None:
+                        continue
+                    if paired_t is not None:
+                        if d_yr > paired_t.end_year:
+                            continue
+                        if not gr and not ge:
+                            continue
+                        if ge and not _party_matches_owner(ge, paired_t.owner_name, paired_t.start_year):
+                            continue
+                        if not ge and gr and _party_matches_owner(gr, paired_t.owner_name, paired_t.start_year):
+                            continue
+                        safe_conf_deeds.append(
+                            (dt8, tok, deed_id, code, gr, ge or paired_t.owner_name)
+                        )
+                        continue
+                    if (
+                        is_core_conf
+                        and 0 < d_yr <= earliest_cutoff_yr
+                        and d_yr < max_prior_end_year
+                        and dt8 <= earliest_cutoff_dt8
+                    ):
+                        if (
+                            gr
+                            and _party_matches_owner(gr, earliest_prior.owner_name, earliest_prior.start_year)
+                            and not _party_matches_owner(ge, earliest_prior.owner_name, earliest_prior.start_year)
+                        ):
+                            continue
+                        safe_conf_deeds.append((dt8, tok, deed_id, code, gr, ge))
+
+                if safe_conf_deeds:
+                    prec["d"] = encode_compact_deed_records(safe_conf_deeds)
+                else:
+                    prec.pop("d", None)
+
+                if is_core_conf:
+                    raw_ml_candidates: list[tuple[str, str, str, str, str]] = []
+                    prev_ml_str = str(prec.get("ml") or "").strip()
+                    if prev_ml_str:
+                        for seg in prev_ml_str.split("|"):
+                            ps = seg.split("~")
+                            if len(ps) >= 3 and ps[1]:
+                                raw_ml_candidates.append(
+                                    (
+                                        ps[0],
+                                        ps[1],
+                                        ps[2],
+                                        ps[3] if len(ps) > 3 else "",
+                                        ps[4] if len(ps) > 4 else "",
+                                    )
+                                )
+                    raw_ml_candidates.extend(clerk_ml_by_acct.get(conf_acct, ()))
+                    safe_ml_candidates: list[tuple[str, str, str, str, str]] = []
+                    for m_dt, m_tok, m_con, m_own, m_amt in raw_ml_candidates:
+                        if (
+                            len(m_dt) != 8
+                            or not m_dt[:4].isdigit()
+                            or m_dt == "00000000"
+                            or m_dt in redacted_acq_dts
+                            or is_confidential_owner_token(m_con)
+                            or is_confidential_owner_token(m_own)
+                            or _extract_primary_party_token(m_con) in redacted_tokens
+                            or _extract_primary_party_token(m_own) in redacted_tokens
+                        ):
+                            continue
+                        ml_yr = int(m_dt[:4])
+                        if ml_yr >= max_prior_end_year:
+                            continue
+                        if ml_yr <= earliest_cutoff_yr and m_dt <= earliest_cutoff_dt8:
+                            safe_ml_candidates.append((m_dt, m_tok, m_con, m_own, m_amt))
+                        elif m_own and any(
+                            t.start_year <= ml_yr <= t.end_year
+                            and _party_matches_owner(m_own, t.owner_name, ml_yr)
+                            for t in prior_tenures
+                        ):
+                            safe_ml_candidates.append((m_dt, m_tok, m_con, m_own, m_amt))
+                        elif m_own and any(
+                            t.start_year <= ml_yr <= t.end_year
+                            and _party_matches_owner(m_con, t.owner_name, ml_yr)
+                            for t in prior_tenures
+                        ):
+                            safe_ml_candidates.append((m_dt, m_tok, m_own, m_con, m_amt))
+                    merged_conf_ml = (
+                        merge_compact_mechanics_liens("", safe_ml_candidates)
+                        if safe_ml_candidates
+                        else ""
+                    )
+                    if merged_conf_ml:
+                        prec["ml"] = merged_conf_ml
+                    else:
+                        prec.pop("ml", None)
+                else:
+                    prec.pop("ml", None)
+
             if prec != before_prec:
                 permit_shards[pfx][conf_acct] = prec
                 touched_permit_prefixes.add(pfx)
@@ -2280,7 +2680,7 @@ def run_tpia_ingestion(
             combined_snaps,
             deeds=deed_pairs,
             active_tax_year=active_tax_year,
-            max_tenures=MAX_OWNER_TENURES_PER_PARCEL,
+            max_tenures=max(MAX_OWNER_TENURES_PER_PARCEL, existing_wire.count("|") + 1),
         )
         new_wire = encode_compact_owner_history(tenures)
         if not new_wire:
@@ -2329,45 +2729,27 @@ def run_tpia_ingestion(
                 for mk, v in deed_map.items()
             }
         for dt8, tok, grantor, grantee in hcad_res["deeds_by_acct"].get(acct, ()):
-            mkey = format_clerk_match_key(tok)
-            if not mkey:
-                continue
-            eff_gr = "" if strip_parties else grantor
-            eff_ge = "" if strip_parties else grantee
-            prev = deed_map.get(mkey)
-            if prev is None:
-                deed_map[mkey] = (dt8, tok, "", "D", eff_gr, eff_ge)
-            else:
-                eff_dt = dt8 if (dt8 != "00000000" and prev[0] == "00000000") else prev[0]
-                deed_map[mkey] = (
-                    eff_dt,
-                    prev[1],
-                    prev[2],
-                    prev[3],
-                    "" if strip_parties else (eff_gr or prev[4]),
-                    "" if strip_parties else (eff_ge or prev[5]),
-                )
+            _upsert_compact_deed_entry(
+                deed_map,
+                dt8=dt8,
+                tok=tok,
+                wcode="D",
+                grantor=grantor,
+                grantee=grantee,
+                strip_parties=strip_parties,
+            )
 
         for dt8, tok, wcode, grantor, grantee in clerk_conveyances_by_acct.get(acct, ()):
-            mkey = format_clerk_match_key(tok)
-            if not mkey:
-                continue
-            eff_gr = "" if strip_parties else grantor
-            eff_ge = "" if strip_parties else grantee
-            prev = deed_map.get(mkey)
-            if prev is None:
-                deed_map[mkey] = (dt8, tok, "", wcode or "D", eff_gr, eff_ge)
-            else:
-                eff_dt = dt8 if (dt8 != "00000000" and (prev[0] == "00000000" or prev[0].endswith("0000"))) else prev[0]
-                eff_code = wcode if (prev[3] == "D" and wcode and wcode != "D") else prev[3]
-                deed_map[mkey] = (
-                    eff_dt,
-                    prev[1],
-                    prev[2],
-                    eff_code,
-                    "" if strip_parties else (eff_gr or prev[4]),
-                    "" if strip_parties else (eff_ge or prev[5]),
-                )
+            _upsert_compact_deed_entry(
+                deed_map,
+                dt8=dt8,
+                tok=tok,
+                wcode=wcode or "D",
+                grantor=grantor,
+                grantee=grantee,
+                strip_parties=strip_parties,
+                replace_partial_year_date=True,
+            )
 
         if deed_map:
             rec["d"] = encode_compact_deed_records(list(deed_map.values()))
@@ -2528,7 +2910,7 @@ def run_tpia_ingestion(
             )
             eff_span = (
                 [min(min_observed_roll_year, 2005), active_tax_year]
-                if min_observed_roll_year is not None
+                if hcad_res["snapshot_rows_parsed"] > 0 and min_observed_roll_year is not None
                 else None
             )
             update_pmtiles_manifest_v3(
