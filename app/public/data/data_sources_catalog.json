@@ -755,10 +755,10 @@
             "volumeCoveragePct": 98,
             "extractionFidelityPct": 93,
             "fidelityTier": "pass2_complete",
-            "coveredSummary": "509 COH Landmarks (482 / 509 [94.7%] official PDFs + 490 / 501 standing HCAD links + 56 PDF builders & 40 costs), 23 / 23 Historic Districts (6,065 / 6,169 survey rows [98.3%] matched across 5,900 HCAD parcels + 329 Pass-2 dual-source pre-1927 audit queue overrides), 1 Heritage District & 60 Potential HDs",
+            "coveredSummary": "509 COH Landmarks (482 / 509 [94.7%] official PDFs + 490 / 501 standing HCAD links + 56 PDF builders & 40 costs), 23 / 23 Historic Districts (6,065 / 6,169 survey rows [98.3%] matched across 5,900 HCAD parcels + 631 Pass-2 dual-source pre-1927 audit queue overrides), 1 Heritage District & 60 Potential HDs",
             "universeSummary": "509 Designated COH Landmarks & Protected Landmarks, 23 Designated Historic Districts (6,169 survey rows), 1 Heritage District, and 60 Surveyed Potential Historic Districts",
             "whatIsMissing": "(1) 27 post-2016 COH Landmark Designation Report PDFs remain unpublished on houstontx.gov (tracked in Missing_Landmark_PDFs_TPIA); (2) Only 104 of the 6,169 Historic District survey rows (1.7%, mostly 0-numbered vacant lots or unplatted parkways) lack a direct 13-digit HCAD match after Pass-2 compound-street, range, corner-lot, and block+lot resolution.",
-            "pass2AndGapClosurePlan": "(Pass 2A Complete) Extracted original builder/contractor, construction cost, and mechanic's lien/permit dates across all 628 cached Landmark PDF texts; (Pass 2B Complete) Lifted Historic District survey parcel linkage from 5,604 to 6,065 / 6,169 rows (98.3%, +461 rows across 5,900 HCAD parcels) and promoted 329 replacement-safe dual-source pre-1927 HPO Survey + City Directory audit queue overrides; (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
+            "pass2AndGapClosurePlan": "(Pass 2A Complete) Extracted original builder/contractor, construction cost, and mechanic's lien/permit dates across all 628 cached Landmark PDF texts; (Pass 2B Complete) Lifted Historic District survey parcel linkage from 5,604 to 6,065 / 6,169 rows (98.3%, +461 rows across 5,900 HCAD parcels) and promoted 631 replacement-safe dual-source pre-1927 HPO Survey + City Directory + Sanborn audit queue overrides (resolving 704 / 2,798 audit queue items); (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
           }
         }
       ]

@@ -12,6 +12,7 @@ pre-1927 historic structures into `curated_overrides.json`, `buildings.geojson`,
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 from pathlib import Path
@@ -40,12 +41,14 @@ DATA_DIR = REPO_ROOT / "app" / "public" / "data"
 CACHE_DIR = REPO_ROOT / "pipeline" / "cache"
 
 ROUNDED_DECADE_PLACEHOLDERS: tuple[int, ...] = (1900, 1910, 1920, 1930, 1940, 1950)
+ALLOWED_PRE1960_CURR_YEARS: tuple[int, ...] = tuple(range(1850, 1961))
 
 # Un-overridden HCAD IDs referenced in unit/pipeline test fixtures that must remain untouched
 PROTECTED_TEST_FIXTURE_HCADS: frozenset[str] = frozenset(
     {
         "0010020000001",
         "0010020000016",
+        "0010160000011",
         "0010190000008",
         "0010330000012",
         "0011820000001",
@@ -100,6 +103,50 @@ PROTECTED_TEST_FIXTURE_HCADS: frozenset[str] = frozenset(
 )
 
 
+def _point_in_ring(lng: float, lat: float, ring: list[list[float]]) -> bool:
+    """Ray-casting point-in-ring check for `[lng, lat]` against a GeoJSON linear ring."""
+    inside = False
+    n = len(ring)
+    if n < 3:
+        return False
+    j = n - 1
+    for i in range(n):
+        xi, yi = float(ring[i][0]), float(ring[i][1])
+        xj, yj = float(ring[j][0]), float(ring[j][1])
+        if (yi > lat) != (yj > lat) and lng < (xj - xi) * (lat - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def _point_in_geojson_geom(lng: float, lat: float, geom: dict[str, Any] | None) -> bool:
+    """Return True when `(lng, lat)` lies inside a GeoJSON Polygon or MultiPolygon."""
+    if not isinstance(geom, dict):
+        return False
+    gtype = geom.get("type")
+    coords = geom.get("coordinates") or []
+    if gtype == "Polygon" and coords:
+        if not _point_in_ring(lng, lat, coords[0]):
+            return False
+        return not any(_point_in_ring(lng, lat, hole) for hole in coords[1:])
+    if gtype == "MultiPolygon" and coords:
+        return any(
+            _point_in_geojson_geom(lng, lat, {"type": "Polygon", "coordinates": poly})
+            for poly in coords
+        )
+    return False
+
+
+def _match_sanborn_volumes(
+    ll: list[Any] | None, sb_bounds: list[tuple[dict[str, Any], str]]
+) -> list[str]:
+    """Return matching Sanborn Fire Insurance Map volume titles containing `ll = [lng, lat]`."""
+    if not isinstance(ll, list) or len(ll) < 2:
+        return []
+    lng, lat = float(ll[0]), float(ll[1])
+    return [title for geom, title in sb_bounds if _point_in_geojson_geom(lng, lat, geom)]
+
+
 def calibrate_dual_source_pre1927_audit_queue(
     *,
     data_dir: Path | None = None,
@@ -115,18 +162,38 @@ def calibrate_dual_source_pre1927_audit_queue(
     queue_path = ddir / "historical_audit_queue.json"
     hpo_path = ddir / "hpo_district_surveys.json"
     cd_path = ddir / "citydir_index.json"
+    sanborn_path = ddir / "sanborn_catalog.json"
     overrides_path = ddir / "curated_overrides.json"
     buildings_path = ddir / "buildings.geojson"
     search_path = ddir / "search_index.json"
     stats_path = ddir / "stats_summary.json"
     permits_dir = ddir / "permits"
+    triage_csv_path = cdir / "triage_1927_cutoff_coh.csv"
 
     q_doc = json.loads(queue_path.read_text(encoding="utf-8"))
     hpo_doc = json.loads(hpo_path.read_text(encoding="utf-8"))
     cd_doc = json.loads(cd_path.read_text(encoding="utf-8"))
+    sb_doc = json.loads(sanborn_path.read_text(encoding="utf-8")) if sanborn_path.exists() else {}
     ov_doc = json.loads(overrides_path.read_text(encoding="utf-8"))
     blds_doc = json.loads(buildings_path.read_text(encoding="utf-8"))
     search_idx = json.loads(search_path.read_text(encoding="utf-8"))
+
+    sb_bounds: list[tuple[dict[str, Any], str]] = [
+        (
+            v["geometry"],
+            str((v.get("properties") or {}).get("title") or (v.get("properties") or {}).get("id") or "Sanborn"),
+        )
+        for v in (sb_doc.get("volume_boundaries") or [])
+        if isinstance(v, dict) and isinstance(v.get("geometry"), dict)
+    ]
+    plat_yr_by_hcad: dict[str, int] = {}
+    if triage_csv_path.exists():
+        with triage_csv_path.open(encoding="utf-8") as f_csv:
+            for row in csv.DictReader(f_csv):
+                rhc = str(row.get("hcad_num") or "").strip()
+                m_py = re.search(r"\((\d{4})", str(row.get("plat_name_and_year") or ""))
+                if rhc and m_py:
+                    plat_yr_by_hcad[rhc] = int(m_py.group(1))
 
     overrides: dict[str, Any] = ov_doc.get("overrides", ov_doc)
     hpo_by_hcad: dict[str, list[str]] = hpo_doc.get("by_hcad") or {}
@@ -159,7 +226,6 @@ def calibrate_dual_source_pre1927_audit_queue(
                 and hc not in all_excluded
                 and hc not in overrides
                 and hc not in overridden_base_hcads
-                and hc in hpo_by_hcad
             ):
                 cand_hcads.add(hc)
 
@@ -203,13 +269,24 @@ def calibrate_dual_source_pre1927_audit_queue(
             continue
 
         cama_yrs = [int(y) for y in (bldg_years.get(hc) or []) if int(y or 0) > 0]
-        if any(y > 1960 for y in cama_yrs):
+        if ay > 1960 or any(y > 1960 for y in cama_yrs):
             continue
 
+        all_f = blds_by_hcad.get(hc) or []
+        if not all_f or any(
+            int((f.get("properties") or {}).get("year_built") or 0) > 1960 for f in all_f
+        ):
+            continue
+        if any(
+            re.search(r"#b[2-9]\d*$", str((f.get("properties") or {}).get("id") or ""))
+            for f in all_f
+        ):
+            continue
         target_blds = [
             f
-            for f in (blds_by_hcad.get(hc) or [])
+            for f in all_f
             if "#" not in str((f.get("properties") or {}).get("id") or "")
+            or str((f.get("properties") or {}).get("id") or "") == f"{hc}#b1"
         ]
         if not target_blds:
             continue
@@ -219,33 +296,35 @@ def calibrate_dual_source_pre1927_audit_queue(
         if len(distinct_b_yrs) != 1 or any(y > 1960 for y in distinct_b_yrs):
             continue
 
+        raw_dist = str(it.get("d") or "").strip()
+        in_hd = bool(raw_dist and raw_dist != "Outside Historic District")
         sids = hpo_by_hcad.get(hc) or []
         srows = [hpo_items[s] for s in sids if s in hpo_items]
-        c_rows = [
-            r
-            for r in srows
-            if r.get("st") in ("C", "PC") and 1850 <= int(r.get("y") or 0) <= 1926
-        ]
-        if not c_rows:
-            continue
-        if len(srows) > 1 and any(r.get("st") not in ("C", "PC") for r in srows):
+        if any(r.get("st") in ("NC", "N", "V") for r in srows) or it.get("cnt") == "Non-Contributing":
             continue
         if len(target_blds) > 1 and any(
             sec.get("s") not in ("C", "PC") for r in srows for sec in (r.get("sec") or [])
         ):
             continue
-
-        best_r = c_rows[0]
-        hpo_yr = int(best_r["y"])
-        hpo_yr_disp = str(best_r.get("yr") or hpo_yr)
-        st_full = (
-            "Contributing" if best_r.get("st") == "C" else "Potentially Contributing"
+        c_rows = [r for r in srows if r.get("st") in ("C", "PC")]
+        dated_c_rows = [r for r in c_rows if 1850 <= int(r.get("y") or 0) <= 1926]
+        has_hpo_contrib = bool(c_rows) or it.get("cnt") in (
+            "Contributing",
+            "Potentially Contributing",
         )
-        d_idx = int(best_r.get("d") or 0)
+        best_r = dated_c_rows[0] if dated_c_rows else (c_rows[0] if c_rows else {})
+        hpo_yr = int(best_r.get("y") or 0)
+        hpo_yr_disp = str(best_r.get("yr") or (hpo_yr if hpo_yr > 0 else "Contributing"))
+        st_full = (
+            "Contributing"
+            if best_r.get("st") == "C" or it.get("cnt") == "Contributing"
+            else "Potentially Contributing"
+        )
+        d_idx = best_r.get("d")
         dist_name = (
-            hpo_dist_order[d_idx]
-            if 0 <= d_idx < len(hpo_dist_order)
-            else str(it.get("d") or "Outside Historic District")
+            hpo_dist_order[int(d_idx)]
+            if isinstance(d_idx, int) and 0 <= int(d_idx) < len(hpo_dist_order)
+            else (raw_dist or "Outside Historic District")
         )
         dist_meta = hpo_dists.get(dist_name) or {}
         inv_pdf_url = str(dist_meta.get("inventory_pdf_url") or "")
@@ -253,28 +332,60 @@ def calibrate_dual_source_pre1927_audit_queue(
         usable_style = raw_style if is_usable_hpo_survey_style(raw_style) else ""
 
         cd_rec = cd_by_hcad.get(hc) or {}
-        cd_yr = int(cd_rec.get("e") or 0)
-        cd_ptr, cd_url = resolve_citydir_cdm_url(cd_rec, "") if cd_rec else (0, "")
+        cd_yr = int(cd_rec.get("e") or it.get("sy") or 0)
+        cd_ptr, cd_url = (
+            resolve_citydir_cdm_url(cd_rec, "")
+            if cd_rec
+            else (int(it.get("dp") or 0), str(it.get("u") or ""))
+        )
+        sb_titles = _match_sanborn_volumes(it.get("ll"), sb_bounds)
+        plat_yr = plat_yr_by_hcad.get(hc, 0)
+        if not plat_yr and cat == "1930_PLACEHOLDER_PRE1927_PLAT":
+            m_ev = re.search(r"\((\d{4})\)", str(it.get("ev") or ""))
+            if m_ev:
+                plat_yr = int(m_ev.group(1))
 
         cal_yr = 0
+        src_type = "COH HPO Historic District Survey"
+        ver_by = "COH HPO Historic District Survey"
+        contrib_val = "Contributing"
         if cat == "1930_PLACEHOLDER_PRE1927_PLAT":
-            if 1866 <= cd_yr <= 1926:
+            if has_hpo_contrib and 1850 <= hpo_yr <= 1926:
+                if 1866 <= cd_yr <= 1926:
+                    if cd_yr < hpo_yr and (hpo_yr - cd_yr) > 10:
+                        continue
+                    cal_yr = min(hpo_yr, cd_yr)
+                else:
+                    cal_yr = hpo_yr
+            elif has_hpo_contrib and cd_yr == 1927 and sb_titles and 0 < plat_yr <= 1926:
+                cal_yr = 1927
+            elif not in_hd and 1866 <= cd_yr <= 1926 and sb_titles and 0 < plat_yr <= 1926:
+                cal_yr = cd_yr
+                src_type = "Houston City Directory"
+                ver_by = "Houston City Directory & Sanborn Map"
+                contrib_val = "Outside Historic District"
+        elif cat == "CITY_DIRECTORY_EARLIER_THAN_HCAD":
+            if not (1866 <= cd_yr <= 1926):
+                continue
+            if has_hpo_contrib and 1850 <= hpo_yr <= 1926:
                 if cd_yr < hpo_yr and (hpo_yr - cd_yr) > 10:
                     continue
-                cal_yr = min(hpo_yr, cd_yr)
-            else:
-                cal_yr = hpo_yr
-        elif cat == "CITY_DIRECTORY_EARLIER_THAN_HCAD":
-            if ay not in ROUNDED_DECADE_PLACEHOLDERS or not (1866 <= cd_yr <= 1926):
-                continue
-            if cd_yr < hpo_yr and (hpo_yr - cd_yr) > 10:
-                continue
-            if abs(hpo_yr - cd_yr) <= 10 or (
-                cd_yr >= hpo_yr and 1911 <= cd_yr <= 1926 and 1880 <= hpo_yr <= 1926
-            ):
-                cal_yr = min(hpo_yr, cd_yr)
+                if (
+                    ay in ROUNDED_DECADE_PLACEHOLDERS
+                    or bool(sb_titles)
+                    or abs(hpo_yr - cd_yr) <= 10
+                    or (cd_yr >= hpo_yr and 1911 <= cd_yr <= 1926 and 1880 <= hpo_yr <= 1926)
+                ):
+                    cal_yr = min(hpo_yr, cd_yr)
+            elif in_hd and has_hpo_contrib and hpo_yr == 0 and sb_titles:
+                cal_yr = cd_yr
+            elif not in_hd and sb_titles and (0 < plat_yr <= 1926 or cd_yr >= 1900):
+                cal_yr = cd_yr
+                src_type = "Houston City Directory"
+                ver_by = "Houston City Directory & Sanborn Map"
+                contrib_val = "Outside Historic District"
 
-        if not (1850 <= cal_yr <= 1926 and cal_yr <= ay - 2):
+        if not (1850 <= cal_yr <= 1927 and cal_yr <= ay - 2):
             continue
 
         bp0 = target_blds[0].get("properties") or {}
@@ -282,27 +393,38 @@ def calibrate_dual_source_pre1927_audit_queue(
         cd_part = (
             f"; corroborated by {cd_yr} Morrison & Fourmy Houston City Directory"
             + (f" (ContentDM #{cd_ptr})" if cd_ptr > 0 else "")
-            if 1866 <= cd_yr <= 1926
+            if 1866 <= cd_yr <= 1927
             else ""
         )
-        citation = (
-            f"City of Houston Historic Preservation Office Official Inventory of {dist_name} "
-            f"(Circa Year Built: {hpo_yr_disp}; Status: {st_full}"
-            f"{f'; Style: {usable_style}' if usable_style else ''}"
-            f"{cd_part}; HCAD listed {ay})."
-        )
-        source_url = inv_pdf_url or cd_url
+        sb_part = f"; Sanborn Map ({sb_titles[0]})" if sb_titles else ""
+        if src_type == "COH HPO Historic District Survey":
+            yr_clause = f"Circa Year Built: {hpo_yr_disp}; " if hpo_yr > 0 else ""
+            citation = (
+                f"City of Houston Historic Preservation Office Official Inventory of {dist_name} "
+                f"({yr_clause}Status: {st_full}"
+                f"{f'; Style: {usable_style}' if usable_style else ''}"
+                f"{cd_part}{sb_part}; HCAD listed {ay})."
+            )
+            source_url = inv_pdf_url or cd_url
+        else:
+            plat_part = f"; Pre-1926 Plat ({plat_yr})" if 0 < plat_yr <= 1926 else ""
+            citation = (
+                f"{cd_yr} Morrison & Fourmy Houston City Directory"
+                + (f" (ContentDM #{cd_ptr})" if cd_ptr > 0 else "")
+                + f"{sb_part}{plat_part} (HCAD listed {ay})."
+            )
+            source_url = cd_url or inv_pdf_url
 
         promoted_res = _promote_year_override(
             hc=hc,
             target_blds=target_blds,
             auth_yr=cal_yr,
-            allowed_curr_years=ROUNDED_DECADE_PLACEHOLDERS,
+            allowed_curr_years=ALLOWED_PRE1960_CURR_YEARS,
             rebuilt_hcads=rebuilt_set,
             slab_hcads=slab_set,
             provenance=OverrideProvenance(
-                verified_by="COH HPO Historic District Survey",
-                source_type="COH HPO Historic District Survey",
+                verified_by=ver_by,
+                source_type=src_type,
                 source_citation=citation,
                 source_url=source_url,
                 year_source="archival",
@@ -310,7 +432,7 @@ def calibrate_dual_source_pre1927_audit_queue(
             ),
             address=addr_disp,
             historic_district=dist_name,
-            contributing="Contributing",
+            contributing=contrib_val,
             style=usable_style,
             architect=str(bp0.get("architect") or ""),
             permits_dir=permits_dir,
@@ -327,7 +449,7 @@ def calibrate_dual_source_pre1927_audit_queue(
             plat_1930_promoted += 1
         else:
             dir_pre_promoted += 1
-        if ay >= 1927 and cal_yr <= 1926:
+        if (ay >= 1927 and cal_yr <= 1926) or (ay >= 1928 and cal_yr <= 1927):
             crossing_1927_count += 1
         else:
             refining_pre1927_count += 1
@@ -335,7 +457,12 @@ def calibrate_dual_source_pre1927_audit_queue(
     # Sync search_index.json entries for promoted HCADs
     search_updated = 0
     for srow in search_idx:
-        if not isinstance(srow, dict) or srow.get("overlay_layer"):
+        if (
+            not isinstance(srow, dict)
+            or srow.get("overlay_layer")
+            or srow.get("kind")
+            or srow.get("type") not in (None, "", "building")
+        ):
             continue
         shc = str(srow.get("hcad_num") or "").strip()
         sid = str(srow.get("id") or "").strip()

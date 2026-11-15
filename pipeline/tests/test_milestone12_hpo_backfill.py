@@ -2157,7 +2157,7 @@ def test_pass2_nrhp_nomination_metadata_and_haif_architect_extraction() -> None:
 
 
 def test_pass2_dual_source_pre1927_audit_queue_calibration() -> None:
-    """Verify Pass-2 dual-source pre-1927 HPO Survey + City Directory calibration resolves >= 400 audit queue items."""
+    """Verify Pass-2 dual-source pre-1927 HPO Survey + City Directory + Sanborn calibration resolves >= 700 audit queue items."""
     from atlas_pipeline.calibrate_pre1927_audit_queue import PROTECTED_TEST_FIXTURE_HCADS
 
     data_dir = REPO_ROOT / "app" / "public" / "data"
@@ -2166,7 +2166,8 @@ def test_pass2_dual_source_pre1927_audit_queue_calibration() -> None:
     queue_items = json.loads((data_dir / "historical_audit_queue.json").read_text(encoding="utf-8"))["items"]
     cd_by_hcad = json.loads((data_dir / "citydir_index.json").read_text(encoding="utf-8")).get("by_hcad", {})
 
-    assert len(overrides) >= 2815
+    assert len(overrides) >= 3117
+    assert "0010160000011" not in overrides
     assert "0200670000010" not in overrides
     assert "0621110000014" not in overrides
     for protected_hc in PROTECTED_TEST_FIXTURE_HCADS:
@@ -2192,9 +2193,9 @@ def test_pass2_dual_source_pre1927_audit_queue_calibration() -> None:
                 if 1866 <= cd_e <= 1926:
                     assert ov_yr <= cd_e
 
-    assert resolved_total >= 400
-    assert resolved_plat_1930 >= 50
-    assert resolved_dir_pre >= 275
+    assert resolved_total >= 700
+    assert resolved_plat_1930 >= 125
+    assert resolved_dir_pre >= 500
 
 
 
