@@ -1287,12 +1287,12 @@
           "howAndWhenPlanned": "Active in production.",
           "coverageAndFidelity": {
             "volumeCoveragePct": 85,
-            "extractionFidelityPct": 68,
+            "extractionFidelityPct": 74,
             "fidelityTier": "pass1_needs_pass2",
-            "coveredSummary": "6 HPL ContentDM architectural collections (1,836 deduplicated Houston items) + 135 TARO finding aids (64,379 folders) scanned -> 595 parcel-linked archival citations & +154 curated photos (492 total)",
+            "coveredSummary": "6 HPL ContentDM architectural collections (1,672 Harris County items) + 134 TARO finding aids (64,231 folders) scanned -> 698 parcel-linked archival citations across 479 property keys (333 addresses) & +173 HPL photos (511 total)",
             "universeSummary": "6 HPL ContentDM architectural collections (1,836 items across Barnstone, Lopez, Vertical Files, 1980 Survey, Schmidt Moderne, Lloyd Morgan & Jones) + HMRC/Woodson/UTAAA TARO collections",
-            "whatIsMissing": "100% of the 6 HPL ContentDM architectural collections (1,836 items) and 135 TARO XML finding aids (64,379 folders) were scanned, but Pass 1 only linked items/folders containing an explicit street number or exact landmark name (leaving ~1,100 client-surname-titled TARO folders and ~120 intersection-titled HPL photos unlinked).",
-            "pass2AndGapClosurePlan": "Cross-join un-addressed TARO/HPL items titled by '(Client Surname, Neighborhood, Year)' or '(Street A at Street B)' against our 51,778 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index to link ~1,200+ additional architectural drawings and photographs."
+            "whatIsMissing": "100% of the 6 HPL ContentDM architectural collections and 134 TARO XML finding aids were scanned, with Pass-2 suffixless/1-digit street extraction (274 address matches) and client-surname cross-joins against City Directories and Clerk deeds (27 client matches), leaving ~1,000 un-dated client-surname TARO folders and ~100 intersection-titled HPL photos unlinked.",
+            "pass2AndGapClosurePlan": "Expand client-surname + neighborhood + era cross-joins across undated TARO architectural folders and resolve intersection-only HPL captions ('Street A at Street B') against our 51,798 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index."
           }
         }
       ]
@@ -1602,9 +1602,9 @@
           "howAndWhenPlanned": "Active in production.",
           "coverageAndFidelity": {
             "volumeCoveragePct": 92,
-            "extractionFidelityPct": 85,
+            "extractionFidelityPct": 86,
             "fidelityTier": "pass2_complete",
-            "coveredSummary": "492 curated archival & street-level photographs (293 standing + 199 Lost Houston across 135 sites) in building_photos.json + live zero-key Wikimedia Commons GeoSearch & landmark bitmap search",
+            "coveredSummary": "511 curated archival & street-level photographs (312 standing + 199 Lost Houston across 135 sites) in building_photos.json + live zero-key Wikimedia Commons GeoSearch & landmark bitmap search",
             "universeSummary": "Curated Houston landmarks, 359 Good Brick winners, 622 Lost Houston sites, and live Wikimedia Commons / LOC HABS / NARA repositories",
             "whatIsMissing": "100% of standing landmarks have live Commons/HABS fallback and 135 Lost Houston sites have curated archival photos (with strict evaluateCommonsCandidate off-topic filtering). However, 489 of the 622 demolished structures in Lost_Houston_Catalog (primarily Cohort 4 vanished 1915 Red Book sites and Cohort 5 2020-2026 teardowns) still have a blank archival_photo_url in Filter View #7 (824622008).",
             "pass2AndGapClosurePlan": "Work through the 489-site Lost_Houston_Catalog photo backfill queue (gid=824622001, Filter View #7) using Pass-2 HAIF Invision CDN image harvesting, pre-teardown Google Street View (2007-2025) captures, and HMRC photo collection matching."
@@ -2228,7 +2228,7 @@
     },
     {
       "id": "spotlight_taro_hpl_hmrc",
-      "title": "6. TARO 2.0 (64,379 Folders), HPL ContentDM & HMRC Contractor Ledgers: Client-Surname Cross-Join & VLM Table Parsing",
+      "title": "6. TARO 2.0 (64,231 Folders), HPL ContentDM & HMRC Contractor Ledgers: Client-Surname Cross-Join & VLM Table Parsing",
       "institution": "Texas Archival Resources Online (12 Repositories) & HPL / HMRC Special Collections",
       "linkedFeedIds": [
         "hmrc_historic_permits_1905_1951",
@@ -2236,29 +2236,29 @@
         "rice_architectural_collections",
         "uh_neighborhood_archival_collections"
       ],
-      "headlineMetric": "135 TARO finding aids (64,379 folders) + 1,836 HPL items + 952 T.G.C.A. pages scanned -> 595 archival links & 3,800+ contractor credits",
+      "headlineMetric": "134 TARO finding aids (64,231 folders) + 1,672 HPL items + 952 T.G.C.A. pages scanned -> 698 archival links (479 parcels, 333 addresses) & 3,800+ contractor credits",
       "volumeCoveragePct": 72,
-      "extractionFidelityPct": 46,
+      "extractionFidelityPct": 52,
       "fidelityTier": "pass1_needs_pass2",
-      "summary": "We scanned 100% of the 135 Houston/Harris County EAD XML finding aids across 12 TARO 2.0 repositories (64,379 archival folders), 6 HPL ContentDM architectural collections (1,836 items), and 18 monthly issues of the T.G.C.A. Monthly Bulletin (1922-1924, 952 pages). However, Pass 1 only linked 595 TARO/HPL records (to 362 parcel keys & 236 addresses) because Pass 1 required an explicit street number or exact landmark name in the folder title.",
-      "whyPass1MissedData": "(1) Client-Surname Folder Titles in TARO (64,379 Scanned Folders): In architectural archives like William Ward Watkin, John Staub, Alfred C. Finn, MacKie & Kamrath, and Wilson, Morris, Crain & Anderson, thousands of project folders are titled by client surname and year ('Residence for Mr. & Mrs. J. H. Garrett, River Oaks, 1937' or 'Henke & Pillot Store #4, 1929') without a street address in the XML <unittitle>; (2) Multi-Column OCR Wrapping in T.G.C.A. Bulletins (952 Scanned Pages): Two-column contract award tables wrap owner, architect, contractor, and dollar amounts across lines, causing regex parsers to miss ~48% of sub-contract rows; and (3) HMRC 1905-1951 Permit Ledgers: ~42,000 permits are indexed out of ~165,000 total permits in the physical/microfilm ledgers.",
-      "howWeWillFillGaps": "(Pass 2A - TARO Client-Name + Year <-> City Directory & Clerk Grantor/Grantee Cross-Join) Match un-addressed TARO architectural folder tuples (Client Surname, Neighborhood, Year) against our 51,778 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index to resolve ~1,200+ client-named architectural drawing folders to exact HCAD parcels; (Pass 2B - VLM Table Parser on 952 Cached T.G.C.A. Pages) Re-extract all 18 T.G.C.A. Monthly Bulletin issues using layout-aware table row segmentation; and (Pass 2C - HMRC 1905-1951 Permit Ledger Reel Digitization) Complete OCR transcription of the remaining 1905-1951 City of Houston building permit ledger reels at HMRC.",
+      "summary": "We scanned 100% of the 134 Houston/Harris County EAD XML finding aids across 12 TARO 2.0 repositories (64,231 archival folders), 6 HPL ContentDM architectural collections (1,672 Harris County items), and 18 monthly issues of the T.G.C.A. Monthly Bulletin (1922-1924, 952 pages). Pass-2 suffixless & 1-digit street extraction (+82 address matches -> 274 total) and client-surname cross-joins against 51,798 City Directory parcels and 678,467 Clerk deeds (+25 client matches -> 27 total) expanded parcel-linked archival citations to 698 items across 479 property keys (333 street addresses) and 511 curated building photos.",
+      "whyPass1MissedData": "(1) Client-Surname Folder Titles in TARO (64,231 Scanned Folders): In architectural archives like William Ward Watkin, John Staub, Alfred C. Finn, MacKie & Kamrath, and Wilson, Morris, Crain & Anderson, thousands of project folders are titled by client surname and year ('Residence for Mr. & Mrs. J. H. Garrett, River Oaks, 1937' or 'Henke & Pillot Store #4, 1929') without a street address in the XML <unittitle>; (2) Multi-Column OCR Wrapping in T.G.C.A. Bulletins (952 Scanned Pages): Two-column contract award tables wrap owner, architect, contractor, and dollar amounts across lines, causing regex parsers to miss ~48% of sub-contract rows; and (3) HMRC 1905-1951 Permit Ledgers: ~42,000 permits are indexed out of ~165,000 total permits in the physical/microfilm ledgers.",
+      "howWeWillFillGaps": "(Pass 2A - TARO Client-Name + Year <-> City Directory & Clerk Grantor/Grantee Cross-Join) Match un-addressed TARO architectural folder tuples (Client Surname, Neighborhood, Year) against our 51,798 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index to resolve client-named architectural drawing folders to exact HCAD parcels; (Pass 2B - VLM Table Parser on 952 Cached T.G.C.A. Pages) Re-extract all 18 T.G.C.A. Monthly Bulletin issues using layout-aware table row segmentation; and (Pass 2C - HMRC 1905-1951 Permit Ledger Reel Digitization) Complete OCR transcription of the remaining 1905-1951 City of Houston building permit ledger reels at HMRC.",
       "subCohorts": [
         {
-          "label": "TARO 2.0 Architectural Finding Aids (135 Collections, 64,379 Folders)",
-          "extractedLabel": "64,379 folders scanned -> 342 explicit-address/landmark folders matched",
-          "universeLabel": "~1,800 identifiable Houston building commissions inside 64,379 folders",
+          "label": "TARO 2.0 Architectural Finding Aids (134 Collections, 64,231 Folders)",
+          "extractedLabel": "64,231 folders scanned -> 418 address, landmark & client-surname folders matched",
+          "universeLabel": "~1,800 identifiable Houston building commissions inside 64,231 folders",
           "volumeCoveragePct": 100,
-          "extractionFidelityPct": 38,
-          "gapNote": "100% of XML folders are cached locally; cross-joining client-surname folder titles against City Directories & Clerk deeds will unlock ~1,100+ additional commissions."
+          "extractionFidelityPct": 44,
+          "gapNote": "100% of XML folders are cached locally; Pass-2 unlocked suffixless streets (Westmoreland, Troon, Lovejoy, Inwood, Del Monte) and 27 client-surname cross-joins."
         },
         {
-          "label": "HPL ContentDM 6 Architectural Photo & Drawing Collections (1,836 Items)",
-          "extractedLabel": "1,836 / 1,836 items scanned -> 253 parcel/address matches (+154 curated photos)",
-          "universeLabel": "1,836 digitized architectural renderings, survey photos & vertical files",
+          "label": "HPL ContentDM 6 Architectural Photo & Drawing Collections (1,672 Harris County Items)",
+          "extractedLabel": "1,672 / 1,672 items scanned -> 274 parcel/address matches (+173 HPL photos -> 511 total)",
+          "universeLabel": "1,672 digitized Harris County architectural renderings, survey photos & vertical files",
           "volumeCoveragePct": 100,
-          "extractionFidelityPct": 68,
-          "gapNote": "Remaining ~120 unlinked HPL items have intersection-only locations ('Main at Lamar') or historic business names solvable via City Directory lookup."
+          "extractionFidelityPct": 74,
+          "gapNote": "Remaining ~100 unlinked HPL items have intersection-only locations ('Main at Lamar') or historic business names solvable via City Directory lookup."
         },
         {
           "label": "T.G.C.A. Monthly Bulletin (1922-1924, 952 Pages) & Contractor Monographs",

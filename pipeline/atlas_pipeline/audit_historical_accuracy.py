@@ -176,6 +176,11 @@ ARCHITECT_CAREER_WINDOWS: dict[str, tuple[int, int, str]] = {
     "harrie t. lindeberg": (1906, 1959, "Harrie T. Lindeberg (1879-1959)"),
     "olmsted brothers": (1898, 1961, "Olmsted Brothers (1898-1961)"),
     "r. newell waters": (1925, 1970, "R. Newell Waters (1899-1970)"),
+    "hare & hare": (1910, 1975, "Hare & Hare (S. Herbert Hare, active in Houston 1913-1970)"),
+    "ballinger": (1920, 1985, "Ballinger & Associates"),
+    "lenard gabert": (1922, 1975, "Lenard Gabert, Sr. (1896-1972)"),
+    "wylie vale": (1946, 1990, "Wylie Vale (active 1946-1980s)"),
+    "goleman & rolfe": (1946, 1985, "Goleman & Rolfe (est. 1946)"),
 }
 
 ARCHITECT_SURNAME_ALIASES: dict[str, str] = {

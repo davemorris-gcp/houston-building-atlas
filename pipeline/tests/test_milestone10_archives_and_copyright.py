@@ -1060,3 +1060,45 @@ def test_review_regressions_repo_labels_zero_addr_overlay_years_and_photo_captio
         assert tp["hcad_num"] == ""
         assert len(tp["caption"]) <= 300
         assert tp["caption"].endswith(" (Architect: Philip Johnson).")
+
+
+def test_pass2_suffixless_1digit_streets_and_client_surname_crossjoin() -> None:
+    """Verify Pass-2 suffixless/1-digit street extraction and client-surname cross-join helpers."""
+    from atlas_pipeline.harvest_taro_and_hpl_archives import (
+        _client_given_name_matches,
+        _extract_client_residence_surname,
+        extract_candidate_addresses,
+        is_non_harris_county_location,
+    )
+
+    # 1. 1-digit and suffixless Houston street addresses
+    addrs_1d = extract_candidate_addresses("Karl Kamrath House, 8 Tiel Way, Houston, Texas")
+    assert any(d == "8 Tiel Way" and k1 == "8 TIEL" for d, k1, _k2 in addrs_1d)
+    addrs_bare = extract_candidate_addresses("Residence at 2402 Troon, Houston, Tex. | 216 Emerson")
+    bare_disps = {d for d, _k1, _k2 in addrs_bare}
+    assert "2402 Troon Rd" in bare_disps
+    assert "216 Emerson St" in bare_disps
+    # Non-street 1-digit quantities must never extract as addresses
+    assert extract_candidate_addresses("2 story brick residence with 3 car garage and 1 swimming pool") == []
+
+    # 2. Out-of-county parenthetical HPL locations
+    assert is_non_harris_county_location("Galveston (Tex.) | Rosenberg Library") is True
+    assert is_non_harris_county_location("Carefree (Ariz.) | Houston architect Karl Kamrath") is True
+
+    # 3. Client residence extraction across bracketed, view-prefixed, and inverted folder titles
+    assert _extract_client_residence_surname(
+        "Patio of [Dr. and Mrs. Nelson C.] Steenland residence",
+        "Houston (Tex.)",
+        "hpl:p17006coll41",
+    ) == ("NELSON C STEENLAND", "STEENLAND")
+    assert _extract_client_residence_surname(
+        "Godwin, Herbert. Houston, Texas",
+        "",
+        "taro:houpub/00004",
+    ) == ("HERBERT GODWIN", "GODWIN")
+
+    # 4. Given-name abbreviation and middle-initial conflict guards
+    assert _client_given_name_matches("WILLIAM SALMAN", "SALMAN", "WM SALMAN") is True
+    assert _client_given_name_matches("HARRY C WEISS", "WEISS", "HARRY P WEISS") is False
+    assert _client_given_name_matches("WALTER B SHARP", "SHARP", "MRS W B SHARP") is True
+

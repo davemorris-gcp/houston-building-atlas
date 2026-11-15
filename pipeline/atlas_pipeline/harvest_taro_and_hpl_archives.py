@@ -73,6 +73,7 @@ HPL_COLLECTION_MAX_SURVEY_YEAR: dict[str, int] = {
     "hpl:p17006coll220": 1981,
     "hpl:p17006coll41": 1984,
     "hpl:p17006coll238": 1990,
+    "taro:houpub/00076": 1978,
 }
 
 # Periodical, article, clipping, and reference-material folders inside an architect's papers must not
@@ -110,14 +111,14 @@ KNOWN_COLLECTION_ARCHITECTS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bLloyd\s*(?:,\s*Morgan\s*(?:&|and)\s*Jones|(?:&|and)\s*Morgan)\b|\bArthur\s+E\.?\s+Jones\b", re.I), "Lloyd & Morgan"),
     (re.compile(r"\bS\.?\s*I\.?\s*Morris\b|\bSeth\s+Irvin\s+Morris\b", re.I), "S. I. Morris"),
     (re.compile(r"\bWilson,\s*Morris,\s*Crain\s*(?:&|and)\s*Anderson\b", re.I), "Wilson, Morris, Crain & Anderson"),
-    (re.compile(r"\bRalph\s+A\.?\s+Anderson\b", re.I), "Ralph A. Anderson, Jr."),
+    (re.compile(r"\bRalph\s+(?:A\.?\s+)?Anderson\b", re.I), "Ralph A. Anderson, Jr."),
     (re.compile(r"\bWilliam\s+Ward\s+Watkin\b", re.I), "William Ward Watkin"),
     (re.compile(r"\bBurdette\s+Keeland\b", re.I), "Burdette Keeland"),
     (re.compile(r"\bStayton\s+Nunn\b", re.I), "Stayton Nunn"),
     (re.compile(r"\bGerald\s+Moorhead\b", re.I), "Gerald Moorhead"),
     (re.compile(r"\bAnderson\s+Todd\b", re.I), "Anderson Todd"),
     (re.compile(r"\bO\.?\s*Jack\s+Mitchell\b", re.I), "O. Jack Mitchell"),
-    (re.compile(r"\bHarrie\s+T\.?\s+Lindeberg\b", re.I), "Harrie T. Lindeberg"),
+    (re.compile(r"\bHarrie\s+(?:T\.?|Thomas)\s+Lindeberg\b", re.I), "Harrie T. Lindeberg"),
     (re.compile(r"\bOlmsted\s+Brothers\b", re.I), "Olmsted Brothers"),
     (re.compile(r"\bSally\s+Walsh\b", re.I), "Sally Walsh"),
     (re.compile(r"\bBirdsall\s+P\.?\s+Briscoe\b", re.I), "Birdsall P. Briscoe"),
@@ -134,6 +135,11 @@ KNOWN_COLLECTION_ARCHITECTS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bCowell\s*(?:&|and)\s*Neuhaus\b", re.I), "Cowell & Neuhaus"),
     (re.compile(r"\bGeorge\s+Pierce\b.*\bAbel\s+B\.?\s+Pierce\b|\bPierce\s*(?:&|and)\s*Pierce\b", re.I), "Pierce & Pierce"),
     (re.compile(r"\bHermon\s+Lloyd\b", re.I), "Hermon Lloyd"),
+    (re.compile(r"\bHare\s*(?:&|and)\s*Hare\b", re.I), "Hare & Hare"),
+    (re.compile(r"\bBallinger\s*(?:&|and)\s*Associates\b", re.I), "Ballinger & Associates"),
+    (re.compile(r"\bLenard\s+Gabert\b", re.I), "Lenard Gabert"),
+    (re.compile(r"\bWylie\s+Vale\b", re.I), "Wylie Vale"),
+    (re.compile(r"\bGoleman\s*(?:&|and)\s*Rolfe\b|\bWalter\s+T\.?\s+Rolfe\b", re.I), "Goleman & Rolfe"),
 )
 
 NON_HARRIS_CITY_RE = re.compile(
@@ -146,12 +152,13 @@ NON_HARRIS_CITY_RE = re.compile(
     r"Seguin|Cuero|Lockhart|Round\s+Rock|San\s+Marcos|New\s+Braunfels|Abilene|San\s+Angelo|"
     r"Wichita\s+Falls|Corsicana|Palestine,\s*Tex|Longview,\s*Tex|Marshall,\s*Tex|Kilgore|"
     r"Freeport,\s*Tex|Lake\s+Jackson|Texas\s+City|Alvin,\s*Tex|Rosenberg,\s*Tex|Richmond,\s*Tex|"
-    r"Conroe,\s*Tex|Sugar\s+Land|Fort\s+Sam\s+Houston|"
+    r"Conroe,\s*Tex|Sugar\s+Land|Fort\s+Sam\s+Houston|Sweeny|West\s+Columbia|Round\s+Top|"
     r"New\s+York\s+City|New\s+York\s*\(N\.?Y|Manhattan|Brooklyn|New\s+Orleans|Shreveport|"
     r"Baton\s+Rouge|Lake\s+Charles|Tulsa|Oklahoma\s+City|Chicago|Los\s+Angeles|San\s+Francisco|"
-    r"Washington,\s*D\.?C|Monterrey|Mexico\s+City|London,\s+England|Paris,\s+France"
+    r"Washington,\s*D\.?C|Monterrey|Mexico\s+City|London,\s+England|Paris,\s+France|"
+    r"Carefree|New\s+Canaan|Bloomington|Puerto\s+Vallarta|Maracaibo|Dhahran|Port\s+au\s+Prince|Englewood,\s*CO|Chester,\s*Pennsylvania"
     r")\b"
-    r"|\((?:N\.?Y\.?|La\.?|Okla\.?|Calif\.?|Colo\.?|Fla\.?|Ill\.?|Mass\.?|Va\.?)\))",
+    r"|\((?:N\.?Y\.?|La\.?|Okla\.?|Calif\.?|Colo\.?|Fla\.?|Ill\.?|Mass\.?|Va\.?|Conn\.?|Ariz\.?|Ind\.?|Pa\.?|Md\.?|Ga\.?|N\.?J\.?|N\.?M\.?|Ark\.?|Mexico|Venezuela|Haiti)\))",
     re.IGNORECASE,
 )
 
@@ -221,14 +228,14 @@ STREET_SUFFIX_PATTERN = (
 )
 
 ADDRESS_EXTRACT_RE = re.compile(
-    rf"(?<![\d#/-])\b([1-9]\d{{1,4}})(?:\s*-\s*\d{{1,5}})?\s+"
+    rf"(?<![\d#/-])\b([1-9]\d{{0,4}})(?:\s*-\s*\d{{1,5}})?\s+"
     rf"(?:(North|South|East|West|N\.?|S\.?|E\.?|W\.?)\s+)?"
     rf"([A-Z0-9][A-Za-z0-9'.]*(?:\s+[A-Za-z0-9'.]+){{0,2}})\s+"
     rf"({STREET_SUFFIX_PATTERN})(?![A-Za-z])",
     re.IGNORECASE,
 )
 
-# Also catch well-known Houston boulevards often written without suffix in captions (e.g. "2131 San Felipe", "1919 Bolsover")
+# Also catch well-known Houston streets often written without suffix in archival captions/folders
 BARE_HOUSTON_STREET_MAP: dict[str, str] = {
     "SAN FELIPE": "SAN FELIPE ST",
     "WESTHEIMER": "WESTHEIMER RD",
@@ -258,11 +265,44 @@ BARE_HOUSTON_STREET_MAP: dict[str, str] = {
     "NORTH BOULEVARD": "NORTH BLVD",
     "SOUTH BOULEVARD": "SOUTH BLVD",
     "BROADWAY": "BROADWAY ST",
+    "TROON": "TROON RD",
+    "LOVEJOY": "LOVEJOY ST",
+    "WESTMORELAND": "WESTMORELAND ST",
+    "EMERSON": "EMERSON ST",
+    "GARROTT": "GARROTT ST",
+    "HAWTHORNE": "HAWTHORNE ST",
+    "MARSHALL": "MARSHALL ST",
+    "BURLINGTON": "BURLINGTON ST",
+    "HAROLD": "HAROLD ST",
+    "KIPLING": "KIPLING ST",
+    "GREENBRIAR": "GREENBRIAR DR",
+    "CAROLINE": "CAROLINE ST",
+    "NOTTINGHAM": "NOTTINGHAM ST",
+    "QUEENSLOCH": "QUEENSLOCH DR",
+    "INWOOD": "INWOOD DR",
+    "WILLOWICK": "WILLOWICK RD",
+    "DEL MONTE": "DEL MONTE DR",
+    "SHADOWLAWN": "SHADOWLAWN CIR",
+    "BRAZOS": "BRAZOS ST",
+    "BAGBY": "BAGBY ST",
+    "SAN JACINTO": "SAN JACINTO ST",
+    "LEELAND": "LEELAND ST",
+    "FRANKLIN": "FRANKLIN ST",
+    "GRAY": "GRAY ST",
+    "WEST GRAY": "W GRAY ST",
+    "BRIAR HURST": "BRIARHURST DR",
+    "WESTPARK": "WESTPARK DR",
+    "TULANE": "TULANE ST",
+    "ARLINGTON": "ARLINGTON ST",
 }
 
+_BARE_STREET_ALTS = "|".join(
+    re.escape(k).replace(r"\ ", r"\s+")
+    for k in sorted((k for k in BARE_HOUSTON_STREET_MAP if k != "CAPITOL"), key=len, reverse=True)
+)
 BARE_STREET_RE = re.compile(
-    r"(?<![\d#/-])\b([1-9]\d{2,4})\s+(?:(N\.?|S\.?|E\.?|W\.?)\s+)?"
-    r"(San\s+Felipe|Westheimer|Bissonnet|Holcombe|Bellaire|Lovett)(?:\s*[.,;)]|$)",
+    rf"(?<![\d#/-])\b([1-9]\d{{1,4}})\s+(?:(N\.?|S\.?|E\.?|W\.?|North|South|East|West)\s+)?"
+    rf"({_BARE_STREET_ALTS})(?![A-Za-z])(?:\s*[.,;:)|\]]|\s+(?:Houston|Tex|in\b|at\b|for\b|by\b|c\.|ca\.|\d{{4}})|$)",
     re.IGNORECASE,
 )
 
@@ -432,6 +472,15 @@ def extract_candidate_addresses(text: str) -> list[tuple[str, str, str]]:
         n_int = int(num)
         # Guard against bare 4-digit years like "1940 Air Terminal" or "1929 Gulf Building" unless real street
         street_up = " ".join(raw_street.upper().split())
+        if n_int < 10 and (
+            not raw_street[0].isupper()
+            or street_up.split()[0]
+            in {
+                "SWIMMING", "POOL", "TERRACE", "STORY", "STORIES", "BEDROOM", "BEDROOMS",
+                "FLOOR", "FLOORS", "CAR", "CARS", "UNIT", "UNITS", "BUILDING", "HOUSE", "TOWNHOUSE",
+            }
+        ):
+            continue
         if 1836 <= n_int <= 2026 and street_up in {
             "AIR", "CENSUS", "WORLD", "TEXAS", "HOUSTON", "ANNUAL", "EDITION", "SERIES", "PROJECT", "JOB"
         }:
@@ -467,8 +516,11 @@ def is_non_harris_county_location(text: str) -> bool:
     """Return True if text names an out-of-county/out-of-state city without naming Houston/Harris County."""
     if not text:
         return False
-    # Catch explicit `<Town>, Tex.` / `<Town>, Texas` / `<Town>, TX` outside Harris County
-    for m_tx in re.finditer(r"\b([A-Z][a-z']+(?:\s+[A-Z][a-z']+){0,2}),\s*(?:Tex\.?|Texas|TX)\b", text):
+    # Catch explicit `<Town>, Tex.` / `<Town>, Texas` / `<Town>, TX` or `<Town> (Tex.)` outside Harris County
+    for m_tx in re.finditer(
+        r"\b([A-Z][a-z']+(?:\s+[A-Z][a-z']+){0,2})(?:,\s*(?:Tex\.?|Texas|TX)\b|\s*\((?:Tex\.?|Texas|TX)\))",
+        text,
+    ):
         words = m_tx.group(1).upper().replace("'", "").split()
         candidates = {" ".join(words[i:]) for i in range(len(words))}
         is_sam_houston = len(words) >= 2 and words[-2:] == ["SAM", "HOUSTON"]
@@ -483,8 +535,9 @@ def is_non_harris_county_location(text: str) -> bool:
         # Even if "Houston" appears as collection/architect city, reject if explicit "(N.Y.)" or "Dallas, Tex." is in place/title
         if re.search(
             r",\s*(?:Dallas|Fort\s+Worth|Austin|San\s+Antonio|Galveston|Beaumont|Waco|Tyler|Corpus\s+Christi|"
-            r"Midland|El\s+Paso|Shiner|Brenham|Gonzales|Bryan|College\s+Station|Huntsville|Lufkin|New\s+York|New\s+Orleans|Shreveport|Tulsa)\b"
-            r"|\((?:N\.?Y\.?|La\.?|Okla\.?|Calif\.?|Colo\.?|Fla\.?|Ill\.?|Mass\.?|Va\.?|Dallas|Galveston|Austin|San\s+Antonio)\)",
+            r"Midland|El\s+Paso|Shiner|Brenham|Gonzales|Bryan|College\s+Station|Huntsville|Lufkin|Laredo|Sweeny|West\s+Columbia|Round\s+Top|"
+            r"New\s+York|New\s+Orleans|Shreveport|Tulsa|Englewood|Chester)\b"
+            r"|\((?:N\.?Y\.?|La\.?|Okla\.?|Calif\.?|Colo\.?|Fla\.?|Ill\.?|Mass\.?|Va\.?|Conn\.?|Ariz\.?|Ind\.?|Pa\.?|Md\.?|Ga\.?|N\.?J\.?|N\.?M\.?|Ark\.?|Mexico|Venezuela|Haiti|Dallas|Galveston|Austin|San\s+Antonio|Laredo)\)",
             text,
             re.IGNORECASE,
         ):
@@ -926,7 +979,7 @@ def parse_hpl_cdm_record(
     if not title:
         return None
 
-    loc_blob = " | ".join(p for p in (place, relatij, captio, descri, title, publis) if p)
+    loc_blob = " | ".join(p for p in (place, relatij, captio, descri, title) if p)
     if is_non_harris_county_location(loc_blob):
         return None
 
@@ -1090,47 +1143,152 @@ def _normalize_landmark_key(name: str) -> str:
     return " ".join(s.split())
 
 
-def _extract_client_residence_surname(title: str) -> tuple[str, str]:
-    """Extract `(full_client_phrase, surname)` from titles like 'Dr. & Mrs. Irving Schweppe Residence' or 'O. J. Lottman Residence'."""
-    t = sanitize_atlas_text(title).strip()
+_HOUSTON_COLLECTION_PREFIXES = (
+    "hpl:",
+    "taro:houpub/",
+    "taro:ricewrc/",
+    "taro:uhsc/",
+    "taro:utaaa/00065",
+    "taro:utaaa/00039",
+)
+
+_GIVEN_NAME_ABBREV_MAP: dict[str, str] = {
+    "WM": "WILLIAM",
+    "GEO": "GEORGE",
+    "CHAS": "CHARLES",
+    "JAS": "JAMES",
+    "JNO": "JOHN",
+    "ROBT": "ROBERT",
+    "THOS": "THOMAS",
+    "BENJ": "BENJAMIN",
+    "SAM": "SAMUEL",
+    "EDW": "EDWARD",
+    "JOS": "JOSEPH",
+}
+
+
+def _extract_client_residence_surname(
+    title: str, raw_location_text: str = "", collection_key: str = ""
+) -> tuple[str, str]:
+    """Extract `(full_client_phrase, surname)` from residence titles/descriptions in Houston-area collections."""
+    t_raw = sanitize_atlas_text(title).strip()
+    loc_raw = sanitize_atlas_text(raw_location_text).strip()
+    if collection_key and not collection_key.startswith(_HOUSTON_COLLECTION_PREFIXES):
+        if not HARRIS_COUNTY_LOCALITY_RE.search(f"{t_raw} | {loc_raw}"):
+            return ("", "")
+
+    t = re.sub(r"[\[\]]", "", t_raw)
+    t = re.sub(
+        r"^(?:(?:Exterior|Interior|Front|Rear|Side|Back|South|North|East|West|Street|Garden|Courtyard|Lawn|Patio|Pool|Entrance|Foyer|Living\s+room|Living\s+space|Dining\s+room|Kitchen|Bedroom|Hallway|Stairway|Staircase|Sun\s+room|Outside\s+corner|Detail|View|Photograph|Photo|Rendering|Drawing|Sketch|Plan|Floor\s+plan|Site\s+plan|Studies|Working\s+drawings)(?:\s+view|\s+elevation)?\s+(?:of|at|in|to|for)\s+(?:the\s+)?)+",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    ).strip()
+
+    phrase = ""
     m = re.match(
-        r"^(?:House\s+of\s+|Residence\s+of\s+)?"
-        r"(?:(?:Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Col\.?|Judge|Gov\.?|Prof\.?|Rev\.?)(?:\s*(?:&|and)\s*(?:Mrs\.?|Mr\.?|Dr\.?))?\s+)?"
-        r"((?:[A-Z]\.|[A-Z][A-Za-z']+)(?:\s+(?:[A-Z]\.|[A-Z][A-Za-z']+)){0,3})\s+"
-        r"(?:Residence|House)(?:\s*(?:[,(\[.]|$))",
+        r"^(?:[Hh]ouse\s+of\s+|[Rr]esidence\s+of\s+|[Hh]ome\s+of\s+)?"
+        r"(?:(?:Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Col\.?|Maj\.?|Capt\.?|Gen\.?|Judge|Gov\.?|Prof\.?|Rev\.?)(?:\s*(?:&|and)\s*(?:Mrs\.?|Mr\.?|Dr\.?))?\s+)?"
+        r"((?:[A-Z]\.?|[A-Z][A-Za-z']+)(?:\s+(?:[A-Z]\.?|[A-Z][A-Za-z']+)){0,4}?)\s+"
+        r"(?:[Rr]esidence|[Hh]ouse|[Hh]ome|[Ee]state|[Cc]ottage|[Mm]ansion)\b",
         t,
     )
-    if not m:
-        m2 = re.match(
-            r"^House\s+of\s+([A-Z][A-Za-z.']+(?:\s+(?:and|&)\s+[A-Z][A-Za-z.']+)?(?:\s+[A-Z][A-Za-z.']+){1,3})$",
-            t,
-            re.IGNORECASE,
-        )
-        if not m2:
-            return ("", "")
-        phrase = " ".join(m2.group(1).split())
-    else:
+    if m:
         phrase = " ".join(m.group(1).split())
+    else:
+        blob = re.sub(r"[\[\]]", "", f"{t_raw} | {loc_raw}")
+        m2 = re.search(
+            r"\b(?:[Rr]esidence|[Hh]ouse|[Hh]ome|[Cc]ottage)\s+(?:of|for)\s+"
+            r"(?:(?:Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Col\.?|Judge|Prof\.?|Rev\.?)(?:\s*(?:&|and)\s*(?:Mrs\.?|Mr\.?|Dr\.?))?\s+)?"
+            r"((?:[A-Z]\.?|[A-Z][A-Za-z']+)(?:\s+(?:[A-Z]\.?|[A-Z][A-Za-z']+)){1,3})",
+            blob,
+        )
+        if m2:
+            phrase = " ".join(m2.group(1).split())
+        else:
+            m3 = re.match(
+                r"^([A-Z][A-Za-z']+),\s+"
+                r"(?:(?:Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Col\.?|Judge|Prof\.?|Rev\.?)(?:\s*(?:&|and)\s*(?:Mrs\.?|Mr\.?|Dr\.?))?\s+)?"
+                r"((?:[A-Z]\.?|[A-Z][A-Za-z']+)(?:\s+(?:[A-Z]\.?|[A-Z][A-Za-z']+)){0,2})"
+                r"(?:[.,;]\s*(?:Houston|River\s+Oaks|Harris\s+County)|\s+\((?:Houston|Tex))",
+                t,
+            )
+            if m3:
+                phrase = f"{m3.group(2)} {m3.group(1)}"
+    if not phrase:
+        return ("", "")
 
     toks = [re.sub(r"[^A-Za-z]", "", w).upper() for w in phrase.split()]
-    toks = [w for w in toks if w and w not in {"JR", "SR", "II", "III", "IV", "MR", "MRS", "DR", "AND"}]
-    if not toks:
+    toks = [
+        w
+        for w in toks
+        if w and w not in {"JR", "SR", "II", "III", "IV", "MR", "MRS", "MS", "MISS", "DR", "COL", "JUDGE", "REV", "PROF", "AND", "THE", "OF", "FOR", "IN", "AT", "HOUSTON", "TEXAS", "TEX"}
+    ]
+    if len(toks) < 2:
         return ("", "")
     surname = toks[-1]
     if (
         len(surname) < 4
         or surname in COMMON_AMBIGUOUS_SURNAMES
         or surname in NON_SURNAME_HOUSE_MODIFIERS
-        or any(t in NON_SURNAME_HOUSE_MODIFIERS for t in toks)
+        or any(tok in NON_SURNAME_HOUSE_MODIFIERS for tok in toks)
     ):
         return ("", "")
-    # Require at least a given name or initial alongside the surname so bare "Brown Residence" never guesses
-    if len(toks) < 2:
-        return ("", "")
-    return (phrase.upper(), surname)
+    return (" ".join(toks), surname)
 
 
-def load_confidential_hcad_set(output_dir: Path) -> set[str]:
+def _client_given_name_matches(
+    full_phr: str,
+    sur: str,
+    nm_blob: str,
+    *,
+    allow_single_initial: bool = False,
+) -> bool:
+    """Return True if client given names/initials in `full_phr` corroborate `nm_blob` without middle-initial conflict."""
+    phr_toks = [w for w in full_phr.split() if w != sur]
+    cand_toks = [
+        w
+        for w in nm_blob.split()
+        if w
+        not in {
+            "RESIDENCE", "HOUSE", "HOME", "ESTATE", "COTTAGE", "BUILDING",
+            "MANSION", "MRS", "MR", "DR", "MISS", "MS", "JR", "SR", "II",
+            "III", "IV", "ET", "UX", "AL", "EST", "TRUST", "TRUSTEE",
+        }
+        and w != sur
+    ]
+    if not phr_toks or not cand_toks:
+        return False
+
+    # Reject conflicting second/middle initials when first initials match (e.g. HARRY C WEISS vs HARRY P WEISS)
+    if (
+        len(phr_toks) >= 2
+        and len(cand_toks) >= 2
+        and phr_toks[0][0] == cand_toks[0][0]
+        and phr_toks[1][0] != cand_toks[1][0]
+    ):
+        return False
+
+    phr_full = {_GIVEN_NAME_ABBREV_MAP.get(w, w) for w in phr_toks if len(w) >= 2}
+    cand_full = {_GIVEN_NAME_ABBREV_MAP.get(w, w) for w in cand_toks if len(w) >= 2}
+    if any(len(w) >= 3 for w in (phr_full & cand_full)):
+        return True
+
+    if (len(phr_toks[0]) == 1 or len(cand_toks[0]) == 1) and phr_toks[0][0] == cand_toks[0][0]:
+        if len(phr_toks) >= 2 and len(cand_toks) >= 2:
+            return phr_toks[1][0] == cand_toks[1][0]
+        if allow_single_initial:
+            return True
+
+    return False
+
+
+def load_confidential_hcad_set(
+    output_dir: Path,
+    *,
+    needed_surnames: set[str] | None = None,
+    permit_owner_index_out: dict[str, list[tuple[str, int, str, str]]] | None = None,
+) -> set[str]:
     """Load all `TX Tax Code Sec. 25.025` confidential HCAD accounts (`conf == 1`) fail-closed from `permits/`."""
     conf_set: set[str] = set()
     permits_dir = output_dir / "permits"
@@ -1143,13 +1301,43 @@ def load_confidential_hcad_set(output_dir: Path) -> set[str]:
                 f"Fail-closed TX Tax Code Sec. 25.025 guard: expected JSON object in {shard_path}, got {type(shard).__name__}"
             )
         for acct, rec in shard.items():
-            if isinstance(rec, dict) and rec.get("conf") in (1, True):
-                raw_acct = str(acct).strip()
+            if not isinstance(rec, dict):
+                continue
+            raw_acct = str(acct).strip()
+            norm_acct = normalize_standing_hcad_token(raw_acct)
+            if rec.get("conf") in (1, True):
                 if raw_acct:
                     conf_set.add(raw_acct)
-                norm_acct = normalize_standing_hcad_token(raw_acct)
                 if norm_acct:
                     conf_set.add(norm_acct)
+                continue
+            if needed_surnames and permit_owner_index_out is not None and norm_acct:
+                rec_yr = int(rec.get("yr") or 0)
+                d_str = str(rec.get("d") or "")
+                if d_str:
+                    for entry in d_str.split("|"):
+                        parts = entry.split(":")
+                        if len(parts) < 6:
+                            continue
+                        dt_s = parts[0][:4]
+                        d_yr = rec_yr or (int(dt_s) if dt_s.isdigit() else 0)
+                        for raw_nm in (parts[4], parts[5]):
+                            lbl = _normalize_landmark_key(raw_nm)
+                            for tok in lbl.split():
+                                if tok in needed_surnames:
+                                    permit_owner_index_out[tok].append((norm_acct, d_yr, lbl, ""))
+                ml_str = str(rec.get("ml") or "")
+                if ml_str:
+                    for entry in ml_str.split("|"):
+                        parts = entry.split("~")
+                        if len(parts) < 4:
+                            continue
+                        dt_s = parts[0][:4]
+                        m_yr = rec_yr or (int(dt_s) if dt_s.isdigit() else 0)
+                        lbl = _normalize_landmark_key(parts[3])
+                        for tok in lbl.split():
+                            if tok in needed_surnames:
+                                permit_owner_index_out[tok].append((norm_acct, m_yr, lbl, ""))
     return conf_set
 
 
@@ -1216,7 +1404,23 @@ def run_archive_harvest(
         seen_cand_sigs.add(sig)
         all_candidates.append(cand)
 
-    confidential_hcads = load_confidential_hcad_set(output_dir)
+    candidate_client_surnames: dict[str, tuple[str, str]] = {}
+    for item in all_candidates:
+        phr, sur = _extract_client_residence_surname(
+            item.title,
+            item.raw_location_text,
+            item.collection_key,
+        )
+        if sur:
+            candidate_client_surnames[item.item_id] = (phr, sur)
+    needed_surnames = {sur for _phr, sur in candidate_client_surnames.values()}
+
+    permit_owner_index: dict[str, list[tuple[str, int, str, str]]] = defaultdict(list)
+    confidential_hcads = load_confidential_hcad_set(
+        output_dir,
+        needed_surnames=needed_surnames,
+        permit_owner_index_out=permit_owner_index,
+    )
 
     # 1. Build lookup indexes across overrides, buildings.geojson, overlays (landmarks, good_brick, lost_houston), and countywide shards
     overrides_path = output_dir / "curated_overrides.json"
@@ -1242,6 +1446,7 @@ def run_archive_harvest(
     client_surname_index: dict[str, list[tuple[str, int, str, str]]] = defaultdict(list)
     # Known standing building years by target key / parcel stem so `yr == 0` overlay registrations inherit known dates
     known_target_years: dict[str, int] = {}
+    hcad_to_addr: dict[str, str] = {}
 
     def _record_known_year(key: str, yr_val: int) -> None:
         if not key or yr_val <= 0:
@@ -1274,6 +1479,8 @@ def run_archive_harvest(
                 _record_known_year(norm_hc, yr)
         disp_name = names[0] if names else ""
         if addr:
+            if not is_lost:
+                hcad_to_addr.setdefault(tkey.split("#")[0], addr)
             k1, k2 = normalize_street_address_keys(addr)
             for ak in (k1, k2):
                 if ak:
@@ -1298,12 +1505,21 @@ def run_archive_harvest(
                 tup = (tkey, yr, is_lost, addr, nm)
                 if tup not in landmark_name_to_targets[nk]:
                     landmark_name_to_targets[nk].append(tup)
-            # Also index historic house client names from landmark names (e.g., "Dr. Irving Schweppe House")
-            _phr, sur = _extract_client_residence_surname(nm)
-            if sur and not is_lost:
-                ctup = (tkey, yr, nk, addr)
-                if ctup not in client_surname_index[sur]:
-                    client_surname_index[sur].append(ctup)
+            if not is_lost and needed_surnames:
+                for tok in nk_words:
+                    if tok in needed_surnames:
+                        ctup = (tkey, yr, nk, addr)
+                        if ctup not in client_surname_index[tok]:
+                            client_surname_index[tok].append(ctup)
+        if not is_lost and needed_surnames and raw_props:
+            hc_obj = raw_props.get("hist_contract")
+            if isinstance(hc_obj, dict) and hc_obj.get("owner"):
+                own_lbl = _normalize_landmark_key(str(hc_obj.get("owner") or ""))
+                for tok in own_lbl.split():
+                    if tok in needed_surnames:
+                        ctup = (tkey, yr, own_lbl, addr)
+                        if ctup not in client_surname_index[tok]:
+                            client_surname_index[tok].append(ctup)
 
     # Index Lost Houston demolished landmarks first (strictly isolated to `lost_*` IDs!)
     lost_fc = (overlays_doc.get("lost_houston") or {}).get("features") or []
@@ -1458,16 +1674,7 @@ def run_archive_harvest(
                         raw_props=p,
                     )
 
-    # Also index non-confidential building labels in `search_index.json` for rare client surnames in candidate items.
-    candidate_client_surnames: dict[str, tuple[str, str]] = {}
-    for item in all_candidates:
-        if item.item_id in item_extracted_addrs:
-            continue
-        phr, sur = _extract_client_residence_surname(item.title)
-        if sur:
-            candidate_client_surnames[item.item_id] = (phr, sur)
-
-    needed_surnames = {sur for _phr, sur in candidate_client_surnames.values()}
+    # Also index non-confidential building labels in `search_index.json`, `citydir_index.json`, and `permits_*.json.gz`.
     if needed_surnames and (output_dir / "search_index.json").exists():
         non_building_types = {
             "subdivision",
@@ -1510,11 +1717,50 @@ def run_archive_harvest(
                 _record_known_year(tkey, yr)
                 _record_known_year(tkey.split("#")[0], yr)
             addr = str(entry.get("address") or "").strip()
+            if addr:
+                hcad_to_addr.setdefault(tkey.split("#")[0], addr)
             for tok in lbl.split():
                 if tok in needed_surnames:
                     ctup = (tkey, yr, lbl, addr)
                     if ctup not in client_surname_index[tok]:
                         client_surname_index[tok].append(ctup)
+
+    citydir_path = output_dir / "citydir_index.json"
+    if needed_surnames and citydir_path.exists():
+        try:
+            citydir_doc = json.loads(citydir_path.read_text(encoding="utf-8"))
+        except Exception:
+            citydir_doc = {}
+        for hc, rec in (citydir_doc.get("by_hcad") or {}).items():
+            if not isinstance(rec, dict) or _is_confidential_target(str(hc), confidential_hcads):
+                continue
+            hc_s = str(hc).strip()
+            yr = int(rec.get("h") or 0)
+            if yr > 0:
+                _record_known_year(hc_s, yr)
+            addr = str(rec.get("a") or "").strip()
+            if addr:
+                hcad_to_addr.setdefault(hc_s, addr)
+            for row in rec.get("r") or []:
+                if not isinstance(row, list) or len(row) < 2:
+                    continue
+                lbl = _normalize_landmark_key(str(row[1] or ""))
+                for tok in lbl.split():
+                    if tok in needed_surnames:
+                        ctup = (hc_s, yr or int(row[0] or 0), lbl, addr)
+                        if ctup not in client_surname_index[tok]:
+                            client_surname_index[tok].append(ctup)
+
+    if needed_surnames and permit_owner_index:
+        for sur_tok, rows in permit_owner_index.items():
+            for hc_s, d_yr, lbl, _empty_ad in rows:
+                if _is_confidential_target(hc_s, confidential_hcads):
+                    continue
+                eff_yr = known_target_years.get(hc_s) or d_yr
+                addr = hcad_to_addr.get(hc_s, "")
+                ctup = (hc_s, eff_yr, lbl, addr)
+                if ctup not in client_surname_index[sur_tok]:
+                    client_surname_index[sur_tok].append(ctup)
 
     # 2. Execute Two-Tier Matching
     matched_items_dict: dict[str, dict[str, Any]] = {}
@@ -1646,19 +1892,21 @@ def run_archive_harvest(
         if not matched_targets and item.item_id in candidate_client_surnames:
             full_phr, sur = candidate_client_surnames[item.item_id]
             cands = client_surname_index.get(sur) or []
-            # Filter by era (`±10` years if item has year) and architect career window
+            surname_parcel_count = len({c[0].split("#")[0] for c in cands})
+            allow_init = bool(item.year) or surname_parcel_count == 1
+            # Filter by era (`±15` years if item has year) and architect career window
             filtered_cands: list[tuple[str, int, str, str]] = []
             for tk, b_yr, nm_blob, ad in cands:
                 eff_yr = _effective_target_year(tk, b_yr, is_lost_flag=False)
-                if item.year and eff_yr > 0 and abs(eff_yr - item.year) > 10:
+                if item.year and eff_yr > 0 and abs(eff_yr - item.year) > 15:
+                    continue
+                if not item.year and survey_ceiling_yr and eff_yr > 0 and eff_yr > survey_ceiling_yr + 5:
                     continue
                 if item.architect and eff_yr > 0 and not is_architect_within_career_window(item.architect, eff_yr):
                     continue
-                # Require multi-token given-name/initial corroboration on a unique parcel
-                given_toks = [w for w in full_phr.split() if len(w) >= 3 and w != sur]
-                has_given_corrob = any(g in nm_blob for g in given_toks)
-                if has_given_corrob:
-                    filtered_cands.append((tk, eff_yr, nm_blob, ad))
+                if _client_given_name_matches(full_phr, sur, nm_blob, allow_single_initial=allow_init):
+                    resolved_ad = ad or hcad_to_addr.get(tk.split("#")[0], "")
+                    filtered_cands.append((tk, eff_yr, nm_blob, resolved_ad))
             unique_parcels = {c[0].split("#")[0] for c in filtered_cands}
             if len(unique_parcels) == 1 and filtered_cands:
                 tk, b_yr, nm_blob, ad = filtered_cands[0]
@@ -1687,10 +1935,10 @@ def run_archive_harvest(
                     by_addr[ak1].append(short_id)
                     attached_any = True
 
-            # Track Tier 1 verified architect attribution for backfill (requires explicit item.year and b_yr within <=10y delta)
+            # Track Tier 1/2 verified architect attribution for backfill (requires explicit item.year and b_yr within <=10y delta)
             if (
                 not is_lost
-                and m_tier in ("address", "landmark")
+                and m_tier in ("address", "landmark", "client")
                 and item.architect
                 and item.year
                 and b_yr > 0
@@ -1705,7 +1953,7 @@ def run_archive_harvest(
                 )
 
             # Queue verified visual HPL ContentDM photographs/renderings for `building_photos.json`
-            if item.is_visual_photo_or_rendering and m_tier in ("address", "landmark"):
+            if item.is_visual_photo_or_rendering and m_tier in ("address", "landmark", "client"):
                 clean_hcad = "" if is_lost else normalize_standing_hcad_token(base_hcad)
                 arch_suffix = (
                     f" (Architect: {item.architect})."
@@ -1762,7 +2010,37 @@ def run_archive_harvest(
         ck: all_colls[ck] for ck in sorted(matched_colls_used) if ck in all_colls
     }
 
-    archival_index_payload = {
+    # Preserve existing Harris County Archives CR001 inventory (`hca_cr001` and `taro:hca/cr001` items) when present
+    arch_idx_path = output_dir / "archival_index.json"
+    existing_hca_cr001: Any = None
+    if arch_idx_path.exists():
+        try:
+            prev_arch = json.loads(arch_idx_path.read_text(encoding="utf-8"))
+        except Exception:
+            prev_arch = {}
+        if isinstance(prev_arch, dict):
+            existing_hca_cr001 = prev_arch.get("hca_cr001")
+            prev_colls = prev_arch.get("collections") or {}
+            if "taro:hca/cr001" in prev_colls:
+                used_collections_payload["taro:hca/cr001"] = prev_colls["taro:hca/cr001"]
+            prev_items = prev_arch.get("items") or {}
+            hca_id_remap: dict[str, str] = {}
+            for old_id, rec_obj in prev_items.items():
+                if isinstance(rec_obj, dict) and rec_obj.get("c") == "taro:hca/cr001":
+                    new_id = f"a{len(matched_items_dict) + 1}"
+                    matched_items_dict[new_id] = rec_obj
+                    hca_id_remap[old_id] = new_id
+            if hca_id_remap:
+                for k, id_list in (prev_arch.get("by_key") or {}).items():
+                    for oid in id_list or []:
+                        if oid in hca_id_remap and hca_id_remap[oid] not in by_key[k]:
+                            by_key[k].append(hca_id_remap[oid])
+                for ak, id_list in (prev_arch.get("by_addr") or {}).items():
+                    for oid in id_list or []:
+                        if oid in hca_id_remap and hca_id_remap[oid] not in by_addr[ak]:
+                            by_addr[ak].append(hca_id_remap[oid])
+
+    archival_index_payload: dict[str, Any] = {
         "version": 1,
         "generated_at": effective_generated_at,
         "taro_collections_scanned": len(taro_colls),
@@ -1772,6 +2050,8 @@ def run_archive_harvest(
         "by_key": dict(sorted(by_key.items())),
         "by_addr": dict(sorted(by_addr.items())),
     }
+    if existing_hca_cr001 is not None:
+        archival_index_payload["hca_cr001"] = existing_hca_cr001
 
     ov_arch_added = 0
     bld_arch_added = 0
