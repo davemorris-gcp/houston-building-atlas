@@ -2166,8 +2166,9 @@ def test_pass2_dual_source_pre1927_audit_queue_calibration() -> None:
     queue_items = json.loads((data_dir / "historical_audit_queue.json").read_text(encoding="utf-8"))["items"]
     cd_by_hcad = json.loads((data_dir / "citydir_index.json").read_text(encoding="utf-8")).get("by_hcad", {})
 
-    assert len(overrides) >= 2816
+    assert len(overrides) >= 2815
     assert "0200670000010" not in overrides
+    assert "0621110000014" not in overrides
     for protected_hc in PROTECTED_TEST_FIXTURE_HCADS:
         if protected_hc in overrides:
             assert overrides[protected_hc].get("source_type") != "COH HPO Historic District Survey"
