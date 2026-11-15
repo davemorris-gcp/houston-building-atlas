@@ -498,35 +498,44 @@ export const FEATURED_PORTFOLIO_PRESETS = [
   { kind: "architect", query: "Ulrich Franzen", label: "Ulrich Franzen", subGroup: "Modernist & Contemporary Architects", subtitle: "1968 Alley Theatre Brutalist Landmark", workCount: 6, lostCount: 0 },
   { kind: "architect", query: "Hamilton Brown", label: "Hamilton Brown", subGroup: "Modernist & Contemporary Architects", subtitle: "Mid-Century Modern Churches, Schools & Residential Architecture", workCount: 3, lostCount: 0 },
   // Master Builders & Historic Contractors
-  { kind: "architect", query: "Russell Brown Company", label: "Russell Brown Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Pattern-Book Residences in Montrose & Courtlandt Pl", workCount: 36, lostCount: 8 },
+  { kind: "architect", query: "Russell Brown Company", label: "Russell Brown Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Pattern-Book Residences in Montrose & Courtlandt Pl", workCount: 42, lostCount: 8 },
+  { kind: "architect", query: "American Construction Company", label: "American Construction Company", subGroup: "Master Builders & Historic Contractors", subtitle: "Gulf Bldg, Niels Esperson Bldg & Major Downtown High-Rise Builder", workCount: 12, lostCount: 0 },
   { kind: "architect", query: "Salisbury & McHale", label: "Salisbury & McHale", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s English Cottage, Tudor & Colonial Revival Builder-Architects", workCount: 11, lostCount: 0 },
-  { kind: "architect", query: "American Construction Company", label: "American Construction Company", subGroup: "Master Builders & Historic Contractors", subtitle: "Gulf Bldg, Niels Esperson Bldg & Major Downtown High-Rise Builder", workCount: 11, lostCount: 0 },
   { kind: "architect", query: "W. S. Bellows", label: "W. S. Bellows Construction Corp.", subGroup: "Master Builders & Historic Contractors", subtitle: "San Jacinto Monument, City Hall & Major Houston Skyscraper Builder", workCount: 8, lostCount: 0 },
   { kind: "architect", query: "Webber", label: "W. L. Webber & Associates", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Streetcar Suburb Residential Builder", workCount: 6, lostCount: 0 },
+  { kind: "architect", query: "Edwards & Springfield", label: "Edwards & Springfield", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s Montrose, Kipling & W. Alabama Brick-Veneer Residential Builder", workCount: 6, lostCount: 0 },
+  { kind: "architect", query: "Tellepsen", label: "Tellepsen Construction Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "Est. 1909 · Shamrock Hotel, Jones Hall & Civic/Commercial Builder", workCount: 6, lostCount: 0 },
+  { kind: "architect", query: "G. C. Curtis", label: "G. C. Curtis", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s Heights, Montrose & Midtown Brick-Veneer & Apartment Builder", workCount: 5, lostCount: 0 },
+  { kind: "architect", query: "Swedman & Page", label: "Swedman & Page", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s Montrose, Avondale, Audubon Pl & Sunset Blvd Home Builder", workCount: 5, lostCount: 0 },
+  { kind: "architect", query: "W. J. Goggan", label: "W. J. Goggan", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s Montrose, Heights & Eastwood Brick-Veneer Apartment Builder", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Thos. M. Murray", label: "Thos. M. Murray", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s Sunset Blvd, Lovett Blvd & Marshall St Residence Builder", workCount: 4, lostCount: 0 },
   { kind: "architect", query: "Hart Oil and Well Company", label: "Hart Oil & Well Co. (Builder)", subGroup: "Master Builders & Historic Contractors", subtitle: "Historic Residential & Commercial Builder in Houston", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Jeff Bland Lumber", label: "Jeff Bland Lumber Co. (Freedmen's Town)", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-1900s Freedmen's Town Folk Victorian & Shotgun Home Builder", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "T. D. Howe Construction Company", label: "T. D. Howe Construction Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "St. Mary's Seminary, Trinity Church & Stowers Bldg (HMRC MSS 0223)", workCount: 3, lostCount: 0 },
+  { kind: "architect", query: "Crain Ready-Cut House Co.", label: "Crain Ready-Cut House Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "Pioneering Houston Prefabricated & Brick-Veneer Home Manufacturer", workCount: 3, lostCount: 0 },
+  { kind: "architect", query: "Fretz Construction", label: "Fretz Construction Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s-1960s Houston Commercial, Industrial & Institutional Contractor", workCount: 3, lostCount: 2 },
   { kind: "architect", query: "Independence Heights Vernacular Builder", label: "Independence Heights Builders", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Black Contractors in Texas's First Black Municipality", workCount: 3, lostCount: 3 },
-  { kind: "architect", query: "Jeff Bland Lumber", label: "Jeff Bland Lumber Co. (Freedmen's Town)", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-1900s Freedmen's Town Folk Victorian & Shotgun Home Builder", workCount: 3, lostCount: 0 },
   // Craftsman, Bungalow & Streetcar Suburbs
-  { kind: "style", query: "Bungalow", label: "Bungalow (All Variants)", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows", workCount: 1935, lostCount: 275 },
-  { kind: "style", query: "Craftsman", label: "Craftsman Style", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves", workCount: 1095, lostCount: 328 },
-  { kind: "style", query: "Cottage", label: "Gable-Front & Pyramid Cottages", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages", workCount: 188, lostCount: 4 },
+  { kind: "style", query: "Bungalow", label: "Bungalow (All Variants)", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows", workCount: 1975, lostCount: 275 },
+  { kind: "style", query: "Craftsman", label: "Craftsman Style", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves", workCount: 1100, lostCount: 328 },
+  { kind: "style", query: "Cottage", label: "Gable-Front & Pyramid Cottages", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages", workCount: 189, lostCount: 4 },
   { kind: "style", query: "Foursquare", label: "American Foursquare", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1925 · Two-Story Cubic Massing, Hipped Dormer & Full Porch", workCount: 79, lostCount: 1 },
   { kind: "style", query: "Prairie", label: "Prairie School", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1925 · Low Hipped Roofs, Horizontal Banding & Broad Eaves", workCount: 67, lostCount: 6 },
   // Victorian & 19th-Century Styles
   { kind: "style", query: "Queen Anne", label: "Queen Anne Victorian", subGroup: "Victorian & 19th-Century Styles", subtitle: "1880-1910 · Turrets, Wraparound Porches & Shingle Gables", workCount: 413, lostCount: 8 },
-  { kind: "style", query: "Folk Victorian", label: "Folk Victorian", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1910 · Turned Spindlework Trim on Simple Gable Forms", workCount: 60, lostCount: 3 },
+  { kind: "style", query: "Folk Victorian", label: "Folk Victorian", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1910 · Turned Spindlework Trim on Simple Gable Forms", workCount: 61, lostCount: 3 },
   { kind: "style", query: "Gothic Revival", label: "Gothic Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1865-1940 · Pointed-Arch Lancet Windows, Buttresses & Spires", workCount: 32, lostCount: 4 },
   { kind: "style", query: "Italianate", label: "Italianate", subGroup: "Victorian & 19th-Century Styles", subtitle: "1860-1895 · Bracketed Cornices, Tall Hooded Windows & Cupolas", workCount: 26, lostCount: 6 },
   { kind: "style", query: "Romanesque", label: "Romanesque Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1880-1905 · Heavy Round Masonry Arches & Rusticated Stone Trim", workCount: 26, lostCount: 11 },
   { kind: "style", query: "Greek Revival", label: "Greek Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1840-1885 · Classical Pediments, Transom Doors & Full-Width Porches", workCount: 20, lostCount: 3 },
-  { kind: "style", query: "Shotgun", label: "Shotgun & Folk Vernacular", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1925 · Single-Room-Wide Linear Homes Across Historic Wards", workCount: 6, lostCount: 1 },
+  { kind: "style", query: "Shotgun", label: "Shotgun & Folk Vernacular", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1925 · Single-Room-Wide Linear Homes Across Historic Wards", workCount: 7, lostCount: 1 },
   { kind: "style", query: "Second Empire", label: "Second Empire", subGroup: "Victorian & 19th-Century Styles", subtitle: "1870-1895 · Mansard Roofs with Dormers & Cast-Iron Cresting", workCount: 5, lostCount: 2 },
   // Period Revival & Classical Styles
   { kind: "style", query: "Colonial Revival", label: "Colonial Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1955 · Symmetrical Facades, Pedimented Entries & Multi-Pane Sash", workCount: 209, lostCount: 5 },
-  { kind: "style", query: "English", label: "English Cottage & Picturesque", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1940 · Asymmetrical Brick Gables, Arched Doors & Storybook Massing", workCount: 85, lostCount: 0 },
+  { kind: "style", query: "English", label: "English Cottage & Picturesque", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1940 · Asymmetrical Brick Gables, Arched Doors & Storybook Massing", workCount: 87, lostCount: 0 },
   { kind: "style", query: "Tudor Revival", label: "Tudor Revival Style", subGroup: "Period Revival & Classical Styles", subtitle: "1915-1940 · Steep Cross Gables, Half-Timbering & Leaded Casements", workCount: 51, lostCount: 1 },
   { kind: "style", query: "Georgian Revival", label: "Georgian Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1910-1945 · Formal Red-Brick Symmetry, Dentil Cornices & Palladian Motifs", workCount: 29, lostCount: 1 },
-  { kind: "style", query: "French", label: "French Eclectic & Normandy", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1945 · Steep Hipped Roofs, Round Stair Towers & Casement Windows", workCount: 28, lostCount: 2 },
+  { kind: "style", query: "French", label: "French Eclectic & Normandy", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1945 · Steep Hipped Roofs, Round Stair Towers & Casement Windows", workCount: 29, lostCount: 2 },
   { kind: "style", query: "Beaux-Arts", label: "Beaux-Arts Classicism", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1930 · Paired Columns, Sculptural Cartouches & Civic Grandeur", workCount: 26, lostCount: 10 },
   { kind: "style", query: "Neoclassical", label: "Neoclassical & Classical Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1940 · Monumental Colonnades, Porticos & Limestone Facades", workCount: 25, lostCount: 1 },
   { kind: "style", query: "Spanish", label: "Spanish Eclectic & Mediterranean", subGroup: "Period Revival & Classical Styles", subtitle: "1915-1940 · Red Barrel Tile Roofs, Stucco Walls & Arched Loggias", workCount: 22, lostCount: 4 },
@@ -1019,6 +1028,142 @@ export const ARCHITECT_AND_STYLE_BIOGRAPHIES = {
       {
         label: "COH Historic Preservation Manual",
         url: "https://www.houstontx.gov/planning/HistoricPres/historicmanual.html",
+      },
+    ],
+  },
+  "american construction company": {
+    title: "American Construction Company",
+    role: "Downtown High-Rise & Commercial General Contractor",
+    summary:
+      "Major early-20th-century Houston general contractor that erected the 37-story Gulf Building (1929), Niels Esperson Building (1927), Keystone Building (1922), and commercial and industrial landmarks across Downtown Houston and Main Street.",
+    citations: [
+      {
+        label: "COH Landmark Report 02L097 (Gulf Building)",
+        url: "https://www.houstontx.gov/planning/HistoricPres/landmarks/02L097_Gulf_Bldg_712_Main.pdf",
+      },
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (May 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/41825",
+      },
+    ],
+  },
+  "w. s. bellows": {
+    title: "W. S. Bellows Construction Corporation (Est. 1914)",
+    role: "Civic Monument & Skyscraper General Contractor",
+    summary:
+      "Founded by Warren S. Bellows in 1914 and headquartered in Houston from 1936 onward, Bellows built the San Jacinto Monument (1936-1939), Houston City Hall (1939), First City National Bank (1961), Wortham Theater Center, and major Texas Medical Center and downtown towers.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: San Jacinto Monument",
+        url: "https://www.tshaonline.org/handbook/entries/san-jacinto-monument-and-museum",
+      },
+    ],
+  },
+  "edwards & springfield": {
+    title: "Edwards & Springfield",
+    role: "1920s Streetcar Suburb Residential Builder",
+    summary:
+      "Prolific 1920s Houston residential building partnership documented in the Texas General Contractors Association Monthly Bulletin (1923-1924) for constructing two-story brick-veneer, stucco, and duplex residences across Montrose, Kipling Street, West Alabama, Graustark, and Yupon.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Oct 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/41937",
+      },
+    ],
+  },
+  "tellepsen": {
+    title: "Tellepsen Construction Company (Est. 1909)",
+    role: "Civic, Commercial & Industrial General Contractor",
+    summary:
+      "Founded in Houston in 1909 by Norwegian-born builder Tom Tellepsen, Tellepsen Construction built the Shamrock Hotel (1949, demolished), Jesse H. Jones Hall for the Performing Arts (1966), industrial plants along the Houston Ship Channel, and 1920s-1960s schools, churches, and commercial buildings.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Dec 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/42006",
+      },
+    ],
+  },
+  "g. c. curtis": {
+    title: "G. C. Curtis",
+    role: "1920s Residential & Brick-Veneer Apartment Builder",
+    summary:
+      "Active 1920s Houston building contractor documented in the Texas General Contractors Association Monthly Bulletin (1923-1924) for erecting brick-veneer apartments and two-story residences along Heights Boulevard, Bomar Street, Hawthorne Street, Caroline Street, and Rosedale.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Nov 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/41963",
+      },
+    ],
+  },
+  "swedman & page": {
+    title: "Swedman & Page",
+    role: "1920s Montrose & Boulevard Oaks Residential Contractor",
+    summary:
+      "Houston residential contracting partnership documented in the Texas General Contractors Association Monthly Bulletin (1923-1924) for building brick-veneer, stucco, and hollow-tile residences on Avondale Avenue, Audubon Place, Sunset Boulevard, Welch Street, and Garrott Street.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Oct 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/41937",
+      },
+    ],
+  },
+  "w. j. goggan": {
+    title: "W. J. Goggan",
+    role: "1920s Montrose, Heights & Eastwood Apartment Builder",
+    summary:
+      "Houston building contractor recorded across multiple 1923-1924 issues of the Texas General Contractors Association Monthly Bulletin for constructing two-story brick-veneer apartments and residences on Welch Street, Walker Avenue, Bayland Avenue, and Rusk Avenue.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Jan 1924)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/42041",
+      },
+    ],
+  },
+  "thos. m. murray": {
+    title: "Thomas M. Murray",
+    role: "1920s Montrose & Broadacres/Boulevard Oaks Builder",
+    summary:
+      "Houston residential contractor who constructed large two-story brick-veneer residences and duplexes along Sunset Boulevard, Lovett Boulevard, Marshall Street, and Graustark Street during the 1923-1924 building boom.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Dec 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/42006",
+      },
+    ],
+  },
+  "t. d. howe construction company": {
+    title: "T. D. Howe Construction Company",
+    role: "Civic, Ecclesiastical & Commercial General Contractor",
+    summary:
+      "Houston general contracting firm led by T. D. Howe whose archival records and blueprints are preserved in HMRC Collection MSS 0223; builders of St. Mary's Seminary (9845 Memorial Dr), Trinity Episcopal Church additions (1015 Holman St), and the G. A. Stowers Furniture Building (820 Fannin St).",
+    citations: [
+      {
+        label: "HPL Digital Archives: T. D. Howe Construction Co. (MSS 0223)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/p17006coll192/id/78",
+      },
+    ],
+  },
+  "crain ready-cut house co.": {
+    title: "Crain Ready-Cut House Company",
+    role: "Houston Prefabricated & Residential Home Builder",
+    summary:
+      "Founded in Houston by E. L. Crain, the Crain Ready-Cut House Company operated one of the South's largest millwork and prefabricated house factories in the East End while also contracting custom brick-veneer and frame residences across Montrose, the Heights, and Magnolia Park.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Aug 1923)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/41891",
+      },
+    ],
+  },
+  "fretz construction": {
+    title: "Fretz Construction Company",
+    role: "Houston Commercial, Industrial & Institutional Contractor",
+    summary:
+      "Established in Houston in the early 1920s by Robert R. Fretz, Fretz Construction built major commercial storefronts, industrial warehouses, clinics, and institutional buildings across Houston from 1923 through the postwar era.",
+    citations: [
+      {
+        label: "HPL Digital Archives: T.G.C.A. Monthly Bulletin (Jan 1924)",
+        url: "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/42041",
       },
     ],
   },

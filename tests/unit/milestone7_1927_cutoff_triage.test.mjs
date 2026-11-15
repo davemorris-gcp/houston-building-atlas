@@ -908,6 +908,13 @@ test("IT-2, IT-4 & RP-1: live bundle hydration, DEFAULT_POLICY_IMPACT_BRIEF pari
     "0200670000010 must remain active in CITY_DIRECTORY_EARLIER_THAN_HCAD"
   );
   assert.ok(harvardFindings.length >= 2);
+
+  // Pass-2 T.G.C.A. Monthly Bulletin enrichment resolves plat_1930:0210080000005 (629 HEIGHTS BLVD, 1923 G. C. Curtis)
+  const heights629 = hydrated.find((it) => it.fid === "plat_1930:0210080000005");
+  assert.ok(heights629, "Expected plat_1930:0210080000005 in hydrated audit queue");
+  assert.equal(isFindingResolvedByOverrides(heights629, overridesMap), true);
+  assert.equal(isFindingResolvedByOverrides(heights629, overridesRawDoc), true);
+  assert.equal(resolveAuditItemStatus(heights629, {}, overridesRawDoc), "resolved_override");
 });
 
 test("SOP 4 Case D multi-footprint preservation: centroid tolerance, _applyCuratedOverridesInMemory, and _captureDynamicOverrideGeometries", () => {

@@ -152,7 +152,7 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
   assert.ok(finn.stats.demolishedCount >= 5, "Expected >= 5 demolished Lost Houston works for Alfred C. Finn");
   assert.equal(finn.stats.extantCount + finn.stats.demolishedCount, finn.stats.totalCount);
 
-  // Ensure every featured portfolio preset yields non-empty works
+  // Ensure every featured portfolio preset yields non-empty works matching preset metadata
   for (const preset of FEATURED_PORTFOLIO_PRESETS) {
     const ds = buildPortfolioDataset({
       kind: preset.kind,
@@ -165,6 +165,24 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
       ds.stats.totalCount >= 3,
       `Featured portfolio preset '${preset.kind}:${preset.query}' returned only ${ds.stats.totalCount} works`
     );
+    assert.equal(
+      ds.stats.totalCount,
+      preset.workCount,
+      `Preset '${preset.kind}:${preset.query}' workCount (${preset.workCount}) != actual (${ds.stats.totalCount})`
+    );
+    assert.equal(
+      ds.stats.demolishedCount,
+      preset.lostCount,
+      `Preset '${preset.kind}:${preset.query}' lostCount (${preset.lostCount}) != actual (${ds.stats.demolishedCount})`
+    );
+    assert.ok(ds.biography && ds.biography.summary, `Missing biography for ${preset.query}`);
+    for (const cit of ds.biography.citations || []) {
+      assert.equal(
+        validateExternalAtlasUrl(cit.url).valid,
+        true,
+        `Invalid biography citation URL for ${preset.query}: ${cit.url}`
+      );
+    }
   }
 
   // Verify buildCategorizedPortfolioCatalog covers 46 architects (including James Ruskin Bailey),

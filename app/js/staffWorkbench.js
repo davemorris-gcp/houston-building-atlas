@@ -1200,9 +1200,13 @@ export function hydrateAuditQueuePayload(queueDoc) {
  */
 export function isFindingResolvedByOverrides(item, overridesMap = {}) {
   if (!item || !overridesMap || typeof overridesMap !== "object") return false;
+  const map =
+    overridesMap.overrides && typeof overridesMap.overrides === "object"
+      ? overridesMap.overrides
+      : overridesMap;
   const bid = String(item.building_id || "").trim();
   const hcad = String(item.hcad_num || "").trim();
-  const ov = (bid && overridesMap[bid]) || (hcad && overridesMap[hcad]) || null;
+  const ov = (bid && map[bid]) || (hcad && map[hcad]) || null;
   if (!ov || ov.suppress_only) return false;
 
   const isDemo =
