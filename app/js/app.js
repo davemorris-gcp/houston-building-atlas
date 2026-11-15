@@ -299,6 +299,7 @@ export class HoustonAtlasApp {
       activeAuditSort,
       activeSurvey,
       activePolyEdit,
+      activeAdmin,
     } = parseHashToState(window.location.hash, window.location.search);
     this.initialViewport = viewport;
     this.initialSelection = selection;
@@ -321,6 +322,7 @@ export class HoustonAtlasApp {
     this.initialAuditSort = activeAuditSort || "priority";
     this.initialSurvey = Boolean(activeSurvey);
     this.initialPolyEdit = activePolyEdit || null;
+    this.initialAdmin = Boolean(activeAdmin);
     this._staffWorkbench = null;
     this._staffWorkbenchPromise = null;
     this._archivalCatalogsPromise = null;
@@ -580,6 +582,9 @@ export class HoustonAtlasApp {
         updateUrl: false,
       });
     }
+    if (this.initialAdmin) {
+      document.getElementById("btn-topbar-admin")?.click();
+    }
 
     this._applyExportStudioHashParams(window.location.hash, window.location.search);
     this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
@@ -617,6 +622,7 @@ export class HoustonAtlasApp {
         activeAuditSort,
         activeSurvey,
         activePolyEdit,
+        activeAdmin,
       } = parseHashToState(window.location.hash, window.location.search);
       this._isRestoringHistory = true;
       this._suppressUrlUpdate = true;
@@ -705,6 +711,12 @@ export class HoustonAtlasApp {
             updateUrl: false,
           });
           if (urlSeq !== this._urlChangeSeq) return;
+        }
+        if (
+          activeAdmin &&
+          document.getElementById("correction-modal")?.classList.contains("hidden")
+        ) {
+          document.getElementById("btn-topbar-admin")?.click();
         }
 
         if (activeChapterId && activeChapterId !== this._activeChapterId) {

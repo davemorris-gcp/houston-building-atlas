@@ -2068,6 +2068,14 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.activePolyEdit = activePolyEdit;
   }
 
+  let activeAdmin = false;
+  if (mergedParams.has("admin")) {
+    const rawAdm = String(mergedParams.get("admin") || "").trim().toLowerCase();
+    activeAdmin =
+      rawAdm === "1" || rawAdm === "true" || rawAdm === "on" || rawAdm === "yes";
+    patch.activeAdmin = activeAdmin;
+  }
+
   Object.defineProperty(patch, "_urlYearMeta", {
     value: {
       maxYearPinned: urlMaxYearPinned,
@@ -2097,6 +2105,7 @@ export function parseHashToState(hashString = "", searchString = "") {
     activeAuditSort,
     activeSurvey,
     activePolyEdit,
+    activeAdmin,
   };
 }
 

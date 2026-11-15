@@ -295,7 +295,7 @@ export const ARCHITECTURE_NODES = Object.freeze([
       summary:
         "Zero-backend static HTTPS hosting serving the 3 web applications, HTTP 206 byte-range vector tiles, 850+ gzipped shards, and the AI Research Companion bundle.",
       components: [
-        "Web Surfaces: `index.html` (3D Map & Inspector), `plat-monitor.html` (Plat & Watchlist Monitor), `data-ecosystem.html` (Provenance & Architecture), `admin.html`",
+        "Web Surfaces: `index.html` (3D Map, Inspector, `#audit=1` Workbench & `#admin=1` Console), `plat-monitor.html` (Plat & Watchlist Monitor), `data-ecosystem.html` (Provenance & Architecture)",
         "Spatial & Tabular Shards: `buildings.pmtiles` (`1.51M` footprints), `permits_000..999.json.gz`, `owners_000..999.json.gz`, `addr_00..99.json.gz`",
         "AI Companion Bundle: `/llms.txt`, `/llms-full.txt` (`462 KB`), `houston-building-atlas-skill.zip`, `query_atlas.py`, `query_atlas.mjs`",
       ],
@@ -391,9 +391,9 @@ export const ARCHITECTURE_NODES = Object.freeze([
       components: [
         "4-Tab Property Inspector (`Overview`, `1836-2026 History`, `Permits & Appraiser Shorthand`, `HCAD CAMA`)",
         "1-Click Printable Texas Historical Commission (THC) Historic Resources Survey Form (`#thcSurvey=1`)",
-        "Curator Moderation Queue: reviews `Pending_Submissions` & `Field_Surveys` in Google Sheets / `admin.html`",
+        "Curator Moderation Queue: reviews `Pending_Submissions` & `Field_Surveys` in Google Sheets / `index.html#audit=1` (`#admin=1`)",
       ],
-      codePaths: ["app/js/thcSurveyExport.js", "app/admin.html"],
+      codePaths: ["app/js/thcSurveyExport.js", "app/js/staffWorkbench.js"],
     },
   },
   {

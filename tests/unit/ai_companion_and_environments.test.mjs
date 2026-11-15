@@ -606,8 +606,15 @@ test("UT-AI-7: Interactive Animated System & LLM Architecture Diagram upholds no
   assert.ok(html.includes("GitHub Repository &amp; Actions Batch Pipelines"));
   assert.ok(html.includes("End-User Cloud &amp; Local LLM Tools (2-Way Skill)"));
   assert.ok(!/[\u2013\u2014]/.test(html), "Architecture diagram HTML must not contain U+2013 or U+2014 dashes");
+  assert.ok(!html.includes("admin.html"), "Architecture diagram must not reference nonexistent admin.html");
 
   const ecosystemHtml = fs.readFileSync(path.join(APP_DIR, "data-ecosystem.html"), "utf8");
   assert.ok(ecosystemHtml.includes('data-view-mode="architecture"'));
   assert.ok(ecosystemHtml.includes("renderArchitectureDiagramSectionHtml"));
+  assert.ok(ecosystemHtml.includes('href="index.html#audit=1"'));
+  assert.ok(ecosystemHtml.includes('href="index.html#admin=1"'));
+  assert.ok(!ecosystemHtml.includes('href="admin.html"'), "data-ecosystem.html must not link to nonexistent admin.html");
+
+  const parsedAdmin = parseHashToState("#admin=1");
+  assert.equal(parsedAdmin.activeAdmin, true);
 });
