@@ -15704,3 +15704,475 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
     font-size: 16px !important;
   }
 }
+
+/* ==========================================================================
+   Option B Inspector Redesign: 4-Stat Ribbon, Tufte KV Rows & Progressive Disclosure
+   ========================================================================== */
+
+/* 1. Topbar Quick-Tools Popover (⋯ Tools ▾) */
+.inspector-topbar-tools {
+  position: relative;
+  display: inline-block;
+}
+.inspector-topbar-tools.hidden {
+  display: none !important;
+}
+.inspector-topbar-tools > summary {
+  list-style: none;
+}
+.inspector-topbar-tools > summary::-webkit-details-marker {
+  display: none;
+}
+.inspector-topbar-tools[open] > summary.inspector-layout-btn {
+  background: rgba(149, 201, 89, 0.28);
+  border-color: var(--ph-green);
+  color: #ffffff;
+}
+.inspector-topbar-tools-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 248px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(15, 20, 26, 0.98);
+  border: 1px solid rgba(149, 201, 89, 0.42);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.topbar-tool-item {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text-cream);
+  font-family: var(--font-sans);
+  font-size: 11.8px;
+  font-weight: 600;
+  padding: 7px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.topbar-tool-item:hover {
+  background: rgba(149, 201, 89, 0.18);
+  color: #ffffff;
+}
+
+/* 2. Compact 1-Line Collapsible Overlapping Layer Switcher */
+.inspector-overlap-stack.inspector-b-overlap-details {
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+}
+.inspector-b-overlap-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.inspector-b-overlap-summary::-webkit-details-marker {
+  display: none;
+}
+.overlap-b-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  color: #bae6fd;
+}
+.overlap-b-active-name {
+  font-weight: 600;
+  color: #f0f9ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.overlap-b-summary-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.overlap-b-caret {
+  font-size: 10px;
+  color: #94a3b8;
+  transition: transform 0.15s ease;
+}
+.inspector-b-overlap-details[open] .overlap-b-caret {
+  transform: rotate(180deg);
+}
+.inspector-b-overlap-details .inspector-overlap-pills {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(56, 189, 248, 0.22);
+}
+
+/* 3. Streamlined Hero & Status Row + 4-Stat Key Ribbon */
+.inspector-hero.inspector-b-hero {
+  gap: 7px;
+}
+.inspector-b-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.inspector-b-status-row .inspector-status-banner {
+  margin-top: 0;
+  padding: 4px 9px;
+  font-size: 11.2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inspector-b-edit-pill {
+  appearance: none;
+  flex-shrink: 0;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+.inspector-b-edit-pill:hover {
+  border-color: rgba(149, 201, 89, 0.6);
+  background: rgba(149, 201, 89, 0.14);
+  color: #ffffff;
+}
+
+.inspector-stat-ribbon {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: rgba(15, 23, 30, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.stat-ribbon-cell {
+  padding: 7px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  min-width: 0;
+}
+.stat-ribbon-cell:last-child {
+  border-right: none;
+}
+.stat-ribbon-cell .inspector-year-pill {
+  padding: 1.5px 6px;
+  font-size: 11px;
+  line-height: 1.25;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-ribbon-cell .inspector-age-pill {
+  font-size: 10px;
+}
+.stat-ribbon-cell-btn {
+  appearance: none;
+  background: transparent;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.14s ease;
+}
+.stat-ribbon-cell-btn:hover {
+  background: rgba(149, 201, 89, 0.12);
+}
+.stat-ribbon-val {
+  font-size: 12.2px;
+  font-weight: 700;
+  color: var(--text-cream);
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-ribbon-lbl {
+  font-size: 9.8px;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-protection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94a3b8;
+}
+.stat-protection-dot.tier-high {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.55);
+}
+.stat-protection-dot.tier-moderate {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+.stat-protection-dot.tier-none {
+  background: #ef4444;
+}
+
+/* 4. Compact Top Photo Card & Inline "+ Add Photo" Button */
+.inspector-photo-card {
+  margin-bottom: 4px;
+}
+.inspector-photo-card.is-empty-compact {
+  padding: 8px 10px;
+  gap: 6px;
+}
+.inspector-photo-card.is-empty-compact .photo-empty-note {
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.photo-add-inline-btn {
+  flex: 0 0 auto !important;
+  padding: 0 11px !important;
+  white-space: nowrap;
+}
+
+/* 5. Collapsible Accordions (Architecture & Provenance, District & Boundaries, Secondary Tools) */
+.inspector-b-accordion {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 9px;
+  background: rgba(15, 20, 26, 0.45);
+  overflow: hidden;
+}
+.inspector-b-acc-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  user-select: none;
+  transition: background 0.14s ease;
+}
+.inspector-b-acc-summary::-webkit-details-marker {
+  display: none;
+}
+.inspector-b-acc-summary:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.inspector-b-acc-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-cream);
+  letter-spacing: 0.01em;
+}
+.inspector-b-acc-meta {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48%;
+}
+.inspector-b-acc-caret {
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.inspector-b-accordion[open] > .inspector-b-acc-summary {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+.inspector-b-accordion[open] > .inspector-b-acc-summary .inspector-b-acc-caret {
+  transform: rotate(180deg);
+}
+.inspector-b-acc-body {
+  padding: 6px 11px 8px;
+}
+
+/* 6. Clean Borderless Key-Value Rows (.inspector-grid.inspector-b-kv-list) */
+.inspector-grid.inspector-b-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.inspector-grid.inspector-b-kv-list > .inspector-cell {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 0;
+  padding: 6px 2px;
+  display: flex;
+  flex-direction: row;
+   flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+.inspector-grid.inspector-b-kv-list > .inspector-cell:last-child {
+  border-bottom: none;
+}
+.inspector-grid.inspector-b-kv-list > .inspector-cell > .cell-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 0 1 auto;
+}
+.inspector-grid.inspector-b-kv-list > .inspector-cell > .cell-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-cream);
+  text-align: right;
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.inspector-grid.inspector-b-kv-list > .inspector-cell.full > .cell-value {
+  justify-content: flex-end;
+}
+
+/* 7. Unified Protection Scorecard + Chapter 42 Block */
+.inspector-b-protection-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inspector-b-protection-group .protection-scorecard {
+  margin-bottom: 0;
+}
+.inspector-b-protection-group .inspector-ch42-cta-wrap {
+  margin: 0;
+}
+
+/* 8. Streamlined Primary Action Row + Collapsible Secondary Tools */
+.inspector-b-actions {
+  gap: 8px;
+}
+.inspector-b-primary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.inspector-b-primary-actions > .inspector-btn {
+  font-size: 11.5px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inspector-b-tools-grid {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.inspector-b-tools-grid > .inspector-btn {
+  height: 32px;
+  font-size: 11px;
+  padding: 0 8px;
+}
+.inspector-b-tools-grid > .inspector-btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* 9. Sunlit / Light Basemap Theme Overrides for Option B Components */
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-topbar-tools-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(45, 106, 30, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .topbar-tool-item {
+  color: #0f172a;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .topbar-tool-item:hover {
+  background: rgba(45, 106, 30, 0.12);
+  color: #14532d;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-edit-pill {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(100, 116, 139, 0.35);
+  color: #334155;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-edit-pill:hover {
+  background: rgba(45, 106, 30, 0.12);
+  border-color: rgba(45, 106, 30, 0.5);
+  color: #14532d;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-stat-ribbon {
+  background: rgba(248, 250, 252, 0.95);
+  border-color: rgba(148, 163, 184, 0.38);
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-ribbon-cell {
+  border-right-color: rgba(148, 163, 184, 0.28);
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-ribbon-val {
+  color: #0f172a;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-ribbon-lbl {
+  color: #475569;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-accordion {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-acc-summary {
+  background: rgba(241, 245, 249, 0.75);
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-acc-title,
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-grid.inspector-b-kv-list > .inspector-cell > .cell-value {
+  color: #0f172a;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-grid.inspector-b-kv-list > .inspector-cell {
+  border-bottom-color: rgba(148, 163, 184, 0.25);
+}
+
+@media screen and (max-width: 420px) {
+  .inspector-b-primary-actions,
+  .inspector-b-tools-grid {
+    grid-template-columns: 1fr;
+  }
+  .inspector-grid.inspector-b-kv-list > .inspector-cell {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .inspector-grid.inspector-b-kv-list > .inspector-cell > .cell-value {
+    text-align: left;
+    justify-content: flex-start;
+  }
+}
