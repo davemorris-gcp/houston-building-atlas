@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-15T18:19:27Z",
+  "generatedAt": "2026-11-16T21:29:49Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -1159,7 +1159,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #76 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #76 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Errick Cooke, applicant \u2013 available for questions Motion: Victor Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
           "tier": "4",
           "tierConfirmed": true,
           "isHumanReviewed": true,
@@ -3301,7 +3301,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #77 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #77 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous d",
           "tier": "3",
           "tierConfirmed": true,
           "isHumanReviewed": true,
@@ -3550,7 +3550,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #75 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
           "tier": "4",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -5684,7 +5684,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #79 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -5981,7 +5981,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Serem Vote: Unanimous 75 RICHLAND DRIVE VILLAS Staff recommendation: Approve the plat subject to the conditions listed",
           "tier": "4",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -7752,7 +7752,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #68 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #68 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
           "tier": "3",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -8270,7 +8270,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #79 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -8409,7 +8409,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10376,7 +10376,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #82 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #82 - Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10399,7 +10399,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #81 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #81 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10422,7 +10422,7 @@
           "deferral": "DEF1",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #82 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #82 - Commission action: Deferred the application for further information. Speaker(s): None PC 4 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10445,7 +10445,7 @@
           "deferral": "DEF1",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #81 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #81 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Carroll Vote: Carried Recused: Mares ITEMS 82, 83, 84 WERE PRESENTED TOGETHER WITH ONE VOTE",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10565,7 +10565,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #84 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #84 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10588,7 +10588,7 @@
           "deferral": "DEF1",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #84 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #84 - Commission action: Deferred the application for further information. Speaker(s): None Motion: Pham Second: Naranjo Vote: Carried Recused: Mares e",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10863,7 +10863,7 @@
           "deferral": "",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #80 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": false,
@@ -10886,7 +10886,7 @@
           "deferral": "DEF1",
           "section": "D. Variances",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #80 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Ballard Vote: Unanimous 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
           "tier": "",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -13286,7 +13286,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "",
-          "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #75 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
           "tier": "4",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -13431,7 +13431,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "2026-10-15",
-          "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-15)",
+          "meetingAction": "Agenda Item #75 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
           "tier": "4",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -13454,7 +13454,7 @@
           "deferral": "DEF1",
           "section": "C. Public Hearing",
           "hearingDateIso": "2026-10-15",
-          "meetingAction": "Agenda Item #73 \u00b7 C. Public Hearing \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #73 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous 74 PARTIAL REPLAT OF SANDALWOOD SEC 2 AND 3 PARTIAL REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
           "tier": "3",
           "tierConfirmed": true,
           "isHumanReviewed": true,
@@ -13619,7 +13619,7 @@
           "deferral": "",
           "section": "C. Public Hearing",
           "hearingDateIso": "2026-10-29",
-          "meetingAction": "Agenda Item #71 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-29)",
+          "meetingAction": "Agenda Item #71 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Porras-Pirtle Second: Mares Vote: Unanimous 72 KAFI COMMONS \u2013 Withdrawn",
           "tier": "3",
           "tierConfirmed": false,
           "isHumanReviewed": true,
@@ -17506,7 +17506,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-15T18:19:26.992888+00:00"
+      "updated": "2026-11-16T21:29:48.929320+00:00"
     },
     "2026-1764": {
       "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
@@ -33397,10 +33397,62 @@
       "fileName": "Plat-Current-Agenda-Spreadsheet-10-15-2026.xlsx",
       "sourceSpreadsheetUrl": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-10-15-2026.xlsx",
       "agendaOutlineUrl": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/2026/PC-Draft-Agenda-Outline-101526.pdf",
-      "minutesUrl": "",
+      "minutesUrl": "https://www.houstontx.gov/planning/Commissions/minutes-plan-2026/10.15.2026-PCMinutes-DRAFT.pdf",
       "minutesActions": {
-        "byItem": {},
-        "byName": {}
+        "byItem": {
+          "52": "Commission action: Deferred, per council members request. Speaker(s): Council Member Ty K",
+          "53": "Commission action: Deferred, per council members request. Speaker(s): Tonia Wells, Council Member Ty K",
+          "67": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Joyce Owens, available for questions Motion: Jones Second: Sikes Vote: Unanimous 68 AMPLIFIED PROPERTIES Staff recommendation: Approve the plat subject to the conditions listed",
+          "68": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "69": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Mandapaka Vote: Unanimous 70 BAYOU GLEN PARTIAL REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "70": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Sigler Second: Ballard Vote: Unanimous 71 EASTER HAVEN",
+          "71": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Pham Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
+          "72": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous",
+          "73": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous 74 HIGHLAND CROSSING REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "74": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
+          "75": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
+          "76": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous",
+          "77": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous d",
+          "78": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Sikes Second: Pham Vote: Unanimous PC 4 of 7",
+          "79": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Shepherd Second: Jones Vote: Unanimous 80 CYPRESS TRAILS AT BAUER LANDING SEC 2",
+          "80": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
+          "81": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
+          "82": "Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
+          "83": "Commission action: Deferred. 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer Applicant request",
+          "84": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "85": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous PC 5 of 7",
+          "89": "Staff recommendation: Approve staff recommendations for G, H, I and J Item(s) 86 \u2013 89",
+          "90": "Commission action: Deferred. Speaker(s): Giselle Martinez, Alexander Spike, Marian Wright \u2013 opposed Motion: Baldwin Second: Ballard Vote: Unanimous 91 4801 N MAIN Street Staff recommendation: Approve",
+          "91": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Jones Vote: Unanimous PC 6 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
+          "92": "Commission action: Approved the application. Speaker(s): None Motion: Sigler Second: Jones Vote: Unanimous IV"
+        },
+        "byName": {
+          "NEYLAND MANORS": "Commission action: Deferred, per council members request. Speaker(s): Council Member Ty K",
+          "PARRA ESTATES AT NEYLAND STREET": "Commission action: Deferred, per council members request. Speaker(s): Tonia Wells, Council Member Ty K",
+          "ALMEDA GENOA COMPLEX": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Joyce Owens, available for questions Motion: Jones Second: Sikes Vote: Unanimous 68 AMPLIFIED PROPERTIES Staff recommendation: Approve the plat subject to the conditions listed",
+          "AMPLIFIED PROPERTIES": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "BAR ACRE": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Mandapaka Vote: Unanimous 70 BAYOU GLEN PARTIAL REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "BAYOU GLEN": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Sigler Second: Ballard Vote: Unanimous 71 EASTER HAVEN",
+          "EASTER HAVEN": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Pham Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
+          "ESCATTA WITHDRAW": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous",
+          "FERRARI OF HOUSTON": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous 74 HIGHLAND CROSSING REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "HIGHLAND CROSSING": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
+          "MILL R IDGE VILLAGE S EC 1": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
+          "RESERVES AT PARK PLACE WITHDRAW": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous",
+          "RONSON LANDING": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous d",
+          "BACHER MANOR": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Sikes Second: Pham Vote: Unanimous PC 4 of 7",
+          "BENDERS CREEK GP": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Shepherd Second: Jones Vote: Unanimous 80 CYPRESS TRAILS AT BAUER LANDING SEC 2",
+          "CYPRESS TRAILS AT BAUER LANDING SEC 2": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
+          "GARDENLIGHT CITY PLACE GP": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
+          "GARDENLIGHT CITY PLACE SEC 1": "Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
+          "GARDENLIGHT CITY PLACE SEC 2": "Commission action: Deferred. 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer Applicant request",
+          "GARDENLIGHT CITY PLACE SEC 3": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "SPRING CYPRESS WAREHOUSES SEC 1": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous PC 5 of 7",
+          "LUCA RESIDENCE APPROVE": "Staff recommendation: Approve staff recommendations for G, H, I and J Item(s) 86 \u2013 89",
+          "801 MCGOWEN STREET": "Commission action: Deferred. Speaker(s): Giselle Martinez, Alexander Spike, Marian Wright \u2013 opposed Motion: Baldwin Second: Ballard Vote: Unanimous 91 4801 N MAIN Street Staff recommendation: Approve",
+          "4801 N MAIN": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Jones Vote: Unanimous PC 6 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
+          "323 WYCLIFFE DRIVE": "Commission action: Approved the application. Speaker(s): None Motion: Sigler Second: Jones Vote: Unanimous IV"
+        }
       },
       "summary": {
         "totalAgendaItems": 129,
@@ -33839,7 +33891,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1657",
-          "meetingAction": "Agenda Item #82 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #82 - Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -33930,7 +33982,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1656",
-          "meetingAction": "Agenda Item #84 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #84 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -34200,7 +34252,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1653",
-          "meetingAction": "Agenda Item #80 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
           "atlas": {
             "addresses": [
               "20533 BAUER RD"
@@ -34396,7 +34448,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1651",
-          "meetingAction": "Agenda Item #83 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #83 - Commission action: Deferred. 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer Applicant request",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -37735,7 +37787,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1612",
-          "meetingAction": "Agenda Item #81 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #81 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -39596,7 +39648,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1592",
-          "meetingAction": "Agenda Item #53 \u00b7 B. Replats",
+          "meetingAction": "Agenda Item #53 - Commission action: Deferred, per council members request. Speaker(s): Tonia Wells, Council Member Ty K",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -40772,7 +40824,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1570",
-          "meetingAction": "Agenda Item #78 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #78 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Sikes Second: Pham Vote: Unanimous PC 4 of 7",
           "atlas": {
             "addresses": [
               "5603 BACHER ST"
@@ -42831,7 +42883,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1506",
-          "meetingAction": "Agenda Item #69 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #69 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Mandapaka Vote: Unanimous 70 BAYOU GLEN PARTIAL REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [
               "19018 HAMISH RD"
@@ -42939,7 +42991,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1501",
-          "meetingAction": "Agenda Item #67 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #67 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Joyce Owens, available for questions Motion: Jones Second: Sikes Vote: Unanimous 68 AMPLIFIED PROPERTIES Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -43031,7 +43083,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1495",
-          "meetingAction": "Agenda Item #68 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #68 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [
               "1131 VERA LOU ST"
@@ -43138,7 +43190,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1489",
-          "meetingAction": "Agenda Item #73 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #73 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous 74 HIGHLAND CROSSING REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -43230,7 +43282,7 @@
           "hearingDateIso": "2026-10-15",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1485",
-          "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-15)",
+          "meetingAction": "Agenda Item #75 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -43348,7 +43400,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1484",
-          "meetingAction": "Agenda Item #77 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #77 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous d",
           "atlas": {
             "addresses": [
               "1704 RONSON RD"
@@ -43571,7 +43623,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1469",
-          "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -44027,7 +44079,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1449",
-          "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #79 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Shepherd Second: Jones Vote: Unanimous 80 CYPRESS TRAILS AT BAUER LANDING SEC 2",
           "atlas": {
             "addresses": [
               "6000 VASSER RD"
@@ -44497,7 +44549,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1440",
-          "meetingAction": "Agenda Item #70 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #70 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Sigler Second: Ballard Vote: Unanimous 71 EASTER HAVEN",
           "atlas": {
             "addresses": [
               "5218 WOODWAY DR",
@@ -44837,7 +44889,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1433",
-          "meetingAction": "Agenda Item #85 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #85 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous PC 5 of 7",
           "atlas": {
             "addresses": [
               "5932 SPRING CYPRESS RD"
@@ -44969,7 +45021,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1430",
-          "meetingAction": "Agenda Item #72 \u00b7 C. Public Hearing \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #72 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -45087,7 +45139,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1427",
-          "meetingAction": "Agenda Item #52 \u00b7 B. Replats",
+          "meetingAction": "Agenda Item #52 - Commission action: Deferred, per council members request. Speaker(s): Council Member Ty K",
           "atlas": {
             "addresses": [
               "604 NEYLAND ST"
@@ -45311,7 +45363,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1311",
-          "meetingAction": "Agenda Item #71 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #71 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Pham Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -45403,7 +45455,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::2026-1302",
-          "meetingAction": "Agenda Item #76 \u00b7 C. Public Hearing \u00b7 Deferred (DEF2 - deferral #2)",
+          "meetingAction": "Agenda Item #76 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -45522,7 +45574,7 @@
           "deferral": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::DPV-26073533",
-          "meetingAction": "Agenda Item #90 \u00b7 K. Development Plat Variances",
+          "meetingAction": "Agenda Item #90 - Commission action: Deferred. Speaker(s): Giselle Martinez, Alexander Spike, Marian Wright \u2013 opposed Motion: Baldwin Second: Ballard Vote: Unanimous 91 4801 N MAIN Street Staff recommendation: Approve",
           "atlas": {
             "addresses": [
               "801 MCGOWEN ST"
@@ -45626,7 +45678,7 @@
           "deferral": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::DPV-4801-NMAIN",
-          "meetingAction": "Agenda Item #91 \u00b7 K. Development Plat Variances",
+          "meetingAction": "Agenda Item #91 - Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Jones Vote: Unanimous PC 6 of 7 Docusign Envelope ID: 9D9676A4-ED9C-85F7-8351-5F2E3E0FE7E1",
           "atlas": {
             "addresses": [
               "4801 N MAIN ST"
@@ -45735,7 +45787,7 @@
           "deferral": "DEF1",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-15::DPV-323-WYCLIFFE",
-          "meetingAction": "Agenda Item #92 \u00b7 K. Development Plat Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #92 - Commission action: Approved the application. Speaker(s): None Motion: Sigler Second: Jones Vote: Unanimous IV",
           "atlas": {
             "addresses": [
               "323 WYCLIFFE DR"
@@ -46872,7 +46924,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.258867+00:00"
+          "updated": "2026-11-16T21:29:45.154103+00:00"
         },
         "2026-1637": {
           "address": "134 W LITTLE YORK RD",
@@ -46885,7 +46937,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.258969+00:00"
+          "updated": "2026-11-16T21:29:45.154190+00:00"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -46920,7 +46972,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93929/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES.pdf?sv=2021-08-06&se=2051-10-05T01%3A20%3A40Z&sr=b&sp=r&sig=5C7EZeRjm7n9E8b8rFgsyF673Pg37lSri%2FoYxbhE%2BBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.259014+00:00"
+          "updated": "2026-11-16T21:29:45.154226+00:00"
         },
         "2026-1625": {
           "address": "1508 LAWRENCE ST",
@@ -46952,7 +47004,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.259096+00:00"
+          "updated": "2026-11-16T21:29:45.154294+00:00"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -46965,7 +47017,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.259123+00:00"
+          "updated": "2026-11-16T21:29:45.154313+00:00"
         },
         "2026-1603": {
           "address": "7528 GAINESVILLE ST",
@@ -46978,7 +47030,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.259149+00:00"
+          "updated": "2026-11-16T21:29:45.154330+00:00"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -47180,7 +47232,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1449/OriginalFiles/2284-2504_Benders_Creek_General_Plan_09-18-2026.pdf?sv=2021-08-06&se=2051-09-22T20%3A29%3A56Z&sr=b&sp=r&sig=%2BFqP9ATYyzZwmqz51cJDcuBt4oQ7hpyv3BNxUi1ztqw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:22.259454+00:00"
+          "updated": "2026-11-16T21:29:45.154529+00:00"
         },
         "2026-1440": {
           "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -47868,10 +47920,52 @@
       "fileName": "Plat-Current-Agenda-Spreadsheet-10-29-2026.xlsx",
       "sourceSpreadsheetUrl": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-10-29-2026.xlsx",
       "agendaOutlineUrl": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/2026/PC-Draft-Agenda-Outline-102926.pdf",
-      "minutesUrl": "",
+      "minutesUrl": "https://www.houstontx.gov/planning/Commissions/minutes-plan-2026/10.29.2026-PCMinutes-DRAFT.pdf",
       "minutesActions": {
-        "byItem": {},
-        "byName": {}
+        "byItem": {
+          "101": "Commission Action: Approved staff\u2019s recommendation. Motion: Sigler Vote: Carried Second: Jones Abstaining: Mares, Heisch ITEM 56 AND 60 WERE REMOVED FOR SEPARATE CONSIDERATION",
+          "56": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed Motion: Garza Second: Mares Vote: Unanimous PC 2 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "60": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed, Juan Castillo, Joyce Owens, Staff member Jacqueline Brown Motion: Garza Second: Hines Vote: Unanimous c",
+          "71": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Porras-Pirtle Second: Mares Vote: Unanimous 72 KAFI COMMONS \u2013 Withdrawn",
+          "72": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous",
+          "73": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous 74 PARTIAL REPLAT OF SANDALWOOD SEC 2 AND 3 PARTIAL REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "74": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Serem Vote: Unanimous 75 RICHLAND DRIVE VILLAS Staff recommendation: Approve the plat subject to the conditions listed",
+          "75": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
+          "76": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Errick Cooke, applicant \u2013 available for questions Motion: Victor Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "77": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Baldwin Second: Mares Vote: Unanimous 78 BRIDGELAND PRAIRIELAND VILLAGE GP \u2013 Withdrawn",
+          "78": "Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch",
+          "79": "Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
+          "80": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Ballard Vote: Unanimous 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "81": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Carroll Vote: Carried Recused: Mares ITEMS 82, 83, 84 WERE PRESENTED TOGETHER WITH ONE VOTE",
+          "82": "Commission action: Deferred the application for further information. Speaker(s): None PC 4 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "83": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer additional information requested",
+          "84": "Commission action: Deferred the application for further information. Speaker(s): None Motion: Pham Second: Naranjo Vote: Carried Recused: Mares e",
+          "92": "Commission action: Approved per staff\u2019s recommendation for Item(s) 85 \u2013 92",
+          "93": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous",
+          "94": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous III"
+        },
+        "byName": {
+          "FORM CONDITIONS": "Commission Action: Approved staff\u2019s recommendation. Motion: Sigler Vote: Carried Second: Jones Abstaining: Mares, Heisch ITEM 56 AND 60 WERE REMOVED FOR SEPARATE CONSIDERATION",
+          "NEYLAND MANOR": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed Motion: Garza Second: Mares Vote: Unanimous PC 2 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "PARRA ESTATES AT NEYLAND STREET": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed, Juan Castillo, Joyce Owens, Staff member Jacqueline Brown Motion: Garza Second: Hines Vote: Unanimous c",
+          "JUTLAND HOMES": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Porras-Pirtle Second: Mares Vote: Unanimous 72 KAFI COMMONS \u2013 Withdrawn",
+          "KAFI COMMONS WITHDRAWN": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous",
+          "MILL R IDGE VILLAGE S EC 1": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous 74 PARTIAL REPLAT OF SANDALWOOD SEC 2 AND 3 PARTIAL REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
+          "OF SANDALWOOD SEC 2 AND 3": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Serem Vote: Unanimous 75 RICHLAND DRIVE VILLAS Staff recommendation: Approve the plat subject to the conditions listed",
+          "RICHLAND DRIVE VILLAS": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
+          "SEVILLA COMMERCIAL": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Errick Cooke, applicant \u2013 available for questions Motion: Victor Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "BACHER MANOR": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Baldwin Second: Mares Vote: Unanimous 78 BRIDGELAND PRAIRIELAND VILLAGE GP \u2013 Withdrawn",
+          "BRIDGELAND PRAIRIELAND VILLAGE GP WITHDRAWN": "Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch",
+          "BRIDGELAND PRAIRIELAND VILLAGE SEC 48": "Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
+          "CYPRESS TRAILS AT BAUER LANDING SEC 2": "Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Ballard Vote: Unanimous 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
+          "GARDENLIGHT CITY PLACE GP": "Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Carroll Vote: Carried Recused: Mares ITEMS 82, 83, 84 WERE PRESENTED TOGETHER WITH ONE VOTE",
+          "GARDENLIGHT CITY PLACE SEC 1": "Commission action: Deferred the application for further information. Speaker(s): None PC 4 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
+          "GARDENLIGHT CITY PLACE SEC 2": "Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer additional information requested",
+          "GARDENLIGHT CITY PLACE SEC 3": "Commission action: Deferred the application for further information. Speaker(s): None Motion: Pham Second: Naranjo Vote: Carried Recused: Mares e",
+          "RIVERWOOD ON EAST TC JESTER BLVD": "Commission action: Approved per staff\u2019s recommendation for Item(s) 85 \u2013 92",
+          "801 MCGOWEN STREET WITHDRAWN": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous",
+          "1501 WICHMAN STREET": "Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous III"
+        }
       },
       "summary": {
         "totalAgendaItems": 138,
@@ -48198,7 +48292,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #69 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #69 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Mandapaka Vote: Unanimous 70 BAYOU GLEN PARTIAL REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -48933,7 +49027,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #68 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #68 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "3",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -49065,7 +49159,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #67 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #67 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Joyce Owens, available for questions Motion: Jones Second: Sikes Vote: Unanimous 68 AMPLIFIED PROPERTIES Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -49218,7 +49312,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1725",
-          "meetingAction": "Agenda Item #78 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #78 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -49686,7 +49780,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1717",
-          "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+          "meetingAction": "Agenda Item #79 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
           "atlas": {
             "addresses": [
               "23720 HOUSE HAHL RD"
@@ -50240,7 +50334,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -52420,7 +52514,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #73 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #73 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Carroll Vote: Unanimous 74 HIGHLAND CROSSING REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -54149,7 +54243,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #70 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #70 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Sigler Second: Ballard Vote: Unanimous 71 EASTER HAVEN",
               "tier": "3",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -55123,7 +55217,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1657",
-          "meetingAction": "Agenda Item #82 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #82 - Commission action: Deferred the application for further information. Speaker(s): None PC 4 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -55178,7 +55272,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #82 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #82 - Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -55201,7 +55295,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #81 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #81 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -55264,7 +55358,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1656",
-          "meetingAction": "Agenda Item #84 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #84 - Commission action: Deferred the application for further information. Speaker(s): None Motion: Pham Second: Naranjo Vote: Carried Recused: Mares e",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -55319,7 +55413,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #84 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #84 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -55512,7 +55606,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1653",
-          "meetingAction": "Agenda Item #80 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Ballard Vote: Unanimous 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [
               "20533 BAUER RD"
@@ -55584,7 +55678,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #80 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -55646,7 +55740,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1651",
-          "meetingAction": "Agenda Item #83 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #83 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer additional information requested",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -55700,7 +55794,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #83 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #83 - Commission action: Deferred. 84 GARDENLIGHT CITY PLACE SEC 3 Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -56874,7 +56968,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1612",
-          "meetingAction": "Agenda Item #81 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #81 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Carroll Vote: Carried Recused: Mares ITEMS 82, 83, 84 WERE PRESENTED TOGETHER WITH ONE VOTE",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -56929,7 +57023,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #81 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #81 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -56952,7 +57046,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #82 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #82 - Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -57836,7 +57930,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1592",
-          "meetingAction": "Agenda Item #60 \u00b7 B. Replats \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #60 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed, Juan Castillo, Joyce Owens, Staff member Jacqueline Brown Motion: Garza Second: Hines Vote: Unanimous c",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -57891,7 +57985,7 @@
               "deferral": "",
               "section": "B. Replats",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #53 \u00b7 B. Replats",
+              "meetingAction": "Agenda Item #53 - Commission action: Deferred, per council members request. Speaker(s): Tonia Wells, Council Member Ty K",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -58494,7 +58588,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1570",
-          "meetingAction": "Agenda Item #77 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #77 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Baldwin Second: Mares Vote: Unanimous 78 BRIDGELAND PRAIRIELAND VILLAGE GP \u2013 Withdrawn",
           "atlas": {
             "addresses": [
               "5603 BACHER ST"
@@ -58566,7 +58660,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #78 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #78 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Sikes Second: Pham Vote: Unanimous PC 4 of 7",
               "tier": "3",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -58628,7 +58722,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1569",
-          "meetingAction": "Agenda Item #72 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #72 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous",
           "atlas": {
             "addresses": [
               "4710 W ALABAMA ST"
@@ -58876,7 +58970,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1554",
-          "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #75 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -59310,7 +59404,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1520",
-          "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Serem Vote: Unanimous 75 RICHLAND DRIVE VILLAS Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [
               "58 PATTI LYNN LN"
@@ -59558,7 +59652,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1502",
-          "meetingAction": "Agenda Item #76 \u00b7 C. Public Hearing",
+          "meetingAction": "Agenda Item #76 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Errick Cooke, applicant \u2013 available for questions Motion: Victor Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
           "atlas": {
             "addresses": [
               "8017 HOMESTEAD RD"
@@ -59667,7 +59761,7 @@
           "hearingDateIso": "2026-10-15",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1485",
-          "meetingAction": "Agenda Item #73 \u00b7 C. Public Hearing \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #73 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous 74 PARTIAL REPLAT OF SANDALWOOD SEC 2 AND 3 PARTIAL REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -59747,7 +59841,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "2026-10-15",
-              "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-15)",
+              "meetingAction": "Agenda Item #75 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
               "tier": "4",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -59810,7 +59904,7 @@
           "hearingDateIso": "2026-10-29",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1481",
-          "meetingAction": "Agenda Item #71 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-29)",
+          "meetingAction": "Agenda Item #71 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Porras-Pirtle Second: Mares Vote: Unanimous 72 KAFI COMMONS \u2013 Withdrawn",
           "atlas": {
             "addresses": [],
             "primaryAddress": "",
@@ -60527,7 +60621,7 @@
           "hearingDateIso": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::2026-1427",
-          "meetingAction": "Agenda Item #56 \u00b7 B. Replats \u00b7 Deferred (DEF1 - deferral #1)",
+          "meetingAction": "Agenda Item #56 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Tonia Wells, Kelvin Williams \u2013 opposed Motion: Garza Second: Mares Vote: Unanimous PC 2 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
           "atlas": {
             "addresses": [
               "604 NEYLAND ST"
@@ -60598,7 +60692,7 @@
               "deferral": "",
               "section": "B. Replats",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #52 \u00b7 B. Replats",
+              "meetingAction": "Agenda Item #52 - Commission action: Deferred, per council members request. Speaker(s): Council Member Ty K",
               "tier": "4",
               "tierConfirmed": true,
               "isHumanReviewed": true,
@@ -60801,7 +60895,7 @@
           "deferral": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::DPV-26073533",
-          "meetingAction": "Agenda Item #93 \u00b7 K. Development Plat Variances",
+          "meetingAction": "Agenda Item #93 - Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous",
           "atlas": {
             "addresses": [
               "801 MCGOWEN ST"
@@ -60868,7 +60962,7 @@
               "deferral": "",
               "section": "K. Development Plat Variances",
               "hearingDateIso": "2026-10-15",
-              "meetingAction": "Agenda Item #90 \u00b7 K. Development Plat Variances",
+              "meetingAction": "Agenda Item #90 - Commission action: Deferred. Speaker(s): Giselle Martinez, Alexander Spike, Marian Wright \u2013 opposed Motion: Baldwin Second: Ballard Vote: Unanimous 91 4801 N MAIN Street Staff recommendation: Approve",
               "tier": "3",
               "tierConfirmed": true,
               "isHumanReviewed": true,
@@ -60930,7 +61024,7 @@
           "deferral": "",
           "onMeetingAgenda": true,
           "occurrenceKey": "2026-10-29::DPV-26075937",
-          "meetingAction": "Agenda Item #94 \u00b7 K. Development Plat Variances",
+          "meetingAction": "Agenda Item #94 - Commission action: Approved the application. Speaker(s): None Motion: Baldwin Second: Heisch Vote: Unanimous III",
           "atlas": {
             "addresses": [
               "1501 WICHMAN ST"
@@ -63835,7 +63929,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:26.315292+00:00",
+          "updated": "2026-11-16T21:29:48.328759+00:00",
           "carriedFromCycle": "2026-10-15",
           "carriedFields": [
             "tier",
@@ -63927,7 +64021,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:26.315367+00:00"
+          "updated": "2026-11-16T21:29:48.328824+00:00"
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
@@ -66228,7 +66322,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #76 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #76 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): Errick Cooke, applicant \u2013 available for questions Motion: Victor Second: Jones Vote: Unanimous PC 3 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
               "tier": "4",
               "tierConfirmed": true,
               "isHumanReviewed": true,
@@ -68370,7 +68464,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #77 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #77 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Serem Second: Victor Vote: Unanimous d",
               "tier": "3",
               "tierConfirmed": true,
               "isHumanReviewed": true,
@@ -68619,7 +68713,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #75 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "4",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -70753,7 +70847,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #79 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -71050,7 +71144,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Serem Vote: Unanimous 75 RICHLAND DRIVE VILLAS Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "4",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -72821,7 +72915,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #68 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #68 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): applicant available for questions Motion: Serem Second: Shepherd Vote: Unanimous 69 BAR ACRE REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "3",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -73339,7 +73433,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #79 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #79 - Commission action: Deferred. Speaker(s): Bob Terry, Pete Huinken \u2013 applicant Motion: Mares Second: Victor Vote: Carried Recused: Heisch 80 CYPRESS TRAILS AT BAUER LANDING SEC 2 Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -73478,7 +73572,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #74 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #74 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Ballard Second: Pham Vote: Unanimous 75 MILL R IDGE VILLAGE S EC 1 Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75445,7 +75539,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #82 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #82 - Commission action: Deferred per applicant\u2019s request. 83 GARDENLIGHT CITY PLACE SEC 2 Staff recommendation: Defer Chapter 42 planning standards",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75468,7 +75562,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #81 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #81 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Carroll Vote: Unanimous ITEM(S) C",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75491,7 +75585,7 @@
               "deferral": "DEF1",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #82 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+              "meetingAction": "Agenda Item #82 - Commission action: Deferred the application for further information. Speaker(s): None PC 4 of 7 Docusign Envelope ID: 0ADE649B-D792-8EC9-82B8-22BE6FF6B0D5",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75514,7 +75608,7 @@
               "deferral": "DEF1",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #81 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+              "meetingAction": "Agenda Item #81 - Commission action: Granted the requested variance(s) and approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Carroll Vote: Carried Recused: Mares ITEMS 82, 83, 84 WERE PRESENTED TOGETHER WITH ONE VOTE",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75634,7 +75728,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #84 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #84 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Unanimous 85 SPRING CYPRESS WAREHOUSES SEC 1 REPLAT NO 1 Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75657,7 +75751,7 @@
               "deferral": "DEF1",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #84 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+              "meetingAction": "Agenda Item #84 - Commission action: Deferred the application for further information. Speaker(s): None Motion: Pham Second: Naranjo Vote: Carried Recused: Mares e",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75932,7 +76026,7 @@
               "deferral": "",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #80 \u00b7 D. Variances",
+              "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Ballard Vote: Carried Recused: Shepherd 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Defer Applicant request",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": false,
@@ -75955,7 +76049,7 @@
               "deferral": "DEF1",
               "section": "D. Variances",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #80 \u00b7 D. Variances \u00b7 Deferred (DEF1 - deferral #1)",
+              "meetingAction": "Agenda Item #80 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Ballard Vote: Unanimous 81 GARDENLIGHT CITY PLACE GP Staff recommendation: Grant the requested variance(s) and approve the plat subject to the conditions listed",
               "tier": "",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -78355,7 +78449,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "",
-              "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing",
+              "meetingAction": "Agenda Item #75 - Commission action: Approved the plat subject to the CPC 101 form conditions. Speaker(s): None Motion: Porras-Pirtle Second: Pham Vote: Unanimous 76 SEVILLA COMMERCIAL Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "4",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -78500,7 +78594,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "2026-10-15",
-              "meetingAction": "Agenda Item #75 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-15)",
+              "meetingAction": "Agenda Item #75 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Mandapaka Second: Baldwin Vote: Unanimous 76 RESERVES AT PARK PLACE \u2013 Withdraw",
               "tier": "4",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -78523,7 +78617,7 @@
               "deferral": "DEF1",
               "section": "C. Public Hearing",
               "hearingDateIso": "2026-10-15",
-              "meetingAction": "Agenda Item #73 \u00b7 C. Public Hearing \u00b7 Deferred (DEF1 - deferral #1)",
+              "meetingAction": "Agenda Item #73 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Jones Second: Pham Vote: Unanimous 74 PARTIAL REPLAT OF SANDALWOOD SEC 2 AND 3 PARTIAL REPLAT NO 1 Staff recommendation: Approve the plat subject to the conditions listed",
               "tier": "3",
               "tierConfirmed": true,
               "isHumanReviewed": true,
@@ -78688,7 +78782,7 @@
               "deferral": "",
               "section": "C. Public Hearing",
               "hearingDateIso": "2026-10-29",
-              "meetingAction": "Agenda Item #71 \u00b7 C. Public Hearing \u00b7 Public hearing scheduled (2026-10-29)",
+              "meetingAction": "Agenda Item #71 - Commission action: Deferred per applicant\u2019s request. Speaker(s): None Motion: Porras-Pirtle Second: Mares Vote: Unanimous 72 KAFI COMMONS \u2013 Withdrawn",
               "tier": "3",
               "tierConfirmed": false,
               "isHumanReviewed": true,
@@ -82575,7 +82669,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-15T18:19:26.992888+00:00"
+          "updated": "2026-11-16T21:29:48.929320+00:00"
         },
         "2026-1764": {
           "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
