@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#1f1b24" stroke="#c084fc" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#c084fc" font-family="monospace" font-size="10.8" font-weight="700">MORRISON &amp; FOURMY&#x27;S HOUSTON CITY DIRECTORY // 39-VOLUME CORPUS</text>
+  <text x="28" y="52" fill="#c4b5fd" font-family="monospace" font-size="9.2">Dual-Pass Extraction: Pass A (Street &amp; Avenue Guide) &lt;-&gt; Pass B (Alphabetical Resident &amp; Trade)</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#1f1b24" stroke="#c084fc" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#c084fc" font-family="monospace" font-size="8.8" font-weight="700">39 VOLUMES (1866-1968)</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#c084fc" font-family="sans-serif" font-size="10.5" font-weight="700">Pass A: Street &amp; Avenue Guide</text>
+        
+            <rect x="30" y="99" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="36" y="112" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">1913 VOL PG 812:</text>
+            <text x="118" y="112" fill="#f5f3ff" font-family="monospace" font-size="9.5">(NO LISTING AT 1435 HEIGHTS)</text>
+            <rect x="30" y="123" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="36" y="136" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">1915 VOL PG 844:</text>
+            <text x="118" y="136" fill="#f5f3ff" font-family="monospace" font-size="9.5">1435* MILLER JOHN H (o)</text>
+            <rect x="30" y="147" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="36" y="160" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">1922 VOL PG 901:</text>
+            <text x="118" y="160" fill="#f5f3ff" font-family="monospace" font-size="9.5">1435* MILLER JOHN H (o)</text>
+            <rect x="30" y="171" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="36" y="184" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">1926 VOL PG 960:</text>
+            <text x="118" y="184" fill="#f5f3ff" font-family="monospace" font-size="9.5">1435* VANCE ARTHUR R (o)</text>
+            <rect x="30" y="195" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="36" y="208" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">1911 RENUMBER:</text>
+            <text x="118" y="208" fill="#f5f3ff" font-family="monospace" font-size="9.5">PRE-1911 OLD HOUSE NO. MAPPED</text>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+        <text x="302" y="91" fill="#c084fc" font-family="sans-serif" font-size="10.5" font-weight="700">Pass B: Alphabetical Occupation</text>
+        
+            <rect x="300" y="99" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="306" y="112" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">MILLER, JOHN H:</text>
+            <text x="394" y="112" fill="#f5f3ff" font-family="monospace" font-size="9.5">(Clara E) chf clk SoPac Ry</text>
+            <rect x="300" y="123" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="306" y="136" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">RESIDENCE:</text>
+            <text x="394" y="136" fill="#f5f3ff" font-family="monospace" font-size="9.5">h 1435 Heights blvd (Tel P-1942)</text>
+            <rect x="300" y="147" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="306" y="160" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">VANCE, ARTHUR R:</text>
+            <text x="394" y="160" fill="#f5f3ff" font-family="monospace" font-size="9.5">(Edith) sec-treas Heights Lbr Co</text>
+            <rect x="300" y="171" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="306" y="184" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">RESIDENCE:</text>
+            <text x="394" y="184" fill="#f5f3ff" font-family="monospace" font-size="9.5">h 1435 Heights blvd</text>
+            <rect x="300" y="195" width="250" height="20" rx="3" fill="#1f1b24" opacity="0.55"/>
+            <text x="306" y="208" fill="#c084fc" font-family="monospace" font-size="9.5" font-weight="700">BUILD WINDOW:</text>
+            <text x="394" y="208" fill="#f5f3ff" font-family="monospace" font-size="9.5">FIRST APPEARS 1914-1915 -&gt; 1914</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#2d2636"/>
+  <text x="32" y="244" fill="#c4b5fd" font-family="sans-serif" font-size="9.2">Dual-pass joins street address listings with resident occupations, spouses, employers &amp; 1911 renumbering</text>
+</svg>

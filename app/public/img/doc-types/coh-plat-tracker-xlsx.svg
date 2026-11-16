@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#2e291d" stroke="#4d432e" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#f59e0b" font-family="monospace" font-size="10.8" font-weight="700">COH PLANNING &amp; DEVELOPMENT // BIWEEKLY PLAT TRACKER SPREADSHEET</text>
+  <text x="28" y="52" fill="#fde047" font-family="monospace" font-size="9.2">Cycle: 2026-11-12 | Application #2026-1842 | Class: C3N Replat (6 Townhome Lots)</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#f59e0b" font-family="monospace" font-size="8.8" font-weight="700">BIWEEKLY TRIAGE</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="264" height="150" rx="6" fill="#2e291d" stroke="#4d432e" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#f59e0b" font-family="sans-serif" font-size="10.5" font-weight="700">Plat Tracker Row (.xlsx)</text>
+        
+            <text x="34" y="112" fill="#f59e0b" font-family="monospace" font-size="9.2" font-weight="700">APP_NO / CLASS:</text>
+            <text x="122" y="112" fill="#fef9c3" font-family="monospace" font-size="9.2">2026-1842 | Class C3N Replat</text>
+            <text x="34" y="136" fill="#f59e0b" font-family="monospace" font-size="9.2" font-weight="700">SUBDIVISION:</text>
+            <text x="122" y="136" fill="#fef9c3" font-family="monospace" font-size="9.2">HEIGHTS ANNEX REPLAT NO 1</text>
+            <text x="34" y="160" fill="#f59e0b" font-family="monospace" font-size="9.2" font-weight="700">APPLICANT:</text>
+            <text x="122" y="160" fill="#fef9c3" font-family="monospace" font-size="9.2">VERNON CONSULTING / URBAN ENG</text>
+            <text x="34" y="184" fill="#f59e0b" font-family="monospace" font-size="9.2" font-weight="700">LOTS / RESERVES:</text>
+            <text x="122" y="184" fill="#fef9c3" font-family="monospace" font-size="9.2">1 Historic Lot -&gt; 6 Lots</text>
+            <text x="34" y="208" fill="#f59e0b" font-family="monospace" font-size="9.2" font-weight="700">WATERSHED:</text>
+            <text x="122" y="208" fill="#fef9c3" font-family="monospace" font-size="9.2">WHITE OAK BAYOU (0201520000004)</text>
+        <rect x="296" y="74" width="260" height="150" rx="6" fill="#2e291d" stroke="#f59e0b" stroke-width="1.2"/>
+        <text x="304" y="91" fill="#f59e0b" font-family="monospace" font-size="9" font-weight="700">1 HISTORIC PARCEL (1914) -&gt; 6 TOWNHOME LOTS (LOTS 1-6)</text>
+        <text x="306" y="108" fill="#fca5a5" font-family="sans-serif" font-size="9">Proposed Sub-Lot Townhome Split Overlay:</text>
+        
+            <rect x="308" y="118" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="320" y="135" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 1</text>
+            <text x="318" y="147" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+            <rect x="386" y="118" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="398" y="135" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 2</text>
+            <text x="396" y="147" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+            <rect x="464" y="118" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="476" y="135" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 3</text>
+            <text x="474" y="147" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+            <rect x="308" y="162" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="320" y="179" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 4</text>
+            <text x="318" y="191" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+            <rect x="386" y="162" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="398" y="179" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 5</text>
+            <text x="396" y="191" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+            <rect x="464" y="162" width="72" height="38" rx="3" fill="#1e1b14" stroke="#f59e0b" stroke-width="1.3"/>
+            <text x="476" y="179" fill="#fde047" font-family="monospace" font-size="9" font-weight="700">LOT 6</text>
+            <text x="474" y="191" fill="#fde047" font-family="monospace" font-size="8">1,450 SF</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#2e291d"/>
+  <text x="32" y="244" fill="#fde047" font-family="sans-serif" font-size="9.2">Automatically cross-checked against pre-1976 buildings, historic districts, and repeat filings</text>
+</svg>

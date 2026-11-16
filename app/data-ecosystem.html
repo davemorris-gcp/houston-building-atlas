@@ -1237,7 +1237,7 @@
           <span class="filter-label">View:</span>
           <div class="view-tabs" role="tablist" aria-label="Diagram grouping mode">
             <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="visuals" aria-selected="false">🖼️ Visual Field Guide (12 Docs)</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="visuals" aria-selected="false">🖼️ Visual Field Guide (46 Docs)</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="architecture" aria-selected="false">⚡ System &amp; LLM Flow</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="gaps" aria-selected="false">📊 Coverage &amp; Gaps</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⏱️ By Cadence</button>
@@ -1795,35 +1795,31 @@
     }
 
     function renderVisualFieldGuide() {
-      const archetypes = catalog.documentArchetypes || [];
-      const allFeeds = getAllFlattenedFeeds();
-      const cardsHtml = archetypes.map(arch => {
-        const linkedFeeds = allFeeds.filter(f => f.docArchetypeId === arch.id && matchesFilters(f, f.org));
-        const calloutsHtml = (arch.callouts || []).map(c => `<li style="margin-bottom:4px">${esc(c)}</li>`).join("");
-        const feedChipsHtml = linkedFeeds.map(f => `
-          <button type="button" class="btn-inline-toggle" data-open-feed="${esc(f.id)}" title="${esc(f.org.name)}">
-            📄 ${esc(f.name)}
-          </button>
-        `).join(" ");
+      const visibleFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const cardsHtml = visibleFeeds.map(f => {
+        const vis = f.docVisual || {};
+        const calloutsHtml = (vis.callouts || []).map(c => `<li style="margin-bottom:4px">${esc(c)}</li>`).join("");
         return `
-          <article class="org-card" data-archetype-card="${esc(arch.id)}">
+          <article class="org-card" data-archetype-card="${esc(f.id)}">
             <div class="org-eyebrow">
-              <span>🏛️ ${esc(arch.institutionOwner)}</span>
-              <span class="mono-tag">${esc(arch.eraCoverage)}</span>
+              <span>🏛️ ${esc(f.org.shortName || f.org.name)}</span>
+              <span class="mono-tag">🖼️ ${esc(vis.shortLabel || f.id)}</span>
             </div>
-            <h3 class="org-name">${esc(arch.title)}</h3>
-            <img src="${esc(arch.imagePath)}" alt="${esc(arch.title)}" class="feed-visual-img" style="margin:4px 0" loading="lazy" />
-            <p class="feed-body" style="font-size:13.5px"><strong>What This Record Looks Like:</strong> ${esc(arch.whatItLooksLike)}</p>
+            <h3 class="org-name">${esc(vis.title || f.name)}</h3>
+            <img src="${esc(vis.imagePath)}" alt="${esc(vis.title || f.name)}" class="feed-visual-img" style="margin:4px 0;cursor:pointer" data-open-feed="${esc(f.id)}" loading="lazy" />
+            <p class="feed-body" style="font-size:13.5px"><strong>What This Record Looks Like:</strong> ${esc(vis.whatItLooksLike || f.whatItProvides)}</p>
             <div class="feed-pass2-callout">
-              <strong>How Preservation Uses It:</strong> ${esc(arch.howPreservationUsesIt)}
+              <strong>How Preservation Uses It:</strong> ${esc(vis.howPreservationUsesIt || f.howCrossChecked)}
             </div>
             <div style="font-size:12.5px;color:var(--ink-2)">
               <div style="font-weight:700;color:var(--ink);margin-bottom:4px">Key Clues Historians &amp; Parsers Extract:</div>
               <ul style="margin:0;padding-left:18px;line-height:1.45">${calloutsHtml}</ul>
             </div>
-            <div style="padding-top:6px;border-top:1px solid var(--border)">
-              <div class="mono-tag" style="margin-bottom:6px">Atlas Feeds Using This Document Type (${linkedFeeds.length}):</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap">${feedChipsHtml || `<span class="mono-tag">No feeds match current filter</span>`}</div>
+            <div style="padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="mono-tag">📦 ${esc(f.recordScale)}</span>
+              <button type="button" class="btn-inline-toggle" data-open-feed="${esc(f.id)}">
+                🔍 Full Spec: ${esc(f.name)}
+              </button>
             </div>
           </article>
         `;
@@ -1832,10 +1828,10 @@
         <section class="sector-block">
           <div class="sector-header">
             <div>
-              <h2 class="sector-title">🖼️ Visual Field Guide to Houston's 12 Primary-Source Document Archetypes</h2>
-              <p class="sector-desc">Stylized archival illustrations modeled on real Houston records showing what each document looks like and how preservation historians cross-check them.</p>
+              <h2 class="sector-title">🖼️ Visual Field Guide to All 46 Primary-Source Document &amp; Data Feeds</h2>
+              <p class="sector-desc">Every data feed in the Atlas has its own stylized visual depiction modeled on the real Houston record, ledger, map, or API feed showing how preservation historians cross-check them.</p>
             </div>
-            <span class="mono-tag">${archetypes.length} document archetypes</span>
+            <span class="mono-tag">${visibleFeeds.length} of 46 document visuals</span>
           </div>
           <div class="org-grid">${cardsHtml}</div>
         </section>
@@ -2218,7 +2214,7 @@
 
     async function init() {
       applyTheme();
-      const resp = await fetch("public/data/data_sources_catalog.json?v=20261116a");
+      const resp = await fetch("public/data/data_sources_catalog.json?v=20261116b");
       catalog = await resp.json();
       renderDiagram();
     }

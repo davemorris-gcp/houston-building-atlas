@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#0f1e2e" stroke="#4f46e5" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#182f47" stroke="#284b6e" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#4f46e5" font-family="monospace" font-size="10.8" font-weight="700">HARRIS COUNTY CLERK // 7.68 GiB TPIA BULK REAL PROPERTY INDEX</text>
+  <text x="28" y="52" fill="#7dd3fc" font-family="monospace" font-size="9.2">1961-2026 ASCII Fixed-Width Extract | Warranty Deeds (W/D), Plats &amp; Mechanic&#x27;s Liens (M/L)</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#0f1e2e" stroke="#4f46e5" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#4f46e5" font-family="monospace" font-size="8.8" font-weight="700">7.68 GiB LOCAL CORPUS</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#182f47" stroke="#284b6e" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#4f46e5" font-family="sans-serif" font-size="10.5" font-weight="700">Pre-2004 Deed Chain Recovery</text>
+        
+            <rect x="30" y="99" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="36" y="112" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">FILE_NUM:</text>
+            <text x="118" y="112" fill="#f0f9ff" font-family="monospace" font-size="9.5">G482910 (FILED 06/18/1979)</text>
+            <rect x="30" y="123" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="36" y="136" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">INST_TYPE:</text>
+            <text x="118" y="136" fill="#f0f9ff" font-family="monospace" font-size="9.5">W/D (WARRANTY DEED)</text>
+            <rect x="30" y="147" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="36" y="160" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">GRANTOR:</text>
+            <text x="118" y="160" fill="#f0f9ff" font-family="monospace" font-size="9.5">MORRISON ARTHUR H ET UX</text>
+            <rect x="30" y="171" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="36" y="184" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">GRANTEE:</text>
+            <text x="118" y="184" fill="#f0f9ff" font-family="monospace" font-size="9.5">DELGADO CARLOS &amp; ELENA</text>
+            <rect x="30" y="195" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="36" y="208" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">LEGAL_DESC:</text>
+            <text x="118" y="208" fill="#f0f9ff" font-family="monospace" font-size="9.5">BLK 114 LOT 7 HOUSTON HTS</text>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#182f47" stroke="#284b6e" stroke-width="1.2"/>
+        <text x="302" y="91" fill="#4f46e5" font-family="sans-serif" font-size="10.5" font-weight="700">19th/Early-20th C. Mechanic&#x27;s Lien</text>
+        
+            <rect x="300" y="99" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="306" y="112" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">VOL / PAGE:</text>
+            <text x="394" y="112" fill="#f0f9ff" font-family="monospace" font-size="9.5">DEED REC VOL 318 PG 442</text>
+            <rect x="300" y="123" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="306" y="136" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">INST_TYPE:</text>
+            <text x="394" y="136" fill="#f0f9ff" font-family="monospace" font-size="9.5">M/L (BUILDERS CONTRACT)</text>
+            <rect x="300" y="147" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="306" y="160" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">CONTRACTOR:</text>
+            <text x="394" y="160" fill="#f0f9ff" font-family="monospace" font-size="9.5">W. W. BARDEN (BUILDER)</text>
+            <rect x="300" y="171" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="306" y="184" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">CONTRACT SUM:</text>
+            <text x="394" y="184" fill="#f0f9ff" font-family="monospace" font-size="9.5">$2,350 FRAME DWELLING</text>
+            <rect x="300" y="195" width="250" height="20" rx="3" fill="#0f1e2e" opacity="0.55"/>
+            <text x="306" y="208" fill="#4f46e5" font-family="monospace" font-size="9.5" font-weight="700">JOIN STATUS:</text>
+            <text x="394" y="208" fill="#f0f9ff" font-family="monospace" font-size="9.5">25,705 PRE-2004 CHAINS LINKED</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#182f47"/>
+  <text x="32" y="244" fill="#7dd3fc" font-family="sans-serif" font-size="9.2">Bridges the 1961-2004 pre-HCAD digital ownership gap using Subd + Block + Lot legal description joins</text>
+</svg>

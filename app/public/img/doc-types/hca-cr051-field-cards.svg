@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#271f16" stroke="#d97706" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#382c1e" stroke="#5c4730" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#d97706" font-family="monospace" font-size="10.8" font-weight="700">HARRIS COUNTY ARCHIVES // CR001 BUILDING &amp; LAND ASSESSMENT CARD</text>
+  <text x="28" y="52" fill="#fcd34d" font-family="monospace" font-size="9.2">Box 412, Folder 18 | Acct: 020-152-000-0004 | Houston Heights Blk 114 Lot 7</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#271f16" stroke="#d97706" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#d97706" font-family="monospace" font-size="8.8" font-weight="700">915 ARCHIVE BOXES</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#382c1e" stroke="#5c4730" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#d97706" font-family="sans-serif" font-size="10.5" font-weight="700">Pre-1984 Assessor Field Notes</text>
+        
+            <text x="34" y="112" fill="#d97706" font-family="monospace" font-size="9.5" font-weight="700">ORIG PERMIT:</text>
+            <text x="116" y="112" fill="#fef3c7" font-family="monospace" font-size="9.5">#14892 Issued 10/14/1914</text>
+            <line x1="32" y1="117" x2="278" y2="117" stroke="#5c4730" stroke-width="0.7"/>
+            <text x="34" y="136" fill="#d97706" font-family="monospace" font-size="9.5" font-weight="700">BUILDER:</text>
+            <text x="116" y="136" fill="#fef3c7" font-family="monospace" font-size="9.5">W. W. Barden &amp; Sons</text>
+            <line x1="32" y1="141" x2="278" y2="141" stroke="#5c4730" stroke-width="0.7"/>
+            <text x="34" y="160" fill="#d97706" font-family="monospace" font-size="9.5" font-weight="700">FOUNDATION:</text>
+            <text x="116" y="160" fill="#fef3c7" font-family="monospace" font-size="9.5">Brick Pier | Heart Pine Frame</text>
+            <line x1="32" y1="165" x2="278" y2="165" stroke="#5c4730" stroke-width="0.7"/>
+            <text x="34" y="184" fill="#d97706" font-family="monospace" font-size="9.5" font-weight="700">ROOF / EXT:</text>
+            <text x="116" y="184" fill="#fef3c7" font-family="monospace" font-size="9.5">Comp Shingle | Drop Siding</text>
+            <line x1="32" y1="189" x2="278" y2="189" stroke="#5c4730" stroke-width="0.7"/>
+            <text x="34" y="208" fill="#d97706" font-family="monospace" font-size="9.5" font-weight="700">1938 VALUATION:</text>
+            <text x="116" y="208" fill="#fef3c7" font-family="monospace" font-size="9.5">Land $650 | Impr $2,850</text>
+            <line x1="32" y1="213" x2="278" y2="213" stroke="#5c4730" stroke-width="0.7"/>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#271f16" stroke="#d97706" stroke-width="1.2"/>
+        <text x="304" y="91" fill="#d97706" font-family="monospace" font-size="9.2" font-weight="700">1936 Taped Footprint Sketch (28&#x27; x 46&#x27; + 8&#x27; Porch)</text>
+        <polygon points="330,112 480,112 480,178 415,178 415,196 330,196" fill="none" stroke="#fef3c7" stroke-width="1.8"/>
+        <rect x="330" y="178" width="85" height="18" fill="none" stroke="#d97706" stroke-width="1.2" stroke-dasharray="3,2"/>
+        <text x="355" y="148" fill="#fef3c7" font-family="monospace" font-size="10" font-weight="700">1.5-STORY FRAME</text>
+        <text x="355" y="162" fill="#fcd34d" font-family="monospace" font-size="9">28' x 46' (1,288 SF)</text>
+        <text x="336" y="191" fill="#d97706" font-family="monospace" font-size="8.5">8' OPEN PORCH</text>
+        <text x="486" y="148" fill="#d97706" font-family="monospace" font-size="9">46'-0"</text>
+        <text x="385" y="108" fill="#d97706" font-family="monospace" font-size="9">28'-0"</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#382c1e"/>
+  <text x="32" y="244" fill="#fcd34d" font-family="sans-serif" font-size="9.2">Pre-dates 1984 HCAD computerization - preserves exact pre-rounding build dates &amp; taped floorplans</text>
+</svg>

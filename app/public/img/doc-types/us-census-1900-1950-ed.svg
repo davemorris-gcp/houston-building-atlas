@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#1f1b24" stroke="#10b981" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#10b981" font-family="monospace" font-size="10.8" font-weight="700">FIFTEENTH CENSUS OF THE UNITED STATES: 1930 // POPULATION SCHEDULE</text>
+  <text x="28" y="52" fill="#c4b5fd" font-family="monospace" font-size="9.2">Harris County, TX | Houston City Ward 1 | Enumeration District 101-14 | Sheet 8A</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#1f1b24" stroke="#10b981" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#10b981" font-family="monospace" font-size="8.8" font-weight="700">1900-1950 SCHEDULES</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="532" height="150" rx="6" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+        <line x1="28" y1="99" x2="552" y2="99" stroke="#10b981" stroke-width="1"/>
+        <text x="32" y="93" fill="#10b981" font-family="monospace" font-size="9" font-weight="700">STREET / HOUSE#</text><text x="118" y="93" fill="#10b981" font-family="monospace" font-size="9" font-weight="700">NAME OF OCCUPANT</text><text x="252" y="93" fill="#10b981" font-family="monospace" font-size="9" font-weight="700">OWN/RENT &amp; VAL</text><text x="365" y="93" fill="#10b981" font-family="monospace" font-size="9" font-weight="700">AGE / BIRTHPLACE</text><text x="442" y="93" fill="#10b981" font-family="monospace" font-size="9" font-weight="700">OCCUPATION &amp; INDUSTRY</text>
+        <rect x="28" y="104" width="524" height="22" rx="3" fill="#1f1b24" opacity="0.75"/><text x="32" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">Heights Blvd 1435</text><text x="118" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">Vance, Arthur R (Head)</text><text x="252" y="118" fill="#fde047" font-family="monospace" font-size="9.2">Owned | $6,500</text><text x="365" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">44 | Texas</text><text x="442" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">Secretary / Retail Lumber</text><rect x="28" y="130" width="524" height="22" rx="3" fill="#2d2636" opacity="0.75"/><text x="32" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">Heights Blvd 1435</text><text x="118" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">Vance, Edith M (Wife)</text><text x="252" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">Homemaker</text><text x="365" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">41 | Louisiana</text><text x="442" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">None</text><rect x="28" y="156" width="524" height="22" rx="3" fill="#1f1b24" opacity="0.75"/><text x="32" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">Heights Blvd 1435</text><text x="118" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">Vance, Clara L (Dau)</text><text x="252" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">School</text><text x="365" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">14 | Texas</text><text x="442" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">Public High School</text><rect x="28" y="182" width="524" height="22" rx="3" fill="#2d2636" opacity="0.75"/><text x="32" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">Heights Blvd 1435B</text><text x="118" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">ellis, Thomas J (Lodger)</text><text x="252" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">Rented | $18/mo</text><text x="365" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">29 | Georgia</text><text x="442" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">Machinist / RR Shops</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#2d2636"/>
+  <text x="32" y="244" fill="#c4b5fd" font-family="sans-serif" font-size="9.2">Records street house numbers, Owned vs. Rented status, home value, ages, birthplaces &amp; occupations</text>
+</svg>

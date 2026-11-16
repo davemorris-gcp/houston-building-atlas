@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#1f1b24" stroke="#b45309" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#b45309" font-family="monospace" font-size="10.8" font-weight="700">HARRIS COUNTY TAX ASSESSOR BLOCK BOOK // VOL. 42 (1915-1932)</text>
+  <text x="28" y="52" fill="#c4b5fd" font-family="monospace" font-size="9.2">CR001 Bound Ledger (119 Vols) + CR067 Microfilm Rolls + MC003 Abstracts of Title</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#1f1b24" stroke="#b45309" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#b45309" font-family="monospace" font-size="8.8" font-weight="700">119 BOUND VOLUMES</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="532" height="150" rx="6" fill="#2d2636" stroke="#4a3f59" stroke-width="1.2"/>
+        <line x1="28" y1="99" x2="552" y2="99" stroke="#b45309" stroke-width="1"/>
+        <text x="32" y="93" fill="#b45309" font-family="monospace" font-size="9" font-weight="700">YEAR</text><text x="118" y="93" fill="#b45309" font-family="monospace" font-size="9" font-weight="700">OWNER OF RECORD</text><text x="252" y="93" fill="#b45309" font-family="monospace" font-size="9" font-weight="700">BLK / LOT</text><text x="365" y="93" fill="#b45309" font-family="monospace" font-size="9" font-weight="700">LAND VAL</text><text x="442" y="93" fill="#b45309" font-family="monospace" font-size="9" font-weight="700">IMPR VAL (BLDG JUMP)</text>
+        <rect x="28" y="104" width="524" height="22" rx="3" fill="#1f1b24" opacity="0.75"/><text x="32" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">1913</text><text x="118" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">Houston Heights Co.</text><text x="252" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">Blk 114 Lot 7</text><text x="365" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">$400</text><text x="442" y="118" fill="#f5f3ff" font-family="monospace" font-size="9.2">$0 (Vacant Lot)</text><rect x="28" y="130" width="524" height="22" rx="3" fill="#2d2636" opacity="0.75"/><text x="32" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">1914</text><text x="118" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">J. H. &amp; Clara Miller</text><text x="252" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">Blk 114 Lot 7</text><text x="365" y="144" fill="#f5f3ff" font-family="monospace" font-size="9.2">$400</text><text x="442" y="144" fill="#fde047" font-family="monospace" font-size="9.2">$2,400 (+BLDG ERECTED)</text><rect x="28" y="156" width="524" height="22" rx="3" fill="#1f1b24" opacity="0.75"/><text x="32" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">1915</text><text x="118" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">J. H. &amp; Clara Miller</text><text x="252" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">Blk 114 Lot 7</text><text x="365" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">$450</text><text x="442" y="170" fill="#f5f3ff" font-family="monospace" font-size="9.2">$2,400 (Homestead)</text><rect x="28" y="182" width="524" height="22" rx="3" fill="#2d2636" opacity="0.75"/><text x="32" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">1924</text><text x="118" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">A. R. &amp; Edith Vance</text><text x="252" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">Blk 114 Lot 7</text><text x="365" y="196" fill="#f5f3ff" font-family="monospace" font-size="9.2">$600</text><text x="442" y="196" fill="#fde047" font-family="monospace" font-size="9.2">$2,950 (+Rear Apt)</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#2d2636"/>
+  <text x="32" y="244" fill="#c4b5fd" font-family="sans-serif" font-size="9.2">Improvement-value jump ($0 -&gt; $2,400 in 1914) proves exact year of construction</text>
+</svg>

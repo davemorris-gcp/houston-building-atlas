@@ -21,9 +21,9 @@ The Houston Building Atlas documentation spans seven coordinated surfaces, each 
 | **6** | **Standalone Missing Landmark PDFs TPIA Google Sheet** | PH staff & City of Houston HPO open-records liaisons | Shareable checklist tracking the `27` remaining unpublished City of Houston Landmarks (narrowed from `61` after recovering `+34` post-2016 PDFs in Milestone 12) whose official HPO Designation Report PDFs were never posted online (mirrored in `Missing_Landmark_PDFs_TPIA` on the main admin sheet and `pipeline/cache/landmark_reports/coh_landmarks_missing_pdfs_tpia.csv`). |
 | **7** | **Historical Day-1 Design Archive (`docs/superpowers/`) & Case-Study Files** | Historical project archive (read-only) | [`docs/superpowers/`](superpowers/README.md) (October 5, 2026 Day-1 initial prototype notes, superseded by Chapters 1-10) plus PH's internal *Kirby Mansion Redevelopment Plans* case-study notes. |
 
-### Visual Field Guide to the 12 Primary-Source Document Archetypes (`app/public/img/doc-types/`)
+### Visual Field Guide to All 46 Data Feeds & 12 Primary-Source Document Archetypes (`app/public/img/doc-types/`)
 
-Every data feed on [`app/data-ecosystem.html`](../app/data-ecosystem.html) (`data_sources_catalog.json`) is paired with a stylized vector document illustration stored in [`app/public/img/doc-types/`](../app/public/img/doc-types/) that teaches visitors and researchers how historic preservation evidence is read and cross-checked:
+Every one of the **46 data feeds** on [`app/data-ecosystem.html`](../app/data-ecosystem.html) (`data_sources_catalog.json`) has its own dedicated, feed-specific stylized vector document/data illustration stored in [`app/public/img/doc-types/<feed-id>.svg`](../app/public/img/doc-types/) (for example, [`ph-curated-good-brick.svg`](../app/public/img/doc-types/ph-curated-good-brick.svg), [`aia-mod-architect-index.svg`](../app/public/img/doc-types/aia-mod-architect-index.svg), [`haif-community-search.svg`](../app/public/img/doc-types/haif-community-search.svg), [`hca-cr051-field-cards.svg`](../app/public/img/doc-types/hca-cr051-field-cards.svg), and [`hca-cr037-block-books.svg`](../app/public/img/doc-types/hca-cr037-block-books.svg)), alongside the 12 core primary-source document archetypes summarized below:
 
 | Document Archetype | Stylized Visual Depiction | Primary Preservation Signal |
 | :--- | :--- | :--- |

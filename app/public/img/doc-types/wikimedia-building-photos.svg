@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#171923" stroke="#38bdf8" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#232736" stroke="#3b4259" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#38bdf8" font-family="monospace" font-size="10.8" font-weight="700">WIKIMEDIA COMMONS + LOC HABS // CURATED ARCHITECTURAL PHOTOGRAPHY</text>
+  <text x="28" y="52" fill="#cbd5e1" font-family="monospace" font-size="9.2">building_photos.json | HABS TX-3142 | CC-BY-SA &amp; Public Domain Landmark Imagery</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#171923" stroke="#38bdf8" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#38bdf8" font-family="monospace" font-size="8.8" font-weight="700">HABS &amp; COMMONS</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="236" height="150" rx="6" fill="#171923" stroke="#38bdf8" stroke-width="1.3"/>
+        <!-- Stylized Historic Bungalow Elevation Illustration -->
+        <polygon points="48,142 142,96 236,142" fill="#334155" stroke="#38bdf8" stroke-width="1.5"/>
+        <rect x="122" y="110" width="40" height="24" fill="#1e293b" stroke="#f8fafc" stroke-width="1.1"/>
+        <rect x="62" y="142" width="160" height="54" fill="#1e293b" stroke="#f8fafc" stroke-width="1.4"/>
+        <rect x="78" y="152" width="32" height="26" fill="#0f172a" stroke="#38bdf8" stroke-width="1.1"/>
+        <rect x="174" y="152" width="32" height="26" fill="#0f172a" stroke="#38bdf8" stroke-width="1.1"/>
+        <rect x="128" y="154" width="28" height="42" fill="#0f172a" stroke="#fbbf24" stroke-width="1.2"/>
+        <line x1="68" y1="142" x2="68" y2="196" stroke="#fbbf24" stroke-width="2.5"/>
+        <line x1="216" y1="142" x2="216" y2="196" stroke="#fbbf24" stroke-width="2.5"/>
+        <text x="34" y="213" fill="#cbd5e1" font-family="sans-serif" font-size="8.3">High-Resolution Architectural Elevation &amp; Detail</text>
+        <rect x="266" y="74" width="290" height="150" rx="6" fill="#232736" stroke="#3b4259" stroke-width="1.2"/>
+        
+            <rect x="272" y="95" width="276" height="22" rx="3" fill="#171923" opacity="0.65"/>
+            <text x="278" y="108" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="700">CATALOG FILE:</text>
+            <text x="358" y="108" fill="#f8fafc" font-family="sans-serif" font-size="9">app/public/data/building_photos.json (Geotagged)</text>
+            <rect x="272" y="122" width="276" height="22" rx="3" fill="#171923" opacity="0.65"/>
+            <text x="278" y="135" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="700">SOURCES:</text>
+            <text x="358" y="135" fill="#f8fafc" font-family="sans-serif" font-size="9">WIKIMEDIA COMMONS + WIKIDATA QID + LOC HABS</text>
+            <rect x="272" y="149" width="276" height="22" rx="3" fill="#171923" opacity="0.65"/>
+            <text x="278" y="162" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="700">LICENSING:</text>
+            <text x="358" y="162" fill="#f8fafc" font-family="sans-serif" font-size="9">OPEN CC-BY-SA / PUBLIC DOMAIN ATTRIBUTION</text>
+            <rect x="272" y="176" width="276" height="22" rx="3" fill="#171923" opacity="0.65"/>
+            <text x="278" y="189" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="700">SIDEBAR UI:</text>
+            <text x="358" y="189" fill="#f8fafc" font-family="sans-serif" font-size="9">LIGHTBOX GALLERY + ARCHITECTURAL STYLE TAGS</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#232736"/>
+  <text x="32" y="244" fill="#cbd5e1" font-family="sans-serif" font-size="9.2">Renders open-licensed landmark photography and Library of Congress HABS measured drawings in the sidebar</text>
+</svg>

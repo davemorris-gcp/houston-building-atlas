@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#0a192f" stroke="#60a5fa" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#112240" stroke="#1e3a5f" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#60a5fa" font-family="monospace" font-size="10.8" font-weight="700">RICE UNIVERSITY WOODSON RESEARCH CENTER // ARCHITECTURAL ARCHIVE</text>
+  <text x="28" y="52" fill="#94a3b8" font-family="monospace" font-size="9.2">MS 358 Architectural Drawings + Stephen Fox Architectural History Research Files</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#0a192f" stroke="#60a5fa" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#60a5fa" font-family="monospace" font-size="8.8" font-weight="700">ARCHITECTURAL DRAWINGS</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#112240" stroke="#1e3a5f" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#60a5fa" font-family="sans-serif" font-size="10.5" font-weight="700">TARO Finding Aid &amp; Attribution</text>
+        
+            <text x="34" y="112" fill="#60a5fa" font-family="monospace" font-size="9.5" font-weight="700">REPOSITORY:</text>
+            <text x="116" y="112" fill="#e2e8f0" font-family="monospace" font-size="9.5">RICE FONDREN WOODSON CENTER</text>
+            <line x1="32" y1="117" x2="278" y2="117" stroke="#1e3a5f" stroke-width="0.7"/>
+            <text x="34" y="136" fill="#60a5fa" font-family="monospace" font-size="9.5" font-weight="700">ARCHITECT:</text>
+            <text x="116" y="136" fill="#e2e8f0" font-family="monospace" font-size="9.5">WILLIAM WARD WATKIN / STAUB</text>
+            <line x1="32" y1="141" x2="278" y2="141" stroke="#1e3a5f" stroke-width="0.7"/>
+            <text x="34" y="160" fill="#60a5fa" font-family="monospace" font-size="9.5" font-weight="700">DRAWING SET:</text>
+            <text x="116" y="160" fill="#e2e8f0" font-family="monospace" font-size="9.5">INK-ON-LINEN ELEVATIONS (1927)</text>
+            <line x1="32" y1="165" x2="278" y2="165" stroke="#1e3a5f" stroke-width="0.7"/>
+            <text x="34" y="184" fill="#60a5fa" font-family="monospace" font-size="9.5" font-weight="700">CLIENT / SITE:</text>
+            <text x="116" y="184" fill="#e2e8f0" font-family="monospace" font-size="9.5">RIVER OAKS / MONTROSE RESIDENCE</text>
+            <line x1="32" y1="189" x2="278" y2="189" stroke="#1e3a5f" stroke-width="0.7"/>
+            <text x="34" y="208" fill="#60a5fa" font-family="monospace" font-size="9.5" font-weight="700">FOX NOTES:</text>
+            <text x="116" y="208" fill="#e2e8f0" font-family="monospace" font-size="9.5">VERIFIED COMMISSION &amp; JOB NO.</text>
+            <line x1="32" y1="213" x2="278" y2="213" stroke="#1e3a5f" stroke-width="0.7"/>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#0a192f" stroke="#60a5fa" stroke-width="1.2"/>
+        <text x="304" y="91" fill="#60a5fa" font-family="monospace" font-size="9.2" font-weight="700">Original Linen Front Elevation &amp; Floorplan Blueprint (Scale 1/4&quot; = 1&#x27;-0&quot;)</text>
+        <polygon points="330,112 480,112 480,178 415,178 415,196 330,196" fill="none" stroke="#e2e8f0" stroke-width="1.8"/>
+        <rect x="330" y="178" width="85" height="18" fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="3,2"/>
+        <text x="355" y="148" fill="#e2e8f0" font-family="monospace" font-size="10" font-weight="700">1.5-STORY FRAME</text>
+        <text x="355" y="162" fill="#94a3b8" font-family="monospace" font-size="9">28' x 46' (1,288 SF)</text>
+        <text x="336" y="191" fill="#60a5fa" font-family="monospace" font-size="8.5">8' OPEN PORCH</text>
+        <text x="486" y="148" fill="#60a5fa" font-family="monospace" font-size="9">46'-0"</text>
+        <text x="385" y="108" fill="#60a5fa" font-family="monospace" font-size="9">28'-0"</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#112240"/>
+  <text x="32" y="244" fill="#94a3b8" font-family="sans-serif" font-size="9.2">Links Texas Archival Resources Online (TARO) box/folder call numbers to commissioned Houston buildings</text>
+</svg>

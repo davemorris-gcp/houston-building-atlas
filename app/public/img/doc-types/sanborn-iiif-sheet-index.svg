@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#21171f" stroke="#f43f5e" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#332330" stroke="#54384f" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#f43f5e" font-family="monospace" font-size="10.8" font-weight="700">SANBORN MAP COMPANY // HOUSTON VOL. 6, SHEET 614 (1924 EDITION)</text>
+  <text x="28" y="52" fill="#f9a8d4" font-family="monospace" font-size="9.2">Library of Congress &amp; UT Perry-Castaneda IIIF Manifest | Scale: 50 Ft to 1 Inch</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#21171f" stroke="#f43f5e" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#f43f5e" font-family="monospace" font-size="8.8" font-weight="700">COLOR-CODED FOOTPRINTS</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#f5efe6" stroke="#fb7185" stroke-width="1.4"/>
+        <text x="34" y="90" fill="#881337" font-family="serif" font-size="10.5" font-weight="700">SANBORN VOL. 6 // SHEET 614 (1924)</text>
+        <!-- Yellow Wood Dwelling -->
+        <rect x="42" y="102" width="136" height="68" fill="#fef08a" stroke="#ca8a04" stroke-width="1.8"/>
+        <text x="52" y="122" fill="#713f12" font-family="monospace" font-size="10" font-weight="700">D (1 1/2 STORY)</text>
+        <text x="52" y="136" fill="#713f12" font-family="monospace" font-size="8.8">YELLOW = WOOD FRAME</text>
+        <text x="52" y="150" fill="#854d0e" font-family="monospace" font-size="8.5">1435 HEIGHTS BLVD</text>
+        <!-- Blue/Yellow Rear Garage Apt -->
+        <rect x="192" y="102" width="80" height="48" fill="#bfdbfe" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="198" y="120" fill="#1e3a8a" font-family="monospace" font-size="9" font-weight="700">A (GARAGE)</text>
+        <text x="198" y="134" fill="#1e3a8a" font-family="monospace" font-size="8">2ND FLR APT</text>
+        <!-- Pink Brick Commercial Neighbor -->
+        <rect x="42" y="178" width="230" height="36" fill="#fecdd3" stroke="#e11d48" stroke-width="1.5"/>
+        <text x="52" y="199" fill="#881337" font-family="monospace" font-size="9" font-weight="700">PINK = BRICK COMMERCIAL STOREFRONT (12" WALL)</text>
+
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#332330" stroke="#54384f" stroke-width="1.2"/>
+        <text x="304" y="92" fill="#f43f5e" font-family="sans-serif" font-size="10.5" font-weight="700">Sanborn Fire Atlas Color Key</text>
+        <rect x="304" y="102" width="242" height="22" rx="3" fill="#21171f"/>
+        <text x="310" y="116" fill="#fde047" font-family="monospace" font-size="9">D (Dwelling) - 1.5 Story | Yellow = Wood Fra</text>
+        <rect x="304" y="128" width="242" height="22" rx="3" fill="#21171f"/>
+        <text x="310" y="142" fill="#fda4af" font-family="monospace" font-size="9">Brick Comm. Storefront | Pink = Brick | Fire</text>
+        <text x="304" y="172" fill="#fdf2f8" font-family="sans-serif" font-size="9">• Yellow = Wood Frame | Pink = Brick | Blue = Stone/Concrete</text><text x="304" y="189" fill="#fdf2f8" font-family="sans-serif" font-size="9">• &#x27;D&#x27; = Dwelling | &#x27;A&#x27; = Auto Garage | &#x27;1 1/2&#x27; = Stories</text><text x="304" y="206" fill="#fdf2f8" font-family="sans-serif" font-size="9">• Proves pre-1924 footprint survival vs. modern replacement</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#332330"/>
+  <text x="32" y="244" fill="#f9a8d4" font-family="sans-serif" font-size="9.2">Comparing 1885, 1896, 1907, 1924 &amp; 1950 sheets proves whether the original structure still stands</text>
+</svg>

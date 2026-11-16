@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#281117" stroke="#fb7185" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#3b1821" stroke="#642636" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#fb7185" font-family="monospace" font-size="10.8" font-weight="700">HOUSTON PUBLIC WORKS // WATER &amp; WASTEWATER DISCONNECT PERMIT</text>
+  <text x="28" y="52" fill="#fda4af" font-family="monospace" font-size="9.2">Pre-Demolition Prerequisite | Sewer Plug &amp; Water Meter Cut-Off | 1418 Ashland St</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#281117" stroke="#fb7185" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#fb7185" font-family="monospace" font-size="8.8" font-weight="700">2-3 WK LEAD TIME</text>
+
+  <!-- Document Body -->
+  
+            <rect x="28" y="78" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="83" width="118" height="20" rx="3" fill="#281117" stroke="#fb7185" stroke-width="0.9"/>
+            <text x="41" y="96" fill="#fb7185" font-family="monospace" font-size="9.5" font-weight="700">Day -21 (Utility App)</text>
+            <text x="162" y="92" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">SEWER PLUG &amp; CAP PERMIT FILED</text>
+            <text x="162" y="103" fill="#fda4af" font-family="sans-serif" font-size="9">Prerequisite before structural demo permit can issue</text>
+            <line x1="93" y1="108" x2="93" y2="114" stroke="#fb7185" stroke-width="1.5"/>
+            <rect x="28" y="114" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="119" width="118" height="20" rx="3" fill="#281117" stroke="#fb7185" stroke-width="0.9"/>
+            <text x="41" y="132" fill="#fb7185" font-family="monospace" font-size="9.5" font-weight="700">Day -14 (Meter Pull)</text>
+            <text x="162" y="128" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">WATER SERVICE LINE ABANDONMENT</text>
+            <text x="162" y="139" fill="#fda4af" font-family="sans-serif" font-size="9">3/4-inch residential tap cut at street right-of-way</text>
+            <line x1="93" y1="144" x2="93" y2="150" stroke="#fb7185" stroke-width="1.5"/>
+            <rect x="28" y="150" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="155" width="118" height="20" rx="3" fill="#281117" stroke="#fb7185" stroke-width="0.9"/>
+            <text x="41" y="168" fill="#fb7185" font-family="monospace" font-size="9.5" font-weight="700">Day -7 (Inspector Sign)</text>
+            <text x="162" y="164" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">PUBLIC WORKS TAP INSPECTION PASS</text>
+            <text x="162" y="175" fill="#fda4af" font-family="sans-serif" font-size="9">Clears ILMS hold for Building Demolition Permit</text>
+            <line x1="93" y1="180" x2="93" y2="186" stroke="#fb7185" stroke-width="1.5"/>
+            <rect x="28" y="186" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="191" width="118" height="20" rx="3" fill="#281117" stroke="#fb7185" stroke-width="0.9"/>
+            <text x="41" y="204" fill="#fb7185" font-family="monospace" font-size="9.5" font-weight="700">Atlas Alert Triggered</text>
+            <text x="162" y="200" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">PRE-DEMO EARLY WARNING FIRED</text>
+            <text x="162" y="211" fill="#fda4af" font-family="sans-serif" font-size="9">2-3 weeks before structural bulldozer arrival</text>
+            
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#3b1821"/>
+  <text x="32" y="244" fill="#fda4af" font-family="sans-serif" font-size="9.2">Developers must cap sewer &amp; water lines BEFORE Houston Permitting Center will issue a demolition permit</text>
+</svg>

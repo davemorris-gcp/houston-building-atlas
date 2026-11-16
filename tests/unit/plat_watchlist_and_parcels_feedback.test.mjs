@@ -2211,6 +2211,8 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
   const validEngines = new Set(catalogJson.synthesisEngines.map((e) => e.id));
   const seenOrgIds = new Set();
   const seenFeedIds = new Set();
+  const seenImagePaths = new Set();
+  const seenVisualTitles = new Set();
   let totalFeeds = 0;
   for (const org of catalogJson.organizations) {
     assert.equal(seenOrgIds.has(org.id), false, `Duplicate organization id ${org.id}`);
@@ -2233,7 +2235,11 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
           `Planned/In-flight feed ${f.id} must explain how and when we plan to start using it`
         );
       }
-      assert.ok(f.docArchetypeId && f.docVisual && f.docVisual.imagePath, `Feed ${f.id} must have docVisual metadata`);
+      assert.ok(f.docVisual && f.docVisual.imagePath && f.docVisual.title, `Feed ${f.id} must have docVisual metadata`);
+      assert.equal(seenImagePaths.has(f.docVisual.imagePath), false, `Duplicate docVisual.imagePath ${f.docVisual.imagePath} on feed ${f.id}`);
+      seenImagePaths.add(f.docVisual.imagePath);
+      assert.equal(seenVisualTitles.has(f.docVisual.title), false, `Duplicate docVisual.title ${f.docVisual.title} on feed ${f.id}`);
+      seenVisualTitles.add(f.docVisual.title);
       const svgDiskPath = path.join(REPO_ROOT, "app", f.docVisual.imagePath);
       assert.equal(fs.existsSync(svgDiskPath), true, `Missing document SVG at ${svgDiskPath}`);
       const svgRaw = fs.readFileSync(svgDiskPath, "utf8");
@@ -2244,8 +2250,10 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
     }
     assert.equal(String(org.websiteUrl || "").includes("admin.html"), false, `Org ${org.id} must not link to admin.html`);
   }
-  assert.ok(Array.isArray(catalogJson.documentArchetypes) && catalogJson.documentArchetypes.length === 12);
-  assert.ok(totalFeeds >= 30, `Expected at least 30 data feeds in catalog, got ${totalFeeds}`);
+  assert.equal(totalFeeds, 46, "Expected 46 data feeds in catalog");
+  assert.equal(seenImagePaths.size, 46, "Every one of the 46 feeds must have its own unique SVG visual");
+  assert.equal(seenVisualTitles.size, 46, "Every one of the 46 feeds must have its own unique docVisual.title");
+  assert.ok(Array.isArray(catalogJson.documentArchetypes) && catalogJson.documentArchetypes.length === 46);
   const ecosystemHtml = fs.readFileSync(path.join(REPO_ROOT, "app", "data-ecosystem.html"), "utf8");
   assert.equal(/[\u2013\u2014]/.test(ecosystemHtml), false, "data-ecosystem.html must not contain en-dashes or em-dashes");
   assert.match(ecosystemHtml, /data_sources_catalog\.json/);

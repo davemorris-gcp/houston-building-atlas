@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#281117" stroke="#f97316" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#3b1821" stroke="#642636" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#f97316" font-family="monospace" font-size="10.8" font-weight="700">TEXAS DSHS // MANDATORY 10-DAY ASBESTOS DEMOLITION NOTIFICATION</text>
+  <text x="28" y="52" fill="#fda4af" font-family="monospace" font-size="9.2">Form APB#5 (NESHAP / TAC Ch. 296) | Notification #NT-2026-08914 | 10-Day Hold Window</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#281117" stroke="#f97316" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#f97316" font-family="monospace" font-size="8.8" font-weight="700">10-DAY ADVANCE NOTICE</text>
+
+  <!-- Document Body -->
+  
+            <rect x="28" y="78" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="83" width="118" height="20" rx="3" fill="#281117" stroke="#f97316" stroke-width="0.9"/>
+            <text x="41" y="96" fill="#f97316" font-family="monospace" font-size="9.5" font-weight="700">Day 1 (DSHS Filing)</text>
+            <text x="162" y="92" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">APB#5 ASBESTOS DEMO NOTICE FILED</text>
+            <text x="162" y="103" fill="#fda4af" font-family="sans-serif" font-size="9">Mandatory federal/state filing before any commercial/multi-unit demo</text>
+            <line x1="93" y1="108" x2="93" y2="114" stroke="#f97316" stroke-width="1.5"/>
+            <rect x="28" y="114" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="119" width="118" height="20" rx="3" fill="#281117" stroke="#f97316" stroke-width="0.9"/>
+            <text x="41" y="132" fill="#f97316" font-family="monospace" font-size="9.5" font-weight="700">Day 2-9 (Abatement)</text>
+            <text x="162" y="128" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">RACM PIPE / TRANSITE SIDING REMOVAL</text>
+            <text x="162" y="139" fill="#fda4af" font-family="sans-serif" font-size="9">Licensed abatement crew on site; structure still intact</text>
+            <line x1="93" y1="144" x2="93" y2="150" stroke="#f97316" stroke-width="1.5"/>
+            <rect x="28" y="150" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="155" width="118" height="20" rx="3" fill="#281117" stroke="#f97316" stroke-width="0.9"/>
+            <text x="41" y="168" fill="#f97316" font-family="monospace" font-size="9.5" font-weight="700">Day 10 (Legal Clear)</text>
+            <text x="162" y="164" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">10-WORKING-DAY WAITING PERIOD ENDS</text>
+            <text x="162" y="175" fill="#fda4af" font-family="sans-serif" font-size="9">Earliest legal date structural demolition can commence</text>
+            <line x1="93" y1="180" x2="93" y2="186" stroke="#f97316" stroke-width="1.5"/>
+            <rect x="28" y="186" width="524" height="30" rx="5" fill="#3b1821" stroke="#642636" stroke-width="1.1"/>
+            <rect x="34" y="191" width="118" height="20" rx="3" fill="#281117" stroke="#f97316" stroke-width="0.9"/>
+            <text x="41" y="204" fill="#f97316" font-family="monospace" font-size="9.5" font-weight="700">Atlas Sweep Match</text>
+            <text x="162" y="200" fill="#ffe4e6" font-family="monospace" font-size="10" font-weight="700">EARLY-WARNING WATCHLIST ALERT</text>
+            <text x="162" y="211" fill="#fda4af" font-family="sans-serif" font-size="9">Gives Preservation Staff 2 calendar weeks to photograph or intervene</text>
+            
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#3b1821"/>
+  <text x="32" y="244" fill="#fda4af" font-family="sans-serif" font-size="9.2">State law requires filing Form APB#5 at least 10 working days before demolishing public/commercial buildings</text>
+</svg>

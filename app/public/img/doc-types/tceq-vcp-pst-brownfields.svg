@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#281117" stroke="#eab308" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#3b1821" stroke="#642636" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#eab308" font-family="monospace" font-size="10.8" font-weight="700">TEXAS COMMISSION ON ENVIRONMENTAL QUALITY // VCP &amp; PST REGISTRY</text>
+  <text x="28" y="52" fill="#fda4af" font-family="monospace" font-size="9.2">VCP ID #3194 | PST Facility #48219 | Phase I/II ESA &amp; Underground Tank Pull Notice</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#281117" stroke="#eab308" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#eab308" font-family="monospace" font-size="8.8" font-weight="700">COMMERCIAL DEMO RADAR</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#3b1821" stroke="#642636" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#eab308" font-family="sans-serif" font-size="10.5" font-weight="700">Environmental Site Filing</text>
+        
+            <rect x="30" y="99" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="36" y="112" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">PROGRAM_ID:</text>
+            <text x="118" y="112" fill="#ffe4e6" font-family="monospace" font-size="9.5">TCEQ VCP #3194 / PST #48219</text>
+            <rect x="30" y="123" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="36" y="136" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">SITE_NAME:</text>
+            <text x="118" y="136" fill="#ffe4e6" font-family="monospace" font-size="9.5">MAGNOLIA SERVICE STATION (1929)</text>
+            <rect x="30" y="147" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="36" y="160" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">HISTORIC_USE:</text>
+            <text x="118" y="160" fill="#ffe4e6" font-family="monospace" font-size="9.5">ART DECO GAS STATION / DRY CLEAN</text>
+            <rect x="30" y="171" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="36" y="184" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">FILING_TYPE:</text>
+            <text x="118" y="184" fill="#ffe4e6" font-family="monospace" font-size="9.5">UNDERGROUND TANK REMOVAL (UST)</text>
+            <rect x="30" y="195" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="36" y="208" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">APPLICANT:</text>
+            <text x="118" y="208" fill="#ffe4e6" font-family="monospace" font-size="9.5">MIDTOWN MIXED-USE DEV LLC</text>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#3b1821" stroke="#642636" stroke-width="1.2"/>
+        <text x="302" y="91" fill="#eab308" font-family="sans-serif" font-size="10.5" font-weight="700">Commercial Redevelopment Signal</text>
+        
+            <rect x="300" y="99" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="306" y="112" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">LEAD_TIME:</text>
+            <text x="394" y="112" fill="#ffe4e6" font-family="monospace" font-size="9.5">60-120 DAYS BEFORE DEMO PERMIT</text>
+            <rect x="300" y="123" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="306" y="136" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">FINANCING:</text>
+            <text x="394" y="136" fill="#ffe4e6" font-family="monospace" font-size="9.5">LENDER PHASE II CLEANUP REQ</text>
+            <rect x="300" y="147" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="306" y="160" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">BLDG_RISK:</text>
+            <text x="394" y="160" fill="#ffe4e6" font-family="monospace" font-size="9.5">1929 TERRA COTTA AUTO COURT</text>
+            <rect x="300" y="171" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="306" y="184" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">ADAPTIVE USE:</text>
+            <text x="394" y="184" fill="#ffe4e6" font-family="monospace" font-size="9.5">BROWNFIELD REHAB TAX INCENTIVE</text>
+            <rect x="300" y="195" width="250" height="20" rx="3" fill="#281117" opacity="0.55"/>
+            <text x="306" y="208" fill="#eab308" font-family="monospace" font-size="9.5" font-weight="700">WATCHLIST:</text>
+            <text x="394" y="208" fill="#ffe4e6" font-family="monospace" font-size="9.5">AUTO-FLAGGED COMMERCIAL CORRIDOR</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#3b1821"/>
+  <text x="32" y="244" fill="#fda4af" font-family="sans-serif" font-size="9.2">Developers file TCEQ VCP / tank removal notices 2-4 months before demolishing historic gas stations &amp; industrial sites</text>
+</svg>

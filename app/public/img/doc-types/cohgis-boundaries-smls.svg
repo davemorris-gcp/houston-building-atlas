@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#081c24" stroke="#06b6d4" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#0d2d3a" stroke="#164e63" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#06b6d4" font-family="monospace" font-size="10.8" font-weight="700">COH GIS OPEN DATA // SMLS / SMBL LOT-SIZE &amp; CIVIC BOUNDARY OVERLAY</text>
+  <text x="28" y="52" fill="#67e8f9" font-family="monospace" font-size="9.2">Ch. 42 Special Minimum Lot Size (SMLS) + Minimum Building Line (SMBL) + 88 Super Neighborhoods</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#081c24" stroke="#06b6d4" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#06b6d4" font-family="monospace" font-size="8.8" font-weight="700">SMLS LOT PROTECTION</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="268" height="150" rx="6" fill="#0d2d3a" stroke="#06b6d4" stroke-width="1.3" stroke-dasharray="5,3"/>
+        <text x="34" y="91" fill="#06b6d4" font-family="monospace" font-size="9.5" font-weight="700">SMLS BLOCK #214 (MIN LOT SIZE: 6,600 SF PROTECTED)</text>
+        <rect x="38" y="102" width="148" height="72" rx="4" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b" stroke-width="1.6"/>
+        <text x="46" y="124" fill="#fde68a" font-family="sans-serif" font-size="10" font-weight="700">#b1 Primary Structure</text>
+        <text x="46" y="140" fill="#ecfeff" font-family="monospace" font-size="8.8">Townhome Split Blocked (Cannot sub</text>
+        <text x="46" y="154" fill="#67e8f9" font-family="monospace" font-size="8.5">divide below 6,600 SF)</text>
+        <rect x="196" y="132" width="84" height="62" rx="4" fill="#10b981" fill-opacity="0.22" stroke="#10b981" stroke-width="1.5"/>
+        <text x="202" y="150" fill="#6ee7b7" font-family="sans-serif" font-size="9.5" font-weight="700">#b2 Secondary</text>
+        <text x="202" y="164" fill="#ecfeff" font-family="monospace" font-size="8">SMBL 25-Foot Front</text>
+        <text x="202" y="176" fill="#67e8f9" font-family="monospace" font-size="8"> Setback Line Enfo</text>
+        <rect x="298" y="74" width="258" height="150" rx="6" fill="#0d2d3a" stroke="#164e63" stroke-width="1.2"/>
+        <text x="308" y="91" fill="#06b6d4" font-family="sans-serif" font-size="10.5" font-weight="700">Spatial Preservation Verification</text>
+        
+            <rect x="304" y="104" width="248" height="30" rx="4" fill="#081c24" stroke="#164e63" stroke-width="1"/>
+            <circle cx="316" cy="119" r="3.5" fill="#06b6d4"/>
+            <text x="326" y="122" fill="#ecfeff" font-family="sans-serif" font-size="9.5">SMLS: Blocks townhome lot splits under Ch. 42</text>
+            
+            <rect x="304" y="142" width="248" height="30" rx="4" fill="#081c24" stroke="#164e63" stroke-width="1"/>
+            <circle cx="316" cy="157" r="3.5" fill="#06b6d4"/>
+            <text x="326" y="160" fill="#ecfeff" font-family="sans-serif" font-size="9.5">SMBL: Preserves historic front-yard porch setbacks</text>
+            
+            <rect x="304" y="180" width="248" height="30" rx="4" fill="#081c24" stroke="#164e63" stroke-width="1"/>
+            <circle cx="316" cy="195" r="3.5" fill="#06b6d4"/>
+            <text x="326" y="198" fill="#ecfeff" font-family="sans-serif" font-size="9.5">88 Super Neighborhoods, Council Districts A-K &amp; TIRZs</text>
+            
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#0d2d3a"/>
+  <text x="32" y="244" fill="#67e8f9" font-family="sans-serif" font-size="9.2">Identifies blocks protected by Chapter 42 Special Minimum Lot Size (SMLS) &amp; Building Line ordinances</text>
+</svg>

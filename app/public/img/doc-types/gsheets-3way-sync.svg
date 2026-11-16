@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#0a192f" stroke="#34d399" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#112240" stroke="#1e3a5f" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#34d399" font-family="monospace" font-size="10.8" font-weight="700">PRESERVATION STAFF CLOUD HUB // 14-TAB GOOGLE SHEET &amp; 3-WAY SYNC</text>
+  <text x="28" y="52" fill="#94a3b8" font-family="monospace" font-size="9.2">Restricted Staff Backend | Field-Level Timestamp Conflict Resolution (Browser &lt;-&gt; Sheet &lt;-&gt; Repo)</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#0a192f" stroke="#34d399" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#34d399" font-family="monospace" font-size="8.8" font-weight="700">3-WAY CLOUD SYNC</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#112240" stroke="#1e3a5f" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#34d399" font-family="sans-serif" font-size="10.5" font-weight="700">14-Tab Staff Workbook Schema</text>
+        
+            <rect x="30" y="99" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="36" y="112" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">TAB 1-3:</text>
+            <text x="118" y="112" fill="#e2e8f0" font-family="monospace" font-size="9.5">CURATED_OVERRIDES / LANDMARKS / LOST</text>
+            <rect x="30" y="123" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="36" y="136" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">TAB 4-6:</text>
+            <text x="118" y="136" fill="#e2e8f0" font-family="monospace" font-size="9.5">PLAT_WATCH / PROPERTY_WATCHLIST</text>
+            <rect x="30" y="147" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="36" y="160" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">TAB 7-9:</text>
+            <text x="118" y="160" fill="#e2e8f0" font-family="monospace" font-size="9.5">AUDIT_QUEUE / ARCHIVE_PULL_ORDERS</text>
+            <rect x="30" y="171" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="36" y="184" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">TAB 10-12:</text>
+            <text x="118" y="184" fill="#e2e8f0" font-family="monospace" font-size="9.5">CONTRACTORS / LLC_ALIASES / PHOTOS</text>
+            <rect x="30" y="195" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="36" y="208" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">TAB 13-14:</text>
+            <text x="118" y="208" fill="#e2e8f0" font-family="monospace" font-size="9.5">SYNC_AUDIT_LOG / STAFF_ASSIGNMENTS</text>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#112240" stroke="#1e3a5f" stroke-width="1.2"/>
+        <text x="302" y="91" fill="#34d399" font-family="sans-serif" font-size="10.5" font-weight="700">3-Way Field Timestamp Merge</text>
+        
+            <rect x="300" y="99" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="306" y="112" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">BROWSER EDIT:</text>
+            <text x="394" y="112" fill="#e2e8f0" font-family="monospace" font-size="9.5">updated_at: 2026-11-16T09:14:02Z</text>
+            <rect x="300" y="123" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="306" y="136" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">SHEET EDIT:</text>
+            <text x="394" y="136" fill="#e2e8f0" font-family="monospace" font-size="9.5">updated_at: 2026-11-16T08:50:11Z</text>
+            <rect x="300" y="147" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="306" y="160" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">MERGE WINNER:</text>
+            <text x="394" y="160" fill="#e2e8f0" font-family="monospace" font-size="9.5">NEWEST FIELD TIMESTAMP WINS</text>
+            <rect x="300" y="171" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="306" y="184" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">ACCESS GUARD:</text>
+            <text x="394" y="184" fill="#e2e8f0" font-family="monospace" font-size="9.5">RESTRICTED STAFF OAUTH / NO PUBLIC LINK</text>
+            <rect x="300" y="195" width="250" height="20" rx="3" fill="#0a192f" opacity="0.55"/>
+            <text x="306" y="208" fill="#34d399" font-family="monospace" font-size="9.5" font-weight="700">CI PIPELINE:</text>
+            <text x="394" y="208" fill="#e2e8f0" font-family="monospace" font-size="9.5">NIGHTLY GITHUB ACTIONS BUNDLE SYNC</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#112240"/>
+  <text x="32" y="244" fill="#94a3b8" font-family="sans-serif" font-size="9.2">Synchronizes browser workbench edits, the restricted 14-tab Staff Google Sheet, and GitHub Actions</text>
+</svg>

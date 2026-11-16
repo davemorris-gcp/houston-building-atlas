@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#231b0e" stroke="#f59e0b" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#362a15" stroke="#5c4722" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#f59e0b" font-family="monospace" font-size="10.8" font-weight="700">PRESERVATION HOUSTON // GOOD BRICK AWARD &amp; CURATED LANDMARK DOSSIER</text>
+  <text x="28" y="52" fill="#fcd34d" font-family="monospace" font-size="9.2">47 Years of Good Brick Awards (1979-2026) | 1,250+ Curated Architectural Landmarks</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#231b0e" stroke="#f59e0b" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#f59e0b" font-family="monospace" font-size="8.8" font-weight="700">1,250+ CURATED SITES</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="532" height="150" rx="8" fill="#362a15" stroke="#f59e0b" stroke-width="1.8"/>
+        <rect x="36" y="84" width="508" height="28" rx="4" fill="#231b0e" stroke="#fbbf24" stroke-width="1"/>
+        <text x="50" y="102" fill="#fde68a" font-family="serif" font-size="11.5" font-weight="700">GOOD BRICK AWARD RECIPIENT // Excellence in Historic Preservation, Restoration &amp; Stewardship</text>
+        
+            <text x="42" y="132" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">LANDMARK:</text>
+            <text x="182" y="132" fill="#fffbeb" font-family="sans-serif" font-size="9.8">1435 Heights Blvd (Miller-Vance House, 1914)</text>
+            <text x="42" y="154" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">ARCHITECTURAL STYLE:</text>
+            <text x="182" y="154" fill="#fffbeb" font-family="sans-serif" font-size="9.8">Craftsman Bungalow (Heart Pine &amp; Cypress Porch)</text>
+            <text x="42" y="176" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">WALKING TOUR:</text>
+            <text x="182" y="176" fill="#fffbeb" font-family="sans-serif" font-size="9.8">Featured on Preservation Houston Architecture Walk</text>
+            <text x="42" y="198" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">CURATED NARRATIVE:</text>
+            <text x="182" y="198" fill="#fffbeb" font-family="sans-serif" font-size="9.8">Verified build date, architect, and restoration story</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#362a15"/>
+  <text x="32" y="244" fill="#fcd34d" font-family="sans-serif" font-size="9.2">Authoritative architectural narratives, style classifications &amp; Good Brick Award histories (1979-2026)</text>
+</svg>

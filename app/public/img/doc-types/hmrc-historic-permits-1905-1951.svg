@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 260" width="100%" height="100%">
+  <rect x="2" y="2" width="576" height="256" rx="12" fill="#271f16" stroke="#f59e0b" stroke-width="1.8"/>
+  <!-- Top Document Header Bar -->
+  <rect x="16" y="14" width="548" height="50" rx="7" fill="#382c1e" stroke="#5c4730" stroke-width="1.2"/>
+  <text x="28" y="34" fill="#f59e0b" font-family="monospace" font-size="10.8" font-weight="700">CITY OF HOUSTON // HISTORIC BUILDING PERMIT LEDGER (1905-1951)</text>
+  <text x="28" y="52" fill="#fcd34d" font-family="monospace" font-size="9.2">HMRC Archival Ledger Vol. 9 | Permit #14892 | Issued: Oct 14, 1914 | Fee: $3.50</text>
+  <!-- Stamp Badge -->
+  <rect x="424" y="20" width="130" height="22" rx="4" fill="#271f16" stroke="#f59e0b" stroke-width="1.1"/>
+  <text x="432" y="35" fill="#f59e0b" font-family="monospace" font-size="8.8" font-weight="700">ORIGINAL BUILDER &amp; DATE</text>
+
+  <!-- Document Body -->
+  
+        <rect x="24" y="74" width="262" height="150" rx="6" fill="#382c1e" stroke="#5c4730" stroke-width="1.2"/>
+        <text x="32" y="91" fill="#f59e0b" font-family="sans-serif" font-size="10.5" font-weight="700">Original 1914 Permit Entry</text>
+        
+            <rect x="30" y="99" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="36" y="112" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">PERMIT_NO:</text>
+            <text x="118" y="112" fill="#fef3c7" font-family="monospace" font-size="9.5">#14892 (OCTOBER 14, 1914)</text>
+            <rect x="30" y="123" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="36" y="136" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">OWNER:</text>
+            <text x="118" y="136" fill="#fef3c7" font-family="monospace" font-size="9.5">J. H. MILLER (1435 HEIGHTS BLVD)</text>
+            <rect x="30" y="147" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="36" y="160" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">CONTRACTOR:</text>
+            <text x="118" y="160" fill="#fef3c7" font-family="monospace" font-size="9.5">W. W. BARDEN &amp; SONS, BUILDERS</text>
+            <rect x="30" y="171" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="36" y="184" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">ARCHITECT:</text>
+            <text x="118" y="184" fill="#fef3c7" font-family="monospace" font-size="9.5">DESIGNED BY RUSSELL BROWN CO.</text>
+            <rect x="30" y="195" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="36" y="208" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">LEGAL_DESC:</text>
+            <text x="118" y="208" fill="#fef3c7" font-family="monospace" font-size="9.5">HOUSTON HEIGHTS BLK 114 LOT 7</text>
+        <rect x="294" y="74" width="262" height="150" rx="6" fill="#382c1e" stroke="#5c4730" stroke-width="1.2"/>
+        <text x="302" y="91" fill="#f59e0b" font-family="sans-serif" font-size="10.5" font-weight="700">Structural &amp; Cost Spec</text>
+        
+            <rect x="300" y="99" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="306" y="112" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">BLDG_CLASS:</text>
+            <text x="394" y="112" fill="#fef3c7" font-family="monospace" font-size="9.5">7-ROOM 1.5-STORY FRAME RESIDENCE</text>
+            <rect x="300" y="123" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="306" y="136" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">EST_COST:</text>
+            <text x="394" y="136" fill="#fef3c7" font-family="monospace" font-size="9.5">$2,650.00 (1914 GOLD DOLLARS)</text>
+            <rect x="300" y="147" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="306" y="160" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">ROOF / FLUE:</text>
+            <text x="394" y="160" fill="#fef3c7" font-family="monospace" font-size="9.5">SHINGLE ROOF / 2 BRICK FLUES</text>
+            <rect x="300" y="171" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="306" y="184" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">HCAD OVERRIDE:</text>
+            <text x="394" y="184" fill="#fef3c7" font-family="monospace" font-size="9.5">REPLACES 1920 ROUNDED DEFAULT</text>
+            <rect x="300" y="195" width="250" height="20" rx="3" fill="#271f16" opacity="0.55"/>
+            <text x="306" y="208" fill="#f59e0b" font-family="monospace" font-size="9.5" font-weight="700">PROVENANCE:</text>
+            <text x="394" y="208" fill="#fef3c7" font-family="monospace" font-size="9.5">HPL JULIA IDESON HMRC LEDGER</text>
+        
+
+  <!-- Bottom Provenance Footer -->
+  <rect x="24" y="230" width="532" height="20" rx="4" fill="#382c1e"/>
+  <text x="32" y="244" fill="#fcd34d" font-family="sans-serif" font-size="9.2">Provides the exact day a permit was issued, the original owner, architect/builder, and construction cost</text>
+</svg>
