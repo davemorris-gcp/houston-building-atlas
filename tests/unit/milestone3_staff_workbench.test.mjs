@@ -763,6 +763,10 @@ test("UT-6, UT-7 & IT-4: historical_audit_queue.json contract, composite fid iso
     assert.equal(designated.length + undesigOnly.length, hydrated.length);
     const actionable = filterAuditQueueItems(hydrated, { status: "actionable" }, decisions, {});
     assert.equal(actionable.length, hydrated.length - 1);
+    const hideReplaced = filterAuditQueueItems(hydrated, { hideLikelyReplaced: true }, decisions, {});
+    const slabCount = hydrated.filter((it) => it.replacement_risk_flag === "likely_replaced_slab_or_post1960").length;
+    assert.ok(slabCount >= 1000, `Expected >= 1000 likely_replaced_slab_or_post1960 items, got ${slabCount}`);
+    assert.equal(hideReplaced.length, hydrated.length - slabCount);
     const stats = computeAuditProgressStats(hydrated, decisions, {});
     assert.equal(stats.total, hydrated.length);
     assert.equal(stats.accepted, 1);

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Stylized 1937 HOLC Security Map and 1915 Red Book Archival Folio">
+  <defs>
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf7ec"/>
+      <stop offset="100%" stop-color="#f1e8d2"/>
+    </linearGradient>
+    <linearGradient id="bgBlueprint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f253e"/>
+      <stop offset="100%" stop-color="#17375b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#091326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="420" height="260" rx="12" fill="#0d1726"/>
+  <rect x="14" y="14" width="392" height="232" rx="8" fill="url(#bgPaper)" stroke="#92400e" stroke-width="1.5" filter="url(#cardShadow)"/>
+  <rect x="24" y="22" width="372" height="24" rx="3" fill="#451a03"/>
+  <text x="34" y="38" fill="#fef3c7" font-family="Georgia, serif" font-size="11" font-weight="bold">1937 HOLC SECURITY MAP &amp; 1915 RED BOOK OF HOUSTON FOLIOS</text>
+  <!-- Left 1937 HOLC 4-Grade Polygon Map -->
+  <rect x="24" y="54" width="180" height="154" rx="4" fill="#fffbeb" stroke="#b45309" stroke-width="1.2"/>
+  <text x="114" y="69" fill="#78350f" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle">1937 HOLC RESIDENTIAL SURVEY</text>
+  <polygon points="34,78 108,78 98,124 34,124" fill="#22c55e" fill-opacity="0.55" stroke="#15803d" stroke-width="1.5"/>
+  <text x="68" y="104" fill="#14532d" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">A1 (Best)</text>
+  <polygon points="112,78 194,78 194,124 102,124" fill="#3b82f6" fill-opacity="0.55" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="150" y="104" fill="#1e3a8a" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">B4 (Still Des.)</text>
+  <polygon points="34,128 112,128 112,176 34,176" fill="#eab308" fill-opacity="0.6" stroke="#a16207" stroke-width="1.5"/>
+  <text x="73" y="155" fill="#713f12" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">C8 (Declining)</text>
+  <polygon points="116,128 194,128 194,176 116,176" fill="#ef4444" fill-opacity="0.6" stroke="#b91c1c" stroke-width="1.5"/>
+  <text x="155" y="155" fill="#7f1d1d" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">D12 (Redlined)</text>
+  <text x="114" y="196" fill="#78350f" font-family="sans-serif" font-size="8.5" text-anchor="middle">Includes 1937 Typewriter Area Sheets</text>
+  <!-- Right 1915 Red Book / TARO Archival Plate -->
+  <rect x="212" y="54" width="184" height="154" rx="4" fill="#fdfaf2" stroke="#78350f" stroke-width="1.2"/>
+  <text x="304" y="70" fill="#451a03" font-family="Georgia, serif" font-size="9.5" font-weight="bold" text-anchor="middle">1915 RED BOOK &amp; TARO XML</text>
+  <rect x="224" y="78" width="160" height="68" rx="3" fill="#e7e5e4" stroke="#78716c" stroke-width="1"/>
+  <text x="304" y="106" fill="#292524" font-family="Georgia, serif" font-size="10" font-weight="bold" text-anchor="middle">Archival Halftone Plate</text>
+  <text x="304" y="122" fill="#57534e" font-family="Georgia, serif" font-size="8.5" text-anchor="middle">Fourth Ward / Freedmen's Town</text>
+  <text x="304" y="136" fill="#57534e" font-family="monospace" font-size="8" text-anchor="middle">&amp; 1913 Art Work of Houston</text>
+  <text x="224" y="164" fill="#1e293b" font-family="monospace" font-size="8.5">TARO Box/Folder Call Numbers:</text>
+  <text x="224" y="178" fill="#0f766e" font-family="monospace" font-size="8.5" font-weight="bold">Staub, Birdsall, MacKie &amp; Kamrath</text>
+  <text x="224" y="194" fill="#475569" font-family="sans-serif" font-size="8">1930/1940 Census ED Map Crosswalk</text>
+  <!-- Footer -->
+  <rect x="24" y="216" width="372" height="22" rx="4" fill="#1e293b"/>
+  <text x="210" y="230" fill="#fcd34d" font-family="sans-serif" font-size="9.5" text-anchor="middle">1937 HOLC Security Zones + 1913/1915 Photographic Folios + TARO Finding Aids</text>
+</svg>

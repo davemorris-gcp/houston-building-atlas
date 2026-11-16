@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Stylized HCAD CAMA GIS Parcel Footprints and LLC Unmasking Graph">
+  <defs>
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf7ec"/>
+      <stop offset="100%" stop-color="#f1e8d2"/>
+    </linearGradient>
+    <linearGradient id="bgBlueprint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f253e"/>
+      <stop offset="100%" stop-color="#17375b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#091326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="420" height="260" rx="12" fill="#0d1726"/>
+  <rect x="14" y="14" width="392" height="232" rx="8" fill="url(#bgBlueprint)" stroke="#38bdf8" stroke-width="1.5" filter="url(#cardShadow)"/>
+  <rect x="24" y="22" width="372" height="24" rx="3" fill="#0f172a"/>
+  <text x="34" y="38" fill="#38bdf8" font-family="monospace" font-size="10.5" font-weight="bold">HCAD CAMA ROLL + MULTI-BUILDING GIS (#b1/#b2) + LLC UNMASKING</text>
+  <!-- Left GIS Parcel with #b1 and #b2 -->
+  <rect x="24" y="54" width="182" height="154" rx="4" fill="#082f49" stroke="#38bdf8" stroke-width="1.2"/>
+  <text x="32" y="70" fill="#bae6fd" font-family="monospace" font-size="9" font-weight="bold">PARCEL 0201520000004 (3D LiDAR)</text>
+  <polygon points="36,80 194,80 194,196 36,196" fill="#0c4a6e" stroke="#7dd3fc" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <!-- #b1 Primary Building -->
+  <rect x="48" y="114" width="88" height="66" rx="2" fill="#f59e0b" fill-opacity="0.82" stroke="#fef08a" stroke-width="1.6"/>
+  <text x="92" y="143" fill="#0f172a" font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">#b1 Main House</text>
+  <text x="92" y="157" fill="#0f172a" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle">Built 1914</text>
+  <text x="92" y="171" fill="#1e293b" font-family="monospace" font-size="8" text-anchor="middle">2,410 SF | 26ft Roof</text>
+  <!-- #b2 Secondary Garage Apt -->
+  <rect x="144" y="88" width="42" height="38" rx="2" fill="#10b981" fill-opacity="0.82" stroke="#a7f3d0" stroke-width="1.4"/>
+  <text x="165" y="105" fill="#064e3b" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">#b2 Rear</text>
+  <text x="165" y="118" fill="#064e3b" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">1924 Apt</text>
+  <!-- Right 6-Tier Ownership & LLC Unmasking Graph -->
+  <rect x="214" y="54" width="182" height="154" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1.2"/>
+  <text x="305" y="70" fill="#fde047" font-family="monospace" font-size="9" font-weight="bold" text-anchor="middle">6-TIER OWNERSHIP UNMASKING</text>
+  <rect x="224" y="78" width="162" height="28" rx="3" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+  <text x="305" y="95" fill="#f8fafc" font-family="monospace" font-size="8.5" text-anchor="middle">HCAD: "1435 HEIGHTS HOLDINGS LLC"</text>
+  <line x1="305" y1="106" x2="305" y2="120" stroke="#38bdf8" stroke-width="1.5"/>
+  <rect x="224" y="120" width="162" height="32" rx="3" fill="#172554" stroke="#3b82f6" stroke-width="1"/>
+  <text x="305" y="134" fill="#93c5fd" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">TX SOS / Comptroller PIR Join</text>
+  <text x="305" y="146" fill="#dbeafe" font-family="sans-serif" font-size="8" text-anchor="middle">Shared Tax Mailing Address + Agent</text>
+  <line x1="305" y1="152" x2="305" y2="166" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="224" y="166" width="162" height="32" rx="3" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+  <text x="305" y="180" fill="#a7f3d0" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">Managing Member + 14 Linked Lots</text>
+  <text x="305" y="192" fill="#ecfdf5" font-family="sans-serif" font-size="8" text-anchor="middle">+ 22-Yr Certified Roll History</text>
+  <!-- Footer -->
+  <rect x="24" y="216" width="372" height="22" rx="4" fill="#0f172a"/>
+  <text x="210" y="230" fill="#7dd3fc" font-family="sans-serif" font-size="9.5" text-anchor="middle">1.54M Parcels &amp; 1.50M Dated Footprints across 5 PMTiles Shards + 22 Annual Rolls</text>
+</svg>

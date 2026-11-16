@@ -2233,13 +2233,31 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
           `Planned/In-flight feed ${f.id} must explain how and when we plan to start using it`
         );
       }
+      assert.ok(f.docArchetypeId && f.docVisual && f.docVisual.imagePath, `Feed ${f.id} must have docVisual metadata`);
+      const svgDiskPath = path.join(REPO_ROOT, "app", f.docVisual.imagePath);
+      assert.equal(fs.existsSync(svgDiskPath), true, `Missing document SVG at ${svgDiskPath}`);
+      const svgRaw = fs.readFileSync(svgDiskPath, "utf8");
+      assert.equal(/[\u2013\u2014]/.test(svgRaw), false, `SVG ${f.docVisual.imagePath} must not contain en/em-dashes`);
     }
+    if (org.id === "google_workspace_cloud_hub") {
+      assert.equal(org.websiteUrl, "", "google_workspace_cloud_hub must not link to admin.html or restricted Google Sheet");
+    }
+    assert.equal(String(org.websiteUrl || "").includes("admin.html"), false, `Org ${org.id} must not link to admin.html`);
   }
+  assert.ok(Array.isArray(catalogJson.documentArchetypes) && catalogJson.documentArchetypes.length === 12);
   assert.ok(totalFeeds >= 30, `Expected at least 30 data feeds in catalog, got ${totalFeeds}`);
   const ecosystemHtml = fs.readFileSync(path.join(REPO_ROOT, "app", "data-ecosystem.html"), "utf8");
   assert.equal(/[\u2013\u2014]/.test(ecosystemHtml), false, "data-ecosystem.html must not contain en-dashes or em-dashes");
   assert.match(ecosystemHtml, /data_sources_catalog\.json/);
-  assert.match(ecosystemHtml, /downloadSvgPosterBtn/);
+  assert.equal(/downloadSvgPosterBtn|posterModeBtn|printPosterBtn/.test(ecosystemHtml), false, "Poster buttons must be removed");
+  assert.match(ecosystemHtml, /compactModeToggleBtn/);
+  assert.match(ecosystemHtml, /detailModeToggleBtn/);
+  assert.match(ecosystemHtml, /toggleAllCardsBtn/);
+  assert.match(ecosystemHtml, /statusFilterSelect/);
+  assert.match(ecosystemHtml, /fidelityFilterSelect/);
+  assert.match(ecosystemHtml, /engineFilterSelect/);
+  assert.match(ecosystemHtml, /data-view-mode="visuals"/);
+  assert.match(ecosystemHtml, /justify-content:\s*flex-start/);
 });
 
 test("UT-22: 4-tier model supports active Tier 3 Low Priority monitoring and Tier 4 Irrelevant/Demolished archiving", () => {

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Stylized Morrison and Fourmy Houston City Directory Page">
+  <defs>
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf7ec"/>
+      <stop offset="100%" stop-color="#f1e8d2"/>
+    </linearGradient>
+    <linearGradient id="bgBlueprint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f253e"/>
+      <stop offset="100%" stop-color="#17375b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#091326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="420" height="260" rx="12" fill="#0d1726"/>
+  <rect x="14" y="14" width="392" height="232" rx="8" fill="url(#bgPaper)" stroke="#a89068" stroke-width="1.5" filter="url(#cardShadow)"/>
+  <rect x="24" y="22" width="372" height="24" rx="3" fill="#1e293b"/>
+  <text x="34" y="38" fill="#f8ecc9" font-family="Georgia, serif" font-size="11" font-weight="bold">MORRISON &amp; FOURMY HOUSTON CITY DIRECTORY (1915 EDITION)</text>
+  <!-- Left Column: Pass 1 Alphabetical -->
+  <rect x="24" y="52" width="180" height="158" fill="#fdfaf2" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="24" y="52" width="180" height="20" fill="#334155"/>
+  <text x="114" y="66" fill="#f8fafc" font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">PASS 1: ALPHABETICAL RESIDENTS</text>
+  <text x="30" y="88" fill="#1e293b" font-family="Georgia, serif" font-size="9.5"><tspan font-weight="bold">Carter John H</tspan> (Mary E) carp</text>
+  <text x="38" y="100" fill="#0f766e" font-family="monospace" font-size="9" font-weight="bold">h 1435 Heights blvd</text>
+  <text x="30" y="118" fill="#1e293b" font-family="Georgia, serif" font-size="9.5"><tspan font-weight="bold">Carter Wm T</tspan> clk Sou Pac Lines</text>
+  <text x="38" y="130" fill="#475569" font-family="monospace" font-size="9">r 1435 Heights blvd</text>
+  <text x="30" y="148" fill="#1e293b" font-family="Georgia, serif" font-size="9.5"><tspan font-weight="bold">Dawson Clara</tspan> (wid Thos) tchr</text>
+  <text x="38" y="160" fill="#475569" font-family="monospace" font-size="9">h 1439 Heights blvd</text>
+  <rect x="30" y="172" width="168" height="30" rx="3" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
+  <text x="36" y="185" fill="#065f46" font-family="sans-serif" font-size="8.5" font-weight="bold">Biographical &amp; Trade Proof:</text>
+  <text x="36" y="197" fill="#065f46" font-family="sans-serif" font-size="8">Links resident name, spouse &amp; job</text>
+  <!-- Right Column: Pass 2 Street & Avenue Guide -->
+  <rect x="214" y="52" width="182" height="158" fill="#fdfaf2" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="214" y="52" width="182" height="20" fill="#0f766e"/>
+  <text x="305" y="66" fill="#f8fafc" font-family="monospace" font-size="9.5" font-weight="bold" text-anchor="middle">PASS 2: STREET &amp; AVENUE GUIDE</text>
+  <text x="222" y="86" fill="#0f172a" font-family="monospace" font-size="9.5" font-weight="bold">HEIGHTS BLVD (1400 BLOCK)</text>
+  <text x="222" y="99" fill="#64748b" font-family="monospace" font-size="8.5">--- W 14th intersects ---</text>
+  <rect x="220" y="105" width="170" height="18" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="0.8"/>
+  <text x="224" y="117" fill="#78350f" font-family="monospace" font-size="9.5" font-weight="bold">1435 Carter John H (o) [1914]</text>
+  <text x="224" y="135" fill="#1e293b" font-family="monospace" font-size="9">1439 Dawson Clara Mrs (o)</text>
+  <text x="224" y="151" fill="#1e293b" font-family="monospace" font-size="9">1443 Vacant</text>
+  <text x="222" y="166" fill="#64748b" font-family="monospace" font-size="8.5">--- W 15th intersects ---</text>
+  <text x="222" y="188" fill="#0f766e" font-family="sans-serif" font-size="8.5" font-weight="bold">(o) = Homeowner | Criss-Cross</text>
+  <text x="222" y="200" fill="#334155" font-family="sans-serif" font-size="8">Earliest year bounds build date</text>
+  <!-- Footer -->
+  <rect x="24" y="216" width="372" height="22" rx="4" fill="#1e293b"/>
+  <text x="210" y="230" fill="#93c5fd" font-family="sans-serif" font-size="9.5" text-anchor="middle">39 Volumes (1866-1968) | Dual-Pass Street Guide + Alphabetical Cross-Check</text>
+</svg>

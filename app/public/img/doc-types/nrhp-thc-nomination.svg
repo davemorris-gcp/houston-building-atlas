@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Stylized NPS National Register Form 10-900 and THC Medallion">
+  <defs>
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf7ec"/>
+      <stop offset="100%" stop-color="#f1e8d2"/>
+    </linearGradient>
+    <linearGradient id="bgBlueprint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f253e"/>
+      <stop offset="100%" stop-color="#17375b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#091326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="420" height="260" rx="12" fill="#0d1726"/>
+  <rect x="14" y="14" width="392" height="232" rx="8" fill="url(#bgPaper)" stroke="#7c3aed" stroke-width="1.5" filter="url(#cardShadow)"/>
+  <rect x="24" y="22" width="372" height="24" rx="3" fill="#3b0764"/>
+  <text x="34" y="38" fill="#f3e8ff" font-family="Georgia, serif" font-size="11" font-weight="bold">NPS FORM 10-900 (NRHP) &amp; TEXAS HISTORICAL COMMISSION (RTHL)</text>
+  <!-- Left NPS 10-900 Form -->
+  <rect x="24" y="54" width="234" height="154" rx="4" fill="#fffdf9" stroke="#8b5cf6" stroke-width="1.2"/>
+  <text x="32" y="70" fill="#4c1d95" font-family="monospace" font-size="9.5" font-weight="bold">OMB No. 1024-0018 | NRIS REF #83003104</text>
+  <line x1="32" y1="76" x2="250" y2="76" stroke="#ddd6fe" stroke-width="1"/>
+  <text x="32" y="92" fill="#1e293b" font-family="Georgia, serif" font-size="10"><tspan font-weight="bold">Historic Name:</tspan> John H. Carter House</text>
+  <text x="32" y="110" fill="#1e293b" font-family="Georgia, serif" font-size="10"><tspan font-weight="bold">Criteria:</tspan> [X] Criterion A   [X] Criterion C</text>
+  <text x="32" y="128" fill="#1e293b" font-family="Georgia, serif" font-size="10"><tspan font-weight="bold">Period of Significance:</tspan> 1914 - 1945</text>
+  <text x="32" y="146" fill="#1e293b" font-family="Georgia, serif" font-size="10"><tspan font-weight="bold">Architect/Builder:</tspan> Webber &amp; Sanguinet</text>
+  <rect x="32" y="158" width="218" height="40" rx="3" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="40" y="173" fill="#5b21b6" font-family="sans-serif" font-size="8.5" font-weight="bold">Protection Matrix Cross-Walk:</text>
+  <text x="40" y="188" fill="#4c1d95" font-family="sans-serif" font-size="8">COH Protected Landmark vs. NRHP Sec. 106</text>
+  <!-- Right THC RTHL Plaque -->
+  <rect x="266" y="54" width="130" height="154" rx="6" fill="#27272a" stroke="#a1a1aa" stroke-width="2"/>
+  <circle cx="331" cy="92" r="22" fill="#d4af37" stroke="#fef08a" stroke-width="1.5"/>
+  <text x="331" y="96" fill="#18181b" font-family="Georgia, serif" font-size="10" font-weight="bold" text-anchor="middle">TEXAS</text>
+  <text x="331" y="130" fill="#f4f4f5" font-family="Georgia, serif" font-size="9.5" font-weight="bold" text-anchor="middle">RECORDED TEXAS</text>
+  <text x="331" y="143" fill="#f4f4f5" font-family="Georgia, serif" font-size="9.5" font-weight="bold" text-anchor="middle">HISTORIC LANDMARK</text>
+  <text x="331" y="164" fill="#fde047" font-family="monospace" font-size="8.5" text-anchor="middle">60-DAY THC REVIEW</text>
+  <text x="331" y="182" fill="#a1a1aa" font-family="sans-serif" font-size="8" text-anchor="middle">+ Good Brick Award</text>
+  <text x="331" y="195" fill="#a1a1aa" font-family="sans-serif" font-size="8" text-anchor="middle">Preservation Registry</text>
+  <!-- Footer -->
+  <rect x="24" y="216" width="372" height="22" rx="4" fill="#1e293b"/>
+  <text x="210" y="230" fill="#ddd6fe" font-family="sans-serif" font-size="9.5" text-anchor="middle">Federal NRHP + State RTHL/SAL + Municipal Protected Landmarks + Good Brick Awards</text>
+</svg>

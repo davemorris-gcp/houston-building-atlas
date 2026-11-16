@@ -5,6 +5,14 @@
 - **13-Digit HCAD Account Call Number Key:** `VVV-PPP-SSS-IIII` -> `Volume [3 digits] | Page [3 digits] | Sub-block [3 digits] | Item [4 digits]`
 - **Indexed CR001 Coverage:** `915` BLA Card boxes across `112` volumes (`v. 001` to `v. 114`), `23` Priority 1 Watchlist parcels, and `2203` Priority 2 Historical Audit Queue parcels (`81` distinct BLA boxes, `401` distinct `1915-1927_VVV_PPP.tif` digitized Block Book files).
 
+## Visual Guide to Harris County Archival Records (`CR001` & `MC003`)
+
+| Record Group / Document Type | Stylized Archival Illustration | What to Look For in the Reading Room |
+| :--- | :--- | :--- |
+| **`CR001` Building & Land Assessment (BLA) Card** (`Mid-1920s to 1980`, `915` boxes) | ![Stylized CR001 BLA Assessment Card](../app/public/img/doc-types/bla-assessment-card.svg) | Original City of Houston Building Permit `#` and issue date, Builder/Contractor name, `[X] Pier & Beam` vs. `Concrete Slab` foundation check, pre-1984 erection year (overturning `1920`/`1930` HCAD computer-conversion rounding), and the red-ruled measured perimeter footprint sketch. |
+| **`CR001` Tax Assessor Block Book Ledger** (`1915-1997`, `119` bound volumes) | ![Stylized CR001 Tax Block Book Ledger](../app/public/img/doc-types/tax-block-book.svg) | Organized by **Subdivision, Block, and Lot** (immune to 1911 street renumbering). Follow the **Improvement Value (`$`)** column year by year: the exact tax year when Improvement Value jumps from `$0` (vacant land) to a building valuation (e.g. `$2,450`) proves the construction year. |
+| **`MC003` Abstracts of Title & County Clerk Deeds / Mechanic's Liens** (`1836-Present`) | ![Stylized Clerk Deed and Mechanics Lien](../app/public/img/doc-types/deed-chain-instrument.svg) | `Grantor -> Grantee` warranty deed chains, Volume/Page & Film Code tokens, and **Mechanic's Lien (`ML`)** builder contracts that name the original contractor, architect, and contract price prior to construction. |
+
 ## 1. Already Digitized & Ingested Sample Records (Received Nov 13, 2026)
 
 | HCAD Account | Address / Landmark | Call No. (`Vol / Page / Item`) | BLA Box & Shelf Loc | Key Primary-Source Finding |

@@ -3642,6 +3642,15 @@
             <option value="priority" selected>Sort: Priority Score</option>
             <option value="street_block">Sort: Street-Block Walk</option>
           </select>
+          <label
+            class="workbench-checkbox-label"
+            for="audit-filter-hide-replaced"
+            title="Hide parcels with HCAD Concrete Slab foundations, post-1960 rebuild records, or post-1960 primary erection years so reviewers focus on surviving pre-1927 structures"
+            style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; cursor: pointer; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.28); background: rgba(15, 23, 42, 0.35);"
+          >
+            <input type="checkbox" id="audit-filter-hide-replaced" aria-label="Hide Likely Replaced (Slab / Post-1960)" />
+            <span>Hide Likely Replaced (Slab / Post-1960)</span>
+          </label>
           <input
             type="search"
             id="audit-filter-search"

@@ -218,14 +218,15 @@ def calibrate_dual_source_pre1927_audit_queue(
             blds_by_hcad.setdefault(hc, []).append(feat)
 
     cand_hcads: set[str] = set()
+    all_unresolved_queue_hcads: set[str] = set()
     for it in q_doc.get("items") or []:
-        if it.get("cat") in ("1930_PLACEHOLDER_PRE1927_PLAT", "CITY_DIRECTORY_EARLIER_THAN_HCAD"):
-            hc = str(it.get("h") or "").strip()
+        hc = str(it.get("h") or "").strip()
+        if hc and hc not in overrides and hc not in overridden_base_hcads:
+            all_unresolved_queue_hcads.add(hc)
             if (
-                hc
+                it.get("cat")
+                in ("1930_PLACEHOLDER_PRE1927_PLAT", "CITY_DIRECTORY_EARLIER_THAN_HCAD")
                 and hc not in all_excluded
-                and hc not in overrides
-                and hc not in overridden_base_hcads
             ):
                 cand_hcads.add(hc)
 
@@ -242,7 +243,7 @@ def calibrate_dual_source_pre1927_audit_queue(
             cdir / "Real_building_land.zip",
         ]
         bld_zip_path = next((p for p in bld_zip_candidates if p.exists()), bld_zip_candidates[0])
-        flags = load_bld1_structural_flags(bld_zip_path, cand_hcads)
+        flags = load_bld1_structural_flags(bld_zip_path, all_unresolved_queue_hcads | cand_hcads)
         slab_set = set(flags["slab_hcads"])
         rebuilt_set = set(flags["rebuilt_hcads"])
         bldg_years = flags["bldg_years_by_hcad"]
@@ -489,6 +490,62 @@ def calibrate_dual_source_pre1927_audit_queue(
             if changed_s:
                 search_updated += 1
 
+    overridden_after = {str(k).split("#", 1)[0].strip() for k in overrides.keys()}
+    risk_counts: dict[str, int] = {
+        "likely_replaced_slab_or_post1960": 0,
+        "multi_building_parcel": 0,
+        "needs_sanborn_or_streetview_check": 0,
+        "resolved_or_overridden": 0,
+    }
+    queue_changed = False
+    for it in q_doc.get("items") or []:
+        hc = str(it.get("h") or "").strip()
+        ay = int(it.get("ay") or 0)
+        old_rf = it.get("rf")
+        if hc in overrides or hc in overridden_after:
+            risk_counts["resolved_or_overridden"] += 1
+            if "rf" in it:
+                it.pop("rf", None)
+                queue_changed = True
+            continue
+        cama_yrs = [int(y) for y in (bldg_years.get(hc) or []) if int(y or 0) > 0]
+        all_f = blds_by_hcad.get(hc) or []
+        has_post1960_feat = any(
+            int((f.get("properties") or {}).get("year_built") or 0) > 1960 for f in all_f
+        )
+        has_multi_feat = (
+            len(all_f) > 1
+            or any(
+                re.search(r"#b[2-9]\d*$", str((f.get("properties") or {}).get("id") or ""))
+                for f in all_f
+            )
+            or len(cama_yrs) > 1
+        )
+        if (
+            hc in slab_set
+            or hc in rebuilt_set
+            or ay > 1960
+            or any(y > 1960 for y in cama_yrs)
+            or has_post1960_feat
+        ):
+            risk_counts["likely_replaced_slab_or_post1960"] += 1
+            new_rf = "slab"
+        elif has_multi_feat:
+            risk_counts["multi_building_parcel"] += 1
+            new_rf = "multi"
+        else:
+            risk_counts["needs_sanborn_or_streetview_check"] += 1
+            new_rf = "check"
+        if old_rf != new_rf:
+            it["rf"] = new_rf
+            queue_changed = True
+    if q_doc.get("replacement_risk_counts") != risk_counts:
+        q_doc["replacement_risk_counts"] = risk_counts
+        queue_changed = True
+
+    if apply and queue_changed:
+        _write_sanitized_compact_json(queue_path, q_doc)
+
     if apply and promoted_hcads:
         ov_doc["overrides"] = overrides
         _write_sanitized_compact_json(overrides_path, ov_doc)
@@ -533,6 +590,7 @@ def calibrate_dual_source_pre1927_audit_queue(
         "refining_pre1927_rounded_decade": refining_pre1927_count,
         "search_index_updated": search_updated,
         "total_curated_overrides": len(overrides),
+        "replacement_risk_counts": risk_counts,
     }
 
 

@@ -272,6 +272,21 @@
             "universeSummary": "All 1,546,683 Harris County real property accounts & 1.51M structures in HCAD 2026 CAMA (real_acct, building_res, building_other, exterior, extra_features, parcel_tieback)",
             "whatIsMissing": "100% of current HCAD tables are ingested (including exterior.txt per-building base/upper story areas and extra_features_detail1/2). The only fidelity limitation is upstream HCAD data quality: 2,544 Historic Core <=1926 structures still carry un-overridden rounded decade estimates (1890, 1900, 1910, 1920) after Pass-2 dual-source HPO Survey + City Directory calibration promoted 329 replacement-safe pre-1927 structures (402 / 2,798 total audit queue items resolved across 2,815 curated overrides).",
             "pass2AndGapClosurePlan": "Maintain 100% annual roll sync via cli.py --mode annual-refresh each July/August and October/November, while systematically replacing the remaining Historic Core rounded-decade estimates using Pass-2 City Directory, Sanborn, and Harris County Archives CR001 Block Book value-jump overrides."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -302,6 +317,21 @@
             "universeSummary": "22 surviving digital HCAD PDATA annual rolls (2005-2026); pre-2005 (1988-2004) electronic CAMA tables were lost by HCAD during server migrations (confirmed by HCAD Open Records Nov 11, 2026)",
             "whatIsMissing": "100% of surviving 2005-2026 digital HCAD rolls are extracted (with Current-Tenure-Only TX Tax Code Sec. 25.025 redaction preserving prior public owners on 24,593 confidential parcels). Pre-2005 HCAD CAMA snapshots (1988-2004) no longer exist at HCAD, and 89,970 pre-1988 accounts carry a default 01/02/1988 microfilm-digitization date.",
             "pass2AndGapClosurePlan": "Bridge the extinct 1988-2004 HCAD CAMA gap directly via Pass-2 expansion of our local 7.68 GiB Harris County Clerk Real Property index (1960-2004 warranty deeds, already matched to 25,705 pre-2004 owner chains) plus Harris County Archives 1915-1997 CR001 Block Books and 1970-1983 CR067 Microfilm Tax Rolls."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -333,6 +363,21 @@
             "universeSummary": "HCAD Public_Query & Residential_Grade ArcGIS FeatureServers (1.55M countywide parcels)",
             "whatIsMissing": "Live FeatureServer queries cover 100% of geocoded parcels and vacant lots (e.g., 3346 Scott St), but HCAD's ArcGIS service occasionally throttles batch requests above 250 concurrent records during Monday morning maintenance windows.",
             "pass2AndGapClosurePlan": "Active in production with exponential backoff, multi-HCAD split-account parsing, and automatic fallback to locally bundled 2026 CAMA shards if HCAD's ArcGIS server is temporarily unreachable."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -363,6 +408,21 @@
             "universeSummary": "1,300,027 permit rows in HCAD permits.txt (25 permit_type codes) + 914,980 building_res/building_other inspection notes (1988-2026)",
             "whatIsMissing": "100% of HCAD permits.txt and appraiser notes are ingested and translated via permitPlainEnglish.js. However, HCAD's permits.txt only tracks permits logged by tax appraisers since ~1988 and frequently labels major historic teardowns or guts as generic 'Type 11 / 31 Remodel' unless cross-checked against City of Houston iPermits.",
             "pass2AndGapClosurePlan": "Cross-link HCAD 8-digit docket numbers directly against City of Houston weekly sold permits XLS and pre-1988 HMRC building permit ledgers (1905-1951) so pre-1988 additions and misclassified remodels are fully disambiguated."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -404,6 +464,21 @@
             "universeSummary": "915 archival boxes of pre-1980 Tax Assessor Building & Land Assessment (BLA) cards at 11525 Todd St, Suite 300 (covering 23 active Watchlist parcels, 2,219 Audit Queue parcels in 81 boxes, and 828 curated historic overrides in 164 boxes)",
             "whatIsMissing": "While 100% of pre-1984 13-digit HCAD accounts resolve their exact Box and Shelf Location in the app, 19 of the 23 pre-1984 Watchlist parcels, 2,215 of the 2,219 Audit Queue parcels, and 824 of the 828 curated historic overrides have not yet had their physical paper BLA cards photographed in the reading room.",
             "pass2AndGapClosurePlan": "Execute reading-room photography batches using docs/HARRIS_COUNTY_ARCHIVES_PULL_SHEET.md: Batch 1 pulls the remaining 19 Watchlist BLA cards; Batch 2 photographs the top 30 dense historic-district boxes (Boxes 064, 078, 290, 291A, etc.) covering 600+ Heights, Norhill, Old Sixth Ward, and Montrose contradiction parcels, extracting original COH building permit numbers, builders, footprint sketches, and vintage Polaroid photos."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -434,6 +509,21 @@
             "universeSummary": "640 total bound Block Book volumes across 5 eras (1915-1927 [already digitized as 300-DPI TIFFs on Archives server], 1928-1935, 1936-1941, 1942-1952, 1997) + 167 MC003 Abstract of Title books + online 1997 hctax.net block book maps",
             "whatIsMissing": "1915-1927 bound Block Books are already digitized as 1915-1927_VVV_PPP.tif files at Harris County Archives, but 399 of the 401 distinct TIFF files covering our 2,219 Historical Audit Queue parcels (and 564 of the 566 TIFFs covering Curated Overrides) have not yet been copied from the reading-room workstation. Additionally, 160 of the 167 MC003 Abstract books in Pathfinder - Abstracts1.pdf and the online 1997 hctax.net block book PDFs are not yet parsed at block level.",
             "pass2AndGapClosurePlan": "In a single reading-room visit to 11525 Todd St, Suite 300, copy the 401 pre-digitized 1915-1927_VVV_PPP.tif files onto an external USB drive and run OCR/VLM table extraction on 'BY WHOM RENDERED' and annual improvement values (pinpointing exact construction years for 2,219 audit parcels), parse all 167 MC003 Abstract of Title entries from Pathfinder - Abstracts1.pdf, and index the online 1997 hctax.net/Property/blockbooks/ PDF maps."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -474,6 +564,21 @@
             "universeSummary": "All 1.24M standing/referenced HCAD accounts across 152 3-digit HCAD prefix shards",
             "whatIsMissing": "100% of HCAD-linked Clerk file numbers (1,724,304 tokens) and 130,474 TPIA-enriched historic/confidential parcel deed chains are sharded and live. The remaining gap is linking Probate estate cause numbers and Assumed Name (DBA) certificates when a property transfers by inheritance or unincorporated trade name without a Warranty Deed.",
             "pass2AndGapClosurePlan": "Cross-check gaps between consecutive HCAD owner surnames (where no Warranty Deed appears in RPIInstruments.txt) against the Harris County Clerk Probate Index to automatically annotate inherited family transfers."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -504,6 +609,21 @@
             "universeSummary": "2,592,510 candidate instruments (687,010 target conveyances/liens/deeds of trust in 1960-2026 RPIInstruments.txt), 391.1 MiB RPRelDoc.txt, 58,722 Maps/Condos rows (5,573 HCAD subdivisions), plus un-digitized 1836-1960 Deed Books",
             "whatIsMissing": "(1) On the local 7.68 GiB files already on disk: 130,083 target 1960-2026 instruments went unmatched in Pass 1 because Tier 2 legal matching was scoped to 188,200 historic/confidential parcels, skipped replatted lots with >4 child townhomes (max_parcels_per_legal_key=4), and did not parse 'L23-24 B4' lot/block strings inside the free-text Comment column of RPLegalDesc.txt; 2,967 of 5,573 HCAD subdivisions missed plat calibration due to 'SEC'/'ADDN' abbreviation differences; and RPRelDoc.txt (391 MiB) was not traversed; (2) Pre-1960 Volume Gap: Clerk SQL tables start Nov 1, 1960 (except pre-1960 RESTR rows).",
             "pass2AndGapClosurePlan": "(Pass 2A - Re-Run Local 7.68 GiB Cache) Add Comment-field Lot/Block regex extraction, a fuzzy Clerk-to-HCAD subdivision alias table (calibrating >90% of all 5,573 subdivisions), pre-replat parent-lot propagation (when FileDate < replat year), and 1-hop RPRelDoc.txt graph traversal; (Pass 2B - Pre-1960 Deed Books) Digitize and OCR the 1836-1960 General Index to Deeds (Grantor/Grantee ledgers) at Harris County Archives / Clerk."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -544,6 +664,21 @@
             "universeSummary": "All 1.55M Harris County Tax Assessor-Collector accounts (including 33,183 HCAD Sec. 25.025 confidential accounts and delinquent tax accounts)",
             "whatIsMissing": "Currently operates as an on-demand 1-click staff verification link rather than an automated batch feed of multi-year tax delinquency flags across pre-1976 buildings.",
             "pass2AndGapClosurePlan": "Integrate the Harris County Tax Office monthly Delinquent Tax Roll bulk extract in Phase 3 (Q1 2027) to automatically flag pre-1940 historic structures with 3+ years of delinquent property taxes (while strictly preserving Sec. 25.025 homeowner privacy)."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -585,6 +720,21 @@
             "universeSummary": "Monthly Harris County Precinct 1-8 Constable Tax Sale lists & District Court tax foreclosure / municipal receivership dockets (~150-400 parcels/month)",
             "whatIsMissing": "100% unfetched: monthly Constable tax foreclosure auction lists and District Court receivership filings are not yet ingested into the daily sweep.",
             "pass2AndGapClosurePlan": "Ingest the monthly Harris County Constable Precinct tax sale parcel lists and HCAD delinquent tax suit flags in Phase 3 (Q2 2027) via pipeline/atlas_pipeline/fetch_plat_and_watchlist.py, matching 13-digit HCAD accounts against pre-1976 buildings to alert staff 30-60 days before auction."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -627,6 +777,21 @@
             "universeSummary": "Biweekly City of Houston Planning Commission Plat Tracker spreadsheets (26 cycles/year, ~6,500 filings/year across Houston & ETJ)",
             "whatIsMissing": "Current 2026 biweekly cycles are 100% ingested and cross-checked against all 1.51M buildings. Historical Plat Tracker spreadsheets from 2018-2025 are not yet backfilled into a multi-year longitudinal subdivision split ledger.",
             "pass2AndGapClosurePlan": "Backfill archived 2018-2025 COH Plat Tracker spreadsheets and recorded Clerk replats to trace multi-year developer assemblage patterns and stalled replats across historic neighborhoods."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -656,6 +821,21 @@
             "universeSummary": "Biweekly Planning Commission Draft & Final Agenda Outline PDFs + Section K DPV tables + Public Hearing Notice PDFs",
             "whatIsMissing": "100% of agenda items and Section K DPV table rows are extracted for active cycles; individual multi-page staff report variance packets (uploaded 48 hours before meetings for contested variances) are linked as PDFs rather than full-text extracted for site-plan dimensions.",
             "pass2AndGapClosurePlan": "Add Pass-2 PDF text and site-plan elevation extraction on contested Section VI variance and Section K DPV staff packets affecting pre-1940 buildings."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -685,6 +865,21 @@
             "universeSummary": "Biweekly Planning Commission Post-Meeting Minutes PDFs (recording Approved, Deferred 2 Weeks, Withdrawn, or Disapproved actions)",
             "whatIsMissing": "2026 cycle actions are 100% linked; verbatim verbal conditions of approval stated during Planning Commission hearings (when a variance is approved subject to tree or facade preservation conditions) only appear in full meeting transcripts/video.",
             "pass2AndGapClosurePlan": "Supplement parsed Minutes PDF action badges with automated extraction of staff condition bullet points from final post-meeting action letters."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -728,6 +923,21 @@
             "universeSummary": "Monthly HAHC agendas, staff reports & action minutes (2015-2026 across all 23 COH Historic Districts & Protected Landmarks)",
             "whatIsMissing": "2020-2026 COA filings and demolition benchmarks are fully tracked; individual parcel-level HAHC COA staff report PDFs from 2015-2019 (prior to the City's 2020 ArcGIS/tracker format) are only summarized at district level.",
             "pass2AndGapClosurePlan": "Backfill 2015-2019 monthly HAHC agenda PDFs via Wayback CDX and houstontx.gov/planning/Commissions/HAHC.html to provide a complete 12-year parcel-level COA history."
+          },
+          "docArchetypeId": "hpo_district_survey",
+          "docVisual": {
+            "archetypeId": "hpo_district_survey",
+            "imagePath": "public/img/doc-types/hpo-district-survey.svg",
+            "shortLabel": "HPO Survey & HAHC COA",
+            "title": "COH Historic District Inventory Survey & HAHC COA Staff Report",
+            "eraCoverage": "22 City Historic Districts (7,264 Surveyed Properties) + Monthly HAHC",
+            "whatItLooksLike": "Official municipal architectural inventory sheet and HAHC Certificate of Appropriateness (COA) docket report featuring a street-facing elevation photograph/sketch, Contributing vs. Non-Contributing classification, architectural style taxonomy, and Circa Build Year.",
+            "howPreservationUsesIt": "Supplies authoritative architectural styles (Queen Anne, Craftsman Bungalow, Folk Victorian) and Circa construction dates verified by preservation historians, and flags parcels approaching the Chapter 33 100-year age threshold (1926/1927).",
+            "callouts": [
+              "Official Status badge classifies each structure as Contributing ('C'), Potentially Contributing, or Non-Contributing ('NC').",
+              "Architectural taxonomy records Roof Type, Cladding, Porch Configuration, Fenestration, and Style.",
+              "HAHC COA Docket tracks active Alteration, Addition, Relocation, and Demolition applications monthly."
+            ]
           }
         },
         {
@@ -759,6 +969,21 @@
             "universeSummary": "509 Designated COH Landmarks & Protected Landmarks, 23 Designated Historic Districts (6,169 survey rows), 1 Heritage District, and 60 Surveyed Potential Historic Districts",
             "whatIsMissing": "(1) 27 post-2016 COH Landmark Designation Report PDFs remain unpublished on houstontx.gov (tracked in Missing_Landmark_PDFs_TPIA); (2) Only 104 of the 6,169 Historic District survey rows (1.7%, mostly 0-numbered vacant lots or unplatted parkways) lack a direct 13-digit HCAD match after Pass-2 compound-street, range, corner-lot, and block+lot resolution.",
             "pass2AndGapClosurePlan": "(Pass 2A Complete) Extracted original builder/contractor, construction cost, and mechanic's lien/permit dates across all 628 cached Landmark PDF texts; (Pass 2B Complete) Lifted Historic District survey parcel linkage from 5,604 to 6,065 / 6,169 rows (98.3%, +461 rows across 5,900 HCAD parcels) and promoted 631 replacement-safe dual-source pre-1927 HPO Survey + City Directory + Sanborn audit queue overrides (resolving 704 / 2,798 audit queue items); (Pass 2C) Ingest the 27 missing Landmark PDFs from HPO TPIA fulfillment."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -801,6 +1026,21 @@
             "universeSummary": "City of Houston Permitting Center daily WebFOCUS feed + weekly Sold Permits .xlsx (Types SD/4D Demolition vs. Type 13 Remodel)",
             "whatIsMissing": "2020-2026 structural demolition permits are 100% ingested with Two-Key corroboration and garage/pool/canopy exclusion. Pre-2020 City of Houston weekly Sold Permits spreadsheets (2010-2019) are not yet merged into the Lost Houston Cohort 5 teardown ledger.",
             "pass2AndGapClosurePlan": "Harvest archived 2010-2019 COH Sold Permits spreadsheets (via COH Open Data & Wayback) and cross-check against 2005-2020 HCAD building_res disappearances to expand Cohort 5 verified pre-1940 teardowns back to 2010."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -830,6 +1070,21 @@
             "universeSummary": "All City of Houston Type 12 / 4P plumbing & sewer disconnect permits on pre-1976 and watched parcels",
             "whatIsMissing": "100% of daily WebFOCUS and weekly XLS plumbing disconnects are captured and paired by 8-digit project number; however, standalone water-meter pull requests handled inside Public Works utility billing (before a plumbing permit is sold) only surface in iPermits portal searches.",
             "pass2AndGapClosurePlan": "Continue daily 7:00 AM CT automated Stage 1 Sewer Disconnect pairing and flag any pre-1940 property with a Stage 1 Sewer Disconnect for immediate 1-click ILMS Project Number inspection."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -859,6 +1114,21 @@
             "universeSummary": "Houston Permitting Center ILMS Plan Review Portal (commercial & residential plan review holds, trade reviews, and scope of work)",
             "whatIsMissing": "ILMS plan review milestones (structural, planning, HPO historic preservation hold flags) require session-gated portal lookup by 8-digit project number and are not included in the public weekly Sold Permits XLS (which only lists permits after they are paid and sold).",
             "pass2AndGapClosurePlan": "Automate headless ILMS project-number status polling for the 8-digit project numbers discovered in Watchlist Row 2 and Stream 4 active permit alerts so staff see 'In Plan Review - Historic Preservation Hold' automatically."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -901,6 +1171,21 @@
             "universeSummary": "All City of Houston municipal, neighborhood, Council District, and Chapter 42 SMLS/SMBL protection boundaries",
             "whatIsMissing": "100% of enacted SMLS/SMBL polygons and 2026-2031 20-year sunset dates (Ord. No. 2015-639) are indexed; pending SMLS/SMBL block applications (filed by neighbors but not yet voted on by Planning Commission) are published as monthly PDF lists rather than in the live COH GIS layer.",
             "pass2AndGapClosurePlan": "Scrape the monthly 'Pending SMLS/SMBL Applications' table on houstontx.gov/planning/DevelopRegs/Min-Lot_Size-Min_Bldg_Line.html so blocks with an active pending application are highlighted in the Ch. 42 Calculator."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -930,6 +1215,21 @@
             "universeSummary": "City of Houston Joint Referral Committee (JRC) street, alley, and utility easement abandonment applications & City Council motion agendas",
             "whatIsMissing": "Currently an assisted 1-click check on Watchlist Row 12; weekly City Council agenda motions for JRC street/alley abandonments (often the earliest signal of a multi-block developer assemblage) are not yet automatically parsed.",
             "pass2AndGapClosurePlan": "Add automated weekly City Council agenda PDF keyword scanning ('Joint Referral Committee', 'abandonment and sale of', 'alley') in fetch_plat_and_watchlist.py (Phase 3, Q2 2027)."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -971,6 +1271,21 @@
             "universeSummary": "COH 311 Structural Standards service requests + Department of Neighborhoods (DON) Dangerous Buildings active investigation & hearing docket",
             "whatIsMissing": "Daily 311 Structural Standards complaints are swept automatically and DONDB*.csv files match 100% of buildings on drop, but DON's quarterly Administrative Hearing Demolition Order PDFs require manual CSV drop or PDF parsing.",
             "pass2AndGapClosurePlan": "Add automated monthly scraping of published DON Building and Standards Commission (BSC) hearing notice agendas to flag city-ordered demolition hearings 14 days in advance."
+          },
+          "docArchetypeId": "historic_building_permit",
+          "docVisual": {
+            "archetypeId": "historic_building_permit",
+            "imagePath": "public/img/doc-types/historic-building-permit.svg",
+            "shortLabel": "Building & Demo Permit",
+            "title": "Building Permit Card (1905-1951 HMRC) & Active Demo / Sewer Alert",
+            "eraCoverage": "1905-1951 Historic Ledgers + Daily Live 2026 ILMS Permits",
+            "whatItLooksLike": "Municipal permit record capturing Permit Number, Issue Date, Street Address, Legal Lot/Block, Owner, Architect, General Contractor, Number of Rooms/Stories, Estimated Cost, and modern Structural Demolition / Sewer Disconnect flags.",
+            "howPreservationUsesIt": "Credits original architects and master builders on historic structures, and powers the daily 7:00 AM CT 8-agency demolition early-warning sweep (catching wastewater disconnects and structural demo applications before bulldozers arrive).",
+            "callouts": [
+              "Historic 1905-1951 permit ledger line records original Owner, Architect, Contractor, and Dollar Valuation.",
+              "Live ILMS Structural Demolition & Wastewater/Sewer Disconnect permits trigger immediate Watchlist alerts.",
+              "Two-Key Graduation Rule holds flagged parcels in Pending Verification until satellite or field inspection confirms loss."
+            ]
           }
         }
       ]
@@ -1012,6 +1327,21 @@
             "universeSummary": "Texas DSHS Asbestos Program / Texas Open Data Portal Socrata feed (all commercial/public abatement & demolition notices in Harris County)",
             "whatIsMissing": "100% of active commercial/institutional DSHS filings are captured (note: under NESHAP federal regulations, single-family residential structures of <=4 units are exempt from DSHS asbestos notification unless demolished as part of a larger commercial/urban renewal project).",
             "pass2AndGapClosurePlan": "Archive historical DSHS notifications longitudinally to track multi-phase commercial campus abatements that precede demolition permits by 6-12 months."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1053,6 +1383,21 @@
             "universeSummary": "All corporate, LLC, LP, and trust property owners in Harris County cross-referenced against Texas Comptroller Active Franchise Tax & Public Information Reports",
             "whatIsMissing": "Top 1,000 multi-LLC portfolios and 195 named monographs are unmasked in ownership_portfolios.json. Single-parcel Delaware/Wyoming LLCs whose Texas Comptroller mailing address points only to a commercial registered agent (e.g., CT Corporation or Registered Agents Inc.) require Texas SOS Public Information Report (PIR) officer/director table joins to unmask the natural-person beneficial owner.",
             "pass2AndGapClosurePlan": "Ingest the Texas Comptroller Franchise Tax Officer & Director bulk table (PIR governing persons) to link single-parcel shell LLCs that share an individual managing member even when they use generic registered-agent mailing addresses."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1096,6 +1441,21 @@
             "universeSummary": "All 596 Texas Historical Commission (THC Atlas) markers, Recorded Texas Historic Landmarks (RTHLs), and State Antiquities Landmarks in Harris County",
             "whatIsMissing": "100% of official THC Atlas markers and RTHLs are mapped and full-text searchable; countywide reconnaissance-level THC Historic Resources Survey rows from the 1980s-1990s (outside COH Historic Districts) are only partially digitized in THC Atlas.",
             "pass2AndGapClosurePlan": "Synchronize quarterly with THC Atlas GIS exports and feed newly completed Preservation Houston Walk-the-Block field surveys directly back into THC Survey Form v3/2013 TSV/JSON format (#thcSurvey=1)."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1139,6 +1499,21 @@
             "universeSummary": "All 12 NRHP Districts and 238 Individual NRHP properties in Harris County (NPS / THC National Register holdings)",
             "whatIsMissing": "100% of the 238 individual NRHP listings now carry verified historic construction years (1858-1975, resolving all 17 bridge and post-1985 HCAD remodel placeholders), 100% carry architectural styles, and 158 carry documented architects, builders, or municipal bridge engineers. The remaining 80 listings are vernacular 1895-1925 Houston Heights MRA cottages whose NRHP nomination forms list Architect/Builder as Unknown.",
             "pass2AndGapClosurePlan": "Pass-2 NRHP cross-catalog & nomination backfill complete across all 238 listings; continue linking newly digitized 1892-1915 Omaha & South Texas Land Co. and Houston Heights Co. mechanic's lien contracts to the remaining 80 vernacular Heights MRA cottages."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1181,6 +1556,21 @@
             "universeSummary": "FEMA National Flood Hazard Layer (NFHL) & HCFCD MAAPnext 100-year (Zone AE), 500-year (Zone X-shaded), and Regulatory Floodway polygons across 22 Harris County watersheds",
             "whatIsMissing": "100% unfetched: while 1,957 historical bayous, creeks, oxbows, and buried gullies are mapped in overlays.json, parcel-level FEMA flood zone tags (Zone AE / Floodway Substantial Damage >50% demolition risk) are not yet stamped on buildings.",
             "pass2AndGapClosurePlan": "Integrate FEMA NFHL / HCFCD effective floodplain polygons in Phase 3 (Q2 2027) via pipeline/atlas_pipeline/build_tiles.py to tag pre-1976 buildings subject to FEMA 50% Substantial Damage elevation/teardown rules."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1221,6 +1611,21 @@
             "universeSummary": "TCEQ Voluntary Cleanup Program (VCP), Innocent Owner/Operator (IOP), and Petroleum Storage Tank (PST) removal filings in Harris County",
             "whatIsMissing": "100% unfetched: Phase I/II environmental site assessments, dry-cleaner remediation filings, and underground gas-station tank pulls are not yet cross-checked against pre-1976 commercial/industrial structures.",
             "pass2AndGapClosurePlan": "Query TCEQ Open Data GIS REST endpoints in Phase 4 (Q3 2027) via fetch_plat_and_watchlist.py to provide 3-to-9-month advance warning before historic warehouses, auto showrooms, and mid-century retail strips are assembled for redevelopment."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1262,6 +1667,21 @@
             "universeSummary": "~165,000 City of Houston building permits issued 1905-1951 (HMRC RG B 0005 ledgers) + ~7,200 published contract awards in 1917-1945 builder trade journals",
             "whatIsMissing": "(1) Volume Gap: ~123,000 building permit entries across the 1905-1951 HMRC microfilm/bound ledgers (outside already-transcribed priority neighborhoods and 1922-1924 T.G.C.A. issues) have not yet been digitized; (2) Pass-1 Fidelity Gap on Scanned T.G.C.A. Issues: Two-column OCR wrapping in the 952 scanned T.G.C.A. pages caused line-based regex parsers to miss ~47% of wrapped sub-contract rows and lot/block-only contract awards.",
             "pass2AndGapClosurePlan": "(Pass 2A) Run layout-aware VLM table row extraction across all 952 cached T.G.C.A. Monthly Bulletin pages in ContentDM (books & p17006coll39) and resolve lot/block-only rows via our Clerk/HCAD subdivision index; (Pass 2B) Batch-digitize and OCR the remaining 1905-1951 HMRC Building Permit Ledger microfilm reels."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1293,6 +1713,21 @@
             "universeSummary": "6 HPL ContentDM architectural collections (1,836 items across Barnstone, Lopez, Vertical Files, 1980 Survey, Schmidt Moderne, Lloyd Morgan & Jones) + HMRC/Woodson/UTAAA TARO collections",
             "whatIsMissing": "100% of the 6 HPL ContentDM architectural collections and 134 TARO XML finding aids were scanned, with Pass-2 suffixless/1-digit street extraction (274 address matches) and client-surname cross-joins against City Directories and Clerk deeds (27 client matches), leaving ~1,000 un-dated client-surname TARO folders and ~100 intersection-titled HPL photos unlinked.",
             "pass2AndGapClosurePlan": "Expand client-surname + neighborhood + era cross-joins across undated TARO architectural folders and resolve intersection-only HPL captions ('Street A at Street B') against our 51,798 City Directory parcels and 7.68 GiB Clerk Grantor/Grantee index."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1334,6 +1769,21 @@
             "universeSummary": "78 Houston City Directory editions (1866-1968: 39 pre-1927 HPL volumes [~28,000 pages], 31 post-1926 Ancestry volumes [14,131 A-Z + Street Guide pages], and 11 un-digitized 1931-1963 microfiche gap years) covering ~185,000 pre-1968 addresses",
             "whatIsMissing": "(1) Pass-1 Fidelity Gap on 15 Scanned Street Guides (2,652/2,652 pages scanned at step=1, 58% fidelity): ~42% of householder lines were dropped where multi-column streets continue across columns/pages without repeating the bold street header, or on '1/2' rear/duplex units; (2) Pass-1 Fidelity Gap on 23 Alphabetical A-Z Volumes (1,699 / 11,479 pages sampled at step=4..18 = 14.8%): 9,780 Alphabetical pages not yet swept at step=1; (3) Pre-1927 HPL On-Demand Scope: Queried for 7,541 priority addresses rather than a full ~28,000-page dump + 1911 renumbering crosswalk; (4) Volume Gap: 11 un-digitized public-domain years (1931, 1933, 1938, 1943, 1944, 1947, 1950, 1960-1963).",
             "pass2AndGapClosurePlan": "(Pass 2A) Re-parse all 2,652 cached Street Guide pages with a multi-column continuation header state machine + VLM layout parser (+85,000 listings); (Pass 2B) Sweep all 9,780 remaining Ancestry Alphabetical A-Z pages at step=1 (+120,000 listings); (Pass 2C) Dump all ~28,000 HPL 1866-1926 pages with the 1911-1912 Old-to-New Street Number crosswalk; (Pass 2D) Digitize the 11 missing 1931-1963 microfiche gap years from Rice Fondren Kelley Center open stacks (Call No. F394 .H8 P62)."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1375,6 +1825,21 @@
             "universeSummary": "~1,120 total Houston Sanborn sheets (878 public-domain 1877-1955 LOC/UT PCL sheets + ~242 sheets in 1925 Vol. 5 [Montrose/Courtlandt], 1925 Vol. 7 [Heights], and 1952-1970 paste-up updates) containing ~140,000 historic building footprints",
             "whatIsMissing": "(1) Pass-1 Fidelity Gap on Existing 878 Sheets: 872 of the 878 sheets are indexed only as sheet-level polygons rather than segmented building footprints, Sanborn material colors (Yellow=Frame, Pink=Brick, Blue=Stone), story numbers, and pre-1911 curb house numbers; (2) Volume Gap (22%): 1925 Vol. 5 (Montrose/Courtlandt/Broadacres), 1925 Vol. 7 (Heights), and 1952-1970 revisions are not in LOC or UT PCL public-domain sets.",
             "pass2AndGapClosurePlan": "(Pass 2A) Run our calibrated 1.220 px/ft seam-stitching and CV/VLM footprint + RGB material color + curb-number OCR pipeline across all 872 remaining LOC/UT PCL sheets; (Pass 2B) Acquire 1925 Vols. 5 & 7 and 1952-1970 paste-up sheets via HPL MY Link / Rice Fondren ProQuest Digital Sanborn Maps."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1416,6 +1881,21 @@
             "universeSummary": "Rice Woodson Research Center architectural papers (Watkin, Staub, Barnstone, Jenkins, Morehead), 1915 Red Book (970 sites), and Fondren GIS historical maps/aerials",
             "whatIsMissing": "100% of the 1915 Red Book (970 sites: 29 surviving, 323 rebuilt, 618 cleared) and Fondren GIS layers are integrated. In Woodson's architectural manuscript collections (e.g., William Ward Watkin and John F. Staub papers), Pass 1 matched folders with street addresses in the EAD XML title, leaving client-surname-only folders unlinked.",
             "pass2AndGapClosurePlan": "Cross-join Woodson architectural folder client names and dates against our 1915-1968 City Directory and Clerk Grantor/Grantee indexes to link client-titled residential commissions in Broadacres, River Oaks, Shadyside, and Courtlandt Place."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1457,6 +1937,21 @@
             "universeSummary": "University of Houston Special Collections architectural & neighborhood archives (uhsc TARO finding aids, historic subdivision brochures, and campus facilities GIS)",
             "whatIsMissing": "100% of UH campus structures and EAD XML finding aids were scanned, but historic developer subdivision brochures (recording original architectural style restrictions and minimum construction cost covenants in 1920s-1950s additions) are only linked at collection level rather than per-subdivision overlay.",
             "pass2AndGapClosurePlan": "Extract subdivision-level developer marketing dates, original homebuilder rosters, and minimum cost covenants from UH Special Collections subdivision brochures into overlays.json['platted_subdivisions']."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1497,6 +1992,21 @@
             "universeSummary": "70 digitized Houston City Directory volume entries (39 HPL ContentDM 1866-1926 + 31 Ancestry 1927-1968 volumes) + 244 USCO copyright catalog records",
             "whatIsMissing": "100% of matched sightings carry verified image/pointer deep links distinguishing Street Guide vs. Alphabetical pages, and 100% of 1927-1963 copyright records are audited. However, because Ancestry image links require a free HPL MY Link card or Ancestry login, public visitors without a library session cannot view the raw 1927-1963 public-domain page images inline inside the Atlas without logging in.",
             "pass2AndGapClosurePlan": "Because our USCO audit proved 0 Class R/RE renewals across all 37 years (1927-1963 = 100% US public domain), host cropped public-domain Street Guide snippets or Internet Archive mirrors for verified historic landmarks."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1525,6 +2035,21 @@
             "universeSummary": "6 U.S. Federal Decennial Census cycles (1900, 1910, 1920, 1930, 1940, 1950) across Houston / Harris County Enumeration Districts",
             "whatIsMissing": "100% unfetched: decennial census household rosters (recording exact home value or monthly rent, homeowner vs. renter status, family members, ages, birthplaces, and occupations every 10 years, including unincorporated Harris County areas outside City Directory bounds) are not yet linked.",
             "pass2AndGapClosurePlan": "Integrate Steve Morse / NARA Unified 1910-1950 Houston Enumeration District (ED) street-to-ED tables and FamilySearch/NARA public-domain 1900-1950 census household indexes in Phase 4 (Q3 2027)."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1567,6 +2092,21 @@
             "universeSummary": "UNT Portal to Texas History & Houston Public Library digital newspaper archives (1880-1985 Sunday Real Estate & Building sections)",
             "whatIsMissing": "Curated landmarks and Watchlist dossiers include historic newspaper citations and 1-click news search pills, but Sunday Real Estate & Building sections of the Houston Post and Houston Chronicle (which published weekly lists of building permits, architect renderings, and subdivision grand openings from 1900 to 1975) have not been bulk-harvested via OCR.",
             "pass2AndGapClosurePlan": "Run targeted UNT Portal to Texas History (texashistory.unt.edu) API queries for 'building permit', 'contract let', and 'architect' across digitized Houston newspapers to extract pre-1905 and 1952-1975 construction announcements."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1608,6 +2148,21 @@
             "universeSummary": "Curated Houston landmarks, 359 Good Brick winners, 622 Lost Houston sites, and live Wikimedia Commons / LOC HABS / NARA repositories",
             "whatIsMissing": "100% of standing landmarks have live Commons/HABS fallback and 135 Lost Houston sites have curated archival photos (with strict evaluateCommonsCandidate off-topic filtering). However, 489 of the 622 demolished structures in Lost_Houston_Catalog (primarily Cohort 4 vanished 1915 Red Book sites and Cohort 5 2020-2026 teardowns) still have a blank archival_photo_url in Filter View #7 (824622008).",
             "pass2AndGapClosurePlan": "Work through the 489-site Lost_Houston_Catalog photo backfill queue (gid=824622001, Filter View #7) using Pass-2 HAIF Invision CDN image harvesting, pre-teardown Google Street View (2007-2025) captures, and HMRC photo collection matching."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1650,6 +2205,21 @@
             "universeSummary": "Countywide historical vertical orthophoto flights (1938, 1944, 1953, 1957, 1964, 1973, 1978, 1989, 1995) from USDA, USGS, TxDOT, TNRIS, and COH GIMS",
             "whatIsMissing": "We already serve 10 citywide HPL HistoricHouston aerial layers (1917-1995) and 7 localized Rice/South Main aerials (1930-1969) in the Spyglass Lens, but outer post-WWII neighborhoods (annexed in 1949, 1956, and 1965 outside the inner loop) have lower resolution in the 1941/1950 COH GIMS mosaics and have not had automated roofline change detection run across 1944 vs. 1957 vs. 1973 TNRIS frames.",
             "pass2AndGapClosurePlan": "Integrate high-resolution public-domain TNRIS / USGS 1944, 1953, and 1973 orthophoto tile pyramids in Phase 3 (Q2 2027) and run automated roof-presence checks on pre-1976 outer-loop subdivisions."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1692,6 +2262,21 @@
             "universeSummary": "All 460 Preservation Houston Good Brick Awards (1979-2026: 359 place-based building awards + 91 non-place book/person/program awards + 10 headers) & PH curated landmark files",
             "whatIsMissing": "100% of place-based Good Brick Awards (1979-2026) are snapped to verified building footprints with 0 undated entries. Physical paper nomination binders from early Good Brick cycles (1979-1998) at Preservation Houston's office contain additional interior/before-restoration slides and contractor credits not listed on the web summary page.",
             "pass2AndGapClosurePlan": "Digitize before-and-after restoration slides and craftsperson/contractor credits from Preservation Houston's 1979-1998 Good Brick archival binders into building_photos.json and curated_overrides.json."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1723,6 +2308,21 @@
             "universeSummary": "Significant demolished Houston landmarks (1837-2026) + pre-1940 historic buildings demolished across Harris County",
             "whatIsMissing": "(1) Pre-2020 Residential/Commercial Teardowns (2005-2019): Cohort 5 currently covers permit-verified 2020-2026 pre-1940 teardowns (310 sites), whereas thousands of pre-1940 bungalows and commercial buildings demolished between 2005 and 2019 (visible in our 22-year 2005-2026 HCAD rolls when improvement values dropped to $0 or yr_impr jumped to 2006-2019 townhomes) have not yet been promoted into a 2005-2019 Lost Houston cohort; (2) 489 of the 622 existing Lost Houston sites need archival photo backfill.",
             "pass2AndGapClosurePlan": "(Pass 2A) Mine our 22-year (2005-2026) HCAD historical CAMA archive + 2007-2019 Google Street View / 1924-1951 Sanborn footprints to reconstruct pre-1940 buildings demolished between 2005 and 2019; (Pass 2B) Complete the 489-site Lost_Houston_Catalog photo backfill queue."
+          },
+          "docArchetypeId": "historic_building_permit",
+          "docVisual": {
+            "archetypeId": "historic_building_permit",
+            "imagePath": "public/img/doc-types/historic-building-permit.svg",
+            "shortLabel": "Building & Demo Permit",
+            "title": "Building Permit Card (1905-1951 HMRC) & Active Demo / Sewer Alert",
+            "eraCoverage": "1905-1951 Historic Ledgers + Daily Live 2026 ILMS Permits",
+            "whatItLooksLike": "Municipal permit record capturing Permit Number, Issue Date, Street Address, Legal Lot/Block, Owner, Architect, General Contractor, Number of Rooms/Stories, Estimated Cost, and modern Structural Demolition / Sewer Disconnect flags.",
+            "howPreservationUsesIt": "Credits original architects and master builders on historic structures, and powers the daily 7:00 AM CT 8-agency demolition early-warning sweep (catching wastewater disconnects and structural demo applications before bulldozers arrive).",
+            "callouts": [
+              "Historic 1905-1951 permit ledger line records original Owner, Architect, Contractor, and Dollar Valuation.",
+              "Live ILMS Structural Demolition & Wastewater/Sewer Disconnect permits trigger immediate Watchlist alerts.",
+              "Two-Key Graduation Rule holds flagged parcels in Pending Verification until satellite or field inspection confirms loss."
+            ]
           }
         }
       ]
@@ -1764,6 +2364,21 @@
             "universeSummary": "AIA Houston Architectural Guide (Stephen Fox), Houston Mod mid-century modern registry, and HPO/HMRC architect attributions",
             "whatIsMissing": "Major civic, commercial, and designated residential works are comprehensively attributed. Suburban mid-century modern subdivisions (1950-1975 in Memorial, Meyerland, Briargrove, Sharpstown, and Clear Lake) still have hundreds of custom architect-designed residences attributed only to 'Residential' in HCAD CAMA.",
             "pass2AndGapClosurePlan": "Cross-reference Houston Mod open-house archives, 1950-1970 Houston Home & Garden / Chronicle architectural features, and TARO mid-century architect job lists (Barnstone, Kamrath, Wilson Morris Crain & Anderson, Caudill Rowlett Scott, Neuhaus & Taylor) to expand mid-century residential attributions."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1794,6 +2409,21 @@
             "universeSummary": "29,467 HAIF threads across 97 subforums (~8,900 building-specific threads) + active LoopNet/HAR/Crexi commercial teardown listings",
             "whatIsMissing": "While 100% of the 29,467 HAIF thread URLs were crawled, Pass 1 matched addresses primarily from topic URL slugs and page-1 headers (3,385 threads), leaving ~5,500 building threads whose street address or architect appears only inside post body text (or on pages 2..20) un-linked to HCAD parcels.",
             "pass2AndGapClosurePlan": "Run Pass-2 full-text post-body address/intersection extraction and Invision CDN (media.invisioncic.com) image harvesting across the remaining 26,082 cached HAIF threads."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1834,6 +2464,21 @@
             "universeSummary": "Esri World Imagery MapServer dynamic bbox export & tile service across Harris County",
             "whatIsMissing": "100% coverage and fidelity for current orthoimagery previews.",
             "pass2AndGapClosurePlan": "Active in production with automatic HCAD parcel centroid backfill and multi-vintage historical aerial toggle support."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1865,6 +2510,21 @@
             "universeSummary": "Google Maps 360-degree Street View panoramas across all public streets in Harris County (2007-2026)",
             "whatIsMissing": "100% of public-street properties launch directly into Street View Time Machine; gated private streets (e.g., Shadyside or gated memorial enclaves) and rear alley carriage houses lack street-level camera coverage.",
             "pass2AndGapClosurePlan": "Supplement gated-street and rear-structure views with oblique aerial photography and Walk-the-Block field survey camera uploads."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -1875,7 +2535,7 @@
       "shortName": "Google Sheets & Drive Sync Hub",
       "sectorId": "spatial_imagery_cloud",
       "jurisdiction": "Preservation Staff Cloud Infrastructure",
-      "websiteUrl": "https://davemorris-gcp.github.io/houston-building-atlas/admin.html",
+      "websiteUrl": "",
       "overview": "Serverless 3-way cloud synchronization backend connecting the browser workbench, the 13-tab Google Sheet Admin Hub, Google Drive archival folders/photos, and GitHub Actions.",
       "feeds": [
         {
@@ -1910,6 +2570,21 @@
             "universeSummary": "Preservation Houston 14-tab Google Sheet Admin Control Center & 3-way field-timestamp LWW merge engine",
             "whatIsMissing": "100% operational across all 14 tabs with per-field ISO timestamps (tierUpdatedAt, notesUpdatedAt, historySummaryUpdatedAt, deletedCheckKeys) preventing any automated sweep from overwriting staff edits.",
             "pass2AndGapClosurePlan": "Active in production with 45-second live polling, offline IndexedDB queue sync, and daily GitHub Actions synchronization."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         },
         {
@@ -1941,6 +2616,21 @@
             "universeSummary": "Preservation Houston Google Drive Evidence Vault & locally mirrored public/deeds/ and public/data/sanborn_ut/ assets",
             "whatIsMissing": "Share links convert 100% automatically when Drive file permissions are set to 'Anyone with the link can view'; restricted Drive files require permission opening or local mirroring into app/public/.",
             "pass2AndGapClosurePlan": "Continue mirroring high-value primary archival packets (CR001 Block Books, BLA cards, and subdivision deed restrictions) into deterministic repository metadata and open-access vaults."
+          },
+          "docArchetypeId": "hcad_cama_gis_parcel",
+          "docVisual": {
+            "archetypeId": "hcad_cama_gis_parcel",
+            "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+            "shortLabel": "HCAD GIS & LLC Graph",
+            "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+            "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+            "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+            "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+            "callouts": [
+              "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+              "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+              "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+            ]
           }
         }
       ]
@@ -2371,5 +3061,199 @@
       "unfetched_gap": 4
     },
     "keyTakeaway": "Across all 46 institutional data feeds (29 institutions), the Atlas has achieved 84% average source-universe acquisition coverage but 67% average parcel-level extraction fidelity. 13 feeds already have raw scans, bulk SQL tables, or XML finding aids on local disk or online where a targeted Pass-2 deep re-extraction (without waiting on new external orders) can unlock hundreds of thousands of additional resident listings, pre-2004 deeds, historic building footprints, and architect attributions, while 5 catalog-indexed feeds have exact box/page/microfiche call numbers ready for physical or portal pulls."
-  }
+  },
+  "documentArchetypes": [
+    {
+      "id": "sanborn_fire_map",
+      "filename": "sanborn-fire-map.svg",
+      "imagePath": "public/img/doc-types/sanborn-fire-map.svg",
+      "title": "Sanborn Fire Insurance Map Sheet (1885-1951)",
+      "shortLabel": "Sanborn Map Sheet",
+      "institutionOwner": "Library of Congress / UT PCL / Rice Kelley Center",
+      "eraCoverage": "1885, 1890, 1896, 1907, 1924-1925 & 1950-1951 Editions",
+      "whatItLooksLike": "Large-scale (1 inch = 50 feet) lithographed color-coded fire insurance atlas sheet showing exact building footprints, construction materials, story heights, porch outlines, and historic street numbers.",
+      "howPreservationUsesIt": "Proves whether the physical footprint standing on a parcel today matches the pre-1927 structure or was replaced, tracks the 1911 City of Houston street renumbering via dual address labels, and identifies historic carriage houses (#b2).",
+      "callouts": [
+        "Yellow tint = Wood-frame dwelling ('D'); Pink tint = Brick/masonry commercial ('S'); Blue = Stone/Concrete.",
+        "Corner numerals ('2', '1 1/2') record story height; dashed outlines mark open wooden front and rear porches.",
+        "Dual street numbers along the curb show both the post-1911 address (1435) and pre-1911 historic number (435)."
+      ]
+    },
+    {
+      "id": "bla_assessment_card",
+      "filename": "bla-assessment-card.svg",
+      "imagePath": "public/img/doc-types/bla-assessment-card.svg",
+      "title": "CR001 Building & Land Assessment (BLA) Card (Mid-1920s to 1980)",
+      "shortLabel": "CR001 BLA Field Card",
+      "institutionOwner": "Harris County Archives (11525 Todd St, Record Group CR001)",
+      "eraCoverage": "Mid-1920s to 1980 (915 Archival Boxes)",
+      "whatItLooksLike": "Two-sided buff cardstock assessor worksheet ruled in red and blue ink containing original hand-drawn perimeter footprint dimensions, building permit numbers, builder names, foundation checkboxes, and pre-1984 erection dates.",
+      "howPreservationUsesIt": "Recovers the true construction year, builder attribution, and measured floorplan sketch that were lost when Harris County computerized its tax roll in 1984 and rounded thousands of pre-1940 homes to 1920 or 1930.",
+      "callouts": [
+        "Header boxes capture original City Building Permit #, Issue Date, Builder/Contractor name, and original Erection Year.",
+        "Structural checklist distinguishes Pier & Beam (historic wood sills/blocks) from post-WWII Concrete Slab foundations.",
+        "Red-ruled grid on the reverse contains the field deputy's measured exterior wall sketch (e.g., 28 ft x 44 ft + 8 ft porch)."
+      ]
+    },
+    {
+      "id": "city_directory_page",
+      "filename": "city-directory-page.svg",
+      "imagePath": "public/img/doc-types/city-directory-page.svg",
+      "title": "Morrison & Fourmy / Polk Houston City Directory (1866-1968)",
+      "shortLabel": "City Directory (2-Pass)",
+      "institutionOwner": "Houston Public Library HMRC / Internet Archive",
+      "eraCoverage": "39 Digitized Volumes (1866-1968)",
+      "whatItLooksLike": "Dense two-part typeset annual reference book: Pass 1 is the Alphabetical Resident & Business Directory (name, spouse, occupation, employer, home address); Pass 2 is the Criss-Cross Street & Avenue Guide ordered house-by-house along each block.",
+      "howPreservationUsesIt": "Establishes the earliest confirmed occupancy year for a street address, reconstructs full resident and trade biographies across decades, and cross-checks pre-1911 street names against post-1911 block ranges.",
+      "callouts": [
+        "Alphabetical Resident column lists head of household, spouse in parentheses, occupation/trade, and home indicator ('h').",
+        "Street & Avenue Guide ('Criss-Cross') walks every block number in sequence between intersecting cross streets.",
+        "Bell or '(o)' symbol marks owner-occupied homes; earliest appearance bounds the latest possible construction year."
+      ]
+    },
+    {
+      "id": "tax_block_book",
+      "filename": "tax-block-book.svg",
+      "imagePath": "public/img/doc-types/tax-block-book.svg",
+      "title": "CR001 Tax Assessor-Collector Block Book Ledger (1915-1997)",
+      "shortLabel": "Tax Block Book Ledger",
+      "institutionOwner": "Harris County Archives (CR001 Block Books & CR067 Tax Rolls)",
+      "eraCoverage": "1915-1997 (119 Bound Volumes) & 1838-1984 Tax Rolls",
+      "whatItLooksLike": "Oversized bound ledger organized by Subdivision, Block, and Lot number, recording each year's assessed Owner Name, Land Value ($), and Improvement Value ($) across consecutive columns.",
+      "howPreservationUsesIt": "Pinpoints the exact construction year of an undocumented historic building by finding the exact tax year when the parcel's Improvement Value jumps from $0 (vacant land) to a full building valuation.",
+      "callouts": [
+        "Organized strictly by Subdivision Name, Block #, and Lot # rather than street address (immune to street renumbering).",
+        "Improvement Value column jumping from $0 (1913) to $2,450 (1914) proves the building was erected in 1913-1914.",
+        "Tracks early owner names year by year during the 1915-1984 pre-computerization gap."
+      ]
+    },
+    {
+      "id": "deed_chain_instrument",
+      "filename": "deed-chain-instrument.svg",
+      "imagePath": "public/img/doc-types/deed-chain-instrument.svg",
+      "title": "Warranty Deed, Mechanic's Lien & Probate Instrument (1836-Present)",
+      "shortLabel": "Clerk Deed & Lien Record",
+      "institutionOwner": "Harris County Clerk (Real Property, Probate & Assumed Names)",
+      "eraCoverage": "1836-Present (7.68 GiB TPIA Bulk Extracts + Microfilm)",
+      "whatItLooksLike": "Recorded legal conveyance instrument bearing a Volume/Page or Clerk Film Code, indexing Grantor (seller/borrower), Grantee (buyer/builder), Execution Date, Consideration ($), and Lot/Block/Subdivision legal description.",
+      "howPreservationUsesIt": "Links multi-decade chains of title from original subdivision developers to present owners, unmasks post-2021 Sec. 25.025 confidential owner shields, and uses Mechanic's Lien (Builder Contract) filings to identify original contractors and build dates.",
+      "callouts": [
+        "Clerk File Number & Film Code uniquely index the instrument across Grantor/Grantee tables (R Grantor / R Grantee).",
+        "Mechanic's Lien ('ML') contracts between a homeowner and a builder record the exact construction contract date and price.",
+        "Legal Description (Lot, Block, Addition/Section) ties pre-HCAD instruments directly to the modern 13-digit HCAD parcel."
+      ]
+    },
+    {
+      "id": "plat_subdivision_map",
+      "filename": "plat-subdivision-map.svg",
+      "imagePath": "public/img/doc-types/plat-subdivision-map.svg",
+      "title": "Subdivision Plat Map & Planning Commission Replat Docket (Ch. 42)",
+      "shortLabel": "Subdivision Plat & Replat",
+      "institutionOwner": "City of Houston Planning & Development / Harris County Clerk Map Records",
+      "eraCoverage": "1836 Original Plats to Biweekly 2026 Plat Tracker Agenda",
+      "whatItLooksLike": "Surveyed engineering plat drawing showing original subdivision lot dimensions, building setback lines, dedicatory certificate date, and modern Chapter 42 Class III (C3N/C3R) townhome replat boundary overlays.",
+      "howPreservationUsesIt": "Provides two critical signals: (1) historic subdivision plat recording dates establish when streets and lots were first laid out, and (2) biweekly Planning Commission replat filings provide a 14-day early warning before historic homes are subdivided for townhome teardowns.",
+      "callouts": [
+        "Historic Plat Dedication Date (e.g., 1893 Houston Heights Plat) sets the earliest subdivision baseline for the block.",
+        "Red dashed replat boundary shows a 1-lot into 4-lot flag/townhome replat filing (Class C3N / C3R Variance).",
+        "Cross-checked automatically every two weeks against pre-1976 buildings, historic districts, and watched developer LLCs."
+      ]
+    },
+    {
+      "id": "historic_building_permit",
+      "filename": "historic-building-permit.svg",
+      "imagePath": "public/img/doc-types/historic-building-permit.svg",
+      "title": "Building Permit Card (1905-1951 HMRC) & Active Demo / Sewer Alert",
+      "shortLabel": "Building & Demo Permit",
+      "institutionOwner": "City of Houston Permitting Center (ILMS) & HMRC RG D106",
+      "eraCoverage": "1905-1951 Historic Ledgers + Daily Live 2026 ILMS Permits",
+      "whatItLooksLike": "Municipal permit record capturing Permit Number, Issue Date, Street Address, Legal Lot/Block, Owner, Architect, General Contractor, Number of Rooms/Stories, Estimated Cost, and modern Structural Demolition / Sewer Disconnect flags.",
+      "howPreservationUsesIt": "Credits original architects and master builders on historic structures, and powers the daily 7:00 AM CT 8-agency demolition early-warning sweep (catching wastewater disconnects and structural demo applications before bulldozers arrive).",
+      "callouts": [
+        "Historic 1905-1951 permit ledger line records original Owner, Architect, Contractor, and Dollar Valuation.",
+        "Live ILMS Structural Demolition & Wastewater/Sewer Disconnect permits trigger immediate Watchlist alerts.",
+        "Two-Key Graduation Rule holds flagged parcels in Pending Verification until satellite or field inspection confirms loss."
+      ]
+    },
+    {
+      "id": "hpo_district_survey",
+      "filename": "hpo-district-survey.svg",
+      "imagePath": "public/img/doc-types/hpo-district-survey.svg",
+      "title": "COH Historic District Inventory Survey & HAHC COA Staff Report",
+      "shortLabel": "HPO Survey & HAHC COA",
+      "institutionOwner": "City of Houston Historic Preservation Office (HPO) & HAHC",
+      "eraCoverage": "22 City Historic Districts (7,264 Surveyed Properties) + Monthly HAHC",
+      "whatItLooksLike": "Official municipal architectural inventory sheet and HAHC Certificate of Appropriateness (COA) docket report featuring a street-facing elevation photograph/sketch, Contributing vs. Non-Contributing classification, architectural style taxonomy, and Circa Build Year.",
+      "howPreservationUsesIt": "Supplies authoritative architectural styles (Queen Anne, Craftsman Bungalow, Folk Victorian) and Circa construction dates verified by preservation historians, and flags parcels approaching the Chapter 33 100-year age threshold (1926/1927).",
+      "callouts": [
+        "Official Status badge classifies each structure as Contributing ('C'), Potentially Contributing, or Non-Contributing ('NC').",
+        "Architectural taxonomy records Roof Type, Cladding, Porch Configuration, Fenestration, and Style.",
+        "HAHC COA Docket tracks active Alteration, Addition, Relocation, and Demolition applications monthly."
+      ]
+    },
+    {
+      "id": "nrhp_thc_nomination",
+      "filename": "nrhp-thc-nomination.svg",
+      "imagePath": "public/img/doc-types/nrhp-thc-nomination.svg",
+      "title": "NPS National Register (NRHP) Form 10-900 & THC Landmark Medallion",
+      "shortLabel": "NRHP & THC Landmark",
+      "institutionOwner": "National Park Service (NRHP) / Texas Historical Commission (THC)",
+      "eraCoverage": "Federal NRHP Listings, RTHLs, SALs & Official Texas Historical Markers",
+      "whatItLooksLike": "Federal NPS Form 10-900 nomination dossier and Texas Historical Commission Recorded Texas Historic Landmark (RTHL) designation record containing architectural descriptions, Criterion A/B/C Statement of Significance, Period of Significance, and cast marker text.",
+      "howPreservationUsesIt": "Distinguishes legal demolition review authorities across federal (Section 106), state (THC 60-day RTHL review / SAL permit), municipal (COH Protected Landmark vs. 90-day waiver), and honorary (Preservation Houston Good Brick Award) tiers.",
+      "callouts": [
+        "Section 7 (Architectural Description) and Section 8 (Statement of Significance: Criteria A, B, C) document verified history.",
+        "RTHL cast-aluminum medallion carries statutory 60-day Texas Historical Commission review before exterior changes.",
+        "Cross-walked against City Protected Landmarks so visitors see clearly whether a landmark is legally protected from teardown."
+      ]
+    },
+    {
+      "id": "holc_redbook_archival",
+      "filename": "holc-redbook-archival.svg",
+      "imagePath": "public/img/doc-types/holc-redbook-archival.svg",
+      "title": "1937 HOLC Security Map & Archival Photographic Folios (1913-1940)",
+      "shortLabel": "HOLC Map & Archival Folio",
+      "institutionOwner": "National Archives / Rice Fondren / UH Special Collections / TARO",
+      "eraCoverage": "1913 Art Work of Houston, 1915 Red Book of Houston & 1937 HOLC Survey",
+      "whatItLooksLike": "Color-coded 1937 Federal Home Owners' Loan Corporation (HOLC) neighborhood appraisal map (Grades A Green, B Blue, C Yellow, D Red) paired with typewriter Area Description sheets and early 20th-century halftone architectural plates.",
+      "howPreservationUsesIt": "Places every surviving building in its historical socio-economic and neighborhood context, linking 1937 HOLC housing age/condition surveys with 1913-1915 photographic folios and Freedmen's Town / Fourth Ward heritage records.",
+      "callouts": [
+        "1937 HOLC Area Description sheets record the predominant construction era, building materials, and price ranges per zone.",
+        "1915 Red Book of Houston and 1913 Art Work plates provide primary visual proof of early residences and commercial blocks.",
+        "TARO XML EAD finding aids link parcel addresses and architect names to physical archival box and folder numbers."
+      ]
+    },
+    {
+      "id": "environmental_asbestos_filing",
+      "filename": "environmental-asbestos-filing.svg",
+      "imagePath": "public/img/doc-types/environmental-asbestos-filing.svg",
+      "title": "DSHS 10-Day Asbestos Demolition Notification & TCEQ Registry",
+      "shortLabel": "DSHS 10-Day Demo Filing",
+      "institutionOwner": "Texas Dept. of State Health Services (DSHS) & TCEQ",
+      "eraCoverage": "Mandatory 10-Working-Day Pre-Demolition State Filings + TCEQ Brownfields",
+      "whatItLooksLike": "State regulatory notification form required at least 10 working days prior to any commercial or public building demolition or asbestos abatement, listing Facility Address, Owner, Abatement Contractor, and Scheduled Start/Completion Dates.",
+      "howPreservationUsesIt": "Provides the earliest possible public-record warning of an impending commercial, institutional, or multi-family teardown, often filed two weeks before a City of Houston structural demolition permit appears.",
+      "callouts": [
+        "Mandatory 10-working-day advance notice window gives preservation advocates time to engage property owners before work starts.",
+        "Captures commercial, church, school, and multi-family redevelopments across unincorporated Harris County and COH.",
+        "Paired with TCEQ Dry Cleaner, PST, and Brownfields registries to explain environmental redevelopment drivers."
+      ]
+    },
+    {
+      "id": "hcad_cama_gis_parcel",
+      "filename": "hcad-cama-gis-parcel.svg",
+      "imagePath": "public/img/doc-types/hcad-cama-gis-parcel.svg",
+      "title": "HCAD CAMA Appraisal Roll, Multi-Building GIS & LLC Unmasking Graph",
+      "shortLabel": "HCAD GIS & LLC Graph",
+      "institutionOwner": "Harris Central Appraisal District (HCAD) / TX Comptroller / TX SOS",
+      "eraCoverage": "2005-2026 Certified Rolls (1.18M Parcels & 1.50M Footprints)",
+      "whatItLooksLike": "Digital parcel boundary polygon containing individual #b1 (primary dwelling) and #b2 (secondary garage apartment/quarters) building footprints, 3D LiDAR roof elevations, and a corporate entity resolution graph linking shell LLCs to natural-person officers.",
+      "howPreservationUsesIt": "Forms the countywide spatial backbone of the Atlas (1,546,683 parcels and 1,507,897 dated footprints), separates multi-building parcels (#b1 vs. #b2), and unmasks anonymous developer LLCs across all properties they control.",
+      "callouts": [
+        "Parcel polygon splits individual building footprints (#b1 main house vs. #b2 historic carriage house or garage apartment).",
+        "22-year longitudinal HCAD roll archive (2005-2026) preserves prior owner names before post-2021 Sec. 25.025 redactions.",
+        "TX Comptroller Franchise Tax & SOS officer graph connects shell LLCs sharing a tax mailing address or Managing Member."
+      ]
+    }
+  ]
 }

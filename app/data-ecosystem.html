@@ -183,84 +183,90 @@
       padding: 24px 24px 64px;
     }
 
-    /* Hero Banner & KPI Summary */
+    /* Hero Banner & KPI Summary (Compact Above-the-Fold Layout) */
     .hero-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px 24px;
-      margin-bottom: 20px;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
       box-shadow: var(--shadow);
     }
 
     .hero-top {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      gap: 20px;
+      gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
 
     .hero-heading {
       font-family: "Newsreader", Georgia, serif;
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 600;
-      margin: 0 0 6px;
+      margin: 0 0 2px;
       text-wrap: balance;
     }
 
     .hero-sub {
       margin: 0;
       color: var(--ink-2);
-      max-width: 920px;
-      font-size: 15px;
+      max-width: 1080px;
+      font-size: 13.5px;
+      line-height: 1.4;
     }
 
     .kpi-strip {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .kpi-box {
       background: var(--bg-elev);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
+      border-radius: 7px;
+      padding: 7px 10px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
     }
 
     .kpi-num {
       font-family: "JetBrains Mono", monospace;
-      font-size: 22px;
+      font-size: 17px;
       font-weight: 700;
       color: var(--ink);
-      line-height: 1.2;
+      line-height: 1.15;
     }
 
     .kpi-lbl {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-top: 4px;
+      letter-spacing: 0.03em;
+      margin-top: 2px;
     }
 
-    /* Control Toolbar: View Switcher + Status Filters + Search */
+    /* Sticky Compact Control Toolbar: View Switcher + Dropdown Filters + Search */
     .controls-panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
+      position: sticky;
+      top: 52px;
+      z-index: 35;
+      background: color-mix(in srgb, var(--card) 95%, transparent);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 8px;
+      box-shadow: var(--shadow);
     }
 
     .controls-row {
@@ -474,12 +480,12 @@
       max-width: 980px;
     }
 
-    /* Institution & Feed Cards Grid (4-Axis Aligned) */
+    /* Institution & Feed Cards Grid (Top-Aligned so single-feed cards never float to bottom) */
     .org-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-      gap: 16px;
-      align-items: stretch;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 14px;
+      align-items: start;
     }
 
     @media (max-width: 520px) {
@@ -492,12 +498,49 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px 20px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 14px;
+      justify-content: flex-start;
+      gap: 10px;
       box-shadow: var(--shadow);
+    }
+
+    .header-drawer {
+      margin-top: 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+
+    .header-drawer > summary {
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--blue);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      user-select: none;
+    }
+
+    .header-drawer > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .filter-select {
+      background: var(--bg-elev);
+      color: var(--ink);
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      max-width: 240px;
     }
 
     .org-top {
@@ -535,19 +578,78 @@
     .feed-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .feed-item {
       background: var(--bg-elev);
       border: 1px solid var(--border);
       border-radius: 9px;
-      padding: 14px 15px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      cursor: pointer;
       transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .feed-compact-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .feed-doc-thumb {
+      width: 84px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      background: #0d1726;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .feed-visual-showcase {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      align-items: start;
+    }
+
+    @media (max-width: 680px) {
+      .feed-visual-showcase {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feed-visual-img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      display: block;
+    }
+
+    .btn-inline-toggle {
+      background: var(--card);
+      color: var(--ink-2);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-inline-toggle:hover {
+      color: var(--ink);
+      border-color: var(--blue);
     }
 
     .feed-item:hover {
@@ -1096,8 +1198,6 @@
       <a href="plat-monitor.html" class="btn">📋 Plat &amp; Watchlist Monitor</a>
       <a href="index.html#audit=1" class="btn" title="Open the Split-Screen Historian Archival Audit &amp; Staff Curation Workbench on the main map">🔎 Archival Audit Workbench</a>
       <a href="index.html#admin=1" class="btn" title="Open Preservation Houston Staff Admin Sign-In &amp; Curated Overrides Console">🔒 Staff Admin</a>
-      <button type="button" class="btn primary" id="posterModeBtn" aria-pressed="false" title="Toggle 24x36 large-format architectural blueprint layout">🖼️ Poster / Blueprint Mode</button>
-      <button type="button" class="btn" id="downloadSvgPosterBtn" title="Download a standalone 24x36 vector architectural blueprint poster (.svg) generated directly from data_sources_catalog.json">⬇️ Download 24"×36" Poster (.svg)</button>
       <button type="button" class="btn" id="themeToggleBtn" title="Switch between Archival Dark and Sunlit Paper themes">☀️ Light / Dark</button>
     </nav>
   </header>
@@ -1106,47 +1206,74 @@
     <section class="hero-card" aria-labelledby="heroHeading">
       <div class="hero-top">
         <div>
-          <h2 class="hero-heading" id="heroHeading">Every Institution, Public Feed &amp; Cross-Check Powering the Atlas</h2>
+          <h2 class="hero-heading" id="heroHeading">Every Institution, Public Feed &amp; Primary-Source Document Powering the Atlas</h2>
           <p class="hero-sub">
-            The Houston Building Atlas cross-references appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and fire insurance maps across municipal, county, state, federal, and archival institutions. This diagram is driven by a single declarative catalog (<code>app/public/data/data_sources_catalog.json</code>) tracking both <strong>Source Volume Coverage (%)</strong> and <strong>Parcel-Level Extraction Fidelity (%)</strong> across all 46 feeds.
+            Cross-referencing appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and Sanborn fire insurance maps across 29 institutions and 46 data feeds (<code>app/public/data/data_sources_catalog.json</code>).
           </p>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button type="button" class="btn" id="printPosterBtn" title="Print or Save as PDF at 24x36 poster scale">🖨️ Print / Save PDF</button>
         </div>
       </div>
       <div class="kpi-strip" id="kpiStrip" aria-label="Ecosystem summary metrics"></div>
-      <div class="completeness-banner" id="completenessBanner" aria-label="Corpus completeness vs extraction fidelity summary"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px">
+        <details class="header-drawer" id="completenessDrawer">
+          <summary><span>📊 Quantitative Completeness Audit (84% Volume Acquired | 67% Parcel Fidelity)</span><span class="mono-tag">Expand ▾</span></summary>
+          <div class="completeness-banner" id="completenessBanner" aria-label="Corpus completeness vs extraction fidelity summary"></div>
+        </details>
+        <details class="header-drawer" id="enginesDrawer">
+          <summary><span>⚙️ 6 Cross-Check Synthesis Engines (Click to Inspect or Isolate Engine)</span><span class="mono-tag">Expand ▾</span></summary>
+          <div class="engines-section" style="margin-top:10px;margin-bottom:4px">
+            <div class="section-eyebrow" id="enginesEyebrow">
+              <span>Cross-Check Synthesis Engines (Click any engine to isolate its participating feeds)</span>
+              <button type="button" class="btn" id="clearEngineFilterBtn" style="display:none;padding:3px 10px;font-size:12px">x Clear Engine Filter</button>
+            </div>
+            <div class="engines-grid" id="enginesGrid"></div>
+          </div>
+        </details>
+      </div>
     </section>
 
     <section class="controls-panel" aria-label="Diagram view and filter controls">
       <div class="controls-row">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="filter-label">Group Diagram By:</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="filter-label">View:</span>
           <div class="view-tabs" role="tablist" aria-label="Diagram grouping mode">
-            <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution &amp; Sector</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="architecture" aria-selected="false">⚡ Animated System &amp; LLM Architecture</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="gaps" aria-selected="false">📊 Coverage, Fidelity &amp; Gaps</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⚡ By Retrieval Frequency</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="engine" aria-selected="false">🔍 By Cross-Check Engine</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="visuals" aria-selected="false">🖼️ Visual Field Guide (12 Docs)</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="architecture" aria-selected="false">⚡ System &amp; LLM Flow</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="gaps" aria-selected="false">📊 Coverage &amp; Gaps</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⏱️ By Cadence</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="engine" aria-selected="false">🔍 By Engine</button>
           </div>
         </div>
-        <div class="search-box">
-          <span aria-hidden="true">🔎</span>
-          <input type="search" id="searchInput" placeholder="Search institution, dataset, Block Books, HCAD, Sanborn, Pass-2, script..." aria-label="Filter institutions and data feeds" />
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap" role="group" aria-label="Card viewing density">
+          <span class="filter-label">Card Density:</span>
+          <button type="button" class="btn primary" id="compactModeToggleBtn" data-density-mode="compact" aria-pressed="true" title="Compact overview showing document thumbnail, feed name, owner, and status">🗂️ Compact View</button>
+          <button type="button" class="btn" id="detailModeToggleBtn" data-density-mode="detail" aria-pressed="false" title="Expand all cards to show full descriptions, visual callouts, and fidelity meters">📖 Detail View</button>
+          <button type="button" class="btn" id="toggleAllCardsBtn" title="Toggle all individual feed cards between expanded and collapsed">▾ Expand All</button>
         </div>
       </div>
 
-      <div class="status-filter-row" id="statusFilterBar" aria-label="Filter by integration status"></div>
-      <div class="status-filter-row" id="fidelityFilterBar" aria-label="Filter by extraction fidelity tier"></div>
-    </section>
-
-    <section class="engines-section" aria-labelledby="enginesEyebrow">
-      <div class="section-eyebrow" id="enginesEyebrow">
-        <span>Cross-Check Synthesis Engines (Click any engine to isolate its participating institutions &amp; feeds)</span>
-        <button type="button" class="btn" id="clearEngineFilterBtn" style="display:none;padding:3px 10px;font-size:12px">× Clear Engine Filter</button>
+      <div class="controls-row" style="gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1 1 auto">
+          <select id="statusFilterSelect" class="filter-select" aria-label="Filter by integration status"></select>
+          <select id="fidelityFilterSelect" class="filter-select" aria-label="Filter by extraction fidelity tier"></select>
+          <select id="engineFilterSelect" class="filter-select" aria-label="Filter by cross-check synthesis engine"></select>
+          <div class="search-box" style="flex:1 1 220px;max-width:340px;padding:4px 10px">
+            <span aria-hidden="true">🔎</span>
+            <input type="search" id="searchInput" placeholder="Search institution, record type, Block Books, HCAD, Sanborn..." aria-label="Filter institutions and data feeds" />
+          </div>
+          <button type="button" class="btn" id="resetEcosystemFiltersBtn" style="display:none;padding:4px 10px;font-size:12px">Reset Filters</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="mono-tag" id="visibleFeedCountBadge" style="font-weight:700;color:var(--blue)">Showing 46 feeds</span>
+          <details class="header-drawer" style="margin:0;padding:3px 8px">
+            <summary style="font-size:11.5px">🎨 Pill Legend</summary>
+            <div style="padding-top:6px;display:flex;flex-direction:column;gap:6px">
+              <div class="status-filter-row" id="statusFilterBar" aria-label="Filter by integration status"></div>
+              <div class="status-filter-row" id="fidelityFilterBar" aria-label="Filter by extraction fidelity tier"></div>
+            </div>
+          </details>
+        </div>
       </div>
-      <div class="engines-grid" id="enginesGrid"></div>
     </section>
 
     <div id="diagramContainer" aria-live="polite"></div>
@@ -1162,12 +1289,17 @@
     let catalog = null;
     const initialHash = String(window.location.hash || "").toLowerCase();
     const state = {
-      viewMode: initialHash.includes("arch") ? "architecture" : "sector", // "sector" | "architecture" | "gaps" | "frequency" | "engine"
+      viewMode: initialHash.includes("arch")
+        ? "architecture"
+        : initialHash.includes("visual")
+        ? "visuals"
+        : "sector", // "sector" | "visuals" | "architecture" | "gaps" | "frequency" | "engine"
+      densityMode: initialHash.includes("detail") ? "detail" : "compact", // "compact" | "detail"
+      expandedFeedIds: new Set(),
       statusFilter: "ALL",
       fidelityFilter: "ALL",
       engineFilter: "",
       q: "",
-      posterMode: false,
       theme: localStorage.getItem("hba:ecosystem:theme") || "dark",
       archFlowMode: "all",
       archPlaying: true,
@@ -1346,9 +1478,20 @@
 
     function renderStatusFilters() {
       const allFeeds = getAllFlattenedFeeds();
+      const visibleFeeds = allFeeds.filter(f => matchesFilters(f, f.org));
+      const visibleOrgs = new Set(visibleFeeds.map(f => f.org.id)).size;
       const counts = { ALL: allFeeds.length };
       for (const f of allFeeds) {
         counts[f.status] = (counts[f.status] || 0) + 1;
+      }
+      const statusSelect = document.getElementById("statusFilterSelect");
+      if (statusSelect) {
+        const opts = [`<option value="ALL">Status: All Feeds (${counts.ALL})</option>`];
+        for (const st of catalog.statusDefinitions || []) {
+          opts.push(`<option value="${esc(st.id)}" ${state.statusFilter === st.id ? "selected" : ""}>Status: ${esc(st.shortLabel)} (${counts[st.id] || 0})</option>`);
+        }
+        statusSelect.innerHTML = opts.join("");
+        statusSelect.value = state.statusFilter;
       }
       const pills = [
         `<span class="filter-label">Status Legend &amp; Filter:</span>`,
@@ -1370,6 +1513,15 @@
         const ft = f.coverageAndFidelity?.fidelityTier || "pass2_complete";
         fidCounts[ft] = (fidCounts[ft] || 0) + 1;
       }
+      const fidSelect = document.getElementById("fidelityFilterSelect");
+      if (fidSelect) {
+        const fOpts = [`<option value="ALL">Fidelity: All Tiers (${fidCounts.ALL})</option>`];
+        for (const fd of catalog.fidelityDefinitions || []) {
+          fOpts.push(`<option value="${esc(fd.id)}" ${state.fidelityFilter === fd.id ? "selected" : ""}>Fidelity: ${esc(fd.shortLabel)} (${fidCounts[fd.id] || 0})</option>`);
+        }
+        fidSelect.innerHTML = fOpts.join("");
+        fidSelect.value = state.fidelityFilter;
+      }
       const fidPills = [
         `<span class="filter-label">Extraction Fidelity Filter:</span>`,
         `<button type="button" class="status-pill-btn" data-fidelity-id="ALL" aria-pressed="${state.fidelityFilter === "ALL"}">All Fidelity Tiers (${fidCounts.ALL})</button>`,
@@ -1385,6 +1537,30 @@
       }
       const fidBar = document.getElementById("fidelityFilterBar");
       if (fidBar) fidBar.innerHTML = fidPills.join("");
+
+      const badgeEl = document.getElementById("visibleFeedCountBadge");
+      if (badgeEl) {
+        badgeEl.textContent = `Showing ${visibleFeeds.length} of ${allFeeds.length} feeds (${visibleOrgs} institutions)`;
+      }
+      const resetBtn = document.getElementById("resetEcosystemFiltersBtn");
+      if (resetBtn) {
+        const hasFilter = state.statusFilter !== "ALL" || state.fidelityFilter !== "ALL" || Boolean(state.engineFilter) || Boolean(state.q);
+        resetBtn.style.display = hasFilter ? "inline-flex" : "none";
+      }
+      const compactBtn = document.getElementById("compactModeToggleBtn");
+      const detailBtn = document.getElementById("detailModeToggleBtn");
+      const toggleAllBtn = document.getElementById("toggleAllCardsBtn");
+      if (compactBtn && detailBtn) {
+        const isCompact = state.densityMode === "compact";
+        compactBtn.classList.toggle("primary", isCompact);
+        compactBtn.setAttribute("aria-pressed", String(isCompact));
+        detailBtn.classList.toggle("primary", !isCompact);
+        detailBtn.setAttribute("aria-pressed", String(!isCompact));
+      }
+      if (toggleAllBtn) {
+        const allExpanded = state.densityMode === "detail" || (visibleFeeds.length > 0 && visibleFeeds.every(f => state.expandedFeedIds.has(f.id)));
+        toggleAllBtn.textContent = allExpanded ? "▴ Collapse All Cards" : `▾ Expand All (${visibleFeeds.length})`;
+      }
     }
 
     function renderEnginesBar() {
@@ -1392,6 +1568,16 @@
       const clearBtn = document.getElementById("clearEngineFilterBtn");
       if (clearBtn) {
         clearBtn.style.display = state.engineFilter ? "inline-flex" : "none";
+      }
+      const engSelect = document.getElementById("engineFilterSelect");
+      if (engSelect) {
+        const eOpts = [`<option value="">Engine: All 6 Synthesis Engines</option>`];
+        for (const eng of catalog.synthesisEngines || []) {
+          const matchingCount = allFeeds.filter(f => (f.engineIds || []).includes(eng.id)).length;
+          eOpts.push(`<option value="${esc(eng.id)}" ${state.engineFilter === eng.id ? "selected" : ""}>${esc(eng.icon)} ${esc(eng.shortName)} (${matchingCount})</option>`);
+        }
+        engSelect.innerHTML = eOpts.join("");
+        engSelect.value = state.engineFilter || "";
       }
       document.getElementById("enginesGrid").innerHTML = (catalog.synthesisEngines || []).map(eng => {
         const matchingCount = allFeeds.filter(f => (f.engineIds || []).includes(eng.id)).length;
@@ -1418,48 +1604,78 @@
       const volPct = cf.volumeCoveragePct ?? 100;
       const fidPct = cf.extractionFidelityPct ?? 100;
       const isRoadmapOrInFlight = feed.status === "planned_roadmap" || feed.status === "in_flight_request";
+      const isExpanded = state.densityMode === "detail" || state.expandedFeedIds.has(feed.id);
+      const vis = feed.docVisual || {
+        imagePath: "public/img/doc-types/hcad-cama-gis-parcel.svg",
+        shortLabel: "Archival Record",
+        title: feed.name,
+        howPreservationUsesIt: feed.howCrossChecked || "",
+        callouts: [],
+      };
       const engineBadges = (feed.engineIds || []).map(eid => {
         const eng = (catalog.synthesisEngines || []).find(e => e.id === eid);
         return eng ? `<span class="mono-tag">${esc(eng.icon)} ${esc(eng.shortName)}</span>` : "";
-      }).filter(Boolean).join(" · ");
+      }).filter(Boolean).join(" | ");
+      const calloutsHtml = (vis.callouts || []).map(c => `<li style="margin-bottom:3px">${esc(c)}</li>`).join("");
 
       return `
-        <article class="feed-item ${isRoadmapOrInFlight ? "roadmap-item" : ""}" data-open-feed="${esc(feed.id)}" role="button" tabindex="0" aria-label="Inspect ${esc(feed.name)}">
-          <div class="feed-eyebrow">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
-                <span class="status-dot" style="background:${esc(st.color)}"></span>
-                ${esc(st.shortLabel)}
-              </span>
-              <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)}">
-                ${esc(fid.shortLabel)}
-              </span>
-            </div>
-            <span class="freq-badge">⏱️ ${esc(feed.frequencyLabel)}</span>
-          </div>
-          ${includeOrgBadge ? `<div style="font-size:12px;font-weight:700;color:var(--blue)">🏛️ ${esc(org.name)}</div>` : ""}
-          <h4 class="feed-title">${esc(feed.name)}</h4>
-          <p class="feed-body">${esc(feed.whatItProvides)}</p>
-          <div class="feed-coverage-box">
-            <div class="feed-meters-pair">
-              <div>
-                <div class="meter-row-head"><span>Volume Coverage</span><span class="meter-pct" style="color:${meterColor(volPct)}">${volPct}%</span></div>
-                <div class="meter-track"><div class="meter-fill" style="width:${volPct}%;background:${meterColor(volPct)}"></div></div>
+        <article class="feed-item ${isRoadmapOrInFlight ? "roadmap-item" : ""}" data-feed-card-id="${esc(feed.id)}">
+          <div class="feed-compact-head">
+            <img src="${esc(vis.imagePath)}" alt="${esc(vis.title)}" class="feed-doc-thumb" data-open-feed="${esc(feed.id)}" loading="lazy" title="Click to inspect full-size visual document guide &amp; technical specification" />
+            <div style="flex:1 1 auto;min-width:0">
+              <div class="feed-eyebrow" style="margin-bottom:3px">
+                <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+                  <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)};padding:2px 7px;font-size:11px">
+                    <span class="status-dot" style="background:${esc(st.color)}"></span>
+                    ${esc(st.shortLabel)}
+                  </span>
+                  <span class="badge" style="background:${esc(fid.badgeBg)};border-color:${esc(fid.badgeBorder)};color:${esc(fid.color)};padding:2px 7px;font-size:11px">
+                    Fid ${fidPct}%
+                  </span>
+                  <span class="mono-tag" style="font-size:11px">🖼️ ${esc(vis.shortLabel)}</span>
+                </div>
+                <div style="display:flex;gap:5px;align-items:center">
+                  <button type="button" class="btn-inline-toggle" data-toggle-feed-detail="${esc(feed.id)}" aria-expanded="${isExpanded}">${isExpanded ? "▴ Compact" : "▾ Details"}</button>
+                  <button type="button" class="btn-inline-toggle" data-open-feed="${esc(feed.id)}" title="Open annotated document visual &amp; technical modal">🔍 Spec</button>
+                </div>
               </div>
-              <div>
-                <div class="meter-row-head"><span>Extraction Fidelity</span><span class="meter-pct" style="color:${meterColor(fidPct)}">${fidPct}%</span></div>
-                <div class="meter-track"><div class="meter-fill" style="width:${fidPct}%;background:${meterColor(fidPct)}"></div></div>
+              <div style="font-size:11.5px;font-weight:700;color:var(--blue);margin-bottom:2px">🏛️ ${esc(org.shortName || org.name)} <span class="mono-tag" style="font-weight:400">| 📦 ${esc(feed.recordScale)}</span></div>
+              <h4 class="feed-title" style="cursor:pointer" data-toggle-feed-detail="${esc(feed.id)}">${esc(feed.name)}</h4>
+            </div>
+          </div>
+          ${isExpanded ? `
+            <div class="feed-expanded-body" style="display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px solid var(--border)">
+              <p class="feed-body">${esc(feed.whatItProvides)}</p>
+              <div class="feed-visual-showcase">
+                <img src="${esc(vis.imagePath)}" alt="${esc(vis.title)}" class="feed-visual-img" data-open-feed="${esc(feed.id)}" style="cursor:pointer" loading="lazy" />
+                <div style="font-size:12.5px;color:var(--ink-2)">
+                  <div style="font-weight:700;color:var(--ink);margin-bottom:4px">🖼️ ${esc(vis.title)}</div>
+                  <p style="margin:0 0 6px;line-height:1.4"><strong>Why It Matters:</strong> ${esc(vis.howPreservationUsesIt)}</p>
+                  ${calloutsHtml ? `<ul style="margin:0;padding-left:16px;font-size:12px;color:var(--muted)">${calloutsHtml}</ul>` : ""}
+                </div>
+              </div>
+              <div class="feed-coverage-box">
+                <div class="feed-meters-pair">
+                  <div>
+                    <div class="meter-row-head"><span>Volume Coverage</span><span class="meter-pct" style="color:${meterColor(volPct)}">${volPct}%</span></div>
+                    <div class="meter-track"><div class="meter-fill" style="width:${volPct}%;background:${meterColor(volPct)}"></div></div>
+                  </div>
+                  <div>
+                    <div class="meter-row-head"><span>Extraction Fidelity</span><span class="meter-pct" style="color:${meterColor(fidPct)}">${fidPct}%</span></div>
+                    <div class="meter-track"><div class="meter-fill" style="width:${fidPct}%;background:${meterColor(fidPct)}"></div></div>
+                  </div>
+                </div>
+                ${cf.coveredSummary ? `<p class="feed-gap-detail"><strong>Extracted:</strong> ${esc(cf.coveredSummary)}</p>` : ""}
+                ${cf.whatIsMissing ? `<p class="feed-gap-detail"><strong>Gap / Unextracted:</strong> ${esc(cf.whatIsMissing)}</p>` : ""}
+                ${cf.pass2AndGapClosurePlan ? `<p class="feed-pass2-callout"><strong>How We Fill the Gap:</strong> ${esc(cf.pass2AndGapClosurePlan)}</p>` : ""}
+              </div>
+              <p class="feed-crosscheck"><strong>Cross-Check Logic:</strong> ${esc(feed.howCrossChecked)}</p>
+              <div class="feed-footer">
+                <span>⏱️ ${esc(feed.frequencyLabel)} | 📦 ${esc(feed.recordScale)}</span>
+                <span>${engineBadges}</span>
               </div>
             </div>
-            ${cf.coveredSummary ? `<p class="feed-gap-detail"><strong>Extracted:</strong> ${esc(cf.coveredSummary)}</p>` : ""}
-            ${cf.whatIsMissing ? `<p class="feed-gap-detail"><strong>Gap / Unextracted:</strong> ${esc(cf.whatIsMissing)}</p>` : ""}
-            ${cf.pass2AndGapClosurePlan ? `<p class="feed-pass2-callout"><strong>How We Fill the Gap:</strong> ${esc(cf.pass2AndGapClosurePlan)}</p>` : ""}
-          </div>
-          <p class="feed-crosscheck"><strong>Cross-Check Logic:</strong> ${esc(feed.howCrossChecked)}</p>
-          <div class="feed-footer">
-            <span>📦 ${esc(feed.recordScale)}</span>
-            <span>${engineBadges}</span>
-          </div>
+          ` : ""}
         </article>
       `;
     }
@@ -1578,6 +1794,54 @@
       `;
     }
 
+    function renderVisualFieldGuide() {
+      const archetypes = catalog.documentArchetypes || [];
+      const allFeeds = getAllFlattenedFeeds();
+      const cardsHtml = archetypes.map(arch => {
+        const linkedFeeds = allFeeds.filter(f => f.docArchetypeId === arch.id && matchesFilters(f, f.org));
+        const calloutsHtml = (arch.callouts || []).map(c => `<li style="margin-bottom:4px">${esc(c)}</li>`).join("");
+        const feedChipsHtml = linkedFeeds.map(f => `
+          <button type="button" class="btn-inline-toggle" data-open-feed="${esc(f.id)}" title="${esc(f.org.name)}">
+            📄 ${esc(f.name)}
+          </button>
+        `).join(" ");
+        return `
+          <article class="org-card" data-archetype-card="${esc(arch.id)}">
+            <div class="org-eyebrow">
+              <span>🏛️ ${esc(arch.institutionOwner)}</span>
+              <span class="mono-tag">${esc(arch.eraCoverage)}</span>
+            </div>
+            <h3 class="org-name">${esc(arch.title)}</h3>
+            <img src="${esc(arch.imagePath)}" alt="${esc(arch.title)}" class="feed-visual-img" style="margin:4px 0" loading="lazy" />
+            <p class="feed-body" style="font-size:13.5px"><strong>What This Record Looks Like:</strong> ${esc(arch.whatItLooksLike)}</p>
+            <div class="feed-pass2-callout">
+              <strong>How Preservation Uses It:</strong> ${esc(arch.howPreservationUsesIt)}
+            </div>
+            <div style="font-size:12.5px;color:var(--ink-2)">
+              <div style="font-weight:700;color:var(--ink);margin-bottom:4px">Key Clues Historians &amp; Parsers Extract:</div>
+              <ul style="margin:0;padding-left:18px;line-height:1.45">${calloutsHtml}</ul>
+            </div>
+            <div style="padding-top:6px;border-top:1px solid var(--border)">
+              <div class="mono-tag" style="margin-bottom:6px">Atlas Feeds Using This Document Type (${linkedFeeds.length}):</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">${feedChipsHtml || `<span class="mono-tag">No feeds match current filter</span>`}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+      return `
+        <section class="sector-block">
+          <div class="sector-header">
+            <div>
+              <h2 class="sector-title">🖼️ Visual Field Guide to Houston's 12 Primary-Source Document Archetypes</h2>
+              <p class="sector-desc">Stylized archival illustrations modeled on real Houston records showing what each document looks like and how preservation historians cross-check them.</p>
+            </div>
+            <span class="mono-tag">${archetypes.length} document archetypes</span>
+          </div>
+          <div class="org-grid">${cardsHtml}</div>
+        </section>
+      `;
+    }
+
     function renderBySector() {
       const blocks = [];
       for (const sector of catalog.sectors || []) {
@@ -1586,15 +1850,18 @@
         for (const org of sectorOrgs) {
           const visibleFeeds = (org.feeds || []).filter(f => matchesFilters(f, org));
           if (!visibleFeeds.length) continue;
+          const portalHtml = org.websiteUrl && String(org.websiteUrl).startsWith("http")
+            ? `<a href="${esc(org.websiteUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Official Portal ↗</a>`
+            : `<span class="mono-tag" title="Restricted internal staff cloud infrastructure">🔒 Internal Staff Infrastructure</span>`;
           orgCards.push(`
             <div class="org-card">
               <div class="org-top">
                 <div class="org-eyebrow">
                   <span>${esc(sector.icon)} ${esc(org.jurisdiction)}</span>
-                  <a href="${esc(org.websiteUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Official Portal ↗</a>
+                  ${portalHtml}
                 </div>
                 <h3 class="org-name">${esc(org.name)}</h3>
-                <p class="org-overview">${esc(org.overview)}</p>
+                ${state.densityMode === "detail" ? `<p class="org-overview">${esc(org.overview)}</p>` : ""}
               </div>
               <div class="feed-list">
                 ${visibleFeeds.map(f => renderFeedCardHtml(f, org, false)).join("")}
@@ -1683,6 +1950,8 @@
           speedMultiplier: state.archSpeed,
           selectedNodeId: state.archSelectedNodeId,
         });
+      } else if (state.viewMode === "visuals") {
+        container.innerHTML = renderVisualFieldGuide();
       } else if (state.viewMode === "gaps") {
         container.innerHTML = renderByGapsAndSpotlights();
       } else if (state.viewMode === "frequency") {
@@ -1700,11 +1969,22 @@
       const st = getStatusMeta(hit.status);
       const cf = hit.coverageAndFidelity || {};
       const fid = getFidelityMeta(cf.fidelityTier);
+      const vis = hit.docVisual || {
+        imagePath: "public/img/doc-types/hcad-cama-gis-parcel.svg",
+        title: hit.name,
+        whatItLooksLike: hit.whatItProvides,
+        howPreservationUsesIt: hit.howCrossChecked,
+        callouts: [],
+      };
+      const portalHtml = hit.org.websiteUrl && String(hit.org.websiteUrl).startsWith("http")
+        ? `<a href="${esc(hit.org.websiteUrl)}" target="_blank" rel="noopener noreferrer">Official Portal ↗</a>`
+        : `<span class="mono-tag">🔒 Internal Staff Infrastructure</span>`;
       const engines = (hit.engineIds || [])
         .map(id => (catalog.synthesisEngines || []).find(e => e.id === id))
         .filter(Boolean)
         .map(e => `${e.icon} ${e.name}`)
         .join("<br/>");
+      const calloutsHtml = (vis.callouts || []).map(c => `<li style="margin-bottom:4px">${esc(c)}</li>`).join("");
       const modalCard = document.getElementById("feedModalCard");
       modalCard.innerHTML = `
         <div class="modal-head">
@@ -1720,10 +2000,18 @@
             </div>
             <h3 class="modal-title" id="modalTitle">${esc(hit.name)}</h3>
             <div style="font-size:14px;color:var(--ink-2)">
-              <strong>Institution:</strong> ${esc(hit.org.name)} · <a href="${esc(hit.org.websiteUrl)}" target="_blank" rel="noopener noreferrer">Official Portal ↗</a>
+              <strong>Institution:</strong> ${esc(hit.org.name)} | ${portalHtml}
             </div>
           </div>
           <button type="button" class="btn" id="closeFeedModalBtn">Close</button>
+        </div>
+        <div class="feed-visual-showcase" style="margin-bottom:14px">
+          <img src="${esc(vis.imagePath)}" alt="${esc(vis.title)}" class="feed-visual-img" />
+          <div style="font-size:13px;color:var(--ink-2)">
+            <div style="font-weight:700;color:var(--ink);font-size:14px;margin-bottom:4px">🖼️ ${esc(vis.title)}</div>
+            <p style="margin:0 0 6px;line-height:1.45"><strong>How Preservation Uses It:</strong> ${esc(vis.howPreservationUsesIt)}</p>
+            ${calloutsHtml ? `<ul style="margin:0;padding-left:18px;line-height:1.4">${calloutsHtml}</ul>` : ""}
+          </div>
         </div>
         <p style="font-size:15px;margin:0 0 12px">${esc(hit.whatItProvides)}</p>
         <dl class="detail-dl">
@@ -1754,67 +2042,57 @@
       document.getElementById("feedModalBackdrop").classList.remove("hidden");
     }
 
-    function generatePosterSvg() {
-      const width = 3600;
-      const height = 2400;
-      const allFeeds = getAllFlattenedFeeds();
-      const sum = catalog.corpusCompletenessSummary || {};
-      const xmlEsc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-      const lines = [];
-      lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
-      lines.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`);
-      lines.push(`<rect width="${width}" height="${height}" fill="#0b111e"/>`);
-      for (let x = 0; x <= width; x += 60) {
-        lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="#16243d" stroke-width="1"/>`);
-      }
-      for (let y = 0; y <= height; y += 60) {
-        lines.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="#16243d" stroke-width="1"/>`);
-      }
-      lines.push(`<rect x="40" y="40" width="${width - 80}" height="${height - 80}" fill="none" stroke="#38bdf8" stroke-width="3"/>`);
-      lines.push(`<text x="80" y="110" fill="#8cc63f" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">PRESERVATION HOUSTON · ARCHITECTURAL DATA PROVENANCE BLUEPRINT (24"x36" POSTER)</text>`);
-      lines.push(`<text x="80" y="160" fill="#f1f5f9" font-family="Georgia, serif" font-size="44" font-weight="700">${xmlEsc(catalog.title)}</text>`);
-      lines.push(`<text x="80" y="200" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">Updated ${xmlEsc(catalog.lastUpdated)} · ${catalog.organizations.length} Institutions · ${allFeeds.length} Data Feeds · Avg Volume Coverage ${sum.averageVolumeCoveragePct ?? 81}% · Avg Extraction Fidelity ${sum.averageExtractionFidelityPct ?? 66}%</text>`);
-
-      const sectors = catalog.sectors || [];
-      const colW = Math.floor((width - 160 - (sectors.length - 1) * 24) / sectors.length);
-      sectors.forEach((sec, sIdx) => {
-        const x0 = 80 + sIdx * (colW + 24);
-        let yCursor = 250;
-        lines.push(`<rect x="${x0}" y="${yCursor}" width="${colW}" height="54" rx="8" fill="#152036" stroke="${xmlEsc(sec.color)}" stroke-width="2"/>`);
-        lines.push(`<text x="${x0 + 16}" y="${yCursor + 35}" fill="#f1f5f9" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700">${xmlEsc(sec.shortName)}</text>`);
-        yCursor += 72;
-
-        const orgs = (catalog.organizations || []).filter(o => o.sectorId === sec.id);
-        for (const org of orgs) {
-          const feeds = org.feeds || [];
-          const boxH = 54 + feeds.length * 92;
-          lines.push(`<rect x="${x0}" y="${yCursor}" width="${colW}" height="${boxH}" rx="8" fill="#111a2e" stroke="#334155" stroke-width="1.5"/>`);
-          lines.push(`<text x="${x0 + 14}" y="${yCursor + 30}" fill="#38bdf8" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">${xmlEsc(org.shortName || org.name)}</text>`);
-          let fy = yCursor + 46;
-          for (const f of feeds) {
-            const st = getStatusMeta(f.status);
-            const cf = f.coverageAndFidelity || {};
-            lines.push(`<rect x="${x0 + 10}" y="${fy}" width="${colW - 20}" height="82" rx="6" fill="#152036" stroke="${xmlEsc(st.color)}" stroke-width="1.5"/>`);
-            lines.push(`<text x="${x0 + 20}" y="${fy + 22}" fill="${xmlEsc(st.color)}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">[${xmlEsc(st.shortLabel)}] Vol ${cf.volumeCoveragePct ?? 100}% · Fid ${cf.extractionFidelityPct ?? 100}%</text>`);
-            lines.push(`<text x="${x0 + 20}" y="${fy + 44}" fill="#f1f5f9" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">${xmlEsc(f.name.slice(0, 56))}</text>`);
-            lines.push(`<text x="${x0 + 20}" y="${fy + 66}" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="13">${xmlEsc((cf.coveredSummary || f.recordScale).slice(0, 62))}</text>`);
-            fy += 90;
-          }
-          yCursor += boxH + 14;
-        }
-      });
-
-      lines.push(`</svg>`);
-      const blob = new Blob([lines.join("\n")], { type: "image/svg+xml;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "houston-building-atlas-data-ecosystem-24x36.svg";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-    }
-
     document.addEventListener("click", e => {
+      const densityBtn = e.target.closest("[data-density-mode]");
+      if (densityBtn) {
+        state.densityMode = densityBtn.dataset.densityMode === "detail" ? "detail" : "compact";
+        if (state.densityMode === "compact") {
+          state.expandedFeedIds.clear();
+        }
+        renderDiagram();
+        return;
+      }
+
+      if (e.target.closest("#toggleAllCardsBtn")) {
+        const visibleFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+        const allExpanded = state.densityMode === "detail" || (visibleFeeds.length > 0 && visibleFeeds.every(f => state.expandedFeedIds.has(f.id)));
+        if (allExpanded) {
+          state.densityMode = "compact";
+          state.expandedFeedIds.clear();
+        } else {
+          for (const f of visibleFeeds) state.expandedFeedIds.add(f.id);
+        }
+        renderDiagram();
+        return;
+      }
+
+      const toggleFeedBtn = e.target.closest("[data-toggle-feed-detail]");
+      if (toggleFeedBtn) {
+        const fid = toggleFeedBtn.dataset.toggleFeedDetail;
+        if (state.densityMode === "detail") {
+          state.densityMode = "compact";
+          for (const f of getAllFlattenedFeeds()) {
+            if (f.id !== fid) state.expandedFeedIds.add(f.id);
+          }
+        } else if (state.expandedFeedIds.has(fid)) {
+          state.expandedFeedIds.delete(fid);
+        } else {
+          state.expandedFeedIds.add(fid);
+        }
+        renderDiagram();
+        return;
+      }
+
+      if (e.target.closest("#resetEcosystemFiltersBtn")) {
+        state.statusFilter = "ALL";
+        state.fidelityFilter = "ALL";
+        state.engineFilter = "";
+        state.q = "";
+        const sIn = document.getElementById("searchInput");
+        if (sIn) sIn.value = "";
+        renderDiagram();
+        return;
+      }
       const archFlowBtn = e.target.closest("[data-arch-flow-mode]");
       if (archFlowBtn) {
         state.archFlowMode = archFlowBtn.dataset.archFlowMode;
@@ -1910,23 +2188,21 @@
         applyTheme();
         return;
       }
+    });
 
-      if (e.target.closest("#posterModeBtn")) {
-        state.posterMode = !state.posterMode;
-        document.body.classList.toggle("poster-mode", state.posterMode);
-        document.getElementById("posterModeBtn").setAttribute("aria-pressed", String(state.posterMode));
-        return;
-      }
+    document.getElementById("statusFilterSelect")?.addEventListener("change", e => {
+      state.statusFilter = e.target.value || "ALL";
+      renderDiagram();
+    });
 
-      if (e.target.closest("#downloadSvgPosterBtn")) {
-        if (catalog) generatePosterSvg();
-        return;
-      }
+    document.getElementById("fidelityFilterSelect")?.addEventListener("change", e => {
+      state.fidelityFilter = e.target.value || "ALL";
+      renderDiagram();
+    });
 
-      if (e.target.closest("#printPosterBtn")) {
-        window.print();
-        return;
-      }
+    document.getElementById("engineFilterSelect")?.addEventListener("change", e => {
+      state.engineFilter = e.target.value || "";
+      renderDiagram();
     });
 
     document.getElementById("searchInput").addEventListener("input", e => {
@@ -1942,7 +2218,7 @@
 
     async function init() {
       applyTheme();
-      const resp = await fetch("public/data/data_sources_catalog.json?v=20261115a");
+      const resp = await fetch("public/data/data_sources_catalog.json?v=20261116a");
       catalog = await resp.json();
       renderDiagram();
     }

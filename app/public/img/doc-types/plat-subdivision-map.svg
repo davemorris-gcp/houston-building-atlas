@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Stylized Subdivision Plat Map and Planning Commission Replat Overlay">
+  <defs>
+    <linearGradient id="bgPaper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf7ec"/>
+      <stop offset="100%" stop-color="#f1e8d2"/>
+    </linearGradient>
+    <linearGradient id="bgBlueprint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f253e"/>
+      <stop offset="100%" stop-color="#17375b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#091326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="420" height="260" rx="12" fill="#0d1726"/>
+  <rect x="14" y="14" width="392" height="232" rx="8" fill="url(#bgBlueprint)" stroke="#38bdf8" stroke-width="1.5" filter="url(#cardShadow)"/>
+  <rect x="24" y="22" width="372" height="24" rx="3" fill="#082f49"/>
+  <text x="34" y="38" fill="#e0f2fe" font-family="monospace" font-size="10.5" font-weight="bold">CH. 42 SUBDIVISION PLAT &amp; BIWEEKLY REPLAT MONITOR (C3N / C3R)</text>
+  <!-- Blueprint Grid -->
+  <rect x="28" y="54" width="218" height="152" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.2"/>
+  <line x1="28" y1="104" x2="246" y2="104" stroke="#7dd3fc" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="28" y1="154" x2="246" y2="154" stroke="#7dd3fc" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="137" y1="54" x2="137" y2="206" stroke="#38bdf8" stroke-width="1.2"/>
+  <text x="82" y="74" fill="#bae6fd" font-family="monospace" font-size="9" text-anchor="middle">ORIG LOT 13 (1896)</text>
+  <text x="82" y="88" fill="#7dd3fc" font-family="monospace" font-size="8.5" text-anchor="middle">50 FT x 100 FT</text>
+  <!-- Red Replat Subdivision Overlay on Lot 14 -->
+  <rect x="141" y="58" width="101" height="144" fill="#ef4444" fill-opacity="0.22" stroke="#f87171" stroke-width="2" stroke-dasharray="5,3"/>
+  <line x1="141" y1="94" x2="242" y2="94" stroke="#f87171" stroke-width="1.2"/>
+  <line x1="141" y1="130" x2="242" y2="130" stroke="#f87171" stroke-width="1.2"/>
+  <line x1="141" y1="166" x2="242" y2="166" stroke="#f87171" stroke-width="1.2"/>
+  <text x="191" y="79" fill="#fecaca" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">REPLAT LOT 14-A</text>
+  <text x="191" y="115" fill="#fecaca" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">REPLAT LOT 14-B</text>
+  <text x="191" y="151" fill="#fecaca" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">REPLAT LOT 14-C</text>
+  <text x="191" y="187" fill="#fecaca" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">REPLAT LOT 14-D</text>
+  <!-- Right Alert Box -->
+  <rect x="256" y="54" width="140" height="152" rx="4" fill="#0f172a" stroke="#f87171" stroke-width="1.2"/>
+  <text x="264" y="72" fill="#f87171" font-family="monospace" font-size="9.5" font-weight="bold">PLAT ALERT #2026-1420</text>
+  <text x="264" y="90" fill="#e2e8f0" font-family="sans-serif" font-size="9">Class: C3N Public Hearing</text>
+  <text x="264" y="106" fill="#e2e8f0" font-family="sans-serif" font-size="9">Existing: 1914 Bungalow</text>
+  <text x="264" y="122" fill="#fde047" font-family="sans-serif" font-size="9" font-weight="bold">Proposed: 4 Townhome Lots</text>
+  <text x="264" y="142" fill="#94a3b8" font-family="sans-serif" font-size="8.5">14-Day Early Warning</text>
+  <text x="264" y="156" fill="#94a3b8" font-family="sans-serif" font-size="8.5">Before Demo Permit Filed</text>
+  <rect x="264" y="170" width="124" height="24" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="326" y="186" fill="#38bdf8" font-family="monospace" font-size="8.5" text-anchor="middle">Agenda + Minutes Sync</text>
+  <!-- Footer -->
+  <rect x="24" y="216" width="372" height="22" rx="4" fill="#082f49"/>
+  <text x="210" y="230" fill="#7dd3fc" font-family="sans-serif" font-size="9.5" text-anchor="middle">Historic Plat Dates (1836-1927) + Biweekly Planning Commission Triage</text>
+</svg>

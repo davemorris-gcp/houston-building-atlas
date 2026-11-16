@@ -1188,8 +1188,33 @@ export function hydrateAuditQueuePayload(queueDoc) {
       recommended_action: String(it.act || actionsMap[cat] || "").trim(),
       landmark_code: String(it.lmc || "").trim(),
       architect: String(it.arc || "").trim(),
+      replacement_risk_flag: normalizeReplacementRiskFlag(
+        it.rf || it.replacement_risk_flag || ""
+      ),
     };
   });
+}
+
+export function normalizeReplacementRiskFlag(raw) {
+  const s = String(raw || "").trim().toLowerCase();
+  if (
+    s === "slab" ||
+    s === "slab_or_post1960" ||
+    s === "likely_replaced_slab_or_post1960"
+  ) {
+    return "likely_replaced_slab_or_post1960";
+  }
+  if (s === "multi" || s === "multi_bldg" || s === "multi_building_parcel") {
+    return "multi_building_parcel";
+  }
+  if (
+    s === "check" ||
+    s === "verify" ||
+    s === "needs_sanborn_or_streetview_check"
+  ) {
+    return "needs_sanborn_or_streetview_check";
+  }
+  return "";
 }
 
 /**
@@ -1272,10 +1297,18 @@ export function filterAuditQueueItems(
   const catFilter = String(filters.category || "all").trim();
   const distFilter = String(filters.district || "all").trim();
   const statusFilter = String(filters.status || "all").trim().toLowerCase();
+  const hideLikelyReplaced = Boolean(filters.hideLikelyReplaced);
   const q = String(filters.query || "").trim().toLowerCase();
 
   return items.filter((item) => {
     if (!matchesAuditCategoryFilter(item, catFilter)) {
+      return false;
+    }
+    if (
+      hideLikelyReplaced &&
+      normalizeReplacementRiskFlag(item.replacement_risk_flag || item.rf) ===
+        "likely_replaced_slab_or_post1960"
+    ) {
       return false;
     }
     const itemDist = String(item.district || AUDIT_UNDESIGNATED_DISTRICT).trim();
@@ -2147,6 +2180,7 @@ export class StaffWorkbenchController {
       district: "all",
       status: "actionable",
       sort: "priority",
+      hideLikelyReplaced: false,
       query: "",
     };
     this.auditMobilePane = "claim";
@@ -2447,6 +2481,9 @@ export class StaffWorkbenchController {
       const rawSort =
         document.getElementById("audit-sort-order")?.value || "priority";
       this.auditFilters.sort = normalizeAuditSort(rawSort);
+      this.auditFilters.hideLikelyReplaced = Boolean(
+        document.getElementById("audit-filter-hide-replaced")?.checked
+      );
       this.auditFilters.query =
         document.getElementById("audit-filter-search")?.value || "";
       this._applyAuditFiltersAndRender({ preserveCurrentFid: false });
@@ -2455,6 +2492,7 @@ export class StaffWorkbenchController {
     document.getElementById("audit-filter-district")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-filter-status")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-sort-order")?.addEventListener("change", onFilterMutate);
+    document.getElementById("audit-filter-hide-replaced")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-filter-search")?.addEventListener("input", onFilterMutate);
     document.getElementById("audit-btn-reset-filters")?.addEventListener("click", () => {
       this.auditFilters = {
@@ -2462,17 +2500,20 @@ export class StaffWorkbenchController {
         district: "all",
         status: "all",
         sort: "priority",
+        hideLikelyReplaced: false,
         query: "",
       };
       const catEl = document.getElementById("audit-filter-category");
       const distEl = document.getElementById("audit-filter-district");
       const stEl = document.getElementById("audit-filter-status");
       const sortEl = document.getElementById("audit-sort-order");
+      const hideEl = document.getElementById("audit-filter-hide-replaced");
       const qEl = document.getElementById("audit-filter-search");
       if (catEl) catEl.value = "all";
       if (distEl) distEl.value = "all";
       if (stEl) stEl.value = "all";
       if (sortEl) sortEl.value = "priority";
+      if (hideEl) hideEl.checked = false;
       if (qEl) qEl.value = "";
       this._applyAuditFiltersAndRender({ preserveCurrentFid: false });
     });
@@ -3119,6 +3160,15 @@ export class StaffWorkbenchController {
     };
     const stInfo = statusBadgeMap[status] || statusBadgeMap.pending;
     const savedNote = decisions[item.fid]?.note || "";
+    const rfFlag = normalizeReplacementRiskFlag(item.replacement_risk_flag || item.rf);
+    const rfBadgeHtml =
+      rfFlag === "likely_replaced_slab_or_post1960"
+        ? `<span class="audit-pill status-dismissed" id="audit-replacement-risk-pill" title="HCAD records a Concrete Slab foundation, post-1960 rebuild, or post-1960 erection year on this parcel">⚠️ Likely Replaced (Slab / Post-1960)</span>`
+        : rfFlag === "multi_building_parcel"
+        ? `<span class="audit-pill status-skipped" id="audit-replacement-risk-pill" title="Parcel contains multiple HCAD/GeoJSON footprints (#b2+) requiring secondary structure disambiguation">🏘️ Multi-Building Parcel (#b2+)</span>`
+        : rfFlag === "needs_sanborn_or_streetview_check"
+        ? `<span class="audit-pill status-pending" id="audit-replacement-risk-pill" title="Single-structure pre-1960 non-slab candidate ready for Sanborn &amp; Street View confirmation">🔍 Ready for Sanborn / Street View Check</span>`
+        : "";
 
     claimHost.innerHTML = `
       <div class="audit-card-header">
@@ -3129,6 +3179,7 @@ export class StaffWorkbenchController {
           <span class="audit-pill status-${escHtml(stInfo.cls)}" id="audit-current-status-pill">${escHtml(
             stInfo.text
           )}</span>
+          ${rfBadgeHtml}
         </div>
         <h3 class="audit-item-title">${escHtml(
           item.building_name ? `${item.building_name} - ${item.address}` : item.address || `HCAD ${item.hcad_num}`
