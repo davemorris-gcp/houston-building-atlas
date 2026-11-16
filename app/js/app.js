@@ -14046,7 +14046,7 @@ export class HoustonAtlasApp {
         : "Not reported";
     const scaleText =
       Number(props.stories) > 0
-        ? `${props.stories} stories (~${props.height_m}m)`
+        ? `${props.stories} ${Number(props.stories) === 1 ? "story" : "stories"} (~${props.height_m}m)`
         : "1 story";
 
     const fpSourceLabel =
@@ -15372,7 +15372,7 @@ export class HoustonAtlasApp {
         <!-- Option B: Zillow / Redfin 4-Stat Key Ribbon -->
         <div class="inspector-stat-ribbon" id="inspector-stat-ribbon" role="group" aria-label="Key Property Facts">
           <div class="stat-ribbon-cell">
-            <span class="inspector-year-pill stat-ribbon-val" style="background:${yearColor};">${yearDisplay}${props.is_curated_override ? " &#10003;" : ""}</span>
+            <span class="inspector-year-pill" style="background:${yearColor};">${yearDisplay}${props.is_curated_override ? " &#10003;" : ""}</span>
             <span class="inspector-age-pill stat-ribbon-lbl">${ageText}</span>
           </div>
           <div class="stat-ribbon-cell">
@@ -15491,7 +15491,7 @@ export class HoustonAtlasApp {
             <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
               <div class="inspector-photo-header">
                 <div class="inspector-photo-title-group">
-                  <span class="inspector-photo-kicker">&#128247; Archival Photographs &amp; Street View</span>
+                  <span class="inspector-photo-kicker">&#128247; Photos &amp; Street View</span>
                   <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
                 </div>
                 <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>

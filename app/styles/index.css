@@ -15710,8 +15710,11 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
    ========================================================================== */
 
 /* 1. Topbar Quick-Tools Popover (⋯ Tools ▾) */
-.inspector-topbar-tools {
+.inspector-topbar {
   position: relative;
+}
+.inspector-topbar-tools {
+  position: static;
   display: inline-block;
 }
 .inspector-topbar-tools.hidden {
@@ -15730,10 +15733,11 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
 }
 .inspector-topbar-tools-menu {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  width: 248px;
+  top: calc(100% + 4px);
+  right: 12px;
+  left: auto;
+  z-index: 45;
+  width: min(244px, calc(100% - 24px));
   padding: 6px;
   border-radius: 10px;
   background: rgba(15, 20, 26, 0.98);
@@ -15862,7 +15866,7 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
 
 .inspector-stat-ribbon {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.16fr 1.12fr 0.86fr 0.86fr;
   background: rgba(15, 23, 30, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 9px;
@@ -15870,13 +15874,13 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   margin-top: 2px;
 }
 .stat-ribbon-cell {
-  padding: 7px 6px;
+  padding: 7px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 2px;
+  gap: 2.5px;
   border-right: 1px solid rgba(148, 163, 184, 0.16);
   min-width: 0;
 }
@@ -15884,51 +15888,72 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   border-right: none;
 }
 .stat-ribbon-cell .inspector-year-pill {
-  padding: 1.5px 6px;
+  display: inline-block;
+  font-family: var(--font-sans);
+  padding: 2px 7px;
   font-size: 11px;
+  font-weight: 700;
   line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-align: center;
 }
 .stat-ribbon-cell .inspector-age-pill {
   font-size: 10px;
 }
+.stat-ribbon-btn,
 .stat-ribbon-cell-btn {
   appearance: none;
+  -webkit-appearance: none;
   background: transparent;
   border-top: none;
   border-bottom: none;
   border-left: none;
+  border-right: none;
+  color: inherit;
   cursor: pointer;
   font-family: var(--font-sans);
   transition: background 0.14s ease;
 }
+.stat-ribbon-btn:hover,
 .stat-ribbon-cell-btn:hover {
-  background: rgba(149, 201, 89, 0.12);
+  background: rgba(149, 201, 89, 0.14);
 }
 .stat-ribbon-val {
-  font-size: 12.2px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-cream);
   line-height: 1.2;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.stat-val-protected {
+  color: #86efac !important;
+}
+.stat-val-waiver {
+  color: #fde68a !important;
+}
+.stat-val-vulnerable {
+  color: var(--text-cream) !important;
+}
 .stat-ribbon-lbl {
   font-size: 9.8px;
   color: var(--text-secondary);
   line-height: 1.2;
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-align: center;
 }
 .stat-protection-dot {
   width: 7px;
@@ -15963,9 +15988,29 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   line-height: 1.35;
 }
 .photo-add-inline-btn {
+  appearance: none;
+  -webkit-appearance: none;
   flex: 0 0 auto !important;
-  padding: 0 11px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 7px 11px !important;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(149, 201, 89, 0.38);
+  color: #e9f6d8;
+  cursor: pointer;
   white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.photo-add-inline-btn:hover {
+  background: rgba(149, 201, 89, 0.22);
+  border-color: var(--ph-green);
+  color: #ffffff;
 }
 
 /* 5. Collapsible Accordions (Architecture & Provenance, District & Boundaries, Secondary Tools) */
@@ -16144,8 +16189,27 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
 :is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-ribbon-val {
   color: #0f172a;
 }
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-val-protected {
+  color: #15803d !important;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-val-waiver {
+  color: #b45309 !important;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-val-vulnerable {
+  color: #0f172a !important;
+}
 :is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .stat-ribbon-lbl {
   color: #475569;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .photo-add-inline-btn {
+  background: rgba(45, 106, 30, 0.08);
+  border-color: rgba(45, 106, 30, 0.42);
+  color: #14532d;
+}
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .photo-add-inline-btn:hover {
+  background: rgba(45, 106, 30, 0.16);
+  border-color: #15803d;
+  color: #052e16;
 }
 :is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"]) .inspector-b-accordion {
   background: rgba(255, 255, 255, 0.85);
