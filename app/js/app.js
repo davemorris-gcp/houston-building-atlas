@@ -15586,6 +15586,30 @@ export class HoustonAtlasApp {
                         }${this._escapeHtmlAttr(yearEvidentiaryTier.shortBadge)}</span>`
                       : ""
                   }
+                  <a
+                    href="data-ecosystem.html#visual=${
+                      String(props.source_type || "").toLowerCase().includes("directory")
+                        ? "directories_street_guide_alpha"
+                        : String(props.source_type || "").toLowerCase().includes("sanborn")
+                        ? "sanborn_iiif_sheet_index"
+                        : String(props.source_type || "").toLowerCase().includes("permit") ||
+                          props.year_source === "hcad_permit"
+                        ? "hmrc_historic_permits_1905_1951"
+                        : String(props.source_type || "").toLowerCase().includes("hpo") ||
+                          String(props.source_type || "").toLowerCase().includes("survey")
+                        ? "coh_hahc_coa_tracker"
+                        : props.year_source === "curated_landmark"
+                        ? "ph_curated_good_brick"
+                        : props.year_source === "hcad_deed"
+                        ? "hc_clerk_address_shards"
+                        : "hcad_cama_annual"
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="quick-flag-btn"
+                    style="text-decoration:none;opacity:0.85;"
+                    title="See what this primary-source record looks like in the Data Ecosystem Visual Field Guide"
+                  >&#128444; See Record &#8599;</a>
                 </span>
               </div>
               <div class="inspector-cell full">
@@ -15848,7 +15872,17 @@ export class HoustonAtlasApp {
               }
               <div class="inspector-cell full">
                 <span class="cell-label">Geometry Provenance</span>
-                <span class="cell-value">${fpSourceLabel}</span>
+                <span class="cell-value" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+                  <span>${fpSourceLabel}</span>
+                  <a
+                    href="data-ecosystem.html#visual=hcad_arcgis_live"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="quick-flag-btn"
+                    style="text-decoration:none;opacity:0.85;"
+                    title="See how HCAD parcel polygons and #b1/#b2 building footprints are structured"
+                  >&#128444; See Record &#8599;</a>
+                </span>
               </div>
             </div>
 

@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Property Detail Sidebar UX Mockups | Houston Building Atlas</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="public/assets/ph-favicon.png" />
+  <style>
+    :root {
+      --bg: #0b1120;
+      --bg-elev: #111827;
+      --card: #1e293b;
+      --card-2: #0f172a;
+      --ink: #f8fafc;
+      --ink-2: #cbd5e1;
+      --muted: #94a3b8;
+      --border: #334155;
+      --border-strong: #475569;
+      --amber: #f59e0b;
+      --green: #10b981;
+      --blue: #38bdf8;
+      --purple: #a855f7;
+      --red: #f43f5e;
+    }
+    html[data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-elev: #ffffff;
+      --card: #f1f5f9;
+      --card-2: #e2e8f0;
+      --ink: #0f172a;
+      --ink-2: #334155;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --border-strong: #94a3b8;
+      --amber: #d97706;
+      --green: #059669;
+      --blue: #0284c7;
+      --purple: #7c3aed;
+      --red: #e11d48;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-ph {
+      background: #b91c1c;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 6px;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .top-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .nav-btns {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn:hover { border-color: var(--blue); }
+    .btn.active {
+      background: var(--blue);
+      color: #082f49;
+      border-color: var(--blue);
+    }
+    .page-wrap {
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 16px 20px 48px;
+    }
+    .intro-banner {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .intro-banner { grid-template-columns: 1fr; }
+    }
+    .intro-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+    .intro-sub {
+      color: var(--ink-2);
+      margin: 0;
+      font-size: 13.5px;
+    }
+    .diagnosis-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      color: var(--ink-2);
+    }
+    .diagnosis-box ul {
+      margin: 4px 0 0;
+      padding-left: 18px;
+    }
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .tab-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    /* Side-by-side phone/sidebar frames */
+    .mockup-stage {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(355px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+    .mockup-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .mockup-Header-meta {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .mockup-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      margin-bottom: 4px;
+    }
+    .mockup-col-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 3px;
+    }
+    .mockup-col-desc {
+      font-size: 12.5px;
+      color: var(--ink-2);
+      margin: 0;
+    }
+    /* Simulated 380px Right-Hand Inspector Drawer */
+    .drawer-frame {
+      width: 100%;
+      max-width: 390px;
+      background: var(--bg-elev);
+      border: 2px solid var(--border-strong);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
+      display: flex;
+      flex-direction: column;
+    }
+    .drawer-topbar {
+      background: var(--card-2);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .drawer-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+    .pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pill-year { background: #d97706; color: #fff; }
+    .pill-muted { background: var(--card); color: var(--ink-2); border-color: var(--border); }
+    .pill-alert { background: rgba(244, 63, 94, 0.2); color: #fda4af; border-color: rgba(244, 63, 94, 0.45); }
+    .pill-green { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); }
+    .prop-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 2px 0 0;
+      line-height: 1.25;
+    }
+    .prop-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .crowded-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .crowded-alert {
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+    }
+    .tabs-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: var(--card-2);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .tabs-strip.three-tabs {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .tab-pill {
+      text-align: center;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 4px;
+      border-radius: 6px;
+      color: var(--ink-2);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    .tab-pill.active {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .scorecard-4grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .sc-mini {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    .sc-mini strong { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .mini-btn {
+      background: var(--card-2);
+      color: var(--ink-2);
+      border: 1px solid var(--border-strong);
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-size: 10.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .mini-btn:hover { border-color: var(--blue); color: var(--ink); }
+    .cell-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .cell-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+    }
+    .cell-box.full { grid-column: 1 / -1; }
+    .cell-lbl {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .stack-btn {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: var(--card);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stack-btn.primary {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+    /* Photo Hero for Redesigned Options */
+    .hero-photo-box {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      background: #172554;
+      height: 132px;
+      display: flex;
+      align-items: flex-end;
+      padding: 10px;
+    }
+    .hero-photo-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero-photo-overlay {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 8px;
+      background: linear-gradient(to top, rgba(11,17,32,0.92), rgba(11,17,32,0.2));
+      margin: -10px;
+      padding: 22px 10px 8px;
+    }
+    /* Apple/Google Maps 4-Circle Action Row */
+    .circle-actions-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 4px 0;
+    }
+    .circle-action-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .circle-action-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .circle-icon { font-size: 15px; }
+    /* Clean Tufte Key-Value List (No nested boxes) */
+    .clean-kv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .clean-kv-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .clean-kv-table tr:last-child { border-bottom: none; }
+    .clean-kv-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+      padding: 6px 4px;
+      width: 40%;
+      font-size: 12px;
+    }
+    .clean-kv-table td {
+      padding: 6px 4px;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    /* Zillow 4-Stat Ribbon */
+    .stat-ribbon {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 4px;
+      text-align: center;
+    }
+    .stat-ribbon > div {
+      border-right: 1px solid var(--border);
+      padding: 0 4px;
+    }
+    .stat-ribbon > div:last-child { border-right: none; }
+    .stat-val { font-size: 13.5px; font-weight: 700; color: var(--ink); display: block; }
+    .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    /* Accordion Drawer */
+    details.clean-acc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+    }
+    details.clean-acc summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+    }
+    details.clean-acc summary::-webkit-details-marker { display: none; }
+    .acc-body {
+      padding-top: 8px;
+      margin-top: 7px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+    /* Mix & Match Builder Bar */
+    .builder-card {
+      margin-top: 24px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .builder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .builder-chk {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      cursor: pointer;
+      font-size: 12.5px;
+    }
+    .builder-chk input { margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="index.html" class="badge-ph">Preservation Houston</a>
+      <h1 class="top-title">Property Detail Sidebar UX Brainstorm &amp; Interactive Mockups</h1>
+    </div>
+    <div class="nav-btns">
+      <a href="index.html" class="btn">🗺️ Back to Interactive Map</a>
+      <a href="data-ecosystem.html" class="btn">🏛️ Data Ecosystem</a>
+      <button type="button" class="btn" id="themeBtn">☀️ Light / Dark</button>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <section class="intro-banner">
+      <div>
+        <h2 class="intro-title">Why the Current Detail Sidebar Feels Crowded &amp; How We Can Fix It Without Losing Any Functionality</h2>
+        <p class="intro-sub">
+          Below is the exact same historic property (<strong>1435 Heights Blvd, Miller-Vance House, Built 1914</strong>) rendered in the <strong>Current Sidebar ("Before")</strong> alongside <strong>4 Best-Practice UX Redesign Options</strong> modeled on Apple/Google Maps, Zillow/Redfin, Linear/Notion's Simple-vs-Pro toggle, and Wikipedia/NYT Scrollytelling. Every option preserves 100% of your existing tools while dramatically reducing visual clutter.
+        </p>
+      </div>
+      <div class="diagnosis-box">
+        <strong>🔍 Audit of Current Sidebar Crowding (380px width):</strong>
+        <ul>
+          <li><strong>9 Stacked Header Bars Above Tabs:</strong> Badges, title, name provenance, AKA chips, subtitle, status bar, and alert banners push tabs &amp; photos down.</li>
+          <li><strong>Box-in-Box Overload:</strong> 4-box Protection Scorecard + giant Ch. 42 CTA + 12 bordered fact cells = 18 nested boxes in Tab 1 alone.</li>
+          <li><strong>35+ Competing Buttons/Chips:</strong> Every fact cell repeats <code>🔎</code>, <code>Outline</code>, <code>🎯 Isolate</code>, and <code>⚑ Flag</code>, followed by a 6-button vertical stack at the bottom.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mode-bar">
+      <div class="tab-row" role="tablist" aria-label="Filter mockup columns">
+        <button type="button" class="btn active" data-show-col="all">Compare All Side-by-Side (5 Columns)</button>
+        <button type="button" class="btn" data-show-col="before-a">Current vs. Option A (Apple/Google Maps)</button>
+        <button type="button" class="btn" data-show-col="before-b">Current vs. Option B (Zillow/Redfin)</button>
+        <button type="button" class="btn" data-show-col="before-c">Current vs. Option C (Simple / Pro Toggle)</button>
+        <button type="button" class="btn" data-show-col="before-d">Current vs. Option D (Single-Scroll Story)</button>
+      </div>
+      <span style="font-size:12px;color:var(--muted)">💡 Click any accordion, tab, or <code>⋯ More</code> menu inside the mockups below to test the interaction!</span>
+    </div>
+
+    <div class="mockup-stage" id="mockupStage">
+      <!-- COLUMN 0: CURRENT ("BEFORE") -->
+      <div class="mockup-column" data-col-id="before">
+        <div class="mockup-Header-meta">
+          <span class="mockup-tag" style="background:rgba(244,63,94,0.2);color:#fda4af">Current Baseline ("Before")</span>
+          <h3 class="mockup-col-title">Current Crowded Inspector</h3>
+          <p class="mockup-col-desc">35+ visible buttons/badges, 18 nested bordered boxes, and 6 full-width bottom buttons.</p>
+        </div>
+
+        <aside class="drawer-frame">
+          <div class="drawer-topbar">
+            <span>Archival Property Record</span>
+            <span>⤢ Wide View &nbsp; ×</span>
+          </div>
+          <div class="drawer-body">
+            <div class="crowded-box" style="font-size:11px;color:var(--muted)">Overlapping Layers: [1435 Heights #b1] [Heights East HD] [Parcel]</div>
+            <div class="pill-row">
+              <span class="pill pill-year">Built 1914 ✓</span>
+              <span class="pill pill-muted">112 yrs old</span>
+              <span class="pill pill-alert">⚠ Active Permit Watch</span>
+            </div>
+            <h4 class="prop-title">Miller-Vance House</h4>
+            <div class="pill-row">
+              <span class="mini-btn">✓ Tier 1 Verified Name</span>
+              <span class="mini-btn">⚑ Flag Name</span>
+            </div>
+            <div class="crowded-box">
+              <span class="cell-lbl">Also Known As / Historical Names:</span>
+              <span class="mini-btn">J. H. Miller Residence 🔎</span>
+              <span class="mini-btn">1435 Heights Bungalow 🔎</span>
+            </div>
+            <p class="prop-sub">1435 Heights Blvd · Houston Heights East HD</p>
+            <div class="crowded-box">● Contributing Structure · Good Brick Winner</div>
+            <div class="crowded-alert">⚡ Active COA / Permit Activity on Parcel · Permits &amp; 15-Pt Tracker →</div>
+
+            <div class="tabs-strip">
+              <button class="tab-pill active">Overview</button>
+              <button class="tab-pill">History (4)</button>
+              <button class="tab-pill">Permits !</button>
+              <button class="tab-pill">HCAD</button>
+            </div>
+
+            <!-- 4-Card Protection Scorecard -->
+            <div class="crowded-box">
+              <div class="cell-lbl">Protection &amp; Tax Credit Scorecard</div>
+              <div class="scorecard-4grid">
+                <div class="sc-mini"><strong>Demolition Rule</strong>HAHC COA Required</div>
+                <div class="sc-mini"><strong>Lot-Split Armor</strong>SMLS 6,600 SF Min</div>
+                <div class="sc-mini"><strong>Tax Credits</strong>45% Fed + TX Rehab</div>
+                <div class="sc-mini"><strong>Scorecard</strong>Heights East [Open]</div>
+              </div>
+            </div>
+
+            <div class="crowded-box" style="border-color:var(--blue);background:rgba(56,189,248,0.1)">
+              <strong style="color:var(--blue);display:block">🛡️ Analyze Blockface for Ch. 42 Protection (SMLS / SMBL)</strong>
+              <span style="font-size:11px;color:var(--ink-2)">Live HCAD lot-size &amp; setback cutoffs, 51% fast-track area &amp; walk-sheet →</span>
+            </div>
+
+            <div class="crowded-box">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span class="cell-lbl">📷 Archival Photographs (2)</span>
+                <span class="mini-btn">+ Add Photo</span>
+              </div>
+              <div style="height:68px;background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">[Photo Scrolled Below Fold]</div>
+              <div style="margin-top:5px;display:flex;justify-content:space-between">
+                <span class="mini-btn">👁 Street View Time Machine ↗</span>
+                <span class="mini-btn">⚑ Wrong Building</span>
+              </div>
+            </div>
+
+            <div class="cell-grid">
+              <div class="cell-box full">
+                <span class="cell-lbl">Architectural Style</span>
+                <span class="mini-btn">Craftsman Bungalow 🔎</span>
+              </div>
+              <div class="cell-box full">
+                <span class="cell-lbl">Architect</span>
+                <span class="mini-btn">Russell Brown Co. 🔎</span>
+                <span class="mini-btn">✓ Tier 1</span>
+                <span class="mini-btn">⚑ Flag</span>
+              </div>
+              <div class="cell-box">
+                <span class="cell-lbl">Historic District</span>
+                <span class="mini-btn">Heights East 🔎</span>
+                <span class="mini-btn">🎯 Isolate</span>
+              </div>
+              <div class="cell-box">
+                <span class="cell-lbl">Neighborhood</span>
+                <span class="mini-btn">The Heights 🔎</span>
+                <span class="mini-btn">Outline</span>
+                <span class="mini-btn">🎯 Isolate</span>
+              </div>
+              <div class="cell-box">
+                <span class="cell-lbl">Floor Area</span>
+                <strong>2,410 sq ft</strong>
+              </div>
+              <div class="cell-box">
+                <span class="cell-lbl">Lot Size</span>
+                <strong>6,600 sq ft</strong>
+              </div>
+              <div class="cell-box full">
+                <span class="cell-lbl">Construction Date Provenance</span>
+                HMRC Permit #14892 (1914) <span class="mini-btn">✓ Tier 1</span> <span class="mini-btn">🖼️ See Record ↗</span>
+              </div>
+            </div>
+
+            <div class="btn-stack">
+              <button class="stack-btn primary"><span>📚 Open 5-Step House History Research Kit</span><span>→</span></button>
+              <button class="stack-btn"><span>✎ Suggest a Date / Shape / Data Correction</span><span>→</span></button>
+              <button class="stack-btn"><span>🔗 Copy Shareable Link &nbsp;|&nbsp; 🖨 Print Sheet</span></button>
+              <button class="stack-btn"><span>🏛 Pre-Filled THC Survey Form</span><span>→</span></button>
+              <button class="stack-btn"><span>🤖 Ask AI / Copy Research Dossier</span><span>→</span></button>
+              <button class="stack-btn"><span>View on Google Maps ↗</span></button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- COLUMN 1: OPTION A (APPLE / GOOGLE MAPS PLACE CARD) -->
+      <div class="mockup-column" data-col-id="a">
+        <div class="mockup-Header-meta">
+          <span class="mockup-tag" style="background:rgba(56,189,248,0.2);color:#38bdf8">Option A (Recommended All-Rounder)</span>
+          <h3 class="mockup-col-title">Apple / Google Maps "Place Card"</h3>
+          <p class="mockup-col-desc">Hero photo at top, 4-icon Quick Action dock, 1-line expandable Protection summary, and hover/popover chips.</p>
+        </div>
+
+        <aside class="drawer-frame">
+          <div class="drawer-topbar">
+            <span>1435 Heights Blvd · #0201520000004</span>
+            <span>⤢ Wide &nbsp; ×</span>
+          </div>
+          <div class="drawer-body">
+            <!-- 1. Hero Photo + Title Overlay right at top -->
+            <div class="hero-photo-box">
+              <img src="public/img/doc-types/hmrc-photographs-architectural.svg" alt="Historic elevation" class="hero-photo-svg" />
+              <div class="hero-photo-overlay">
+                <div>
+                  <div class="pill-row" style="margin-bottom:3px">
+                    <span class="pill pill-year">Built 1914 ✓</span>
+                    <span class="pill pill-green">🛡️ Protected HD</span>
+                  </div>
+                  <h4 class="prop-title" style="color:#fff;font-size:17px">Miller-Vance House</h4>
+                  <p class="prop-sub" style="color:#cbd5e1">1435 Heights Blvd · Craftsman Bungalow</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. 4-Circle Icon Quick Action Bar (Replaces 6-button bottom stack!) -->
+            <div class="circle-actions-row">
+              <button type="button" class="circle-action-btn" title="Open 2007-2026 Street View Time Machine">
+                <span class="circle-icon">👁️</span>
+                <span>Street View</span>
+              </button>
+              <button type="button" class="circle-action-btn" title="Jump to 5-Step House History Research Kit">
+                <span class="circle-icon">📚</span>
+                <span>Research Kit</span>
+              </button>
+              <button type="button" class="circle-action-btn" title="Submit an archival date, photo, or footprint edit">
+                <span class="circle-icon">✎</span>
+                <span>Suggest Edit</span>
+              </button>
+              <details style="position:relative">
+                <summary class="circle-action-btn" style="list-style:none">
+                  <span class="circle-icon">⋯</span>
+                  <span>More (5)</span>
+                </summary>
+                <div style="position:absolute;right:0;top:58px;width:215px;background:var(--bg-elev);border:1px solid var(--border-strong);border-radius:8px;padding:6px;z-index:20;box-shadow:0 10px 25px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:4px">
+                  <button class="mini-btn" style="padding:5px 8px;width:100%">🖨️ Print Property Sheet</button>
+                  <button class="mini-btn" style="padding:5px 8px;width:100%">🛡️ Ch. 42 Blockface Calculator</button>
+                  <button class="mini-btn" style="padding:5px 8px;width:100%">🏛️ Pre-Filled THC Survey Form</button>
+                  <button class="mini-btn" style="padding:5px 8px;width:100%">🤖 Ask AI / Copy Dossier</button>
+                  <button class="mini-btn" style="padding:5px 8px;width:100%">🔗 Copy Shareable Link</button>
+                </div>
+              </details>
+            </div>
+
+            <!-- 3. Single Compact Protection Accordion (Replaces 4 boxes + Ch.42 banner) -->
+            <details class="clean-acc">
+              <summary>
+                <span>🛡️ Legal Armor: <strong>HAHC Protected · SMLS Lot Armor</strong></span>
+                <span style="font-size:11px;color:var(--blue)">Details ▾</span>
+              </summary>
+              <div class="acc-body">
+                <div>• <strong>Demolition Rule:</strong> Contributing in Heights East HD (COA required).</div>
+                <div>• <strong>Lot-Split Armor:</strong> Protected by 6,600 SF Minimum Lot Size (SMLS).</div>
+                <div>• <strong>Tax Credits:</strong> Eligible for up to 45% Fed + TX Rehab Tax Credits.</div>
+                <div style="margin-top:6px"><span class="mini-btn">🛡️ Open Ch. 42 Blockface Calculator →</span></div>
+              </div>
+            </details>
+
+            <!-- 4. Clean Tabs -->
+            <div class="tabs-strip">
+              <button class="tab-pill active">Overview</button>
+              <button class="tab-pill">History (4)</button>
+              <button class="tab-pill">Permits (2)</button>
+              <button class="tab-pill">HCAD</button>
+            </div>
+
+            <!-- 5. Clean Borderless Key-Value Table (1 chip per row instead of 3!) -->
+            <table class="clean-kv-table">
+              <tr>
+                <th>Year &amp; Source</th>
+                <td>
+                  1914 (HMRC Permit #14892)
+                  <a href="data-ecosystem.html#visual=hmrc_historic_permits_1905_1951" target="_blank" class="mini-btn" style="text-decoration:none">🖼️ Record ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <th>Architect / Builder</th>
+                <td>Russell Brown Co. · W. W. Barden</td>
+              </tr>
+              <tr>
+                <th>Building / Lot Size</th>
+                <td>2,410 sq ft (1.5-story) · 6,600 sq ft lot</td>
+              </tr>
+              <tr>
+                <th>Historic District</th>
+                <td><span class="mini-btn" title="Click for filter, outline, or isolate menu">Heights East HD ▾</span></td>
+              </tr>
+              <tr>
+                <th>Neighborhood</th>
+                <td><span class="mini-btn" title="Click for filter, outline, or isolate menu">Houston Heights ▾</span></td>
+              </tr>
+              <tr>
+                <th>Recorded Owner</th>
+                <td>1435 Heights Holdings LLC <span class="mini-btn">Unmask →</span></td>
+              </tr>
+            </table>
+          </div>
+        </aside>
+      </div>
+
+      <!-- COLUMN 2: OPTION B (ZILLOW / REDFIN PROGRESSIVE DISCLOSURE) -->
+      <div class="mockup-column" data-col-id="b">
+        <div class="mockup-Header-meta">
+          <span class="mockup-tag" style="background:rgba(16,185,129,0.2);color:#6ee7b7">Option B (Data-First Scannability)</span>
+          <h3 class="mockup-col-title">Zillow / Redfin "4-Stat Ribbon"</h3>
+          <p class="mockup-col-desc">4-stat KPI ribbon at top, 3 consolidated tabs (`Summary | History | Permits &amp; Tax`), and collapsible cards.</p>
+        </div>
+
+        <aside class="drawer-frame">
+          <div class="drawer-topbar">
+            <span>Property Record</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="mini-btn">⋯ Tools &amp; Exports ▾</span>
+              <span>×</span>
+            </div>
+          </div>
+          <div class="drawer-body">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11.5px;color:var(--green);font-weight:700">● Contributing · Good Brick Recipient</span>
+                <span class="mini-btn">✎ Suggest Edit</span>
+              </div>
+              <h4 class="prop-title">1435 Heights Blvd</h4>
+              <p class="prop-sub">Miller-Vance House · Houston Heights East HD</p>
+            </div>
+
+            <!-- Zillow-style 4-Stat Ribbon -->
+            <div class="stat-ribbon">
+              <div>
+                <span class="stat-val" style="color:var(--amber)">1914 ✓</span>
+                <span class="stat-lbl">Verified Yr</span>
+              </div>
+              <div>
+                <span class="stat-val">2,410</span>
+                <span class="stat-lbl">Bldg Sq Ft</span>
+              </div>
+              <div>
+                <span class="stat-val">6,600</span>
+                <span class="stat-lbl">Lot Sq Ft</span>
+              </div>
+              <div>
+                <span class="stat-val" style="color:var(--green)">Protected</span>
+                <span class="stat-lbl">Ch. 33 + SMLS</span>
+              </div>
+            </div>
+
+            <!-- 3 Consolidated Tabs instead of 4 -->
+            <div class="tabs-strip three-tabs">
+              <button class="tab-pill active">Summary</button>
+              <button class="tab-pill">History &amp; Kit (4)</button>
+              <button class="tab-pill">Permits &amp; Tax</button>
+            </div>
+
+            <!-- Compact Photo + Street View Split Row -->
+            <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px;align-items:center">
+              <img src="public/img/doc-types/hmrc-photographs-architectural.svg" alt="Thumb" style="width:100%;border-radius:5px;border:1px solid var(--border-strong)" />
+              <div style="font-size:11.5px">
+                <div style="font-weight:700;color:var(--ink);margin-bottom:3px">2 Archival Photos + Street View</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <span class="mini-btn">📷 Gallery (2)</span>
+                  <span class="mini-btn">👁️ 2007-2026 Street View ↗</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Collapsible Sections -->
+            <details class="clean-acc" open>
+              <summary>
+                <span>🏛️ Architecture &amp; Provenance</span>
+                <span>▾</span>
+              </summary>
+              <div class="acc-body">
+                <table class="clean-kv-table">
+                  <tr><th>Style</th><td>Craftsman Bungalow (1.5-Story Frame)</td></tr>
+                  <tr><th>Architect</th><td>Russell Brown Co. (W. W. Barden, Builder)</td></tr>
+                  <tr><th>Date Source</th><td>1914 City Permit #14892 <a href="data-ecosystem.html#visual=hmrc_historic_permits_1905_1951" target="_blank" class="mini-btn" style="text-decoration:none">🖼️ See Record ↗</a></td></tr>
+                </table>
+              </div>
+            </details>
+
+            <details class="clean-acc">
+              <summary>
+                <span>🛡️ Demolition Rules, Lot Armor &amp; Tax Credits</span>
+                <span>▸</span>
+              </summary>
+              <div class="acc-body">
+                HAHC COA required · 6,600 SF SMLS · 45% Historic Tax Credit eligible.
+              </div>
+            </details>
+
+            <details class="clean-acc">
+              <summary>
+                <span>🗺️ District, Neighborhood &amp; Map Isolation</span>
+                <span>▸</span>
+              </summary>
+              <div class="acc-body">
+                Heights East HD · Super Neighborhood 15 · Council District C.
+              </div>
+            </details>
+          </div>
+        </aside>
+      </div>
+
+      <!-- COLUMN 3: OPTION C (READER / PRO RESEARCHER MODE SWITCHER) -->
+      <div class="mockup-column" data-col-id="c">
+        <div class="mockup-Header-meta">
+          <span class="mockup-tag" style="background:rgba(168,85,247,0.2);color:#d8b4fe">Option C (Best for Diverse Audiences)</span>
+          <h3 class="mockup-col-title">Adaptive "Simple vs. Pro" Mode Toggle</h3>
+          <p class="mockup-col-desc">Defaults to a calm, clutter-free card for the public; 1 click on <code>Pro Mode</code> unlocks all 35 staff/historian tools.</p>
+        </div>
+
+        <aside class="drawer-frame" id="optionCFrame">
+          <div class="drawer-topbar">
+            <span>Property Inspector</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="background:var(--bg);border:1px solid var(--border-strong);border-radius:6px;padding:2px;display:inline-flex;gap:2px">
+                <button type="button" class="mini-btn" id="optCSimpleBtn" style="background:var(--blue);color:#082f49;border:none;font-weight:700">Simple</button>
+                <button type="button" class="mini-btn" id="optCProBtn" style="background:transparent;border:none">Pro (Staff)</button>
+              </div>
+              <span>×</span>
+            </div>
+          </div>
+
+          <!-- SIMPLE MODE VIEW -->
+          <div class="drawer-body" id="optCSimpleBody">
+            <div class="hero-photo-box" style="height:120px">
+              <img src="public/img/doc-types/ph-curated-good-brick.svg" alt="Good Brick Landmark" class="hero-photo-svg" />
+            </div>
+
+            <div>
+              <div class="pill-row" style="margin-bottom:4px">
+                <span class="pill pill-year">Built 1914 ✓</span>
+                <span class="pill pill-green">Protected Landmark District</span>
+              </div>
+              <h4 class="prop-title">Miller-Vance House</h4>
+              <p class="prop-sub">1435 Heights Blvd · Houston Heights</p>
+            </div>
+
+            <div class="crowded-box" style="background:var(--card-2);line-height:1.5">
+              <strong>Why This Building Matters:</strong> Erected in October 1914 by builder W. W. Barden for Southern Pacific Railway chief clerk John H. Miller. Features intact heart-pine siding, cypress porch columns, and a 1924 rear carriage apartment (#b2).
+            </div>
+
+            <table class="clean-kv-table">
+              <tr><th>Architectural Style</th><td>Craftsman Bungalow</td></tr>
+              <tr><th>Original Architect</th><td>Russell Brown Co. (1914)</td></tr>
+              <tr><th>Size &amp; Scale</th><td>2,410 sq ft · 1.5 Stories · 6,600 SF Lot</td></tr>
+              <tr><th>Protection Status</th><td>Protected against demolition &amp; lot splits</td></tr>
+              <tr><th>How We Know Its Age</th><td>1914 Building Permit &amp; 1915 Directory <a href="data-ecosystem.html#visual=hmrc_historic_permits_1905_1951" target="_blank" class="mini-btn" style="text-decoration:none">🖼️ See Record ↗</a></td></tr>
+            </table>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+              <button class="stack-btn primary" style="justify-content:center">👁️ Street View</button>
+              <button class="stack-btn" style="justify-content:center">📚 House History</button>
+            </div>
+            <div style="text-align:center;font-size:11px;color:var(--muted)">
+              Need HCAD account numbers, Ch. 42 calculators, THC forms, or map isolation? Switch to <strong>Pro (Staff)</strong> in the top bar.
+            </div>
+          </div>
+
+          <!-- PRO MODE VIEW (Hidden until toggled) -->
+          <div class="drawer-body" id="optCProBody" style="display:none">
+            <div class="crowded-alert">⚡ Pro Researcher Mode Active: Showing all Evidentiary Tiers, HCAD/Clerk tokens, Boundary Isolation, and Staff Tools.</div>
+            <div class="pill-row">
+              <span class="pill pill-year">1914 (Tier 1 Permit #14892)</span>
+              <span class="pill pill-muted">HCAD: 0201520000004#b1</span>
+            </div>
+            <table class="clean-kv-table">
+              <tr><th>HCAD Account</th><td><code>0201520000004</code> <span class="mini-btn">Copy</span></td></tr>
+              <tr><th>Owner / Portfolio</th><td>1435 Heights Holdings LLC <span class="mini-btn">SOS Unmask</span></td></tr>
+              <tr><th>Boundary Isolate</th><td><span class="mini-btn">🎯 Heights East HD</span> <span class="mini-btn">🎯 Plat</span></td></tr>
+              <tr><th>Staff Tools</th><td><span class="mini-btn">🛡️ Ch.42 Calc</span> <span class="mini-btn">🏛️ THC Form</span> <span class="mini-btn">🤖 AI Dossier</span></td></tr>
+            </table>
+          </div>
+        </aside>
+      </div>
+
+      <!-- COLUMN 4: OPTION D (WIKIPEDIA / NYT SINGLE-SCROLL STORY DOSSIER) -->
+      <div class="mockup-column" data-col-id="d">
+        <div class="mockup-Header-meta">
+          <span class="mockup-tag" style="background:rgba(245,158,11,0.2);color:#fcd34d">Option D (Zero Hidden Tabs)</span>
+          <h3 class="mockup-col-title">Single-Scroll Story + Jump Bar</h3>
+          <p class="mockup-col-desc">Replaces tabs with a smooth single-scroll narrative, sticky section jump pills, and a pinned bottom action bar.</p>
+        </div>
+
+        <aside class="drawer-frame">
+          <div class="drawer-topbar">
+            <span>1435 Heights Blvd</span>
+            <span>🔗 Share &nbsp; 🖨️ Print &nbsp; ×</span>
+          </div>
+          <!-- Sticky Section Jump Pills -->
+          <div style="background:var(--card-2);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;gap:5px;overflow-x:auto">
+            <span class="mini-btn" style="background:var(--blue);color:#082f49;border:none;font-weight:700">1. Facts</span>
+            <span class="mini-btn">2. Protection</span>
+            <span class="mini-btn">3. 1914-2026 Timeline</span>
+            <span class="mini-btn">4. Permits</span>
+          </div>
+
+          <div class="drawer-body" style="gap:12px">
+            <div style="display:flex;gap:10px;align-items:center">
+              <img src="public/img/doc-types/hca-cr051-field-cards.svg" alt="BLA Card" style="width:96px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border-strong)" />
+              <div>
+                <span class="pill pill-year" style="margin-bottom:3px">Built 1914 ✓</span>
+                <h4 class="prop-title" style="font-size:16px">Miller-Vance House</h4>
+                <p class="prop-sub">Craftsman Bungalow · 2,410 SF</p>
+              </div>
+            </div>
+
+            <div style="border-left:2px solid var(--amber);padding-left:10px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--amber)">Section 1 · Architecture &amp; Provenance</div>
+              <p style="margin:3px 0 6px;font-size:12px;color:var(--ink-2)">
+                Designed by Russell Brown Co. and built by W. W. Barden in Oct 1914 (<a href="data-ecosystem.html#visual=hmrc_historic_permits_1905_1951" target="_blank" style="color:var(--blue)">🖼️ Permit #14892 ↗</a>).
+              </p>
+            </div>
+
+            <div style="border-left:2px solid var(--green);padding-left:10px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--green)">Section 2 · Legal Protection &amp; Tax Credits</div>
+              <p style="margin:3px 0;font-size:12px;color:var(--ink-2)">
+                Contributing structure in <strong>Heights East HD</strong> (HAHC COA required) + <strong>6,600 SF SMLS</strong> lot-split armor.
+              </p>
+            </div>
+
+            <div style="border-left:2px solid var(--blue);padding-left:10px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--blue)">Section 3 · 1914-2026 Chain of Stewardship</div>
+              <div style="font-size:11.5px;color:var(--ink-2);margin-top:3px">
+                • <strong>1914-1923:</strong> John H. &amp; Clara Miller (SoPac Ry)<br/>
+                • <strong>1924-1971:</strong> Arthur R. &amp; Edith Vance (Heights Lumber)<br/>
+                • <strong>1972-2013:</strong> Carter Family Trust<br/>
+                • <strong>2026:</strong> 1435 Heights Holdings LLC
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Bar -->
+            <div style="background:var(--card-2);border-top:1px solid var(--border);margin:-12px -12px -12px;padding:8px 12px;display:flex;justify-content:space-between;gap:6px">
+              <button class="mini-btn" style="padding:5px 9px;font-weight:700;color:var(--blue);border-color:var(--blue)">📚 Research Kit</button>
+              <button class="mini-btn" style="padding:5px 9px">👁️ Street View</button>
+              <button class="mini-btn" style="padding:5px 9px">✎ Edit</button>
+              <button class="mini-btn" style="padding:5px 9px">⋯ More</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- MIX & MATCH FEATURE PICKER -->
+    <section class="builder-card">
+      <h3 style="margin:0 0 4px;font-size:16px">🧩 Mix-and-Match Any Combination of These UX Improvements</h3>
+      <p style="margin:0;font-size:13px;color:var(--ink-2)">
+        We don't have to pick just one rigid template! Here are the 6 highest-impact decluttering building blocks we can combine in your real `app/index.html` sidebar:
+      </p>
+      <div class="builder-grid">
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>1. Move Hero Photo + Street View Above the Fold (Option A)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Show the building photo &amp; title right at the top instead of burying the photo below 9 banners and the 4-box Scorecard.</div>
+          </div>
+        </label>
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>2. Replace 6-Button Bottom Stack with 4-Icon Action Bar + <code>⋯ More</code> Menu (Option A/B)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Keep <code>Street View</code>, <code>Research Kit</code>, <code>Suggest Edit</code>, and put <code>Print</code>, <code>THC Form</code>, <code>AI Dossier</code>, and <code>Ch. 42 Calculator</code> in <code>⋯ More</code>.</div>
+          </div>
+        </label>
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>3. Collapse the 4-Box Protection Scorecard into a 1-Line Expandable Strip (Option A)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Show <code>🛡️ HAHC Protected · SMLS Lot Armor · 45% Tax Credit ▾</code> on 1 line; click to expand the full 4-card breakdown &amp; Ch. 42 button.</div>
+          </div>
+        </label>
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>4. Consolidate Inline <code>🔎 / Outline / 🎯 Isolate</code> Chip Triplets into 1 Popover Chip (Option A/B)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Instead of 3 buttons per boundary row, render 1 clean chip (<code>Heights East HD ▾</code>) that opens Filter / Outline / Isolate on click.</div>
+          </div>
+        </label>
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>5. Add the 4-Stat Key Facts Ribbon (<code>Year | Bldg SF | Lot SF | Protection</code>) (Option B)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Give visitors the 4 core numbers in a single horizontal bar right below the address.</div>
+          </div>
+        </label>
+        <label class="builder-chk">
+          <input type="checkbox" checked />
+          <div>
+            <strong>6. Add a <code>[Simple | Pro]</code> Mode Switcher in the Drawer Header (Option C)</strong>
+            <div style="color:var(--muted);font-size:11.5px">Let first-time visitors enjoy a calm summary while staff/historians toggle <code>Pro</code> for Tier badges, <code>⚑ Flag</code> buttons, and HCAD/Clerk tokens.</div>
+          </div>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+    });
+
+    document.querySelectorAll("[data-show-col]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-show-col]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const mode = btn.dataset.showCol;
+        document.querySelectorAll(".mockup-column").forEach(col => {
+          const id = col.dataset.colId;
+          if (mode === "all") {
+            col.style.display = "";
+          } else {
+            const target = mode.replace("before-", "");
+            col.style.display = (id === "before" || id === target) ? "" : "none";
+          }
+        });
+      });
+    });
+
+    const sBtn = document.getElementById("optCSimpleBtn");
+    const pBtn = document.getElementById("optCProBtn");
+    const sBody = document.getElementById("optCSimpleBody");
+    const pBody = document.getElementById("optCProBody");
+    sBtn?.addEventListener("click", () => {
+      sBody.style.display = "";
+      pBody.style.display = "none";
+      sBtn.style.background = "var(--blue)";
+      sBtn.style.color = "#082f49";
+      pBtn.style.background = "transparent";
+      pBtn.style.color = "";
+    });
+    pBtn?.addEventListener("click", () => {
+      sBody.style.display = "none";
+      pBody.style.display = "";
+      pBtn.style.background = "var(--blue)";
+      pBtn.style.color = "#082f49";
+      sBtn.style.background = "transparent";
+      sBtn.style.color = "";
+    });
+  </script>
+</body>
+</html>
