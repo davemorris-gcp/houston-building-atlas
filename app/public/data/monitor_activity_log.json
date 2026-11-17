@@ -1,30 +1,30 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-16T21:50:10Z",
-  "lastSweepAt": "2026-11-16T21:29:49Z",
+  "generatedAt": "2026-11-17T20:40:17Z",
+  "lastSweepAt": "2026-11-17T20:19:24Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-19",
+  "retentionFloorDate": "2026-08-20",
   "lastSweepHealth": {
-    "timestamp": "2026-11-16T21:29:49Z",
+    "timestamp": "2026-11-17T20:19:24Z",
     "sweepsExecuted": true,
     "propertiesSwept": 38,
     "totalAgencies": 8,
     "succeededAgencies": 5,
     "failedAgencies": [
-      "chk-04",
       "chk-06",
-      "chk-10"
+      "chk-10",
+      "chk-15"
     ],
     "skippedAgencies": [],
     "allOk": false,
     "agencies": {
       "chk-04": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX Comptroller (Sales & Franchise Tax)",
-        "failedPropertyCount": 2,
-        "error": "TX Comptroller Sales Tax: HTTP request failed or timed out; TX Comptroller Franchise Tax: HTTP request failed or timed out"
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-05": {
         "status": "ok",
@@ -37,7 +37,7 @@
         "status": "failed",
         "ok": false,
         "label": "TABC Liquor Licensing",
-        "failedPropertyCount": 2,
+        "failedPropertyCount": 1,
         "error": "TABC Active: HTTP request failed or timed out"
       },
       "chk-09": {
@@ -51,8 +51,8 @@
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 6,
-        "error": "TDLR TABS (1226 W PIERCE): HTTP request failed or timed out; TDLR TABS (1226-1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (7108 EASTWOOD): HTTP request failed or timed out; TDLR TABS (701 E 33RD): HTTP request failed or timed out"
+        "failedPropertyCount": 12,
+        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1501 WICHMAN): HTTP request failed or timed out; TDLR TABS (610 N MILBY): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -69,29 +69,52 @@
         "error": ""
       },
       "chk-15": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 38,
+        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
   },
   "summary": {
-    "totalEvents": 906,
-    "criticalCount": 89,
+    "totalEvents": 907,
+    "criticalCount": 90,
     "warningCount": 270,
     "infoCount": 547,
     "byStream": {
       "watchlist": 270,
       "agenda": 182,
       "staff": 330,
-      "permits": 124
+      "permits": 125
     },
-    "operationalNoticeCount": 15,
+    "operationalNoticeCount": 16,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-17",
+      "lastRunAt": "2026-11-17T20:40:17Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 38,
+      "totalAgencies": 8,
+      "succeededAgencies": 5,
+      "failedAgencies": [
+        "chk-06",
+        "chk-10",
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 1,
+      "adverseEventCount": 1,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 1
+      }
+    },
     {
       "date": "2026-11-16",
       "lastRunAt": "2026-11-16T21:50:10Z",
@@ -1888,29 +1911,101 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-19",
-      "lastRunAt": "2026-08-19T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "propertiesSwept": 20,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 0,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "permit:coh:0202030000039:26099983",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-16",
+      "localDate": "2026-11-17",
+      "timestamp": "2026-11-17T20:40:17Z",
+      "discoveredAt": "2026-11-17T20:40:17Z",
+      "loggedAt": "",
+      "title": "Garage / Accessory Demolition Permit (#26099983): 716 W  12TH ST",
+      "summary": "716 W  12TH ST (Built 1916): DEMO GARAGE ONLY issued 2026-11-16 to MCCULLOUGH JOHN.",
+      "address": "716 W  12TH ST",
+      "hcad": "0202030000039",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0202030000039",
+      "lat": 29.792242,
+      "lng": -95.405183,
+      "yearBuilt": 1916,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "716 W  12TH ST",
+        "address": "716 W  12TH ST",
+        "hcad_num": "0202030000039",
+        "related_hcads": [
+          "0202030000039"
+        ],
+        "watchlist_id": "",
+        "building_id": "0202030000039",
+        "year_built": 1916,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.792242,
+        "lng": -95.405183,
+        "record": {
+          "project_no": "26099983",
+          "date": "2026-11-16",
+          "permit_type": "SD",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "use_desc": "DEMO GARAGE ONLY",
+          "owner_occupant": "MCCULLOUGH JOHN JOSEPH",
+          "buyer": "MCCULLOUGH JOHN",
+          "is_sewer_disconnect": false,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-17:degraded:chk-06-chk-10-chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-17",
+      "localDate": "2026-11-17",
+      "timestamp": "2026-11-17T20:19:24Z",
+      "discoveredAt": "2026-11-17T20:19:24Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (5/8 agencies OK)",
+      "summary": "3 agency endpoint(s) did not complete cleanly: TABC Liquor Licensing (TABC Active: HTTP request failed or timed out); TDLR Architectural Barriers (TABS) (TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1501 WICHMAN): HTTP request failed or timed out; TDLR TABS (610 N MILBY): HTTP request failed or timed out); TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:status:prop-1794608180589:chk-10:flagged:2026-11-16",
       "stream": "watchlist",
