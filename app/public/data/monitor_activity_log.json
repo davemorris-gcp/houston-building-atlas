@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-17T20:40:17Z",
-  "lastSweepAt": "2026-11-17T20:19:24Z",
+  "generatedAt": "2026-11-18T20:10:45Z",
+  "lastSweepAt": "2026-11-18T19:50:10Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-20",
+  "retentionFloorDate": "2026-08-21",
   "lastSweepHealth": {
-    "timestamp": "2026-11-17T20:19:24Z",
+    "timestamp": "2026-11-18T19:50:10Z",
     "sweepsExecuted": true,
     "propertiesSwept": 38,
     "totalAgencies": 8,
     "succeededAgencies": 5,
     "failedAgencies": [
+      "chk-05",
       "chk-06",
-      "chk-10",
-      "chk-15"
+      "chk-10"
     ],
     "skippedAgencies": [],
     "allOk": false,
@@ -27,18 +27,18 @@
         "error": ""
       },
       "chk-05": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "HCAD Ownership & Classification",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 1,
+        "error": "HCAD ArcGIS: HTTP request failed or timed out"
       },
       "chk-06": {
         "status": "failed",
         "ok": false,
         "label": "TABC Liquor Licensing",
         "failedPropertyCount": 1,
-        "error": "TABC Active: HTTP request failed or timed out"
+        "error": "TABC Pending: HTTP request failed or timed out"
       },
       "chk-09": {
         "status": "ok",
@@ -51,8 +51,8 @@
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 12,
-        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1501 WICHMAN): HTTP request failed or timed out; TDLR TABS (610 N MILBY): HTTP request failed or timed out"
+        "failedPropertyCount": 19,
+        "error": "TDLR TABS (1226 W PIERCE): HTTP request failed or timed out; TDLR TABS (1226-1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -69,29 +69,52 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 38,
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "failedPropertyCount": 0,
+        "error": ""
       }
     }
   },
   "summary": {
-    "totalEvents": 907,
-    "criticalCount": 90,
+    "totalEvents": 912,
+    "criticalCount": 95,
     "warningCount": 270,
     "infoCount": 547,
     "byStream": {
-      "watchlist": 270,
+      "watchlist": 271,
       "agenda": 182,
       "staff": 330,
-      "permits": 125
+      "permits": 129
     },
-    "operationalNoticeCount": 16,
+    "operationalNoticeCount": 17,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-18",
+      "lastRunAt": "2026-11-18T20:10:45Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 38,
+      "totalAgencies": 8,
+      "succeededAgencies": 5,
+      "failedAgencies": [
+        "chk-05",
+        "chk-06",
+        "chk-10"
+      ],
+      "allOk": false,
+      "eventCount": 5,
+      "adverseEventCount": 5,
+      "byStream": {
+        "watchlist": 1,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 4
+      }
+    },
     {
       "date": "2026-11-17",
       "lastRunAt": "2026-11-17T20:40:17Z",
@@ -1891,29 +1914,323 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-20",
-      "lastRunAt": "2026-08-20T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "propertiesSwept": 20,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 0,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "wl:status:prop-1794602875513:chk-10:flagged:2026-11-18",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-18",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T20:10:45Z",
+      "discoveredAt": "2026-11-18T20:10:45Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Exxon / Humble Building",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 800 Bell.",
+      "address": "800 Bell",
+      "hcad": "0020540000001",
+      "watchPropertyId": "prop-1794602875513",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.753592,
+      "lng": -95.369575,
+      "yearBuilt": "1962",
+      "designation": "None",
+      "links": []
+    },
+    {
+      "id": "permit:coh:0202080000017:26100610",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-17",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T20:10:45Z",
+      "discoveredAt": "2026-11-18T20:10:45Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26100610): 505 W  10TH ST",
+      "summary": "505 W  10TH ST (Built 1925): RES DEMO/SEWER DISC issued 2026-11-17 to RAMOS FELIPE.",
+      "address": "505 W  10TH ST",
+      "hcad": "0202080000017",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0202080000017",
+      "lat": 29.788991,
+      "lng": -95.402697,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "505 W  10TH ST",
+        "address": "505 W  10TH ST",
+        "hcad_num": "0202080000017",
+        "related_hcads": [
+          "0202080000017"
+        ],
+        "watchlist_id": "",
+        "building_id": "0202080000017",
+        "year_built": 1925,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.788991,
+        "lng": -95.402697,
+        "record": {
+          "project_no": "26100610",
+          "date": "2026-11-17",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "RES DEMO/SEWER DISC",
+          "owner_occupant": "RAINWATER DONALD",
+          "buyer": "RAMOS FELIPE",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0200790000019:26100649",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-18",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T20:10:45Z",
+      "discoveredAt": "2026-11-18T20:10:45Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26100649): 536 W  21ST ST",
+      "summary": "536 W  21ST ST (Built 1973): DEMO RES/SEWER DISC issued 2026-11-18.",
+      "address": "536 W  21ST ST",
+      "hcad": "0200790000019",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0200790000019",
+      "lat": 29.804562,
+      "lng": -95.407553,
+      "yearBuilt": 1973,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "536 W  21ST ST",
+        "address": "536 W  21ST ST",
+        "hcad_num": "0200790000019",
+        "related_hcads": [
+          "0200790000019"
+        ],
+        "watchlist_id": "",
+        "building_id": "0200790000019",
+        "year_built": 1973,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.804562,
+        "lng": -95.407553,
+        "record": {
+          "project_no": "26100649",
+          "date": "2026-11-18",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "OWEN               LINDA L",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0200790000017:26100657",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-18",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T20:10:45Z",
+      "discoveredAt": "2026-11-18T20:10:45Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26100657): 532 W  21ST ST",
+      "summary": "532 W  21ST ST (Built 1930): DEMO RES/SEWER DISC issued 2026-11-18.",
+      "address": "532 W  21ST ST",
+      "hcad": "0200790000017",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0200790000017",
+      "lat": 29.804641,
+      "lng": -95.407424,
+      "yearBuilt": 1930,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "532 W  21ST ST",
+        "address": "532 W  21ST ST",
+        "hcad_num": "0200790000017",
+        "related_hcads": [
+          "0200790000017"
+        ],
+        "watchlist_id": "",
+        "building_id": "0200790000017",
+        "year_built": 1930,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.804641,
+        "lng": -95.407424,
+        "record": {
+          "project_no": "26100657",
+          "date": "2026-11-18",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "OWEN               LINDA L",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0200220000007:26098995",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-18",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T20:10:45Z",
+      "discoveredAt": "2026-11-18T20:10:45Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26098995): 420 W  27TH ST",
+      "summary": "420 W  27TH ST (Built 1946): DEMO RES/ SEWER DISC issued 2026-11-18.",
+      "address": "420 W  27TH ST",
+      "hcad": "0200220000007",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0200220000007",
+      "lat": 29.81079,
+      "lng": -95.404452,
+      "yearBuilt": 1946,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "420 W  27TH ST",
+        "address": "420 W  27TH ST",
+        "hcad_num": "0200220000007",
+        "related_hcads": [
+          "0200220000007"
+        ],
+        "watchlist_id": "",
+        "building_id": "0200220000007",
+        "year_built": 1946,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.81079,
+        "lng": -95.404452,
+        "record": {
+          "project_no": "26098995",
+          "date": "2026-11-18",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/ SEWER DISC",
+          "owner_occupant": "*ONYX LAND PARTNERS LLC",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-18:degraded:chk-05-chk-06-chk-10",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-18",
+      "localDate": "2026-11-18",
+      "timestamp": "2026-11-18T19:50:10Z",
+      "discoveredAt": "2026-11-18T19:50:10Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (5/8 agencies OK)",
+      "summary": "3 agency endpoint(s) did not complete cleanly: HCAD Ownership & Classification (HCAD ArcGIS: HTTP request failed or timed out); TABC Liquor Licensing (TABC Pending: HTTP request failed or timed out); TDLR Architectural Barriers (TABS) (TDLR TABS (1226 W PIERCE): HTTP request failed or timed out; TDLR TABS (1226-1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:coh:0202030000039:26099983",
       "stream": "permits",
