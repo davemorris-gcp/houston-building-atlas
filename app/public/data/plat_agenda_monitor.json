@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-18T19:50:09Z",
+  "generatedAt": "2026-11-19T19:49:05Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -17506,7 +17506,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-18T19:50:09.613612+00:00"
+      "updated": "2026-11-19T19:49:05.388269+00:00"
     },
     "2026-1764": {
       "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
@@ -46924,7 +46924,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.865858+00:00"
+          "updated": "2026-11-19T19:49:01.252318+00:00"
         },
         "2026-1637": {
           "address": "134 W LITTLE YORK RD",
@@ -46937,7 +46937,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.865950+00:00"
+          "updated": "2026-11-19T19:49:01.252414+00:00"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -46972,7 +46972,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93929/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES.pdf?sv=2021-08-06&se=2051-10-05T01%3A20%3A40Z&sr=b&sp=r&sig=5C7EZeRjm7n9E8b8rFgsyF673Pg37lSri%2FoYxbhE%2BBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.865987+00:00"
+          "updated": "2026-11-19T19:49:01.252457+00:00"
         },
         "2026-1625": {
           "address": "1508 LAWRENCE ST",
@@ -47004,7 +47004,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.866052+00:00"
+          "updated": "2026-11-19T19:49:01.252533+00:00"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -47017,7 +47017,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.866073+00:00"
+          "updated": "2026-11-19T19:49:01.252558+00:00"
         },
         "2026-1603": {
           "address": "7528 GAINESVILLE ST",
@@ -47030,7 +47030,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.866090+00:00"
+          "updated": "2026-11-19T19:49:01.252579+00:00"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -47232,7 +47232,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1449/OriginalFiles/2284-2504_Benders_Creek_General_Plan_09-18-2026.pdf?sv=2021-08-06&se=2051-09-22T20%3A29%3A56Z&sr=b&sp=r&sig=%2BFqP9ATYyzZwmqz51cJDcuBt4oQ7hpyv3BNxUi1ztqw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:04.866319+00:00"
+          "updated": "2026-11-19T19:49:01.252848+00:00"
         },
         "2026-1440": {
           "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -63929,7 +63929,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:09.036227+00:00",
+          "updated": "2026-11-19T19:49:04.729319+00:00",
           "carriedFromCycle": "2026-10-15",
           "carriedFields": [
             "tier",
@@ -64021,7 +64021,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:09.036285+00:00"
+          "updated": "2026-11-19T19:49:04.729393+00:00"
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
@@ -82669,7 +82669,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-18T19:50:09.613612+00:00"
+          "updated": "2026-11-19T19:49:05.388269+00:00"
         },
         "2026-1764": {
           "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",

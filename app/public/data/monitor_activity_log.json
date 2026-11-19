@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-18T20:10:45Z",
-  "lastSweepAt": "2026-11-18T19:50:10Z",
+  "generatedAt": "2026-11-19T20:04:41Z",
+  "lastSweepAt": "2026-11-19T19:49:05Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-21",
+  "retentionFloorDate": "2026-08-22",
   "lastSweepHealth": {
-    "timestamp": "2026-11-18T19:50:10Z",
+    "timestamp": "2026-11-19T19:49:05Z",
     "sweepsExecuted": true,
     "propertiesSwept": 38,
     "totalAgencies": 8,
     "succeededAgencies": 5,
     "failedAgencies": [
-      "chk-05",
+      "chk-04",
       "chk-06",
       "chk-10"
     ],
@@ -20,25 +20,25 @@
     "allOk": false,
     "agencies": {
       "chk-04": {
-        "status": "ok",
-        "ok": true,
-        "label": "TX Comptroller (Sales & Franchise Tax)",
-        "failedPropertyCount": 0,
-        "error": ""
-      },
-      "chk-05": {
         "status": "failed",
         "ok": false,
-        "label": "HCAD Ownership & Classification",
+        "label": "TX Comptroller (Sales & Franchise Tax)",
         "failedPropertyCount": 1,
-        "error": "HCAD ArcGIS: HTTP request failed or timed out"
+        "error": "TX Comptroller Franchise Tax: HTTP request failed or timed out"
+      },
+      "chk-05": {
+        "status": "ok",
+        "ok": true,
+        "label": "HCAD Ownership & Classification",
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-06": {
         "status": "failed",
         "ok": false,
         "label": "TABC Liquor Licensing",
         "failedPropertyCount": 1,
-        "error": "TABC Pending: HTTP request failed or timed out"
+        "error": "TABC Active: HTTP request failed or timed out"
       },
       "chk-09": {
         "status": "ok",
@@ -51,8 +51,8 @@
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 19,
-        "error": "TDLR TABS (1226 W PIERCE): HTTP request failed or timed out; TDLR TABS (1226-1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (1230 W PIERCE): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out"
+        "failedPropertyCount": 5,
+        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1807 CROCKETT): HTTP request failed or timed out; TDLR TABS (1701 HEIGHTS): HTTP request failed or timed out; TDLR TABS (1703 Heights): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -78,20 +78,43 @@
     }
   },
   "summary": {
-    "totalEvents": 912,
-    "criticalCount": 95,
-    "warningCount": 270,
+    "totalEvents": 915,
+    "criticalCount": 99,
+    "warningCount": 269,
     "infoCount": 547,
     "byStream": {
-      "watchlist": 271,
-      "agenda": 182,
+      "watchlist": 274,
+      "agenda": 181,
       "staff": 330,
-      "permits": 129
+      "permits": 130
     },
-    "operationalNoticeCount": 17,
+    "operationalNoticeCount": 18,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-19",
+      "lastRunAt": "2026-11-19T20:04:41Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 38,
+      "totalAgencies": 8,
+      "succeededAgencies": 5,
+      "failedAgencies": [
+        "chk-04",
+        "chk-06",
+        "chk-10"
+      ],
+      "allOk": false,
+      "eventCount": 4,
+      "adverseEventCount": 4,
+      "byStream": {
+        "watchlist": 3,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 1
+      }
+    },
     {
       "date": "2026-11-18",
       "lastRunAt": "2026-11-18T20:10:45Z",
@@ -1894,29 +1917,183 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-21",
-      "lastRunAt": "2026-08-21T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "propertiesSwept": 20,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 1,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 1,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "wl:status:plat-DPV-4801-NMAIN:chk-10:flagged:2026-11-19",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-19",
+      "localDate": "2026-11-19",
+      "timestamp": "2026-11-19T20:04:41Z",
+      "discoveredAt": "2026-11-19T20:04:41Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (In Progress -> Flagged): 4801 N Main Street",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'In Progress' to 'Flagged' on 4801 N MAIN ST.",
+      "address": "4801 N MAIN ST",
+      "hcad": "0391500000001",
+      "watchPropertyId": "plat-DPV-4801-NMAIN",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.79874,
+      "lng": -95.38401,
+      "yearBuilt": "1920",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:status:plat-2026-1762:chk-10:flagged:2026-11-19",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-19",
+      "localDate": "2026-11-19",
+      "timestamp": "2026-11-19T20:04:41Z",
+      "discoveredAt": "2026-11-19T20:04:41Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Chapelwood United Methodist Church",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 1330 GESSNER DR.",
+      "address": "1330 GESSNER DR",
+      "hcad": "0583030000039",
+      "watchPropertyId": "plat-2026-1762",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.80559,
+      "lng": -95.54204,
+      "yearBuilt": "1956",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:status:plat-2026-1120:chk-10:flagged:2026-11-19",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-19",
+      "localDate": "2026-11-19",
+      "timestamp": "2026-11-19T20:04:41Z",
+      "discoveredAt": "2026-11-19T20:04:41Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Westheimer Subdivision partial replat no 1",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 2531 KUESTER ST.",
+      "address": "2531 KUESTER ST",
+      "hcad": "1211140020001",
+      "watchPropertyId": "plat-2026-1120",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.74344,
+      "lng": -95.40029,
+      "yearBuilt": "2017",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "permit:coh:1487630010001:26100083",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-18",
+      "localDate": "2026-11-19",
+      "timestamp": "2026-11-19T20:04:41Z",
+      "discoveredAt": "2026-11-19T20:04:41Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26100083): 503 SUL ROSS ST",
+      "summary": "503 SUL ROSS ST (Built 1945): RES DEMO/SEWER DISC issued 2026-11-18 to DELGADO FELIX | Historic District: First Montrose Commons Historic District.",
+      "address": "503 SUL ROSS ST",
+      "hcad": "1487630010001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "1487630010001#b1",
+      "lat": 29.737665,
+      "lng": -95.385969,
+      "yearBuilt": 1945,
+      "designation": "Historic District: First Montrose Commons Historic District",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "503 SUL ROSS ST",
+        "address": "503 SUL ROSS ST",
+        "hcad_num": "1487630010001",
+        "related_hcads": [
+          "1487630010001",
+          "0082710000004"
+        ],
+        "watchlist_id": "",
+        "building_id": "1487630010001#b1",
+        "year_built": 1945,
+        "yr_remodel": 2020,
+        "architect": "",
+        "style": "",
+        "neighborhood": "First Montrose Commons",
+        "historic_district": "First Montrose Commons Historic District",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "501 PROPERTY INC",
+        "lat": 29.737665,
+        "lng": -95.385969,
+        "record": {
+          "project_no": "26100083",
+          "date": "2026-11-18",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "RES DEMO/SEWER DISC",
+          "owner_occupant": "*THE MONARCH COMMUNITY",
+          "buyer": "DELGADO FELIX",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-19:degraded:chk-04-chk-06-chk-10",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-19",
+      "localDate": "2026-11-19",
+      "timestamp": "2026-11-19T19:49:05Z",
+      "discoveredAt": "2026-11-19T19:49:05Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (5/8 agencies OK)",
+      "summary": "3 agency endpoint(s) did not complete cleanly: TX Comptroller (Sales & Franchise Tax) (TX Comptroller Franchise Tax: HTTP request failed or timed out); TABC Liquor Licensing (TABC Active: HTTP request failed or timed out); TDLR Architectural Barriers (TABS) (TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1807 CROCKETT): HTTP request failed or timed out; TDLR TABS (1701 HEIGHTS): HTTP request failed or timed out; TDLR TABS (1703 Heights): HTTP request failed or timed out). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:status:prop-1794602875513:chk-10:flagged:2026-11-18",
       "stream": "watchlist",
@@ -32412,42 +32589,6 @@
         {
           "label": "Plat PDF",
           "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-01:2026-1363:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-08-21",
-      "localDate": "2026-08-21",
-      "timestamp": "2026-08-21T12:00:00Z",
-      "discoveredAt": "2026-08-21T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-10-01): Haddick Place (2026-1363)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
-      "address": "",
-      "hcad": "",
-      "watchPropertyId": "",
-      "checkId": "",
-      "cycleKey": "2026-10-01",
-      "appNo": "2026-1363",
-      "occKey": "2026-10-01::2026-1363",
-      "buildingId": "",
-      "lat": 29.84118,
-      "lng": -95.2589,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93503/OriginalFiles/HADDICK_PLACE_PLAT_25.07.26-Model.pdf?sv=2021-08-06&se=2051-08-12T18%3A09%3A13Z&sr=b&sp=r&sig=AGufVZfhDG%2FKApXM%2F09zgw104V5JfKOfJA6uhnOelrk%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf"
         }
       ]
     }
