@@ -1,19 +1,20 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-19T20:04:41Z",
-  "lastSweepAt": "2026-11-19T19:49:05Z",
+  "generatedAt": "2026-11-20T19:46:31Z",
+  "lastSweepAt": "2026-11-20T19:30:33Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-22",
+  "retentionFloorDate": "2026-08-23",
   "lastSweepHealth": {
-    "timestamp": "2026-11-19T19:49:05Z",
+    "timestamp": "2026-11-20T19:30:33Z",
     "sweepsExecuted": true,
     "propertiesSwept": 38,
     "totalAgencies": 8,
-    "succeededAgencies": 5,
+    "succeededAgencies": 4,
     "failedAgencies": [
       "chk-04",
       "chk-06",
+      "chk-09",
       "chk-10"
     ],
     "skippedAgencies": [],
@@ -24,7 +25,7 @@
         "ok": false,
         "label": "TX Comptroller (Sales & Franchise Tax)",
         "failedPropertyCount": 1,
-        "error": "TX Comptroller Franchise Tax: HTTP request failed or timed out"
+        "error": "TX Comptroller Sales Tax: HTTP request failed or timed out"
       },
       "chk-05": {
         "status": "ok",
@@ -38,21 +39,21 @@
         "ok": false,
         "label": "TABC Liquor Licensing",
         "failedPropertyCount": 1,
-        "error": "TABC Active: HTTP request failed or timed out"
+        "error": "TABC Pending: HTTP request failed or timed out"
       },
       "chk-09": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "COH Planning Commission Plats & Variances",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 38,
+        "error": "Cycle 2026-09-14 agenda spreadsheet download failed; Cycle 2026-10-01 agenda spreadsheet download failed; Cycle 2026-10-15 agenda spreadsheet download failed; Cycle 2026-10-29 agenda spreadsheet download failed; Cycle 2026-10-29 agenda outline PDF download failed"
       },
       "chk-10": {
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 5,
-        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (1807 CROCKETT): HTTP request failed or timed out; TDLR TABS (1701 HEIGHTS): HTTP request failed or timed out; TDLR TABS (1703 Heights): HTTP request failed or timed out"
+        "failedPropertyCount": 8,
+        "error": "TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out; TDLR TABS (8803 FOREST HOLLOW): HTTP request failed or timed out; TDLR TABS (2101 TRAVIS): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -88,10 +89,34 @@
       "staff": 330,
       "permits": 130
     },
-    "operationalNoticeCount": 18,
+    "operationalNoticeCount": 19,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-20",
+      "lastRunAt": "2026-11-20T19:46:31Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 38,
+      "totalAgencies": 8,
+      "succeededAgencies": 4,
+      "failedAgencies": [
+        "chk-04",
+        "chk-06",
+        "chk-09",
+        "chk-10"
+      ],
+      "allOk": false,
+      "eventCount": 0,
+      "adverseEventCount": 0,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-19",
       "lastRunAt": "2026-11-19T20:04:41Z",
@@ -1897,29 +1922,36 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-22",
-      "lastRunAt": "2026-08-22T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "propertiesSwept": 20,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 0,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "wl:sweep:2026-11-20:degraded:chk-04-chk-06-chk-09-chk-10",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-20",
+      "localDate": "2026-11-20",
+      "timestamp": "2026-11-20T19:30:33Z",
+      "discoveredAt": "2026-11-20T19:30:33Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (4/8 agencies OK)",
+      "summary": "4 agency endpoint(s) did not complete cleanly: TX Comptroller (Sales & Franchise Tax) (TX Comptroller Sales Tax: HTTP request failed or timed out); TABC Liquor Licensing (TABC Pending: HTTP request failed or timed out); COH Planning Commission Plats & Variances (Cycle 2026-09-14 agenda spreadsheet download failed; Cycle 2026-10-01 agenda spreadsheet download failed; Cycle 2026-10-15 agenda spreadsheet download failed; Cycle 2026-10-29 agenda spreadsheet download failed; Cycle 2026-10-29 agenda outline PDF download failed); TDLR Architectural Barriers (TABS) (TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out; TDLR TABS (8803 FOREST HOLLOW): HTTP request failed or timed out; TDLR TABS (2101 TRAVIS): HTTP request failed or timed out). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:status:plat-DPV-4801-NMAIN:chk-10:flagged:2026-11-19",
       "stream": "watchlist",
