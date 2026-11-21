@@ -24,6 +24,7 @@ import concurrent.futures
 import copy
 import datetime
 import http.cookiejar
+import inspect
 import io
 import json
 import re
@@ -1927,8 +1928,11 @@ def main():
     print("4. Querying Texas DSHS Asbestos Abatement & Demolition Notifications for Houston...", flush=True)
     dshs_start = today - datetime.timedelta(days=45)
     dshs_end = today + datetime.timedelta(days=90)
+    dshs_kwargs: dict[str, object] = {"return_status": True}
+    if "prev_dshs_cache" in inspect.signature(fetch_dshs_houston_notifications).parameters:
+        dshs_kwargs["prev_dshs_cache"] = prev_dshs_cache
     dshs_matched, dshs_fetch_failed, dshs_fetch_error = fetch_dshs_houston_notifications(
-        dshs_start, dshs_end, by_addr, return_status=True, prev_dshs_cache=prev_dshs_cache
+        dshs_start, dshs_end, by_addr, **dshs_kwargs
     )
     print(f"   Matched {len(dshs_matched)} Texas DSHS notifications to Atlas structures.", flush=True)
 
