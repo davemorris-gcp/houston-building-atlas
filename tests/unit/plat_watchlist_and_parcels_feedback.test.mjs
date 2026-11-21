@@ -24,16 +24,29 @@ import {
   areContinuitySnapshotsCompatible,
   mergePlatReviewOverlay,
   linkCrossCycleHistory,
+  propagatePlatReviewFieldsAcrossCycles,
   normalizeDeveloperEntityKey,
   buildWatchedDeveloperMap,
   extractHearingDateIso,
   hasHumanDossierContributions,
   stripCorporateSuffixCommas,
   cleanEntityListString,
+  canonicalPropertyAddressKey,
   describeCycleMeetingAction,
   parsePcMinutesText,
   mergePlatItemsAcrossCycles,
+  isBoilerplatePlatWhy,
+  detectMaterialPlatChanges,
 } from "../../app/js/platMonitorHelpers.js";
+
+import {
+  HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
+  computeWatermarkState,
+  filterActivityEvents,
+  groupActivityEventsByProperty,
+  synthesizeLiveMonitorEvents,
+} from "../../app/js/activityLogHelpers.js";
+import { buildPlatPolygonGeometry } from "../../app/js/mapController.js";
 
 import {
   REMOVED_TIER3_TOMBSTONE,
@@ -2250,10 +2263,10 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
     }
     assert.equal(String(org.websiteUrl || "").includes("admin.html"), false, `Org ${org.id} must not link to admin.html`);
   }
-  assert.equal(totalFeeds, 46, "Expected 46 data feeds in catalog");
-  assert.equal(seenImagePaths.size, 46, "Every one of the 46 feeds must have its own unique SVG visual");
-  assert.equal(seenVisualTitles.size, 46, "Every one of the 46 feeds must have its own unique docVisual.title");
-  assert.ok(Array.isArray(catalogJson.documentArchetypes) && catalogJson.documentArchetypes.length === 46);
+  assert.equal(totalFeeds, 47, "Expected 47 data feeds in catalog");
+  assert.equal(seenImagePaths.size, 47, "Every one of the 47 feeds must have its own unique SVG visual");
+  assert.equal(seenVisualTitles.size, 47, "Every one of the 47 feeds must have its own unique docVisual.title");
+  assert.ok(Array.isArray(catalogJson.documentArchetypes) && catalogJson.documentArchetypes.length === 47);
   const ecosystemHtml = fs.readFileSync(path.join(REPO_ROOT, "app", "data-ecosystem.html"), "utf8");
   assert.equal(/[\u2013\u2014]/.test(ecosystemHtml), false, "data-ecosystem.html must not contain en-dashes or em-dashes");
   assert.match(ecosystemHtml, /data_sources_catalog\.json/);
@@ -2475,6 +2488,703 @@ test("UT-22: 4-tier model supports active Tier 3 Low Priority monitoring and Tie
   assert.equal(cyclesByIso["2026-11-12"].reviews["DPV-26091362"].tier, "2");
   assert.equal(cyclesByIso["2026-11-12"].reviews["DPV-26091362"].tierConfirmed, true);
 });
+
+test("isBoilerplatePlatWhy preserves multi-line human notes appended after machine boilerplate", () => {
+  assert.equal(
+    isBoilerplatePlatWhy("Atlas matched HCAD parcel at 1200 Example St (earliest built 1924)."),
+    true
+  );
+  assert.equal(
+    isBoilerplatePlatWhy(
+      "City PlatTracker GIS polygon matched HCAD parcel 0231000000001 at 1200 Example St in Montrose with zero standing structures (vacant parcel)."
+    ),
+    true
+  );
+  assert.equal(
+    isBoilerplatePlatWhy(
+      "Atlas matched HCAD parcel at 1200 Example St (earliest built 1924).\nHouse is older on 1924 Sanborn sheet; verify rear garage apartment."
+    ),
+    false
+  );
+});
+
+test("linkCrossCycleHistory retains Pass-2 tier on material change, revokes carried confirmation on Run 2, and clears reReviewReason on human confirm", () => {
+  assert.deepEqual(
+    detectMaterialPlatChanges(
+      { app: "2026-4100", type: "C2R", section: "B. Replats", developer: "Heights Dev LLC", lots: "2" },
+      { app: "2026-4100", type: "C2R", section: "B. Replats", developer: "Heights Dev, LLC", lots: "2" }
+    ),
+    []
+  );
+  assert.equal(
+    detectMaterialPlatChanges(
+      {
+        app: "2026-4101",
+        type: "C3N",
+        section: "D. Variances",
+        special: "Variance Request",
+        hearingDateIso: "2026-12-03",
+        developer: "New Townhome Group LLC",
+        lots: "6",
+      },
+      {
+        app: "2026-4101",
+        type: "C2R",
+        section: "B. Replats",
+        special: "",
+        hearingDateIso: "",
+        developer: "Original Owner LLC",
+        lots: "2",
+      }
+    ).length,
+    4
+  );
+
+  const continuityCycles = linkCrossCycleHistory(
+    {
+      "2026-10-29": {
+        items: [
+          { app: "2026-4100", name: "Oak Lawn Walk Replat", type: "C2R", section: "B. Replats", hcad: "0410000000001", lots: "2", developer: "Heights Dev LLC" },
+          { app: "2026-4101", name: "Bayland Corner Replat", type: "C2R", section: "B. Replats", hcad: "0410000000002", lots: "2", developer: "Original Owner LLC" },
+        ],
+        reviews: {
+          "2026-4100": { tier: "3", tierConfirmed: true, why: "Reviewed 1998 townhomes, no historic impact." },
+          "2026-4101": { tier: "3", tierConfirmed: true, why: "Routine 2-lot split." },
+        },
+      },
+      "2026-11-12": {
+        items: [
+          { app: "2026-4100", name: "Oak Lawn Walk Replat", type: "C2R", section: "B. Replats", hcad: "0410000000001", lots: "2", developer: "Heights Dev LLC" },
+          { app: "2026-4101", name: "Bayland Corner Replat", type: "C3N", section: "D. Variances", special: "Variance", hearingDateIso: "2026-12-03", hcad: "0410000000002", lots: "6", developer: "New Townhome Group LLC" },
+        ],
+        reviews: {
+          "2026-4100": { tier: "2", tierConfirmed: false, autoEnriched: true, why: "Atlas matched HCAD parcel at 100 Oak Lawn (earliest built 1950)." },
+          "2026-4101": { tier: "2", tierConfirmed: false, autoEnriched: true, why: "Atlas matched HCAD parcel at 200 Bayland (earliest built 1950)." },
+        },
+      },
+    },
+    ["2026-10-29", "2026-11-12"]
+  );
+  const revUnchanged = continuityCycles["2026-11-12"].reviews["2026-4100"];
+  assert.equal(revUnchanged.tier, "3");
+  assert.equal(revUnchanged.tierConfirmed, true);
+  assert.equal(revUnchanged.carriedConfirmedFromCycle, "2026-10-29");
+  assert.equal(revUnchanged.reReviewReason, undefined);
+
+  const revMaterial = continuityCycles["2026-11-12"].reviews["2026-4101"];
+  assert.equal(revMaterial.tier, "2", "Materially changed item must retain its escalated Pass-2 tier");
+  assert.equal(revMaterial.tierConfirmed, false);
+  assert.match(String(revMaterial.reReviewReason || ""), /variance/i);
+
+  // Run 2: unchanged item gains a variance -> machine-carried confirmation and Tier 3 are revoked
+  continuityCycles["2026-11-12"].items[0].section = "D. Variances";
+  continuityCycles["2026-11-12"].items[0].special = "Variance";
+  continuityCycles["2026-11-12"].items[0].lots = "4";
+  linkCrossCycleHistory(continuityCycles, ["2026-10-29", "2026-11-12"]);
+  assert.equal(revUnchanged.tierConfirmed, false);
+  assert.equal(revUnchanged.carriedConfirmedFromCycle, undefined);
+  assert.equal(revUnchanged.tier, "2");
+  assert.match(String(revUnchanged.reReviewReason || ""), /variance/i);
+
+  // Explicit human confirmation on the new cycle clears reReviewReason
+  revUnchanged.tier = "3";
+  revUnchanged.tierConfirmed = true;
+  revUnchanged.humanEditedFields = ["tier"];
+  linkCrossCycleHistory(continuityCycles, ["2026-10-29", "2026-11-12"]);
+  assert.equal(revUnchanged.reReviewReason, undefined);
+
+  // mergePlatReviewOverlay preserves carriedConfirmedFromCycle Tier 3 on boilerplate why and refreshes autoSuggestedTier
+  const mergedBoilerplateCarry = mergePlatReviewOverlay(
+    { tier: "2", tierConfirmed: false, autoEnriched: true, why: "Atlas matched HCAD parcel at 100 Oak Lawn (earliest built 1950)." },
+    { tier: "3", tierConfirmed: true, carriedConfirmedFromCycle: "2026-09-14", carriedFields: ["tier", "tierConfirmed"], autoEnriched: true, why: "Atlas matched HCAD parcel at 100 Oak Lawn (earliest built 1950)." },
+    { app: "2026-4100" }
+  );
+  assert.equal(mergedBoilerplateCarry.tier, "3");
+  assert.equal(mergedBoilerplateCarry.tierConfirmed, true);
+  assert.equal(mergedBoilerplateCarry.autoSuggestedTier, "2");
+
+  const mergedHumanWhyCarry = mergePlatReviewOverlay(
+    { tier: "1", tierConfirmed: false, autoEnriched: true },
+    { tier: "3", autoSuggestedTier: "3", tierConfirmed: true, carriedConfirmedFromCycle: "2026-10-29", carriedFields: ["tier", "why", "tierConfirmed"], why: "Reviewed 1985 townhomes." },
+    { app: "2026-4100" }
+  );
+  assert.equal(mergedHumanWhyCarry.autoSuggestedTier, "1");
+  assert.equal(mergedHumanWhyCarry.tier, "3");
+
+  // Comma-formatted lot counts (>= 1,000) detect lot-count increases in 1:1 parity with Python
+  assert.deepEqual(
+    detectMaterialPlatChanges(
+      { app: "2026-4200", lots: "1,050" },
+      { app: "2026-4200", lots: "800" }
+    ),
+    ["Proposed lot count increased (800 -> 1050 lots)"]
+  );
+
+  // propagatePlatReviewFieldsAcrossCycles protects per-cycle human tier confirmations and skips materially changed newer cycles
+  const propCycles = {
+    "2026-10-29": {
+      items: [{ app: "2026-4300", name: "Test Walk", type: "C2R", section: "B. Replats", hcad: "0410000000055", lots: "2" }],
+      reviews: { "2026-4300": { tier: "3", tierConfirmed: true, humanEditedFields: ["tier"], updated: "2026-10-29T18:00:00Z" } },
+    },
+    "2026-11-12": {
+      items: [{ app: "2026-4300", name: "Test Walk", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0410000000055", lots: "6" }],
+      reviews: { "2026-4300": { tier: "1", tierConfirmed: true, humanEditedFields: ["tier"], updated: "2026-11-12T18:00:00Z" } },
+    },
+  };
+  propagatePlatReviewFieldsAcrossCycles(
+    propCycles,
+    ["2026-10-29", "2026-11-12"],
+    "2026-10-29",
+    propCycles["2026-10-29"].items[0],
+    ["tier"]
+  );
+  assert.equal(propCycles["2026-11-12"].reviews["2026-4300"].tier, "1");
+
+  // syncWatchlistTierToPlatReviews and linkCrossCycleHistory preserve re-review across 3+ cycles after Archived Tier 3/4
+  const syncCycles = {
+    "2026-10-15": {
+      items: [{ app: "2026-4301", name: "Corner Walk", type: "C2R", section: "B. Replats", hcad: "0410000000056", lots: "2" }],
+      reviews: { "2026-4301": { tier: "3", tierConfirmed: true } },
+    },
+    "2026-10-29": {
+      items: [{ app: "2026-4301", name: "Corner Walk", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0410000000056", lots: "5" }],
+      reviews: { "2026-4301": { tier: "2", tierConfirmed: false, autoEnriched: true } },
+    },
+    "2026-11-12": {
+      items: [{ app: "2026-4301", name: "Corner Walk", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0410000000056", lots: "5" }],
+      reviews: { "2026-4301": { tier: "2", tierConfirmed: false, autoEnriched: true } },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    cycles: syncCycles,
+    cycleOrder: ["2026-11-12", "2026-10-29", "2026-10-15"],
+    prop: {
+      id: "plat-2026-4301",
+      appNo: "2026-4301",
+      sourceCycleKey: "2026-10-15",
+      hcadAccount: "0410000000056",
+      tier: "3",
+      tierConfirmed: false,
+      trackerStatus: "Archived (Tier 3)",
+      archivedAt: "2026-10-15T18:00:00Z",
+      updatedAt: "2026-10-15T18:00:00Z",
+    },
+    newTier: "3",
+    respectNewerReviews: true,
+  });
+  linkCrossCycleHistory(syncCycles, ["2026-10-15", "2026-10-29", "2026-11-12"]);
+  for (const ck of ["2026-10-29", "2026-11-12"]) {
+    assert.equal(syncCycles[ck].reviews["2026-4301"].tier, "2");
+    assert.equal(syncCycles[ck].reviews["2026-4301"].tierConfirmed, false);
+    assert.match(String(syncCycles[ck].reviews["2026-4301"].reReviewReason || ""), /variance/i);
+  }
+
+  // Integrated Watchlist reconciliation + cross-cycle linking for active Tier 2 Watchlist dossiers
+  // preserves Pass-2 Tier 1 escalations, keeps tierConfirmed=false, and populates reReviewReason across 3+ cycles
+  const activeT2Cycles = {
+    "2026-10-15": {
+      items: [{ app: "2026-4302", name: "Landmark Context Replat", type: "C2R", section: "B. Replats", hcad: "0410000000059", lots: "2" }],
+      reviews: { "2026-4302": { tier: "2", tierConfirmed: true, why: "1938 bungalow." } },
+    },
+    "2026-10-29": {
+      items: [{ app: "2026-4302", name: "Landmark Context Replat", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0410000000059", lots: "6" }],
+      reviews: { "2026-4302": { tier: "1", tierConfirmed: false, autoEnriched: true } },
+    },
+    "2026-11-12": {
+      items: [{ app: "2026-4302", name: "Landmark Context Replat", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0410000000059", lots: "6" }],
+      reviews: { "2026-4302": { tier: "1", tierConfirmed: false, autoEnriched: true } },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    cycles: activeT2Cycles,
+    cycleOrder: ["2026-11-12", "2026-10-29", "2026-10-15"],
+    prop: {
+      id: "plat-2026-4302",
+      appNo: "2026-4302",
+      sourceCycleKey: "2026-10-15",
+      hcadAccount: "0410000000059",
+      tier: "2",
+      tierConfirmed: true,
+      trackerStatus: "Active / High Priority",
+      updatedAt: "2026-10-15T18:00:00Z",
+    },
+    newTier: "2",
+    respectNewerReviews: true,
+  });
+  linkCrossCycleHistory(activeT2Cycles, ["2026-10-15", "2026-10-29", "2026-11-12"]);
+  for (const ck of ["2026-10-29", "2026-11-12"]) {
+    assert.equal(activeT2Cycles[ck].reviews["2026-4302"].tier, "1");
+    assert.equal(activeT2Cycles[ck].reviews["2026-4302"].tierConfirmed, false);
+    assert.match(String(activeT2Cycles[ck].reviews["2026-4302"].reReviewReason || ""), /variance/i);
+  }
+
+  // linkCrossCycleHistory + syncWatchlistTierToPlatReviews preserve human Tier 1 escalation across material changes while requiring re-confirmation
+  const tier1EscalatedCycles = {
+    "2026-10-29": {
+      items: [{ app: "2026-4303", name: "Blockface Context Replat", type: "C2R", section: "B. Replats", hcad: "0410000000061", lots: "2" }],
+      reviews: { "2026-4303": { tier: "1", tierConfirmed: true, why: "Threatens adjacent 1912 landmark blockface." } },
+    },
+    "2026-11-12": {
+      items: [{ app: "2026-4303", name: "Blockface Context Replat", type: "C2R", section: "B. Replats", hcad: "0410000000061", lots: "6" }],
+      reviews: { "2026-4303": { tier: "2", tierConfirmed: false, autoEnriched: true } },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    cycles: tier1EscalatedCycles,
+    cycleOrder: ["2026-11-12", "2026-10-29"],
+    prop: {
+      id: "plat-2026-4303",
+      appNo: "2026-4303",
+      sourceCycleKey: "2026-10-29",
+      hcadAccount: "0410000000061",
+      tier: "1",
+      tierConfirmed: true,
+      trackerStatus: "Active / High Priority",
+      updatedAt: "2026-10-29T18:00:00Z",
+    },
+    newTier: "1",
+    respectNewerReviews: true,
+  });
+  linkCrossCycleHistory(tier1EscalatedCycles, ["2026-10-29", "2026-11-12"]);
+  assert.equal(tier1EscalatedCycles["2026-11-12"].reviews["2026-4303"].tier, "1");
+  assert.equal(tier1EscalatedCycles["2026-11-12"].reviews["2026-4303"].tierConfirmed, false);
+  assert.match(String(tier1EscalatedCycles["2026-11-12"].reviews["2026-4303"].reReviewReason || ""), /2 -> 6 lots/);
+});
+
+test("syncWatchlistTierToPlatReviews skips unbaselined post-anchor plats, completed Lost/Saved dossiers, and only defers to human reviews", () => {
+  const manualWlCycles = {
+    "2026-11-12": {
+      items: [
+        { app: "2026-1950", name: "500 Main Variance", type: "C3N", section: "D. Variances", special: "Variance", hcad: "0010990000001", lots: "4" },
+        { app: "2026-1980", name: "Post-Demo Replat", type: "C2R", section: "B. Replats", hcad: "0410000000059", lots: "2" },
+      ],
+      reviews: {
+        "2026-1950": { tier: "1", tierConfirmed: false, autoEnriched: true },
+        "2026-1980": { tier: "3", tierConfirmed: false, autoEnriched: true, updated: "2026-11-12T19:00:00Z" },
+      },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    cycles: manualWlCycles,
+    cycleOrder: ["2026-11-12"],
+    prop: {
+      id: "prop-500-main",
+      appNo: "",
+      sourceCycleKey: "",
+      hcadAccount: "0010990000001",
+      tier: "2",
+      tierConfirmed: true,
+      trackerStatus: "Active / High Priority",
+      updatedAt: "2026-10-15T18:00:00Z",
+    },
+    newTier: "2",
+    respectNewerReviews: true,
+  });
+  syncWatchlistTierToPlatReviews({
+    cycles: manualWlCycles,
+    cycleOrder: ["2026-11-12"],
+    prop: {
+      id: "prop-lost-demo",
+      appNo: "",
+      sourceCycleKey: "",
+      hcadAccount: "0410000000059",
+      tier: "1",
+      tierConfirmed: true,
+      trackerStatus: "Lost",
+      updatedAt: "2026-11-20T18:00:00Z",
+    },
+    newTier: "1",
+    respectNewerReviews: false,
+  });
+  assert.equal(manualWlCycles["2026-11-12"].reviews["2026-1950"].tier, "1");
+  assert.equal(manualWlCycles["2026-11-12"].reviews["2026-1950"].tierConfirmed, false);
+  assert.equal(manualWlCycles["2026-11-12"].reviews["2026-1980"].tier, "3");
+  assert.equal(manualWlCycles["2026-11-12"].reviews["2026-1980"].tierConfirmed, false);
+
+  const autoTimestampCycles = {
+    "2026-10-29": {
+      items: [{ app: "2026-1587", name: "Pierce Walk", type: "C2R", section: "B. Replats", hcad: "1490700010001", lots: "2" }],
+      reviews: { "2026-1587": { tier: "2", tierConfirmed: false, autoEnriched: true, updated: "2026-10-21T12:00:00Z" } },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    cycles: autoTimestampCycles,
+    cycleOrder: ["2026-10-29"],
+    prop: {
+      id: "plat-2026-1587",
+      appNo: "2026-1587",
+      sourceCycleKey: "2026-10-29",
+      hcadAccount: "1490700010001",
+      tier: "3",
+      tierConfirmed: false,
+      trackerStatus: "Archived (Tier 3)",
+      updatedAt: "2026-10-20T15:00:00Z",
+    },
+    newTier: "3",
+    respectNewerReviews: true,
+  });
+  assert.equal(autoTimestampCycles["2026-10-29"].reviews["2026-1587"].tier, "3");
+});
+
+test("reconcileWatchlistProperty prunes stale chk-10 TDLR hits, demotes >180d Flagged rows, and aligns canonicalPropertyAddressKey", () => {
+  assert.equal(canonicalPropertyAddressKey("1303-1305 Sawyer St"), "1303|SAWYER");
+  assert.equal(canonicalPropertyAddressKey("1226 West Pierce St"), "1226|W PIERCE");
+  assert.equal(canonicalPropertyAddressKey("500 North St"), "500|NORTH ST");
+  assert.equal(canonicalPropertyAddressKey("909 TEXAS AVE 308"), "909|TEXAS");
+
+  const reconciledTdlrAndHist = reconcileWatchlistProperty(
+    {
+      id: "prop-800-bell-sync",
+      propertyName: "800 Bell Building",
+      address: "800 Bell St",
+      hcadAccount: "0010550000001",
+      tier: "1",
+      tierConfirmed: true,
+      trackerStatus: "Active / High Priority",
+      updatedAt: "2026-11-05T12:00:00Z",
+      checklist: [
+        {
+          id: "chk-04",
+          status: "In Progress",
+          lastAutoSweepAt: "2026-11-20T12:00:00Z",
+          checks: [
+            {
+              date: "2020-03-01",
+              discoveredAt: "2026-11-20",
+              source: "auto-sweep",
+              automated: true,
+              historicalBaseline: true,
+              adverse: false,
+              agencyRecordId: "comptroller:old-2020",
+              result: "[AUTO-SWEEP] Historical permit",
+            },
+          ],
+        },
+        {
+          id: "chk-10",
+          status: "To Do",
+          lastAutoSweepAt: "2026-11-20T12:00:00Z",
+          checks: [],
+        },
+      ],
+    },
+    {
+      id: "prop-800-bell-sync",
+      propertyName: "800 Bell Building",
+      address: "800 Bell St",
+      hcadAccount: "0010550000001",
+      tier: "1",
+      tierConfirmed: true,
+      trackerStatus: "Active / High Priority",
+      updatedAt: "2026-11-05T12:00:00Z",
+      checklist: [
+        {
+          id: "chk-04",
+          status: "Flagged",
+          lastAutoSweepAt: "2026-11-10T12:00:00Z",
+          checks: [
+            {
+              date: "2020-03-01",
+              discoveredAt: "2026-11-10",
+              source: "auto-sweep",
+              automated: true,
+              adverse: true,
+              agencyRecordId: "comptroller:old-2020",
+              result: "[AUTO-SWEEP] Historical permit",
+            },
+          ],
+        },
+        {
+          id: "chk-10",
+          status: "Flagged",
+          lastAutoSweepAt: "2026-11-10T12:00:00Z",
+          checks: [
+            {
+              date: "2026-11-01",
+              discoveredAt: "2026-11-10",
+              source: "auto-sweep",
+              automated: true,
+              adverse: true,
+              agencyRecordId: "tdlr-tabs:TABS2026048000",
+              result: "[AUTO-SWEEP] False substring hit at 4800 Bellaire Blvd",
+            },
+          ],
+        },
+      ],
+    },
+    null
+  );
+  const recChk04 = reconciledTdlrAndHist.checklist.find((r) => r.id === "chk-04");
+  const recChk10 = reconciledTdlrAndHist.checklist.find((r) => r.id === "chk-10");
+  assert.equal(recChk04.status, "In Progress");
+  assert.equal(recChk04.checks[0].historicalBaseline, true);
+  assert.equal(recChk04.checks[0].adverse, false);
+  assert.equal(recChk10.checks.length, 0);
+  assert.equal(recChk10.status, "To Do");
+
+  const logProp = {
+    checklist: [
+      {
+        id: "chk-04",
+        stage: "1",
+        activity: "Tax Permits",
+        checks: [{ date: "2019-01-01", result: "[AUTO-SWEEP] Historical permit", source: "auto-sweep", historicalBaseline: true, adverse: false }],
+      },
+    ],
+  };
+  const rebuiltLog = rebuildFindingsLog(logProp);
+  assert.equal(rebuiltLog[0].historicalBaseline, true);
+});
+
+test("isLegacyUnconfirmedPlatSeed rejects bogus 4-digit DPV-2026-* seeds and unconfirmed 2026-10-16 seeds while retaining 8-digit ILMS DPVs", () => {
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({ id: "plat-DPV-2026-1520", appNo: "DPV-2026-1520", tier: "1", tierConfirmed: true }),
+    true
+  );
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({
+      id: "plat-2026-1510",
+      appNo: "2026-1510",
+      tier: "2",
+      tierConfirmed: false,
+      sourceCycleKey: "2026-10-16",
+    }),
+    true
+  );
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({
+      id: "plat-DPV-26073533",
+      appNo: "DPV-26073533",
+      address: "801 McGowen St",
+      tier: "1",
+      tierConfirmed: true,
+      updatedAt: "2026-11-10T12:00:00Z",
+    }),
+    false
+  );
+});
+
+test("Activity Log external stream filter, 180-day historicalBaseline parity, and transitive groupActivityEventsByProperty", () => {
+  assert.equal(HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS, 180);
+
+  // Verify 128-day-old live finding stays adverse (<= 180d) rather than being downgraded at 90d
+  const liveEvents = synthesizeLiveMonitorEvents({
+    staticLog: { generatedAt: "2026-11-19T12:00:00Z", events: [], dailyRuns: [] },
+    watchedProperties: [
+      {
+        id: "prop-800-bell",
+        propertyName: "800 Bell Building",
+        address: "800 Bell St",
+        hcadAccount: "0010550000001",
+        tier: "1",
+        tierConfirmed: true,
+        checklist: [
+          {
+            id: "chk-04",
+            activity: "Tax Permits",
+            status: "Flagged",
+            lastAutoSweepAt: "2026-11-20T13:00:00Z",
+            checks: [
+              {
+                date: "2026-07-15",
+                discoveredAt: "2026-11-20T13:00:00Z",
+                source: "auto-sweep",
+                automated: true,
+                adverse: true,
+                agencyRecordId: "comptroller:128d",
+                result: "[AUTO-SWEEP] Active Sales Tax Permit opened at 800 Bell St",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    nowIso: "2026-11-20T14:00:00Z",
+  });
+  const hit128 = liveEvents.events.find((e) => e.id.includes("comptroller:128d"));
+  assert.ok(hit128);
+  assert.equal(hit128.adverse, true);
+  assert.equal(Boolean(hit128.historicalBaseline), false);
+
+  // Transitive order-independent multi-alias bridging: (1) address+appNo, (2) hcad+watchPropertyId, (3) bridge hcad+address
+  const transitiveEvents = [
+    {
+      id: "ev-ag-1",
+      stream: "agenda",
+      severity: "warning",
+      adverse: true,
+      localDate: "2026-11-18",
+      timestamp: "2026-11-18T12:00:00Z",
+      address: "4705 Liberty Rd",
+      appNo: "2026-1524",
+      title: "Plat Filing: 4705 Liberty Rd",
+    },
+    {
+      id: "ev-wl-1",
+      stream: "watchlist",
+      severity: "warning",
+      adverse: true,
+      localDate: "2026-11-19",
+      timestamp: "2026-11-19T12:00:00Z",
+      watchPropertyId: "prop-liberty",
+      hcad: "0040570000008",
+      address: "",
+      title: "Watchlist Hit: Liberty Tract",
+    },
+    {
+      id: "ev-perm-1",
+      stream: "permits",
+      severity: "critical",
+      adverse: true,
+      localDate: "2026-11-20",
+      timestamp: "2026-11-20T12:00:00Z",
+      hcad: "0040570000008",
+      address: "4705 Liberty Rd",
+      title: "Demolition Permit: 4705 Liberty Rd",
+    },
+    {
+      id: "ev-staff-1",
+      stream: "staff",
+      severity: "info",
+      adverse: false,
+      localDate: "2026-11-20",
+      timestamp: "2026-11-20T13:00:00Z",
+      watchPropertyId: "prop-liberty",
+      address: "4705 Liberty Rd",
+      title: "Staff Note",
+    },
+    {
+      id: "ev-hist-1",
+      stream: "watchlist",
+      severity: "info",
+      adverse: false,
+      historicalBaseline: true,
+      localDate: "2026-11-19",
+      timestamp: "2026-11-19T11:00:00Z",
+      address: "910 Bagby St",
+      hcad: "0010660000002",
+      title: "Historical Comptroller Permit (2019)",
+    },
+  ];
+  const wmExt = computeWatermarkState({
+    events: transitiveEvents,
+    nowIso: "2026-11-20T14:00:00Z",
+    excludeStaff: true,
+  });
+  assert.equal(wmExt.unreadCount, 3);
+
+  const filteredExt = filterActivityEvents({
+    events: transitiveEvents,
+    watermarkState: wmExt,
+    rangeMode: "7d",
+    streamFilter: "external",
+    nowIso: "2026-11-20T14:00:00Z",
+  });
+  const propGroups = groupActivityEventsByProperty(filteredExt);
+  assert.equal(propGroups.length, 1, "Transitively linked address, HCAD, and watchPropertyId events must coalesce into 1 group");
+  assert.equal(propGroups[0].events.length, 3);
+  assert.equal(propGroups[0].maxSeverity, "critical");
+  assert.equal(propGroups[0].appNo, "2026-1524");
+
+  // Unnumbered "0 <STREET>" reserve addresses on distinct HCAD accounts must NOT coalesce into one Property Card
+  const unnumberedGroups = groupActivityEventsByProperty([
+    {
+      id: "agenda:item:1",
+      stream: "agenda",
+      severity: "warning",
+      adverse: true,
+      localDate: "2026-11-18",
+      timestamp: "2026-11-18T12:00:00Z",
+      appNo: "2026-1101",
+      hcad: "0410000000001",
+      address: "0 Bellfort Ave",
+      title: "Plat Filing A",
+    },
+    {
+      id: "agenda:item:2",
+      stream: "agenda",
+      severity: "warning",
+      adverse: true,
+      localDate: "2026-11-18",
+      timestamp: "2026-11-18T12:05:00Z",
+      appNo: "2026-1899",
+      hcad: "0990000000099",
+      address: "0 Bellfort Ave",
+      title: "Plat Filing B",
+    },
+  ]);
+  assert.equal(unnumberedGroups.length, 2);
+
+  // Single-letter directional streets (1226 W Pierce St) and multi-HCAD assemblages must coalesce into 1 Property Card
+  const directionalGroups = groupActivityEventsByProperty([
+    { id: "ev-ag", stream: "agenda", address: "1226 W Pierce St", appNo: "2026-1585", localDate: "2026-11-18", timestamp: "2026-11-18T12:00:00Z" },
+    { id: "ev-wl", stream: "watchlist", watchPropertyId: "prop-pierce", hcad: "1490700010001", address: "", localDate: "2026-11-19", timestamp: "2026-11-19T12:00:00Z" },
+    { id: "ev-perm", stream: "permits", hcad: "1490700010001", address: "1226 W Pierce St", localDate: "2026-11-20", timestamp: "2026-11-20T12:00:00Z" },
+  ]);
+  assert.equal(directionalGroups.length, 1);
+
+  const assemblageGroups = groupActivityEventsByProperty([
+    { id: "e1", stream: "agenda", hcad: "0231000000006, 0231000000007", address: "2501 Canal St", localDate: "2026-11-18", timestamp: "2026-11-18T12:00:00Z" },
+    { id: "e2", stream: "permits", hcad: "0231000000007", address: "2501 Canal St", localDate: "2026-11-19", timestamp: "2026-11-19T12:00:00Z" },
+  ]);
+  assert.equal(assemblageGroups.length, 1);
+
+  const multiUnitGroups = groupActivityEventsByProperty([
+    { id: "wl:1", stream: "watchlist", watchPropertyId: "prop-101", hcad: "0410000000101", address: "909 Texas Ave #101", localDate: "2026-11-18", timestamp: "2026-11-18T12:00:00Z" },
+    { id: "perm:2", stream: "permits", hcad: "0410000000308", address: "909 Texas Ave #308", localDate: "2026-11-19", timestamp: "2026-11-19T12:00:00Z" },
+    { id: "staff:3", stream: "staff", watchPropertyId: "prop-101", hcad: "", address: "909 Texas Ave #101", localDate: "2026-11-20", timestamp: "2026-11-20T12:00:00Z" },
+  ]);
+  assert.equal(multiUnitGroups.length, 2);
+  assert.equal(multiUnitGroups.find((g) => g.watchPropertyId === "prop-101").events.length, 2);
+});
+
+test("buildPlatPolygonGeometry groups Esri clockwise exterior rings and counter-clockwise holes into Polygon vs MultiPolygon", () => {
+  const cwTract1 = [
+    [-95.39, 29.75],
+    [-95.39, 29.76],
+    [-95.38, 29.76],
+    [-95.38, 29.75],
+    [-95.39, 29.75],
+  ];
+  const ccwHole1 = [
+    [-95.388, 29.752],
+    [-95.382, 29.752],
+    [-95.382, 29.758],
+    [-95.388, 29.758],
+    [-95.388, 29.752],
+  ];
+  const cwTract2 = [
+    [-95.37, 29.75],
+    [-95.37, 29.76],
+    [-95.36, 29.76],
+    [-95.36, 29.75],
+    [-95.37, 29.75],
+  ];
+  const singleGeom = buildPlatPolygonGeometry([cwTract1, ccwHole1]);
+  assert.equal(singleGeom.type, "Polygon");
+  assert.equal(singleGeom.coordinates.length, 2);
+
+  const multiGeom = buildPlatPolygonGeometry([cwTract1, ccwHole1, cwTract2]);
+  assert.equal(multiGeom.type, "MultiPolygon");
+  assert.equal(multiGeom.coordinates.length, 2);
+  assert.equal(multiGeom.coordinates[0].length, 2);
+  assert.equal(multiGeom.coordinates[1].length, 1);
+});
+
+test("data_sources_catalog.json registers coh_plattracker_gis_polygons as active_auto with dedicated SVG", () => {
+  const catalog = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "data_sources_catalog.json"), "utf8")
+  );
+  const allFeeds = (catalog.organizations || []).flatMap((org) => org.feeds || []);
+  assert.equal(allFeeds.length, 47);
+  const ptFeed = allFeeds.find((f) => f.id === "coh_plattracker_gis_polygons");
+  assert.ok(ptFeed);
+  assert.equal(ptFeed.status, "active_auto");
+  assert.ok(
+    fs.existsSync(path.join(REPO_ROOT, "app", "public", "img", "doc-types", "coh-plattracker-gis-polygons.svg"))
+  );
+});
+
 
 
 

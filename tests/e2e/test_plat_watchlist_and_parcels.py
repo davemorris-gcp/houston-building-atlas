@@ -298,6 +298,8 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     # Select All Recent Cycles and verify Montrose Residences auto-merges across cycles (F3-03),
     # then select 2026-10-29 to verify the Notice-only occurrence (2026-10-29::2026-1585) has no Plat PDF
     page.select_option("#cycleSelect", "all")
+    cycle_opts_text = page.locator("#cycleSelect").inner_text()
+    assert "(Early GIS Preview)" in cycle_opts_text
     page.locator("#tabs [data-g='all']").click()
     page.fill("#q", "Montrose Residences")
     page.wait_for_selector(
@@ -1111,18 +1113,27 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
     plat_doc = json.loads((data_dir / "plat_agenda_monitor.json").read_text(encoding="utf-8"))
     wl_doc = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
     default_cycle = (plat_doc.get("cycleOrder") or [None])[0]
+    default_reviews = (
+        (plat_doc.get("cycles") or {}).get(default_cycle, {}).get("reviews") or {}
+        if default_cycle
+        else {}
+    )
     visible_agenda_occs = {
         it.get("occurrenceKey")
         for it in plat_doc.get("items", [])
         if it.get("occurrenceKey")
         and it.get("onMeetingAgenda") is not False
         and str(it.get("city") or "").strip().lower() != "etj"
+        and (it.get("_c") or {}).get("group") != "out"
+        and str((default_reviews.get(it.get("app")) or {}).get("tier") or "") != "4"
         and (not default_cycle or str(it.get("occurrenceKey", "")).startswith(f"{default_cycle}::"))
     }
     wl_entries = [
         p
         for p in ([wl_doc.get("primaryProperty")] + list(wl_doc.get("watchedProperties") or []))
-        if isinstance(p, dict) and p.get("id") and p.get("status") != "Archived (Tier 3)"
+        if isinstance(p, dict)
+        and p.get("id")
+        and p.get("trackerStatus") not in ("Archived (Tier 3)", "Archived (Tier 4)")
     ]
     active_wl_ids = {str(p["id"]) for p in wl_entries}
     agenda_dates = sorted(
@@ -1728,17 +1739,21 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
 
     plat_json_path = Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "plat_agenda_monitor.json"
 
+    unposted_ph_apps: list[str] = []
+
     def _ensure_unposted_ph_fixture(route: Any) -> None:
         doc = json.loads(plat_json_path.read_text(encoding="utf-8"))
         cyc = (doc.get("cycles") or {}).get("2026-10-29")
         if isinstance(cyc, dict) and isinstance(cyc.get("items"), list):
-            has_unposted_ph = any(
-                str(it.get("app") or "").upper().startswith("PH-")
+            matching_unposted = [
+                str(it.get("app") or "")
+                for it in cyc["items"]
+                if str(it.get("app") or "").upper().startswith("PH-")
                 and not str(it.get("pdf") or "").startswith("http")
                 and not str(it.get("noticePdf") or "").startswith("http")
-                for it in cyc["items"]
-            )
-            if not has_unposted_ph:
+                and not str(it.get("hcad") or "").strip()
+            ]
+            if not matching_unposted:
                 cyc["items"].append(
                     {
                         "name": "Unposted Section III Test Replat",
@@ -1822,6 +1837,9 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
                         "priorCycles": [],
                     }
                 )
+                matching_unposted.append("PH-999")
+            unposted_ph_apps.clear()
+            unposted_ph_apps.extend(matching_unposted)
         route.fulfill(
             status=200,
             content_type="application/json; charset=utf-8",
@@ -1908,7 +1926,8 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
         assert page.locator("#detail a", has_text="Public Hearing Notice PDF").count() >= 1
 
     page.fill("#q", "")
-    unposted_ph_row = page.locator("#list .row[data-app^='PH-']").first
+    target_unposted_app = unposted_ph_apps[0] if unposted_ph_apps else "PH-999"
+    unposted_ph_row = page.locator(f"#list .row[data-app='{target_unposted_app}']").first
     unposted_ph_row.wait_for(state="visible", timeout=5000)
     unposted_ph_row.click()
     unposted_ph_txt = page.locator("#detail").inner_text()

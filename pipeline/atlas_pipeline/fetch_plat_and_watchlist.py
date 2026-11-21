@@ -29,6 +29,8 @@ Integrates Preservation Houston's two preservation monitoring workflows into the
 
 from __future__ import annotations
 
+import concurrent.futures
+import copy
 import csv
 import datetime as dt
 import html
@@ -38,6 +40,8 @@ import math
 import re
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -50,11 +54,16 @@ if str(REPO_ROOT / "pipeline") not in sys.path:
 
 from atlas_pipeline.schema import (
     ARCHIVED_WATCHLIST_STATUSES,
+    BOGUS_DPV_SUBDIV_SEED_RE,
+    HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
     REMOVED_TIER3_TOMBSTONE,
     REMOVED_TIER4_TOMBSTONE,
     REMOVED_WATCHLIST_TOMBSTONE,
+    RETRACTED_ROUNDED_CYCLE_KEY,
     WATCHLIST_TOMBSTONE_STATUSES,
     is_archived_watchlist_status,
+    is_auto_sweep_check as _is_auto_sweep_check,
+    is_historical_auto_sweep_date as _is_historical_auto_sweep_date,
     is_removed_watchlist_tombstone,
     iter_json_or_gzip_shard_keys,
     read_json_or_gzip_path,
@@ -66,6 +75,28 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) HoustonBuildingAtlas/1.0"
 DEV_REPORTS_URL = "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html"
 COMMISS_PLAN_URL = "https://www.houstontx.gov/planning/Commissions/commiss_plan.html"
 NOTICES_URL = "https://www.houstontx.gov/planning/notices/"
+PLAT_TRACKER_GIS_APPLICATIONS_URL = (
+    "https://mycity2.houstontx.gov/geoplat01/rest/services/PlatTracker/"
+    "PT365_PLAT_MAPPING/MapServer/1/query"
+)
+PLAT_TRACKER_GIS_FINAL_PLATS_URL = (
+    "https://mycity2.houstontx.gov/geoplat01/rest/services/PlatTracker/"
+    "PT365_PLAT_MAPPING/MapServer/0/query"
+)
+PLAT_TRACKER_APP_CODE_LABELS: dict[str, str] = {
+    "C1": "Class 1 Plat (C1)",
+    "C2": "Class 2 Plat (C2)",
+    "C2R": "Class 2 Replat (C2R)",
+    "C3F": "Class 3 Final Plat (C3F)",
+    "C3P": "Class 3 Preliminary Plat (C3P)",
+    "C3R": "Class 3 Replat (C3R)",
+    "C3N": "Class 3 Replat with Public Hearing Notice (C3N)",
+    "GP": "General Plan (GP)",
+    "SP": "Street Dedication Plat (SP)",
+    "VP": "Vacating Plat (VP)",
+    "VF": "Variance Filing (VF)",
+}
+SPATIAL_GRID_DEG = 0.005
 
 SHEET_PUBLISHED_CSV_URL = (
     "https://docs.google.com/spreadsheets/d/e/"
@@ -283,17 +314,234 @@ def fetch_bytes(
     timeout: int = 20,
     data: bytes | None = None,
     headers: dict[str, str] | None = None,
+    retries: int = 2,
 ) -> bytes | None:
     req_headers = {"User-Agent": USER_AGENT}
     if headers:
         req_headers.update(headers)
-    try:
-        req = urllib.request.Request(url, data=data, headers=req_headers)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
-    except Exception as exc:
-        print(f"[warn] Could not fetch {url}: {exc}")
+    max_attempts = max(1, int(retries) + 1)
+    last_exc: Exception | None = None
+    for attempt in range(max_attempts):
+        try:
+            req = urllib.request.Request(url, data=data, headers=req_headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            if exc.code in (400, 401, 403, 404) or attempt + 1 >= max_attempts:
+                break
+            time.sleep(0.8 * (attempt + 1))
+        except Exception as exc:
+            last_exc = exc
+            if attempt + 1 >= max_attempts:
+                break
+            time.sleep(0.8 * (attempt + 1))
+    print(f"[warn] Could not fetch {url}: {last_exc}")
+    return None
+
+
+def point_in_polygon_rings(lng: float, lat: float, rings: list) -> bool:
+    """Return True when (lng, lat) lies strictly inside Esri/GeoJSON polygon rings (even-odd rule)."""
+    inside = False
+    for ring in rings or ():
+        if not isinstance(ring, list) or len(ring) < 3:
+            continue
+        n = len(ring)
+        j = n - 1
+        for i in range(n):
+            pi = ring[i]
+            pj = ring[j]
+            if not (isinstance(pi, (list, tuple)) and isinstance(pj, (list, tuple)) and len(pi) >= 2 and len(pj) >= 2):
+                j = i
+                continue
+            xi, yi = float(pi[0]), float(pi[1])
+            xj, yj = float(pj[0]), float(pj[1])
+            if ((yi > lat) != (yj > lat)) and (
+                lng < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-15) + xi
+            ):
+                inside = not inside
+            j = i
+    return inside
+
+
+def _rdp_open_polyline(pts: list[list[float]], epsilon_deg: float) -> list[list[float]]:
+    """Iterative Ramer-Douglas-Peucker polyline simplifier preserving all sharp corner vertices."""
+    n = len(pts)
+    if n <= 2:
+        return list(pts)
+    keep = [False] * n
+    keep[0] = True
+    keep[-1] = True
+    stack: list[tuple[int, int]] = [(0, n - 1)]
+    eps_sq = epsilon_deg * epsilon_deg
+    while stack:
+        i0, i1 = stack.pop()
+        if i1 - i0 <= 1:
+            continue
+        x0, y0 = pts[i0]
+        x1, y1 = pts[i1]
+        dx = x1 - x0
+        dy = y1 - y0
+        seg_len_sq = dx * dx + dy * dy
+        max_d_sq = -1.0
+        split_idx = -1
+        for k in range(i0 + 1, i1):
+            px, py = pts[k]
+            if seg_len_sq <= 1e-24:
+                d_sq = (px - x0) ** 2 + (py - y0) ** 2
+            else:
+                t = max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / seg_len_sq))
+                proj_x = x0 + t * dx
+                proj_y = y0 + t * dy
+                d_sq = (px - proj_x) ** 2 + (py - proj_y) ** 2
+            if d_sq > max_d_sq:
+                max_d_sq = d_sq
+                split_idx = k
+        if max_d_sq > eps_sq and split_idx != -1:
+            keep[split_idx] = True
+            stack.append((i0, split_idx))
+            stack.append((split_idx, i1))
+    return [pts[idx] for idx in range(n) if keep[idx]]
+
+
+def _simplify_closed_ring_rdp(pts: list[list[float]], epsilon_deg: float = 0.000005) -> list[list[float]]:
+    """Simplify a closed WGS84 ring (< ~0.55m chord tolerance) without dropping straight-line corners."""
+    if len(pts) <= 65:
+        return pts
+    x0, y0 = pts[0]
+    far_idx = max(
+        range(1, len(pts) - 1),
+        key=lambda i: (pts[i][0] - x0) ** 2 + (pts[i][1] - y0) ** 2,
+    )
+    first_half = _rdp_open_polyline(pts[: far_idx + 1], epsilon_deg)
+    second_half = _rdp_open_polyline(pts[far_idx:], epsilon_deg)
+    combined = first_half[:-1] + second_half
+    if len(combined) < 4:
+        return pts
+    if combined[0] != combined[-1]:
+        combined.append([combined[0][0], combined[0][1]])
+    return combined
+
+
+def compute_polygon_geometry_summary(rings: list) -> dict | None:
+    """Compute WGS84 bbox, centroid, guaranteed interior point, acreage, and corner-preserving rings."""
+    if not isinstance(rings, list) or not rings:
         return None
+    full_rings: list[list[list[float]]] = []
+    clean_rings: list[list[list[float]]] = []
+    min_lng = math.inf
+    max_lng = -math.inf
+    min_lat = math.inf
+    max_lat = -math.inf
+
+    best_area_abs = -1.0
+    best_cx = 0.0
+    best_cy = 0.0
+    total_sq_m = 0.0
+
+    for ring in rings:
+        if not isinstance(ring, list) or len(ring) < 3:
+            continue
+        pts: list[list[float]] = []
+        for pt in ring:
+            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                try:
+                    x = round(float(pt[0]), 6)
+                    y = round(float(pt[1]), 6)
+                except (TypeError, ValueError):
+                    continue
+                if -97.0 <= x <= -94.0 and 28.5 <= y <= 31.0:
+                    if not pts or pts[-1][0] != x or pts[-1][1] != y:
+                        pts.append([x, y])
+                        if x < min_lng:
+                            min_lng = x
+                        if x > max_lng:
+                            max_lng = x
+                        if y < min_lat:
+                            min_lat = y
+                        if y > max_lat:
+                            max_lat = y
+        if len(pts) < 3:
+            continue
+        if pts[0] != pts[-1]:
+            pts.append([pts[0][0], pts[0][1]])
+
+        full_pts = pts
+        full_rings.append(full_pts)
+
+        # Compute exact area and centroid on full_pts BEFORE display/storage simplification
+        signed_area2 = 0.0
+        cx_acc = 0.0
+        cy_acc = 0.0
+        mid_lat_rad = math.radians((min_lat + max_lat) * 0.5)
+        m_per_deg_lng = 111320.0 * math.cos(mid_lat_rad)
+        m_per_deg_lat = 110574.0
+        planar_area2 = 0.0
+        for idx_p in range(len(full_pts) - 1):
+            x0, y0 = full_pts[idx_p]
+            x1, y1 = full_pts[idx_p + 1]
+            cross = x0 * y1 - x1 * y0
+            signed_area2 += cross
+            cx_acc += (x0 + x1) * cross
+            cy_acc += (y0 + y1) * cross
+            planar_area2 += (x0 * m_per_deg_lng) * (y1 * m_per_deg_lat) - (x1 * m_per_deg_lng) * (y0 * m_per_deg_lat)
+
+        clean_rings.append(_simplify_closed_ring_rdp(full_pts))
+
+        area_abs = abs(signed_area2) * 0.5
+        # Esri exterior rings wind clockwise (signed_area2 < 0 in lng/lat); single-ring polygons always add
+        if len(rings) == 1:
+            total_sq_m += abs(planar_area2) * 0.5
+        else:
+            total_sq_m += (-planar_area2 * 0.5) if signed_area2 < 0 else (-abs(planar_area2) * 0.5)
+        if area_abs > 1e-13 and area_abs > best_area_abs and abs(signed_area2) > 1e-15:
+            best_area_abs = area_abs
+            best_cx = cx_acc / (3.0 * signed_area2)
+            best_cy = cy_acc / (3.0 * signed_area2)
+
+    if not clean_rings or not math.isfinite(min_lng):
+        return None
+
+    c_lng = round(best_cx if best_area_abs > 0 else (min_lng + max_lng) * 0.5, 6)
+    c_lat = round(best_cy if best_area_abs > 0 else (min_lat + max_lat) * 0.5, 6)
+
+    # Guarantee an interior point strictly inside both full_rings and clean_rings (handles concave lots)
+    int_lng, int_lat = c_lng, c_lat
+    if not (
+        point_in_polygon_rings(int_lng, int_lat, full_rings)
+        and point_in_polygon_rings(int_lng, int_lat, clean_rings)
+    ):
+        best_chord_w = -1.0
+        for frac in (0.5, 0.35, 0.65, 0.25, 0.75):
+            y_scan = min_lat + (max_lat - min_lat) * frac
+            xs: list[float] = []
+            for ring in full_rings:
+                for idx_p in range(len(ring) - 1):
+                    x0, y0 = ring[idx_p]
+                    x1, y1 = ring[idx_p + 1]
+                    if (y0 > y_scan) != (y1 > y_scan):
+                        x_hit = x0 + (y_scan - y0) * (x1 - x0) / ((y1 - y0) or 1e-15)
+                        xs.append(x_hit)
+            xs.sort()
+            for k in range(0, len(xs) - 1, 2):
+                w = xs[k + 1] - xs[k]
+                if w > best_chord_w:
+                    cand_x = round((xs[k] + xs[k + 1]) * 0.5, 6)
+                    cand_y = round(y_scan, 6)
+                    if point_in_polygon_rings(cand_x, cand_y, full_rings) and point_in_polygon_rings(
+                        cand_x, cand_y, clean_rings
+                    ):
+                        best_chord_w = w
+                        int_lng, int_lat = cand_x, cand_y
+
+    acreage = round(max(0.0, total_sq_m) / 4046.8564224, 4) if total_sq_m > 0 else 0.0
+    return {
+        "bbox": [round(min_lng, 6), round(min_lat, 6), round(max_lng, 6), round(max_lat, 6)],
+        "centroid": [c_lng, c_lat],
+        "interiorPoint": [int_lng, int_lat],
+        "acreage": acreage,
+        "polygon": clean_rings,
+    }
 
 
 def pdf_to_text(pdf_bytes: bytes, layout: bool = True) -> str:
@@ -533,11 +781,16 @@ def canonical_property_address_key(raw_addr: object) -> str:
     if num <= 0:
         return ""
     dir_map = {"NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
-    street_tokens = [
-        dir_map.get(t, t)
-        for t in re.sub(r"[^A-Z0-9]+", " ", m.group(2)).strip().split()
-        if t
-    ]
+    raw_tokens = [t for t in re.sub(r"[^A-Z0-9]+", " ", m.group(2)).strip().split() if t]
+    has_non_dir_core = (
+        sum(
+            1
+            for t in raw_tokens
+            if t not in DIRECTIONAL_TOKENS and t not in STREET_TYPE_SUFFIXES
+        )
+        >= 1
+    )
+    street_tokens = [dir_map.get(t, t) if has_non_dir_core else t for t in raw_tokens]
     street = " ".join(street_tokens)
     if len(street) < 2:
         return ""
@@ -1100,12 +1353,16 @@ def is_boilerplate_plat_why(text: object) -> bool:
         return True
     if re.search(r"\b(?:ea\s*note|ea\s*:|staff\s*note|ph\s*note)\b", s, re.I):
         return False
+    non_empty_lines = [ln.strip() for ln in re.split(r"[\r\n]+", s) if ln.strip()]
+    if len(non_empty_lines) > 1:
+        return False
     s_inner = re.sub(r"^[\s(\[]+|[\s)\]]+$", "", s)
     if not s_inner:
         return True
     return bool(
         re.match(
             r"^(?:Atlas matched HCAD parcel at |Atlas matched designated historic resource |"
+            r"City PlatTracker GIS polygon matched HCAD parcel |"
             r"Section K Development Plat Variance |Flagged on Planning Commission agenda |"
             r"Confirmed from \d{4}-\d{2}-\d{2} Planning Commission Agenda|"
             r"Proposed vacant-parcel development at )",
@@ -1151,22 +1408,47 @@ def merge_plat_review_overlay(
     if is_retracted_seed:
         return base
 
-    if inc.get("autoEnriched") is True and not has_human_edits and not inc.get("tierConfirmed") and boilerplate_why:
+    is_machine_carried_confirm = bool(inc.get("carriedConfirmedFromCycle"))
+    if (
+        inc.get("autoEnriched") is True
+        and not has_human_edits
+        and (not inc.get("tierConfirmed") or is_machine_carried_confirm)
+        and boilerplate_why
+    ):
         merged = dict(base)
+        if base.get("tier"):
+            merged["autoSuggestedTier"] = str(base.get("tier"))
         # Preserve an explicit human Tier 3/4 dismissal made against the correct parcel while
         # refreshing machine-enriched parcel metadata from base.
-        if str(inc.get("tier") or "") in ("3", "4") and str(inc.get("reviewer") or "").strip():
+        if (
+            not is_machine_carried_confirm
+            and str(inc.get("tier") or "") in ("3", "4")
+            and str(inc.get("reviewer") or "").strip()
+        ):
             merged["tier"] = str(inc.get("tier"))
             merged["tierConfirmed"] = False
             if inc.get("threatCategory"):
                 merged["threatCategory"] = inc["threatCategory"]
-        for keep_key in ("overrideScreenOut", "reviewer", "updated", "carriedFromCycle", "carriedFields"):
+        for keep_key in (
+            "overrideScreenOut",
+            "reviewer",
+            "updated",
+            "carriedFromCycle",
+            "carriedFields",
+            "carriedConfirmedFromCycle",
+        ):
             if keep_key in inc and inc[keep_key] not in (None, "", []):
                 merged[keep_key] = inc[keep_key]
+        if is_machine_carried_confirm and inc.get("tierConfirmed") is True:
+            merged["tierConfirmed"] = True
+            if inc.get("tier"):
+                merged["tier"] = str(inc.get("tier"))
         return merged
 
     merged = dict(base)
     merged.update(inc)
+    if base.get("tier"):
+        merged["autoSuggestedTier"] = str(base.get("tier"))
     return merged
 
 
@@ -1177,7 +1459,7 @@ def _is_human_reviewed_plat_entry(rev: dict | None) -> bool:
         return True
     if isinstance(rev.get("humanEditedFields"), list) and len(rev["humanEditedFields"]) > 0:
         return True
-    if rev.get("tierConfirmed") is True:
+    if rev.get("tierConfirmed") is True and not rev.get("carriedConfirmedFromCycle"):
         return True
     if not is_boilerplate_plat_why(rev.get("why")):
         return True
@@ -1327,6 +1609,137 @@ def describe_cycle_meeting_action(
     return " · ".join(parts) or "Listed on Planning Commission agenda"
 
 
+_DEVELOPER_PLACEHOLDER_RE = re.compile(
+    r"^(?:SEE\s+HCAD(?:\s+PROPERTY\s+SEARCH)?|UNKNOWN|NONE(?:\s+FOUND)?|N/?A|NOT\s+RECORDED|VARIOUS(?:\s+OWNERS)?|OWNER|CURRENT\s+OWNER|TBD)$",
+    re.I,
+)
+_DEVELOPER_GENERIC_ONLY = frozenset({
+    "HOUSTON",
+    "TEXAS",
+    "HARRIS",
+    "HARRIS COUNTY",
+    "CITY OF HOUSTON",
+    "STATE OF TEXAS",
+    "COUNTY OF HARRIS",
+    "DEVELOPMENT",
+    "DEVELOPMENTS",
+    "HOLDINGS",
+    "HOLDING",
+    "INVESTMENTS",
+    "INVESTMENT",
+    "PROPERTIES",
+    "PROPERTY",
+    "REALTY",
+    "REAL ESTATE",
+    "HOMES",
+    "BUILDERS",
+    "BUILDING",
+    "GROUP",
+    "PARTNERS",
+    "PARTNERSHIP",
+    "VENTURES",
+    "ENTERPRISES",
+    "MANAGEMENT",
+    "CAPITAL",
+    "TRUST",
+    "ESTATE",
+    "ESTATES",
+    "ASSOCIATES",
+})
+_DEVELOPER_CORP_SUFFIX_RE = re.compile(
+    r"\s+\b(?:P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|"
+    r"LIMITED\s+PARTNERSHIP|LIMITED|LTD\.?|INCORPORATED|INC\.?|CORPORATION|CORP\.?|COMPANY|CO\.?)\s*$",
+    re.I,
+)
+
+
+def normalize_developer_entity_key(raw_name: object) -> str:
+    """Normalize a developer or owner entity name in 1:1 parity with JS normalizeDeveloperEntityKey."""
+    s = re.sub(r"\([^)]*\)", " ", str(raw_name or "")).strip()
+    if not s or _DEVELOPER_PLACEHOLDER_RE.match(s):
+        return ""
+    s = s.upper().replace("&", " AND ")
+    s = re.sub(r"[.,'\"`]", " ", s)
+    s = " ".join(re.sub(r"[^A-Z0-9\s]", " ", s).split()).strip()
+    if not s or _DEVELOPER_PLACEHOLDER_RE.match(s):
+        return ""
+    prev = ""
+    while s and s != prev:
+        prev = s
+        stripped = _DEVELOPER_CORP_SUFFIX_RE.sub("", s).strip()
+        if len(stripped) >= 4:
+            s = stripped
+    if len(s) < 4 or s in _DEVELOPER_GENERIC_ONLY:
+        return ""
+    return s
+
+
+def _has_variance_or_dpv_signal(entity: dict | None) -> bool:
+    if not isinstance(entity, dict):
+        return False
+    sec = str(entity.get("section") or "").strip()
+    spec = str(entity.get("special") or "").strip()
+    typ = str(entity.get("type") or "").strip()
+    app = str(entity.get("app") or "").strip()
+    return bool(
+        "variance" in spec.lower()
+        or "dpv" in typ.lower()
+        or app.upper().startswith("DPV")
+        or re.match(r"^(?:d|k)\.", sec, re.I)
+    )
+
+
+def detect_material_plat_changes(cur_item: dict | None, prior_snap: dict | None) -> list[str]:
+    """Detect substantive changes on a returning plat filing that warrant re-review (parity with JS detectMaterialPlatChanges)."""
+    if not isinstance(cur_item, dict) or not isinstance(prior_snap, dict):
+        return []
+    changes: list[str] = []
+    if _has_variance_or_dpv_signal(cur_item) and not _has_variance_or_dpv_signal(prior_snap):
+        changes.append("New variance or Section K DPV request added")
+    cur_hearing = str(cur_item.get("hearingDateIso") or "").strip()
+    prev_hearing = str(prior_snap.get("hearingDateIso") or "").strip()
+    if cur_hearing and cur_hearing != prev_hearing:
+        changes.append(f"New public hearing scheduled ({cur_hearing})")
+    cur_dev = normalize_developer_entity_key(cur_item.get("developer"))
+    prev_dev = normalize_developer_entity_key(prior_snap.get("developer"))
+    if cur_dev and prev_dev and cur_dev != prev_dev:
+        changes.append(
+            f"Developer changed ({strip_corporate_suffix_commas(prior_snap.get('developer'))} -> {strip_corporate_suffix_commas(cur_item.get('developer'))})"
+        )
+    cur_lots = _parse_finite_float(cur_item.get("lots"))
+    prev_lots = _parse_finite_float(prior_snap.get("lots"))
+    if cur_lots is not None and prev_lots is not None and prev_lots >= 1 and cur_lots > prev_lots:
+        changes.append(f"Proposed lot count increased ({int(prev_lots)} -> {int(cur_lots)} lots)")
+    return changes
+
+
+_PLAT_TIER_RANK: dict[str, int] = {"1": 1, "2": 2, "3": 3, "4": 4}
+
+
+def _format_carried_fields_list(carried: list[str] | set[str]) -> list[str]:
+    carried_set = set(carried)
+    return [
+        *[f for f in CARRY_FORWARD_REVIEW_FIELDS if f in carried_set],
+        *(["tierConfirmed"] if "tierConfirmed" in carried_set else []),
+    ]
+
+
+def _can_carry_plat_tier_across_material_change(prior_tier: str, cur_auto_tier: str) -> bool:
+    p = str(prior_tier or "").strip()
+    if not p or p in ("3", "4"):
+        return False
+    c = str(cur_auto_tier or "").strip()
+    return _PLAT_TIER_RANK.get(c, 99) > _PLAT_TIER_RANK.get(p, 99)
+
+
+def _should_revoke_carried_tier_on_material_change(cur_tier: str, auto_suggested_tier: str) -> bool:
+    c = str(cur_tier or "").strip()
+    if c in ("3", "4"):
+        return True
+    a = str(auto_suggested_tier or "").strip()
+    return _PLAT_TIER_RANK.get(a, 99) < _PLAT_TIER_RANK.get(c, 99)
+
+
 def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str] | None = None) -> dict[str, dict]:
     """Link deferred or resubmitted items chronologically across agenda cycles."""
     ordered = sorted(cycle_order) if cycle_order else sorted(cycles_map.keys())
@@ -1370,6 +1783,21 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
 
             if prior_cycles:
                 latest_prior = prior_cycles[-1]
+                confirmed_baseline = next(
+                    (
+                        p
+                        for p in reversed(prior_cycles)
+                        if p.get("tierConfirmed") is True or p.get("hasDirectTierDecision") is True
+                    ),
+                    latest_prior,
+                )
+                baseline_is_reviewed = bool(
+                    confirmed_baseline.get("tierConfirmed") is True
+                    or confirmed_baseline.get("hasDirectTierDecision") is True
+                    or confirmed_baseline.get("isHumanReviewed")
+                )
+                material_changes = detect_material_plat_changes(it, confirmed_baseline)
+                it["materialChanges"] = material_changes
                 changed = False
                 human_fields = (
                     {str(f) for f in r.get("humanEditedFields") if str(f).strip()}
@@ -1384,7 +1812,7 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
                 is_carried_from_prior = bool(
                     r.get("carriedFromCycle") == latest_prior["cycleKey"] or carried_fields
                 )
-                prior_is_human = bool(latest_prior.get("isHumanReviewed"))
+                prior_is_human = bool(latest_prior.get("isHumanReviewed") or baseline_is_reviewed)
                 cur_is_untouched_auto = bool(
                     r.get("autoEnriched") is True
                     and not r.get("humanEdited")
@@ -1393,13 +1821,32 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
                     and is_boilerplate_plat_why(r.get("why"))
                 )
 
+                if (
+                    not r.get("autoSuggestedTier")
+                    and r.get("tier")
+                    and "tier" not in carried_fields
+                    and "tier" not in human_fields
+                ):
+                    r["autoSuggestedTier"] = str(r.get("tier"))
+
                 for k in CARRY_FORWARD_REVIEW_FIELDS:
                     if k in human_fields:
                         continue
-                    prior_val = str(latest_prior.get(k) or "").strip()
+                    val_source = (
+                        confirmed_baseline
+                        if (k == "tier" and material_changes and baseline_is_reviewed)
+                        else latest_prior
+                    )
+                    prior_val = str(val_source.get(k) or "").strip()
                     if not prior_val:
                         continue
                     cur_val = str(r.get(k) or "").strip()
+                    if (
+                        k == "tier"
+                        and material_changes
+                        and not _can_carry_plat_tier_across_material_change(prior_val, cur_val)
+                    ):
+                        continue
                     should_copy = False
                     if not cur_val or (k == "designation" and cur_val == "Not checked yet" and prior_val != "Not checked yet"):
                         if k == "hcad":
@@ -1421,14 +1868,63 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
                             carried_fields.append(k)
                         changed = True
 
+                if r.get("tierConfirmed") and not r.get("carriedConfirmedFromCycle") and r.get("reReviewReason"):
+                    r.pop("reReviewReason", None)
+                    changed = True
+
+                # Carry forward tierConfirmed across cycles when no material change occurred and staff
+                # did not manually edit tier on this cycle; otherwise revoke auto-carried confirmation
+                # and populate reReviewReason.
+                if (
+                    latest_prior.get("tierConfirmed") is True
+                    or baseline_is_reviewed
+                    or prior_is_human
+                ) and "tier" not in human_fields:
+                    if not material_changes:
+                        if latest_prior.get("tierConfirmed") is True and not r.get("tierConfirmed"):
+                            r["tierConfirmed"] = True
+                            r["carriedConfirmedFromCycle"] = latest_prior["cycleKey"]
+                            if "tierConfirmed" not in carried_fields:
+                                carried_fields.append("tierConfirmed")
+                            changed = True
+                        if r.get("reReviewReason"):
+                            r.pop("reReviewReason", None)
+                            changed = True
+                    else:
+                        if r.get("carriedConfirmedFromCycle") or "tierConfirmed" in carried_fields:
+                            r["tierConfirmed"] = False
+                            r.pop("carriedConfirmedFromCycle", None)
+                            carried_fields = [f for f in carried_fields if f != "tierConfirmed"]
+                            changed = True
+                        auto_tier = str(
+                            r.get("autoSuggestedTier")
+                            or ("2" if (_has_variance_or_dpv_signal(it) or it.get("hearingDateIso")) else "")
+                        )
+                        if "tier" in carried_fields and _should_revoke_carried_tier_on_material_change(
+                            str(r.get("tier") or ""), auto_tier
+                        ):
+                            r["tier"] = auto_tier
+                            carried_fields = [f for f in carried_fields if f != "tier"]
+                            changed = True
+                        if not r.get("tierConfirmed"):
+                            r["reReviewReason"] = "; ".join(material_changes)
+                            changed = True
+
                 if changed:
                     r["carriedFromCycle"] = latest_prior["cycleKey"]
-                    r["carriedFields"] = carried_fields
+                    r["carriedFields"] = _format_carried_fields_list(carried_fields)
                     reviews[it["app"]] = r
                     if "_c" in it:
                         it["_c"] = classify_item(it, r)
+            else:
+                it["materialChanges"] = []
 
             atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
+            snap_hf = (
+                {str(f) for f in r.get("humanEditedFields") if str(f).strip()}
+                if isinstance(r.get("humanEditedFields"), list)
+                else set()
+            )
             snapshot = {
                 "cycleKey": cycle_iso,
                 "app": it["app"],
@@ -1438,10 +1934,19 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
                 "onMeetingAgenda": bool(it.get("onMeetingAgenda") or str(it.get("agendaItemNo") or "").strip()),
                 "deferral": it.get("deferral", ""),
                 "section": it.get("section", ""),
+                "type": it.get("type", ""),
+                "special": it.get("special", ""),
+                "developer": it.get("developer", ""),
+                "lots": it.get("lots", ""),
                 "hearingDateIso": it.get("hearingDateIso", ""),
                 "meetingAction": it.get("meetingAction") or describe_cycle_meeting_action(it, minutes_actions),
                 "tier": r.get("tier", ""),
                 "tierConfirmed": bool(r.get("tierConfirmed")),
+                "hasDirectTierDecision": bool(
+                    (r.get("tierConfirmed") and not r.get("carriedConfirmedFromCycle"))
+                    or "tier" in snap_hf
+                    or r.get("humanEdited") is True
+                ),
                 "isHumanReviewed": _is_human_reviewed_plat_entry(r),
                 "hcad": r.get("hcad") or it.get("hcad") or "",
                 "address": r.get("address") or atlas.get("primaryAddress") or "",
@@ -1706,8 +2211,10 @@ def load_atlas_indices():
     addr_exact: dict[tuple[str, str], dict] = {}
     addr_nodir: dict[tuple[str, str], dict] = {}
     street_centroids: dict[str, tuple[float, float]] = {}
+    spatial_grid: dict[tuple[int, int], list[dict]] = {}
+    seen_grid_keys: set[tuple[str, str]] = set()
 
-    for _shard_key, sp in iter_json_or_gzip_shard_keys(DATA_DIR / "address_shards", "addr_", r"\d{2}"):
+    for _shard_key, sp in iter_json_or_gzip_shard_keys(DATA_DIR / "address_shards", "addr_", r"[0-9A-Z_]+"):
         shard = read_json_or_gzip_path(sp)
         for raw_st, recs in shard.items():
             st = " ".join(raw_st.upper().split())
@@ -1756,6 +2263,20 @@ def load_atlas_indices():
                     "all_years": list(hcad_map[hcad]["all_years"]) if hcad in hcad_map else ([valid_yr] if valid_yr else []),
                     "label": label,
                 }
+                g_dedup = (hcad, full_addr)
+                if g_dedup not in seen_grid_keys:
+                    seen_grid_keys.add(g_dedup)
+                    gx = int(math.floor(lng / SPATIAL_GRID_DEG))
+                    gy = int(math.floor(lat / SPATIAL_GRID_DEG))
+                    spatial_grid.setdefault((gx, gy), []).append(
+                        {
+                            "hcad": hcad,
+                            "address": full_addr,
+                            "lng": lng,
+                            "lat": lat,
+                            "year_built": valid_yr,
+                        }
+                    )
                 if (hnum, st) not in addr_exact or (
                     valid_yr and (not addr_exact[(hnum, st)]["year_built"] or valid_yr < addr_exact[(hnum, st)]["year_built"])
                 ):
@@ -1862,6 +2383,44 @@ def load_atlas_indices():
             return [f for f in raw if isinstance(f, dict)]
         return []
 
+    def _extract_overlay_polygons(layer_key: str, label_keys: tuple[str, ...]) -> list[dict]:
+        raw = overlays.get(layer_key, {})
+        feats = raw.get("features", []) if isinstance(raw, dict) else []
+        out_polys: list[dict] = []
+        for f_obj in feats:
+            if not isinstance(f_obj, dict):
+                continue
+            p_obj = f_obj.get("properties") or {}
+            g_obj = f_obj.get("geometry") or {}
+            g_type = g_obj.get("type")
+            coords = g_obj.get("coordinates") or []
+            lbl_val = next((str(p_obj.get(k) or "").strip() for k in label_keys if str(p_obj.get(k) or "").strip()), "")
+            if not lbl_val:
+                continue
+            poly_list = [coords] if g_type == "Polygon" else (coords if g_type == "MultiPolygon" else [])
+            for rings in poly_list:
+                if not isinstance(rings, list) or not rings:
+                    continue
+                xs = [float(pt[0]) for rg in rings if isinstance(rg, list) for pt in rg if isinstance(pt, (list, tuple)) and len(pt) >= 2]
+                ys = [float(pt[1]) for rg in rings if isinstance(rg, list) for pt in rg if isinstance(pt, (list, tuple)) and len(pt) >= 2]
+                if xs and ys:
+                    out_polys.append(
+                        {
+                            "name": lbl_val,
+                            "bbox": (min(xs), min(ys), max(xs), max(ys)),
+                            "rings": rings,
+                            "props": p_obj,
+                        }
+                    )
+        return out_polys
+
+    overlay_polygons = {
+        "super_neighborhoods": _extract_overlay_polygons("super_neighborhoods", ("raw_name", "name")),
+        "historic_districts": _extract_overlay_polygons("historic_districts", ("name", "district_name")),
+        "platted_subdivisions": _extract_overlay_polygons("platted_subdivisions", ("full_name", "name")),
+        "council_districts": _extract_overlay_polygons("council_districts", ("district", "COUNCIL", "name")),
+    }
+
     generic_subdiv_keys = {
         "N", "S", "E", "W", "NE", "NW", "SE", "SW", "NORTH", "SOUTH", "EAST", "WEST",
         "ESTATES", "PARK", "PLACE", "GARDENS", "ACRES", "VILLAGE", "HEIGHTS", "SQUARE",
@@ -1923,6 +2482,8 @@ def load_atlas_indices():
         "addr_exact": addr_exact,
         "addr_nodir": addr_nodir,
         "street_centroids": street_centroids,
+        "spatial_grid": spatial_grid,
+        "overlay_polygons": overlay_polygons,
         "buildings_by_hcad": buildings_by_hcad,
         "subdiv_index": subdiv_index,
         "snbr_index": snbr_index,
@@ -2432,12 +2993,338 @@ def _extract_minutes_cycle_iso_from_url(url: str) -> str:
     return ""
 
 
-def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
-    """Fetch up to the 4 most recent Planning Commission .xlsx spreadsheets, matching Outline PDFs, and Notice PDFs."""
-    print("[2/6] Fetching recent COH Plat Agenda .xlsx cycles, Agenda Outline PDFs, and Notice PDFs...")
+def _epoch_ms_to_iso(val: object) -> str:
+    if isinstance(val, (int, float)) and val > 100_000_000_000:
+        try:
+            return dt.datetime.fromtimestamp(float(val) / 1000.0, tz=dt.timezone.utc).date().isoformat()
+        except (OverflowError, OSError, ValueError):
+            return ""
+    return excel_serial_to_iso(val)
+
+
+def fetch_plattracker_gis_applications(
+    active_year: int = 2026,
+    extra_years: tuple[int, ...] | list[int] = (),
+) -> dict[str, dict]:
+    """Fetch deduplicated City of Houston PlatTracker GIS polygons & statuses (PT365_PLAT_MAPPING/MapServer)."""
+    PLAT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    years = sorted({int(active_year), *(int(y) for y in extra_years)})
+    where_clause = " OR ".join(f"AppNo LIKE '{yr}-%'" for yr in years)
+    cache_suffix = "_".join(str(yr) for yr in years)
+    cache_file = PLAT_CACHE_DIR / f"plattracker_gis_{cache_suffix}.json"
+
+    final_by_app: dict[str, dict] = {}
+    final_qs = urllib.parse.urlencode(
+        {
+            "where": where_clause,
+            "outFields": "OBJECTID,AppNo,RecordationStatus,AppStatus,PCDate,UploadDate",
+            "returnGeometry": "false",
+            "resultRecordCount": "2000",
+            "f": "json",
+        }
+    )
+    final_raw = _fetch_json_safe(f"{PLAT_TRACKER_GIS_FINAL_PLATS_URL}?{final_qs}", timeout=20)
+    if isinstance(final_raw, dict) and isinstance(final_raw.get("features"), list):
+        for f_obj in final_raw["features"]:
+            a = (f_obj or {}).get("attributes") or {}
+            app_no = str(a.get("AppNo") or "").strip().upper()
+            if not app_no:
+                continue
+            rank = (int(a.get("UploadDate") or 0), int(a.get("OBJECTID") or 0))
+            prev = final_by_app.get(app_no)
+            if not prev or rank >= prev["_rank"]:
+                final_by_app[app_no] = {
+                    "_rank": rank,
+                    "recordationStatus": str(a.get("RecordationStatus") or "").strip(),
+                    "finalAppStatus": str(a.get("AppStatus") or "").strip(),
+                }
+
+    dedup_by_app: dict[str, dict] = {}
+    offset = 0
+    page_size = 1000
+    fetched_any = False
+    for _page in range(16):
+        qs = urllib.parse.urlencode(
+            {
+                "where": where_clause,
+                "outFields": (
+                    "OBJECTID,AppId,UploadDate,TimeStamp,AppNo,ReviewCycle,AppCode,AppStatus,"
+                    "SubdivisionName,SubdivisionSectionNo,SubdivisionNameSuffix,PCDate,"
+                    "AppSubmitDate,LotCount,ReserveCount,ReserveSize,RecordationStatus"
+                ),
+                "returnGeometry": "true",
+                "outSR": "4326",
+                "resultOffset": str(offset),
+                "resultRecordCount": str(page_size),
+                "f": "json",
+            }
+        )
+        raw_page = _fetch_json_safe(f"{PLAT_TRACKER_GIS_APPLICATIONS_URL}?{qs}", timeout=25)
+        if not isinstance(raw_page, dict) or not isinstance(raw_page.get("features"), list):
+            break
+        feats = raw_page["features"]
+        if not feats:
+            fetched_any = True
+            break
+        fetched_any = True
+        for feat in feats:
+            if not isinstance(feat, dict):
+                continue
+            a = feat.get("attributes") or {}
+            app_no = str(a.get("AppNo") or "").strip().upper()
+            if not app_no:
+                continue
+            rings = (feat.get("geometry") or {}).get("rings") or []
+            geom_sum = compute_polygon_geometry_summary(rings)
+            if not geom_sum:
+                continue
+            rank = (
+                int(a.get("UploadDate") or 0),
+                int(a.get("TimeStamp") or 0),
+                int(a.get("OBJECTID") or 0),
+            )
+            prev = dedup_by_app.get(app_no)
+            if prev and rank < tuple(prev.get("_rank") or (0, 0, 0)):
+                continue
+            sub_parts = [
+                str(a.get("SubdivisionName") or "").strip(),
+                (
+                    f"Sec {str(a.get('SubdivisionSectionNo')).strip()}"
+                    if str(a.get("SubdivisionSectionNo") or "").strip() not in ("", "0", "None")
+                    else ""
+                ),
+                str(a.get("SubdivisionNameSuffix") or "").strip(),
+            ]
+            full_name = " ".join(p for p in sub_parts if p).strip()
+            fin_meta = final_by_app.get(app_no) or {}
+            rec_status = (
+                str(a.get("RecordationStatus") or "").strip()
+                or str(fin_meta.get("recordationStatus") or "").strip()
+            )
+            app_code = str(a.get("AppCode") or "").strip().upper()
+            dedup_by_app[app_no] = {
+                "_rank": list(rank),
+                "appNo": app_no,
+                "appId": a.get("AppId"),
+                "appCode": app_code,
+                "appTypeLabel": PLAT_TRACKER_APP_CODE_LABELS.get(app_code, app_code or "Plat Application"),
+                "appStatus": str(a.get("AppStatus") or fin_meta.get("finalAppStatus") or "").strip(),
+                "recordationStatus": rec_status,
+                "reviewCycle": a.get("ReviewCycle"),
+                "name": full_name or app_no,
+                "pcDateIso": _epoch_ms_to_iso(a.get("PCDate")),
+                "submittedIso": _epoch_ms_to_iso(a.get("AppSubmitDate")),
+                "uploadDateIso": _epoch_ms_to_iso(a.get("UploadDate")),
+                "lotCount": int(a["LotCount"]) if isinstance(a.get("LotCount"), (int, float)) else None,
+                "reserveCount": int(a["ReserveCount"]) if isinstance(a.get("ReserveCount"), (int, float)) else None,
+                "reserveSize": round(float(a["ReserveSize"]), 4) if isinstance(a.get("ReserveSize"), (int, float)) else None,
+                **geom_sum,
+            }
+        if len(feats) < page_size and not raw_page.get("exceededTransferLimit"):
+            break
+        offset += len(feats)
+
+    if dedup_by_app:
+        try:
+            cache_file.write_text(json.dumps(dedup_by_app), encoding="utf-8")
+        except Exception:
+            pass
+        print(
+            f"      Fetched {len(dedup_by_app):,} deduplicated {active_year} plat boundary polygons "
+            f"from City PlatTracker GIS (PT365_PLAT_MAPPING)."
+        )
+        return dedup_by_app
+
+    if not fetched_any and cache_file.exists():
+        try:
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            if isinstance(cached, dict) and cached:
+                print(
+                    f"[warn] Loaded {len(cached):,} cached PlatTracker GIS polygons from {cache_file.name}."
+                )
+                return cached
+        except Exception:
+            pass
+    return {}
+
+
+def _lookup_overlay_polygon_name(overlay_list: list[dict] | None, lng: float, lat: float) -> str:
+    for entry in overlay_list or ():
+        min_x, min_y, max_x, max_y = entry["bbox"]
+        if min_x <= lng <= max_x and min_y <= lat <= max_y:
+            if point_in_polygon_rings(lng, lat, entry["rings"]):
+                return str(entry.get("name") or "").strip()
+    return ""
+
+
+def resolve_plattracker_spatial_matches(
+    plattracker_by_app: dict[str, dict],
+    target_apps: set[str],
+    idx: dict,
+    allow_live_hcad_fallback: bool = True,
+) -> dict[str, dict]:
+    """Intersect PlatTracker GIS polygons against local 1.22M structure grid, overlays, and HCAD interior-point fallback."""
+    if not plattracker_by_app or not target_apps:
+        return {}
+    spatial_grid = idx.get("spatial_grid") or {}
+    overlay_polys = idx.get("overlay_polygons") or {}
+
+    PLAT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    vacant_cache_path = PLAT_CACHE_DIR / "plattracker_vacant_hcad_cache.json"
+    vacant_cache: dict[str, list[dict]] = {}
+    if vacant_cache_path.exists():
+        try:
+            loaded_vc = json.loads(vacant_cache_path.read_text(encoding="utf-8"))
+            if isinstance(loaded_vc, dict):
+                vacant_cache = loaded_vc
+        except Exception:
+            vacant_cache = {}
+
+    resolved: dict[str, dict] = {}
+    pending_vacant_apps: list[tuple[str, str, float, float]] = []
+
+    for raw_app in sorted(target_apps):
+        app_key = str(raw_app or "").strip().upper()
+        pt = plattracker_by_app.get(app_key)
+        if not pt or not pt.get("polygon"):
+            continue
+        rings = pt["polygon"]
+        min_lng, min_lat, max_lng, max_lat = pt["bbox"]
+        gx0 = int(math.floor(min_lng / SPATIAL_GRID_DEG))
+        gx1 = int(math.floor(max_lng / SPATIAL_GRID_DEG))
+        gy0 = int(math.floor(min_lat / SPATIAL_GRID_DEG))
+        gy1 = int(math.floor(max_lat / SPATIAL_GRID_DEG))
+
+        hit_hcads: list[str] = []
+        hit_addrs: list[str] = []
+        hit_years: list[int] = []
+        seen_h: set[str] = set()
+        seen_a: set[str] = set()
+        for gx in range(gx0, gx1 + 1):
+            for gy in range(gy0, gy1 + 1):
+                for rec in spatial_grid.get((gx, gy), ()):
+                    rx, ry = rec["lng"], rec["lat"]
+                    if min_lng <= rx <= max_lng and min_lat <= ry <= max_lat:
+                        if point_in_polygon_rings(rx, ry, rings):
+                            h_id = str(rec.get("hcad") or "").strip()
+                            if h_id and h_id not in seen_h:
+                                seen_h.add(h_id)
+                                hit_hcads.append(h_id)
+                            ad = str(rec.get("address") or "").strip()
+                            if ad and not re.match(r"^0(?:\s+|$)", ad) and ad not in seen_a:
+                                seen_a.add(ad)
+                                hit_addrs.append(ad)
+                            yr = int(rec.get("year_built") or 0)
+                            if 1836 <= yr <= 2035:
+                                hit_years.append(yr)
+
+        i_lng, i_lat = pt["interiorPoint"]
+        super_n = _lookup_overlay_polygon_name(overlay_polys.get("super_neighborhoods"), i_lng, i_lat)
+        hd_name = _lookup_overlay_polygon_name(overlay_polys.get("historic_districts"), i_lng, i_lat)
+        sub_name = _lookup_overlay_polygon_name(overlay_polys.get("platted_subdivisions"), i_lng, i_lat)
+        council_name = _lookup_overlay_polygon_name(overlay_polys.get("council_districts"), i_lng, i_lat)
+
+        entry_res: dict = {
+            "hcadIds": hit_hcads,
+            "addresses": hit_addrs,
+            "years": sorted(set(hit_years)),
+            "confirmedVacant": False,
+            "owner": "",
+            "superN": super_n.upper() if super_n else "",
+            "hd": hd_name,
+            "prevSub": sub_name,
+            "council": council_name,
+        }
+        resolved[app_key] = entry_res
+
+        if not hit_hcads and allow_live_hcad_fallback:
+            pt_key = f"{round(i_lng, 5):.5f},{round(i_lat, 5):.5f}"
+            if pt_key in vacant_cache:
+                _apply_vacant_hcad_features(entry_res, vacant_cache[pt_key])
+            else:
+                pending_vacant_apps.append((app_key, pt_key, i_lng, i_lat))
+
+    if pending_vacant_apps and allow_live_hcad_fallback:
+        def _query_interior_hcad(task: tuple[str, str, float, float]) -> tuple[str, str, list[dict] | None]:
+            a_key, p_key, x_val, y_val = task
+            qs = urllib.parse.urlencode(
+                {
+                    "geometry": f"{x_val:.6f},{y_val:.6f}",
+                    "geometryType": "esriGeometryPoint",
+                    "inSR": "4326",
+                    "spatialRel": "esriSpatialRelIntersects",
+                    "outFields": "HCAD_NUM,owner,subdivision,address,state_class,impr_val",
+                    "returnGeometry": "false",
+                    "f": "json",
+                }
+            )
+            data = _fetch_json_safe(f"{HCAD_ARCGIS_QUERY_URL}?{qs}", timeout=12)
+            if isinstance(data, dict) and isinstance(data.get("features"), list):
+                return a_key, p_key, [
+                    dict((f_item or {}).get("attributes") or {})
+                    for f_item in data["features"]
+                    if isinstance(f_item, dict)
+                ]
+            return a_key, p_key, None
+
+        cache_dirty = False
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            for a_key, p_key, attrs_list in pool.map(_query_interior_hcad, pending_vacant_apps):
+                if attrs_list is not None:
+                    vacant_cache[p_key] = attrs_list
+                    cache_dirty = True
+                    _apply_vacant_hcad_features(resolved[a_key], attrs_list)
+        if cache_dirty:
+            try:
+                vacant_cache_path.write_text(json.dumps(vacant_cache), encoding="utf-8")
+            except Exception:
+                pass
+
+    return resolved
+
+
+def _apply_vacant_hcad_features(entry_res: dict, attrs_list: list[dict]) -> None:
+    if not attrs_list:
+        return
+    hcads: list[str] = []
+    addrs: list[str] = []
+    owners: list[str] = []
+    all_unimproved = True
+    for a in attrs_list:
+        parsed = parse_hcad_account_list(str(a.get("HCAD_NUM") or ""))["hcadIds"]
+        for hid in parsed:
+            if hid not in hcads:
+                hcads.append(hid)
+        ad = " ".join(str(a.get("address") or "").split()).strip()
+        if ad and not re.match(r"^0(?:\s+|$)", ad) and ad not in addrs:
+            addrs.append(ad)
+        ow = strip_corporate_suffix_commas(str(a.get("owner") or "").strip())
+        if ow and ow not in owners:
+            owners.append(ow)
+        st_cls = str(a.get("state_class") or "").strip().upper()
+        impr = _parse_finite_float(a.get("impr_val"))
+        if st_cls.startswith("X") or (impr is not None and impr > 0):
+            all_unimproved = False
+        if not entry_res.get("prevSub") and a.get("subdivision"):
+            entry_res["prevSub"] = " ".join(str(a.get("subdivision") or "").split()).strip()
+    if hcads:
+        entry_res["hcadIds"] = hcads
+    if addrs and not entry_res["addresses"]:
+        entry_res["addresses"] = addrs
+    if owners and not entry_res.get("owner"):
+        entry_res["owner"] = " / ".join(owners)
+    if hcads and all_unimproved and not entry_res.get("years"):
+        entry_res["confirmedVacant"] = True
+
+
+def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 6) -> dict:
+    """Fetch up to `max_cycles` recent Planning Commission .xlsx spreadsheets, Outline PDFs, Notice PDFs, and PlatTracker GIS."""
+    print("[2/6] Fetching recent COH Plat Agenda .xlsx cycles, Agenda Outline PDFs, Notice PDFs, and PlatTracker GIS...")
     scrape_errors: list[str] = []
+    PLAT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     dev_html_b = fetch_bytes(DEV_REPORTS_URL)
     xlsx_by_iso: dict[str, str] = {}
+    live_xlsx_isos: set[str] = set()
     if dev_html_b:
         dev_html = dev_html_b.decode("utf-8", errors="ignore")
         links = re.findall(
@@ -2446,18 +3333,24 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             re.I,
         )
         for rel in links:
-            full = (
-                rel
-                if rel.lower().startswith("http")
-                else "https://www.houstontx.gov/planning/DevelopRegs/" + rel.lstrip("/")
-            )
+            full = urllib.parse.urljoin(DEV_REPORTS_URL, rel)
             c_iso = _extract_xlsx_cycle_iso_from_url(full)
             if c_iso:
                 xlsx_by_iso[c_iso] = full
+                live_xlsx_isos.add(c_iso)
         if not xlsx_by_iso:
             scrape_errors.append("No Plat Agenda .xlsx links found on DevelopRegs page")
     else:
         scrape_errors.append("COH Planning DevelopRegs index unreachable")
+
+    # Supplement with locally cached 2026 .xlsx files so archived cycles (e.g. 2026-10-01) remain available cleanly
+    for cached_xlsx in sorted(PLAT_CACHE_DIR.glob("Plat-Current-Agenda-Spreadsheet-*.xlsx")):
+        c_iso = _extract_xlsx_cycle_iso_from_url(cached_xlsx.name)
+        if c_iso and c_iso not in xlsx_by_iso:
+            xlsx_by_iso[c_iso] = (
+                f"https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/"
+                f"{c_iso[:4]}/{cached_xlsx.name}"
+            )
 
     if not xlsx_by_iso:
         xlsx_by_iso["2026-10-15"] = (
@@ -2478,11 +3371,7 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             re.I,
         )
         for rel in olinks:
-            full = (
-                rel
-                if rel.lower().startswith("http")
-                else "https://www.houstontx.gov/planning/Commissions/" + rel.lstrip("/")
-            )
+            full = urllib.parse.urljoin(COMMISS_PLAN_URL, rel)
             o_iso = _extract_outline_cycle_iso_from_url(full)
             if o_iso and o_iso not in outline_url_by_iso:
                 outline_url_by_iso[o_iso] = full
@@ -2492,11 +3381,7 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             re.I,
         )
         for rel in mlinks:
-            full = (
-                rel
-                if rel.lower().startswith("http")
-                else "https://www.houstontx.gov/planning/Commissions/" + rel.lstrip("/")
-            )
+            full = urllib.parse.urljoin(COMMISS_PLAN_URL, rel)
             m_iso = _extract_minutes_cycle_iso_from_url(full)
             if m_iso and m_iso not in minutes_url_by_iso:
                 minutes_url_by_iso[m_iso] = full
@@ -2516,11 +3401,7 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             set(re.findall(r'href=["\']([^"\']*2026/[^"\']*\.pdf)["\']', notices_html, re.I))
         )
         for rel_path in nlinks:
-            nurl = (
-                rel_path
-                if rel_path.lower().startswith("http")
-                else NOTICES_URL + rel_path.lstrip("/")
-            )
+            nurl = urllib.parse.urljoin(NOTICES_URL, rel_path)
             nb = fetch_bytes(nurl, timeout=15)
             if not nb:
                 continue
@@ -2561,6 +3442,13 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
                     cache_path.write_bytes(x_bytes)
                 except Exception:
                     pass
+            elif cache_path.exists() and cache_path.stat().st_size > 0:
+                try:
+                    cand_bytes = cache_path.read_bytes()
+                    if cand_bytes.startswith(b"PK\x03\x04"):
+                        x_bytes = cand_bytes
+                except Exception:
+                    x_bytes = None
         raw_rows = parse_xlsx_bytes(x_bytes) if x_bytes else []
         _index_historical_spreadsheet_rows(c_iso, raw_rows, historical_by_app, historical_by_subdiv)
 
@@ -2568,18 +3456,45 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             continue
 
         if not x_bytes:
-            scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet download failed")
+            if c_iso in live_xlsx_isos or not live_xlsx_isos:
+                scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet download failed")
+            continue
         elif len(raw_rows) <= 1:
-            scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet empty or unparseable")
+            if c_iso in live_xlsx_isos or not live_xlsx_isos:
+                scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet empty or unparseable")
+            continue
 
         d_obj = dt.date.fromisoformat(c_iso)
         mmddyy = d_obj.strftime("%m%d%y")
-        fallback_outline_url = (
-            f"https://www.houstontx.gov/planning/Commissions/docs_pdfs/{d_obj.year}/"
-            f"PC-Draft-Agenda-Outline-{mmddyy}.pdf"
+        outline_cache_path = PLAT_CACHE_DIR / f"PC-Draft-Agenda-Outline-{mmddyy}.pdf"
+        cand_outline_urls = []
+        if c_iso in outline_url_by_iso:
+            cand_outline_urls.append(outline_url_by_iso[c_iso])
+        cand_outline_urls.extend(
+            [
+                f"https://www.houstontx.gov/sites/default/files/migrated/planning/Commissions/docs_pdfs/{d_obj.year}/PC-Draft-Agenda-Outline-{mmddyy}.pdf",
+                f"https://www.houstontx.gov/planning/Commissions/docs_pdfs/{d_obj.year}/PC-Draft-Agenda-Outline-{mmddyy}.pdf",
+            ]
         )
-        o_url = outline_url_by_iso.get(c_iso) or fallback_outline_url
-        o_bytes = fetch_bytes(o_url)
+        o_url = ""
+        o_bytes: bytes | None = None
+        for cand_ou in dict.fromkeys(cand_outline_urls):
+            o_bytes = fetch_bytes(cand_ou)
+            if o_bytes and o_bytes.startswith(b"%PDF"):
+                o_url = cand_ou
+                try:
+                    outline_cache_path.write_bytes(o_bytes)
+                except Exception:
+                    pass
+                break
+        if not o_bytes and outline_cache_path.exists() and outline_cache_path.stat().st_size > 0:
+            try:
+                cached_ob = outline_cache_path.read_bytes()
+                if cached_ob.startswith(b"%PDF"):
+                    o_bytes = cached_ob
+                    o_url = cand_outline_urls[0]
+            except Exception:
+                o_bytes = None
         if not o_bytes:
             if c_iso in outline_url_by_iso:
                 scrape_errors.append(f"Cycle {c_iso} agenda outline PDF download failed")
@@ -2612,6 +3527,33 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             f"(target hearing: {parsed_outline['sec4_hearing_date_iso'] or 'N/A'})."
         )
 
+    if not cycles_scraped:
+        fb_iso = selected_isos[-1] if selected_isos else "2026-10-15"
+        fb_url = xlsx_by_iso.get(fb_iso, "")
+        cycles_scraped[fb_iso] = {
+            "cycle_iso": fb_iso,
+            "xlsx_url": fb_url,
+            "file_name": fb_url.split("/")[-1] if fb_url else "",
+            "outline_url": "",
+            "minutes_url": "",
+            "minutes_actions": {"byItem": {}, "byName": {}},
+            "raw_rows": [],
+            **parse_agenda_outline_text(""),
+        }
+
+    today_dt = dt.date.today()
+    plat_query_years: set[int] = {today_dt.year - 1, today_dt.year}
+    if today_dt.month >= 11:
+        plat_query_years.add(today_dt.year + 1)
+    for c_iso in cycles_scraped:
+        if re.match(r"^\d{4}-", str(c_iso)):
+            c_yr = int(str(c_iso)[:4])
+            plat_query_years.update({c_yr - 1, c_yr})
+    plattracker_by_app = fetch_plattracker_gis_applications(
+        active_year=today_dt.year,
+        extra_years=sorted(plat_query_years),
+    )
+
     print(
         f"      Parsed {len(all_notices)} active Public Hearing & Variance Notice PDFs; "
         f"indexed {len(historical_by_subdiv):,} historical 2026 subdivision filings across {len(all_chronological_xlsx_isos)} spreadsheets."
@@ -2623,6 +3565,7 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
         "all_notices": all_notices,
         "historical_by_app": historical_by_app,
         "historical_by_subdiv": historical_by_subdiv,
+        "plattracker_by_app": plattracker_by_app,
         "scrapeFailed": bool(scrape_errors),
         "error": "; ".join(scrape_errors),
     }
@@ -2736,6 +3679,77 @@ def build_single_cycle_dataset(
             seen_apps.add(it["app"])
         if it["name"]:
             seen_names.add(it["name"].lower())
+
+    for pt_seed in cycle_scraped.get("early_gis_items") or []:
+        pt_app = str(pt_seed.get("appNo") or "").strip().upper()
+        pt_name = str(pt_seed.get("name") or pt_app).strip()
+        if not pt_app or pt_app in seen_apps or pt_name.lower() in seen_names:
+            continue
+        ref_cand = notices_bundle["notices_by_ref"].get(pt_app)
+        if ref_cand and not _notice_name_compatible(pt_name, ref_cand.get("name", "")):
+            ref_cand = None
+        notice_hit = ref_cand or notices_bundle["notices_by_name"].get(pt_name.lower()) or {}
+        app_code = str(pt_seed.get("appCode") or "").strip().upper()
+        is_c3n = app_code == "C3N" or bool(notice_hit)
+        it_early = {
+            "name": pt_name,
+            "app": pt_app,
+            "pcDate": pt_seed.get("pcDateIso") or cycle_iso,
+            "pcDateIso": pt_seed.get("pcDateIso") or cycle_iso,
+            "submitted": pt_seed.get("submittedIso") or "",
+            "submittedIso": pt_seed.get("submittedIso") or "",
+            "hearingDateIso": notice_hit.get("meetingDateIso") or (pt_seed.get("pcDateIso") if is_c3n else ""),
+            "type": pt_seed.get("appTypeLabel") or PLAT_TRACKER_APP_CODE_LABELS.get(app_code, "Plat Application"),
+            "special": (
+                f"Early PlatTracker GIS Filing ({pt_seed.get('appStatus') or 'Pending Review'})"
+                if not notice_hit
+                else "Public Hearing Notification"
+            ),
+            "section": "GIS. Early PlatTracker GIS Filing (Pre-Spreadsheet)",
+            "council": "",
+            "city": "City",
+            "county": "Harris",
+            "precinct": "",
+            "keymap": "",
+            "tract": "",
+            "zip": "",
+            "isd": "",
+            "prevSub": "",
+            "tirz": "",
+            "mgmt": "",
+            "hd": "",
+            "superN": "",
+            "park": "",
+            "thoroughfare": "",
+            "landUse": (
+                "Unrestricted / Commercial Reserve"
+                if (pt_seed.get("reserveCount") or 0) > 0 and not (pt_seed.get("lotCount") or 0)
+                else "Subdivision / Replat Filing"
+            ),
+            "acreage": (
+                f"{float(pt_seed['acreage']):.4f}".rstrip("0").rstrip(".")
+                if pt_seed.get("acreage")
+                else ""
+            ),
+            "lots": str(pt_seed["lotCount"]) if pt_seed.get("lotCount") is not None else "",
+            "hcad": str(notice_hit.get("hcad") or ""),
+            "developer": "",
+            "org": "",
+            "applicant": "",
+            "phone": "",
+            "pdf": "",
+            "noticePdf": notice_hit.get("noticePdf", ""),
+            "noticeLocation": notice_hit.get("location", ""),
+            "varianceSummary": notice_hit.get("requestSummary", ""),
+            "agendaItemNo": "",
+            "deferral": "",
+            "isEarlyGisFiling": True,
+        }
+        if notice_hit.get("confirmedVacant"):
+            it_early["_confirmedVacant"] = True
+        items.append(it_early)
+        seen_apps.add(pt_app)
+        seen_names.add(pt_name.lower())
 
     default_pc_serial = items[0]["pcDate"] if items else ""
     default_pc_iso = cycle_iso
@@ -3179,6 +4193,21 @@ def build_single_cycle_dataset(
         },
     }
 
+    plattracker_by_app = notices_bundle.get("plattracker_by_app") or {}
+    plattracker_spatial = notices_bundle.get("plattracker_spatial") or {}
+    plattracker_by_subdiv: dict[str, dict] = {}
+    for pt_cand in plattracker_by_app.values():
+        if not isinstance(pt_cand, dict):
+            continue
+        pt_pc = str(pt_cand.get("pcDateIso") or "")
+        if pt_pc and pt_pc > default_pc_iso and not cycle_scraped.get("is_early_gis_cycle"):
+            continue
+        sub_k = normalize_historical_subdivision_key(str(pt_cand.get("name") or ""))
+        if sub_k:
+            prev_pt = plattracker_by_subdiv.get(sub_k)
+            if not prev_pt or str(pt_cand.get("pcDateIso") or "") >= str(prev_pt.get("pcDateIso") or ""):
+                plattracker_by_subdiv[sub_k] = pt_cand
+
     for it in items:
         raw_ov = notice_overrides.get(it["app"]) or notice_overrides.get(it.get("linkedAppNo", "")) or {}
         ov = (
@@ -3196,6 +4225,66 @@ def build_single_cycle_dataset(
             if ov.get("suggested_tier"):
                 it["_overrideTier"] = str(ov["suggested_tier"])
         it["onMeetingAgenda"] = bool(str(it.get("agendaItemNo") or "").strip())
+
+        app_key_pt = str(it.get("app") or "").strip().upper()
+        linked_key_pt = str(it.get("linkedAppNo") or "").strip().upper()
+        pt_rec = plattracker_by_app.get(app_key_pt) or (
+            plattracker_by_app.get(linked_key_pt) if linked_key_pt else None
+        )
+        if pt_rec and not re.match(r"^20\d{2}-\d{3,5}$", app_key_pt):
+            if not _notice_name_compatible(it.get("name", ""), pt_rec.get("name", "")):
+                pt_rec = None
+        if pt_rec is None and app_key_pt.startswith("PH-"):
+            sub_k_it = normalize_historical_subdivision_key(it.get("name", ""))
+            if sub_k_it and sub_k_it in plattracker_by_subdiv:
+                pt_rec = plattracker_by_subdiv[sub_k_it]
+                if not it.get("linkedAppNo") and pt_rec.get("appNo"):
+                    it["linkedAppNo"] = pt_rec["appNo"]
+
+        pt_sp = plattracker_spatial.get(str(pt_rec["appNo"]).upper()) if pt_rec and pt_rec.get("appNo") else None
+        auto_resolved_hcad = False
+        if pt_rec:
+            if not it.get("hcad") and pt_sp and pt_sp.get("hcadIds"):
+                it["hcad"] = ", ".join(pt_sp["hcadIds"])
+                it["hcadSource"] = "plattracker_gis"
+                auto_resolved_hcad = True
+            if not it.get("submittedIso") and pt_rec.get("submittedIso"):
+                it["submittedIso"] = pt_rec["submittedIso"]
+            if not it.get("lots") and pt_rec.get("lotCount") is not None:
+                it["lots"] = str(pt_rec["lotCount"])
+            if not it.get("acreage") and pt_rec.get("acreage"):
+                it["acreage"] = f"{float(pt_rec['acreage']):.4f}".rstrip("0").rstrip(".")
+            if pt_sp:
+                if not it.get("superN") and pt_sp.get("superN"):
+                    it["superN"] = pt_sp["superN"]
+                if not it.get("hd") and pt_sp.get("hd"):
+                    it["hd"] = pt_sp["hd"]
+                if (not it.get("prevSub") or it.get("prevSub") == it.get("name")) and pt_sp.get("prevSub"):
+                    it["prevSub"] = pt_sp["prevSub"]
+                if not it.get("council") and pt_sp.get("council"):
+                    it["council"] = pt_sp["council"]
+                if pt_sp.get("confirmedVacant") and not it.get("_confirmedVacant"):
+                    it["_confirmedVacant"] = True
+            it["platTracker"] = {
+                "appNo": pt_rec["appNo"],
+                "appCode": pt_rec.get("appCode") or "",
+                "appTypeLabel": pt_rec.get("appTypeLabel") or "",
+                "appStatus": pt_rec.get("appStatus") or "",
+                "recordationStatus": pt_rec.get("recordationStatus") or "",
+                "reviewCycle": pt_rec.get("reviewCycle"),
+                "pcDateIso": pt_rec.get("pcDateIso") or "",
+                "submittedIso": pt_rec.get("submittedIso") or "",
+                "uploadDateIso": pt_rec.get("uploadDateIso") or "",
+                "lotCount": pt_rec.get("lotCount"),
+                "reserveCount": pt_rec.get("reserveCount"),
+                "acreage": pt_rec.get("acreage"),
+                "centroid": pt_rec.get("centroid"),
+                "interiorPoint": pt_rec.get("interiorPoint"),
+                "bbox": pt_rec.get("bbox"),
+                "polygon": pt_rec.get("polygon"),
+                "autoResolvedHcad": auto_resolved_hcad,
+                "matchedParcelCount": len((pt_sp or {}).get("hcadIds") or []),
+            }
 
         hcad_ids = parse_hcad_account_list(it.get("hcad", ""))["hcadIds"]
         matched_parcels: list[dict] = []
@@ -3261,6 +4350,24 @@ def build_single_cycle_dataset(
                         if hit_hcads and not it.get("hcad"):
                             it["hcad"] = ", ".join(dict.fromkeys(hit_hcads))
                         break
+                if not matched_parcels and pt_rec and pt_rec.get("interiorPoint"):
+                    pt_ix, pt_iy = pt_rec["interiorPoint"]
+                    pt_addrs = (pt_sp or {}).get("addresses") or []
+                    pt_hcads = (pt_sp or {}).get("hcadIds") or hcad_ids
+                    pt_yrs = (pt_sp or {}).get("years") or []
+                    matched_parcels.append(
+                        {
+                            "hcad": pt_hcads[0] if pt_hcads else (it.get("hcad") or ""),
+                            "address": pt_addrs[0] if pt_addrs else (it.get("noticeLocation") or it.get("_fallbackAddr") or ""),
+                            "year_built": min(pt_yrs) if pt_yrs else 0,
+                            "all_years": pt_yrs,
+                            "lng": pt_ix,
+                            "lat": pt_iy,
+                            "owner": (pt_sp or {}).get("owner") or "",
+                            "confirmedVacant": bool(it.get("_confirmedVacant")),
+                            "_fromPlatTrackerPolygon": True,
+                        }
+                    )
                 if not matched_parcels and it.get("_fallbackCoords"):
                     lng_fb, lat_fb = it["_fallbackCoords"]
                     matched_parcels.append(
@@ -3328,11 +4435,15 @@ def build_single_cycle_dataset(
             primary_addr = "; ".join(dict.fromkeys(addresses))
 
         lng, lat = (None, None)
+        coord_source = ""
         for p in matched_parcels:
             if p.get("lng") and p.get("lat"):
                 lng, lat = p["lng"], p["lat"]
+                coord_source = "plattracker_gis" if p.get("_fromPlatTrackerPolygon") else "parcel"
                 break
-        coord_source = "parcel" if (lng and lat) else ""
+        if (not lng or not lat) and pt_rec and pt_rec.get("interiorPoint"):
+            lng, lat = pt_rec["interiorPoint"]
+            coord_source = "plattracker_gis"
         if (not lng or not lat) and sub_hit:
             lng = sub_hit.get("label_lng")
             lat = sub_hit.get("label_lat")
@@ -3521,6 +4632,13 @@ def build_single_cycle_dataset(
             why_parts.append(
                 f"Atlas matched HCAD parcel at {addr} (built {yr}) in {it.get('prevSub') or it.get('superN')}; no pre-1976 structure threatened."
             )
+        elif is_confirmed_vacant and not why_parts:
+            hcad_lbl = it.get("hcad") or "unimproved site"
+            loc_lbl = f" ({addr})" if addr else ""
+            why_parts.append(
+                f"City PlatTracker GIS polygon matched HCAD parcel {hcad_lbl}{loc_lbl} in {it.get('prevSub') or it.get('superN') or 'Houston'} with zero standing structures (vacant parcel)."
+            )
+            followup = "Confirmed vacant parcel via City PlatTracker GIS + HCAD; monitor only if adjacent historic district context applies."
 
         if addr or yr or tier or why_parts:
             is_confirmed = it["app"] in confirmed_baseline_apps
@@ -3548,6 +4666,7 @@ def build_single_cycle_dataset(
         "cycleKey": default_pc_iso,
         "meetingDate": default_pc_iso,
         "pcDate": f"{default_pc_iso}T00:00:00.000Z",
+        "isEarlyGisCycle": bool(cycle_scraped.get("is_early_gis_cycle")),
         "fileName": cycle_scraped["file_name"],
         "sourceSpreadsheetUrl": cycle_scraped["xlsx_url"],
         "agendaOutlineUrl": cycle_scraped["outline_url"],
@@ -3558,6 +4677,8 @@ def build_single_cycle_dataset(
             "spreadsheetPlatCount": max(0, len(raw_rows) - 1),
             "dpvVarianceCount": len(dpv_by_name),
             "publicHearingNoticeCount": len(notices_bundle["all_notices"]),
+            "gisPolygonMatchCount": sum(1 for x in items if x.get("platTracker")),
+            "gisAutoHcadCount": sum(1 for x in items if (x.get("platTracker") or {}).get("autoResolvedHcad")),
         },
         "items": items,
         "reviews": preseeded_reviews,
@@ -3568,19 +4689,78 @@ def build_single_cycle_dataset(
 
 def _canonical_situs_match_key(raw_addr: object) -> str:
     """Build a strict positive house-number + street-root match key (rejecting house <= 0)."""
-    simp = simplify_search_address(str(raw_addr or "")).upper().strip()
-    if not simp:
-        return ""
-    m = re.match(r"^(\d+)[A-Z]?\s+(?:1/2\s+)?(.+)$", simp)
-    if not m:
-        return ""
-    num_int = int(m.group(1))
-    if num_int <= 0:
-        return ""
-    street = re.sub(r"[^A-Z0-9]+", " ", m.group(2)).strip()
-    if len(street) < 2:
-        return ""
-    return f"{num_int}|{street}"
+    return canonical_property_address_key(raw_addr)
+
+
+def _parse_iso_epoch_seconds(raw_ts: object) -> float | None:
+    s = str(raw_ts or "").strip()
+    if not s:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        return parsed.timestamp()
+    except ValueError:
+        return None
+
+
+def _build_plat_match_descriptor(entity: dict, rev: dict | None = None) -> dict[str, object]:
+    rev_d = rev if isinstance(rev, dict) else {}
+    atlas = entity.get("atlas") if isinstance(entity.get("atlas"), dict) else {}
+    hcads = parse_hcad_account_list(
+        " ".join(
+            [
+                str(rev_d.get("hcad") or ""),
+                str(entity.get("hcad") or ""),
+                str(entity.get("hcadAccount") or ""),
+                str(atlas.get("hcad_num") or ""),
+            ]
+        )
+    )["hcadIds"]
+    return {
+        "app_ids": set(get_canonical_plat_app_ids(entity)),
+        "hcads": hcads,
+        "hcad_set": set(hcads),
+        "norm_name": normalize_continuity_plat_name(
+            str(entity.get("platProjectName") or entity.get("propertyName") or entity.get("name") or "")
+        ),
+        "addr_key": _canonical_situs_match_key(
+            rev_d.get("address")
+            or entity.get("address")
+            or atlas.get("primaryAddress")
+            or entity.get("noticeLocation")
+        ),
+    }
+
+
+def _are_plat_items_cross_cycle_match(
+    src_desc: dict[str, object], peer_item: dict, peer_rev: dict | None = None
+) -> bool:
+    peer_d = _build_plat_match_descriptor(peer_item, peer_rev)
+    src_apps: set[str] = src_desc["app_ids"]  # type: ignore[assignment]
+    peer_apps: set[str] = peer_d["app_ids"]  # type: ignore[assignment]
+    src_hcads: list[str] = src_desc["hcads"]  # type: ignore[assignment]
+    src_hcad_set: set[str] = src_desc["hcad_set"]  # type: ignore[assignment]
+    peer_hcads: list[str] = peer_d["hcads"]  # type: ignore[assignment]
+    peer_hcad_set: set[str] = peer_d["hcad_set"]  # type: ignore[assignment]
+    if src_apps and (src_apps & peer_apps):
+        if _are_continuity_snapshots_compatible(
+            peer_hcads,
+            str(peer_d["norm_name"]),
+            src_hcads,
+            str(src_desc["norm_name"]),
+        ):
+            return True
+    if src_hcad_set and peer_hcad_set and (src_hcad_set & peer_hcad_set):
+        return True
+    src_addr = str(src_desc["addr_key"])
+    peer_addr = str(peer_d["addr_key"])
+    return bool(
+        src_addr
+        and peer_addr == src_addr
+        and not (src_hcad_set and peer_hcad_set and not (src_hcad_set & peer_hcad_set))
+    )
 
 
 def _reconcile_watchlist_tiers_onto_cycles(
@@ -3596,20 +4776,33 @@ def _reconcile_watchlist_tiers_onto_cycles(
             continue
         if is_removed_watchlist_tombstone(wp) or is_legacy_unconfirmed_plat_seed(wp):
             continue
+        if str(wp.get("trackerStatus") or "").strip() in ("Lost", "Saved"):
+            continue
         if wp.get("humanEdited") is not True:
             continue
         wp_tier = str(wp.get("tier") or "").strip()
         if wp_tier not in ("1", "2", "3", "4"):
             continue
-        wp_updated = str(wp.get("updatedAt") or "").strip()
+        wp_updated = str(wp.get("updatedAt") or wp.get("archivedAt") or "").strip()
+        wp_epoch = _parse_iso_epoch_seconds(wp_updated)
         wp_src_cycle = str(wp.get("sourceCycleKey") or "").strip()
-        wp_app_no = str(wp.get("appNo") or "").strip()
-        wp_app_ids = set(get_canonical_plat_app_ids(wp))
-        wp_hcads = set(parse_hcad_account_list(wp.get("hcadAccount") or "")["hcadIds"])
-        wp_norm_name = normalize_continuity_plat_name(
-            str(wp.get("platProjectName") or wp.get("propertyName") or "")
+        wp_app_no = str(wp.get("appNo") or wp.get("sourcePlatApp") or "").strip()
+        wp_desc = _build_plat_match_descriptor(wp)
+        wp_app_ids: set[str] = wp_desc["app_ids"]  # type: ignore[assignment]
+        wp_anchor_day = max(
+            (
+                d
+                for d in (
+                    str(wp.get("archivedAt") or "").strip()[:10],
+                    str(wp.get("updatedAt") or "").strip()[:10],
+                    wp_src_cycle[:10],
+                )
+                if d
+            ),
+            default="",
         )
-        wp_addr_key = _canonical_situs_match_key(wp.get("address"))
+        prior_matched_item: dict | None = None
+        diverged_after_anchor = False
 
         for c_iso in chronological_isos:
             cyc = cycles_out.get(c_iso)
@@ -3618,50 +4811,44 @@ def _reconcile_watchlist_tiers_onto_cycles(
             reviews = cyc.setdefault("reviews", {})
             for it in cyc.get("items") or []:
                 cur_rev = dict(reviews.get(it["app"]) or {})
-                it_hcads = parse_hcad_account_list(
-                    " ".join(
-                        [
-                            str(cur_rev.get("hcad") or ""),
-                            str(it.get("hcad") or ""),
-                            str((it.get("atlas") or {}).get("hcad_num") or ""),
-                        ]
-                    )
-                )["hcadIds"]
-                it_hcad_set = set(it_hcads)
-                it_norm_name = normalize_continuity_plat_name(str(it.get("name") or ""))
-                it_addr_key = _canonical_situs_match_key(
-                    cur_rev.get("address")
-                    or (it.get("atlas") or {}).get("primaryAddress")
-                    or it.get("noticeLocation")
-                )
-
                 exact_source = bool(wp_src_cycle == c_iso and wp_app_no and it["app"] == wp_app_no)
-                app_match = False
-                if not exact_source and wp_app_ids and (wp_app_ids & set(get_canonical_plat_app_ids(it))):
-                    app_match = _are_continuity_snapshots_compatible(
-                        it_hcads, it_norm_name, sorted(wp_hcads), wp_norm_name
-                    )
-                hcad_match = bool(wp_hcads and it_hcad_set and (wp_hcads & it_hcad_set))
-                addr_match = bool(
-                    wp_addr_key
-                    and it_addr_key == wp_addr_key
-                    and not (wp_hcads and it_hcad_set and not (wp_hcads & it_hcad_set))
-                )
-                if not (exact_source or app_match or hcad_match or addr_match):
+                if not exact_source and not _are_plat_items_cross_cycle_match(wp_desc, it, cur_rev):
                     continue
 
-                rev_is_human = bool(
-                    cur_rev.get("reviewer")
-                    or cur_rev.get("humanEditedFields")
-                    or cur_rev.get("tierConfirmed")
+                same_tracked_plat_app = bool(
+                    wp_app_ids and (set(get_canonical_plat_app_ids(it)) & wp_app_ids)
                 )
-                rev_updated = str(cur_rev.get("updated") or "").strip() if rev_is_human else ""
-                if rev_updated and (not wp_updated or wp_updated <= rev_updated):
+                if (
+                    not exact_source
+                    and wp_anchor_day
+                    and c_iso > wp_anchor_day
+                    and (
+                        diverged_after_anchor
+                        or (prior_matched_item is None and not same_tracked_plat_app)
+                        or (
+                            prior_matched_item is not None
+                            and bool(detect_material_plat_changes(it, prior_matched_item))
+                        )
+                    )
+                ):
+                    diverged_after_anchor = True
+                    continue
+                prior_matched_item = it
+
+                rev_is_machine_only = bool(
+                    (cur_rev.get("autoEnriched") is True or cur_rev.get("carriedConfirmedFromCycle"))
+                    and not cur_rev.get("reviewer")
+                    and not cur_rev.get("humanEditedFields")
+                    and not (
+                        cur_rev.get("tierConfirmed") and not cur_rev.get("carriedConfirmedFromCycle")
+                    )
+                )
+                rev_epoch = None if rev_is_machine_only else _parse_iso_epoch_seconds(cur_rev.get("updated"))
+                if rev_epoch is not None and (wp_epoch is None or wp_epoch <= rev_epoch):
                     if (
                         str(cur_rev.get("tier") or "") in ("1", "2")
                         and wp.get("tierConfirmed") is True
                         and not is_archived_watchlist_status(wp.get("trackerStatus"))
-                        and wp.get("trackerStatus") not in ("Lost", "Saved")
                         and not cur_rev.get("tierConfirmed")
                     ):
                         cur_rev["tierConfirmed"] = True
@@ -3670,7 +4857,9 @@ def _reconcile_watchlist_tiers_onto_cycles(
 
                 cur_rev["tier"] = wp_tier
                 cur_rev["tierConfirmed"] = wp_tier in ("1", "2") or (
-                    wp_tier == "3" and not is_archived_watchlist_status(wp.get("trackerStatus"))
+                    wp_tier == "3"
+                    and not is_archived_watchlist_status(wp.get("trackerStatus"))
+                    and bool(wp.get("tierConfirmed"))
                 )
                 if wp_updated:
                     cur_rev["updated"] = wp_updated
@@ -3688,6 +4877,158 @@ def _reconcile_watchlist_tiers_onto_cycles(
                 it["_c"] = classify_item(it, cur_rev)
 
 
+def _synthesize_early_gis_cycles(
+    base_cycles_scraped: dict[str, dict],
+    plattracker_by_app: dict[str, dict],
+    latest_xlsx_iso: str,
+) -> dict[str, dict]:
+    """Synthesize continuous early-preview cycles from City PlatTracker GIS filings beyond latest_xlsx_iso."""
+    all_cycles_scraped = dict(base_cycles_scraped)
+    try:
+        max_future_iso = (dt.date.fromisoformat(latest_xlsx_iso) + dt.timedelta(days=45)).isoformat()
+    except ValueError:
+        max_future_iso = "9999-12-31"
+
+    early_by_pc: dict[str, list[dict]] = {}
+    for pt_rec in plattracker_by_app.values():
+        if not isinstance(pt_rec, dict):
+            continue
+        pt_pc = str(pt_rec.get("pcDateIso") or "").strip()
+        if not pt_pc or pt_pc <= latest_xlsx_iso or pt_pc > max_future_iso:
+            continue
+        st_up = str(pt_rec.get("appStatus") or "").upper()
+        if "WITHDRAWN" in st_up or "DISAPPROVED" in st_up:
+            continue
+        early_by_pc.setdefault(pt_pc, []).append(pt_rec)
+
+    for early_iso, early_items in sorted(early_by_pc.items()):
+        if early_iso in all_cycles_scraped:
+            continue
+        early_items_sorted = sorted(early_items, key=lambda x: str(x.get("appNo") or ""))
+        all_cycles_scraped[early_iso] = {
+            "cycle_iso": early_iso,
+            "is_early_gis_cycle": True,
+            "xlsx_url": "",
+            "file_name": f"City PlatTracker GIS Early Preview ({early_iso})",
+            "outline_url": "",
+            "minutes_url": "",
+            "minutes_actions": {"byItem": {}, "byName": {}},
+            "raw_rows": [],
+            "early_gis_items": early_items_sorted,
+            "outline_by_name": {},
+            "dpv_items": [],
+            "sec4_numeral": "IV",
+            "sec4_hearing_date_iso": "",
+            "sec4_hearing_names": [],
+        }
+    return all_cycles_scraped
+
+
+def _collect_cycle_plattracker_candidates(
+    all_cycles_scraped: dict[str, dict],
+    plattracker_by_app: dict[str, dict],
+    scraped_multi: dict,
+) -> set[str]:
+    """Collect active PlatTracker AppNos across spreadsheets, early GIS previews, Section III/IV, and Notices."""
+    cycle_app_candidates: set[str] = set()
+    pt_subdiv_lookup: dict[str, str] = {
+        normalize_historical_subdivision_key(str(v.get("name") or "")): str(k).upper()
+        for k, v in plattracker_by_app.items()
+        if isinstance(v, dict) and v.get("name")
+    }
+    hist_by_subdiv = scraped_multi.get("historical_by_subdiv") or {}
+    for cyc_s in all_cycles_scraped.values():
+        r_rows = cyc_s.get("raw_rows") or []
+        if len(r_rows) > 1:
+            cmap = _build_col_map_from_header_row(r_rows[0])
+            app_col = cmap.get("app")
+            if app_col:
+                for rr in r_rows[1:]:
+                    av = str(rr.get(app_col) or "").strip().upper()
+                    if av:
+                        cycle_app_candidates.add(av)
+        for eg in cyc_s.get("early_gis_items") or []:
+            if eg.get("appNo"):
+                cycle_app_candidates.add(str(eg["appNo"]).strip().upper())
+        for s4n in cyc_s.get("sec4_hearing_names") or []:
+            sk = normalize_historical_subdivision_key(str(s4n or ""))
+            if sk in pt_subdiv_lookup:
+                cycle_app_candidates.add(pt_subdiv_lookup[sk])
+            elif sk in hist_by_subdiv and hist_by_subdiv[sk].get("app"):
+                cycle_app_candidates.add(str(hist_by_subdiv[sk]["app"]).strip().upper())
+    for ni in scraped_multi.get("all_notices") or []:
+        if ni.get("ref"):
+            cycle_app_candidates.add(str(ni["ref"]).strip().upper())
+        sk_n = normalize_historical_subdivision_key(str(ni.get("name") or ""))
+        if sk_n in pt_subdiv_lookup:
+            cycle_app_candidates.add(pt_subdiv_lookup[sk_n])
+    return cycle_app_candidates
+
+
+def _restore_unpublished_outline_metadata(cyc_data: dict, prev_cyc: dict) -> None:
+    """Preserve Agenda Outline, Section K DPV, and Notice metadata when COH unpublishes past draft PDFs."""
+    if prev_cyc.get("agendaOutlineUrl") and not cyc_data.get("agendaOutlineUrl"):
+        cyc_data["agendaOutlineUrl"] = prev_cyc["agendaOutlineUrl"]
+    if prev_cyc.get("minutesPdfUrl") and not cyc_data.get("minutesPdfUrl"):
+        cyc_data["minutesPdfUrl"] = prev_cyc["minutesPdfUrl"]
+    prev_items = [x for x in (prev_cyc.get("items") or []) if isinstance(x, dict) and x.get("app")]
+    prev_by_app = {str(x["app"]): x for x in prev_items}
+    prev_by_name = {
+        str(x.get("name") or "").strip().lower(): x
+        for x in prev_items
+        if str(x.get("name") or "").strip()
+    }
+    cur_apps = {str(it.get("app") or "") for it in cyc_data["items"]}
+    for it in cyc_data["items"]:
+        p_match = prev_by_app.get(str(it.get("app") or "")) or prev_by_name.get(
+            str(it.get("name") or "").strip().lower()
+        )
+        if not p_match:
+            continue
+        if p_match.get("onMeetingAgenda") is True and not it.get("onMeetingAgenda"):
+            it["onMeetingAgenda"] = True
+        for carry_k in (
+            "agendaItemNo",
+            "deferral",
+            "hearingDateIso",
+            "minutesAction",
+            "minutesUrl",
+            "noticePdf",
+            "noticeLocation",
+            "varianceSummary",
+        ):
+            if p_match.get(carry_k) and not it.get(carry_k):
+                it[carry_k] = p_match[carry_k]
+        if p_match.get("meetingAction") and (
+            not it.get("meetingAction") or "Not on " in str(it.get("meetingAction") or "")
+        ):
+            it["meetingAction"] = p_match["meetingAction"]
+        it["_c"] = classify_item(it, cyc_data["reviews"].get(it["app"]))
+    restored_outline_apps: set[str] = set()
+    for p_it in prev_items:
+        p_app = str(p_it.get("app") or "")
+        if p_app in cur_apps:
+            continue
+        is_outline_or_notice_only = bool(
+            p_app.upper().startswith(("DPV-", "PH-"))
+            or p_it.get("noticePdf")
+            or "K." in str(p_it.get("section") or "")
+        )
+        if is_outline_or_notice_only:
+            cyc_data["items"].append(copy.deepcopy(p_it))
+            cur_apps.add(p_app)
+            restored_outline_apps.add(p_app)
+    prev_revs = prev_cyc.get("reviews") if isinstance(prev_cyc.get("reviews"), dict) else {}
+    for p_app in restored_outline_apps:
+        p_rev = prev_revs.get(p_app)
+        if isinstance(p_rev, dict):
+            cyc_data["reviews"][p_app] = merge_plat_review_overlay(
+                cyc_data["reviews"].get(p_app),
+                p_rev,
+                next((x for x in cyc_data["items"] if x.get("app") == p_app), None),
+            )
+
+
 def build_plat_agenda_dataset(
     idx: dict,
     scraped_multi: dict,
@@ -3695,21 +5036,66 @@ def build_plat_agenda_dataset(
     confirmed_baseline_apps: set[str] | None = None,
     cloud_watch_properties: dict[str, dict] | None = None,
 ) -> dict:
-    print("[3/6] Cross-referencing multi-cycle Plat Agendas, Section K DPVs, and Hearing Notices with Atlas...")
+    print("[3/6] Cross-referencing multi-cycle Plat Agendas, Section K DPVs, Hearing Notices, and PlatTracker GIS with Atlas...")
     confirmed_baseline_apps = set(confirmed_baseline_apps) if confirmed_baseline_apps is not None else set()
-    cycles_scraped = scraped_multi["cycles_scraped"]
-    chronological_isos = sorted(cycles_scraped.keys())
-    latest_iso = chronological_isos[-1]
+    base_cycles_scraped = dict(scraped_multi["cycles_scraped"])
+    xlsx_isos = sorted(base_cycles_scraped.keys())
+    latest_xlsx_iso = xlsx_isos[-1]
 
+    plattracker_by_app = scraped_multi.get("plattracker_by_app") or {}
+    all_cycles_scraped = _synthesize_early_gis_cycles(
+        base_cycles_scraped,
+        plattracker_by_app,
+        latest_xlsx_iso,
+    )
+    cycle_app_candidates = _collect_cycle_plattracker_candidates(
+        all_cycles_scraped,
+        plattracker_by_app,
+        scraped_multi,
+    )
+
+    plattracker_spatial = resolve_plattracker_spatial_matches(
+        plattracker_by_app,
+        cycle_app_candidates,
+        idx,
+        allow_live_hcad_fallback=bool(plattracker_by_app),
+    )
+    enriched_bundle = {
+        **scraped_multi,
+        "cycles_scraped": all_cycles_scraped,
+        "plattracker_spatial": plattracker_spatial,
+    }
+
+    existing_cycles_by_iso: dict[str, dict] = {}
+    existing_plat_path = DATA_DIR / "plat_agenda_monitor.json"
+    if existing_plat_path.exists():
+        try:
+            ex_doc = json.loads(existing_plat_path.read_text(encoding="utf-8"))
+            if isinstance(ex_doc, dict) and isinstance(ex_doc.get("cycles"), dict):
+                existing_cycles_by_iso = ex_doc["cycles"]
+        except Exception:
+            existing_cycles_by_iso = {}
+
+    chronological_isos = sorted(all_cycles_scraped.keys())
     cycles_out: dict[str, dict] = {}
     for c_iso in chronological_isos:
         cyc_data = build_single_cycle_dataset(
             idx,
-            cycles_scraped[c_iso],
-            scraped_multi,
-            is_latest_cycle=(c_iso == latest_iso),
+            all_cycles_scraped[c_iso],
+            enriched_bundle,
+            is_latest_cycle=(c_iso == latest_xlsx_iso),
             confirmed_baseline_apps=confirmed_baseline_apps,
         )
+        prev_cyc = existing_cycles_by_iso.get(c_iso)
+        if (
+            isinstance(prev_cyc, dict)
+            and not all_cycles_scraped[c_iso].get("is_early_gis_cycle")
+            and not all_cycles_scraped[c_iso].get("outline_url")
+            and cyc_data.get("items")
+            and bool(cyc_data.get("sourceSpreadsheetUrl"))
+            and prev_cyc.get("sourceSpreadsheetUrl") == cyc_data.get("sourceSpreadsheetUrl")
+        ):
+            _restore_unpublished_outline_metadata(cyc_data, prev_cyc)
         items_by_app = {it["app"]: it for it in cyc_data["items"]}
         # Apply any cloud-synced staff reviews for this cycle using safe machine-vs-human overlay rules (DF-1)
         if cloud_plat_reviews:
@@ -3731,8 +5117,10 @@ def build_plat_agenda_dataset(
     for cyc_data in cycles_out.values():
         _recompute_cycle_summary_counts(cyc_data)
 
-    cycle_order_desc = list(reversed(chronological_isos))
-    active = cycles_out[latest_iso]
+    future_isos_desc = sorted([c for c in chronological_isos if c > latest_xlsx_iso], reverse=True)
+    past_isos_desc = sorted([c for c in chronological_isos if c < latest_xlsx_iso], reverse=True)
+    cycle_order_desc = [latest_xlsx_iso, *future_isos_desc, *past_isos_desc]
+    active = cycles_out[latest_xlsx_iso]
     generated_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return {
@@ -3749,6 +5137,7 @@ def build_plat_agenda_dataset(
         "sourceSpreadsheetUrl": active["sourceSpreadsheetUrl"],
         "agendaOutlineUrl": active["agendaOutlineUrl"],
         "noticesPageUrl": NOTICES_URL,
+        "platTrackerGisUrl": PLAT_TRACKER_GIS_APPLICATIONS_URL,
         "summary": active["summary"],
         "items": active["items"],
         "reviews": active["reviews"],
@@ -4462,6 +5851,23 @@ def normalize_plat_matches(
     return findings
 
 
+def _is_tdlr_harris_county_record(row: dict | None) -> bool:
+    """Return True when a TDLR TABS row identifies Harris County across any known API/HTML county key."""
+    if not isinstance(row, dict):
+        return False
+    raw_county = str(
+        row.get("facility_county")
+        or row.get("location_county_code")
+        or row.get("location_county")
+        or row.get("county_name")
+        or row.get("CountyName")
+        or row.get("LocationCounty")
+        or row.get("County")
+        or ""
+    ).strip().upper()
+    return raw_county in ("HARRIS", "HARRIS COUNTY", "2101", "101")
+
+
 def normalize_tdlr_tabs_records(
     tabs_rows: list[dict] | None,
     prop_addresses: list[str] | None = None,
@@ -4481,19 +5887,7 @@ def normalize_tdlr_tabs_records(
     seen_ids: set[str] = set()
 
     for row in tabs_rows or []:
-        if not isinstance(row, dict):
-            continue
-        raw_county = str(
-            row.get("facility_county")
-            or row.get("location_county_code")
-            or row.get("location_county")
-            or row.get("county_name")
-            or row.get("CountyName")
-            or row.get("LocationCounty")
-            or row.get("County")
-            or ""
-        ).strip().upper()
-        if raw_county not in ("HARRIS", "HARRIS COUNTY", "2101", "101"):
+        if not _is_tdlr_harris_county_record(row):
             continue
 
         proj_no = str(
@@ -5161,6 +6555,7 @@ def sweep_watched_property_agencies(
     tabs_collected: list[dict] = []
     seen_tabs_proj: set[str] = set()
     tabs_statuses: list[tuple[str, str]] = []
+    tabs_unverified_overflow = False
     for addr in addrs[:6]:
         params = build_tdlr_tabs_search_params(address=addr, county_code="2101")
         body = urllib.parse.urlencode(params).encode("utf-8")
@@ -5176,19 +6571,32 @@ def sweep_watched_property_agencies(
         )
         raw_rows, t_st, t_err = _validate_tdlr_tabs_rows(t_raw, t_st, t_err, addr)
         tabs_statuses.append((t_st, t_err))
-        for raw_row in raw_rows:
-            if not isinstance(raw_row, dict):
-                continue
+        sorted_raw_rows = sorted(
+            [r_item for r_item in raw_rows if isinstance(r_item, dict)],
+            key=lambda r_item: (
+                str(r_item.get("ProjectCreatedOn") or r_item.get("filing_date") or ""),
+                str(r_item.get("ProjectNumber") or r_item.get("project_number") or ""),
+            ),
+            reverse=True,
+        )
+        for raw_row in sorted_raw_rows:
             row_copy = dict(raw_row)
-            if not row_copy.get("LocationAddress") and not row_copy.get("location_address"):
-                row_copy["LocationAddress"] = addr
-            pno = str(row_copy.get("ProjectNumber") or row_copy.get("project_number") or "").strip()
-            rc = str(row_copy.get("County") or row_copy.get("LocationCounty") or "").strip()
+            has_explicit_loc = bool(
+                str(row_copy.get("LocationAddress") or row_copy.get("location_address") or "").strip()
+            )
+            pno = str(
+                row_copy.get("ProjectNumber")
+                or row_copy.get("project_number")
+                or row_copy.get("tabs_number")
+                or ""
+            ).strip()
+            is_harris = _is_tdlr_harris_county_record(row_copy)
+            was_already_fetched = bool(pno and pno in seen_tabs_proj)
             if (
                 pno
-                and pno not in seen_tabs_proj
-                and len(seen_tabs_proj) < 3
-                and rc in ("2101", "101", "HARRIS", "Harris")
+                and not was_already_fetched
+                and is_harris
+                and len(seen_tabs_proj) < 15
                 and re.match(r"^(?:TABS|EABPRJ)[A-Z0-9-]+$", pno, re.I)
             ):
                 seen_tabs_proj.add(pno)
@@ -5209,6 +6617,16 @@ def sweep_watched_property_agencies(
                         m_det = re.search(pat, detail_txt)
                         if m_det and m_det.group(1).strip():
                             row_copy[key_out] = m_det.group(1).strip()
+            # Why this gate blocks destructive chk-10 pruning: TDLR SearchProjects omits LocationAddress,
+            # so any Harris County row skipped by the 15-fetch cap, timed out, or returning WAF/maintenance
+            # HTML without 'Location Address:' leaves sweep completeness unverified.
+            if (
+                is_harris
+                and not was_already_fetched
+                and not has_explicit_loc
+                and not str(row_copy.get("LocationAddress") or row_copy.get("location_address") or "").strip()
+            ):
+                tabs_unverified_overflow = True
             tabs_collected.append(row_copy)
     findings_by_check["chk-10"] = normalize_tdlr_tabs_records(
         tabs_collected,
@@ -5340,10 +6758,16 @@ def sweep_watched_property_agencies(
         chk15_statuses, AUTOMATED_SWEEP_AGENCY_LABELS["chk-15"]
     )
 
+    chk10_verified_complete = bool(
+        tabs_statuses
+        and all(st == "ok" for st, _ in tabs_statuses)
+        and not tabs_unverified_overflow
+    )
     return {
         "findingsByCheck": findings_by_check,
         "harvestedProjectNumbers": harvested_projects,
         "agencyHealth": agency_health,
+        "chk10VerifiedComplete": chk10_verified_complete,
     }
 
 
@@ -5379,6 +6803,8 @@ def _rebuild_property_findings_log(checklist: list[dict]) -> list[dict]:
                 item["loggedAt"] = str(c["loggedAt"])
             if isinstance(c.get("adverse"), bool):
                 item["adverse"] = c["adverse"]
+            if c.get("historicalBaseline") is True:
+                item["historicalBaseline"] = True
             if c.get("agencyRecordId"):
                 item["agencyRecordId"] = c["agencyRecordId"]
             if isinstance(c.get("links"), list) and c["links"]:
@@ -5445,6 +6871,13 @@ def collect_new_auto_sweep_findings(
                 continue
             nf_copy = dict(nf)
             nf_copy["discoveredAt"] = str(nf_copy.get("discoveredAt") or sweep_date_iso)
+            if _is_historical_auto_sweep_date(
+                nf_copy.get("date"),
+                nf_copy["discoveredAt"],
+                HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
+            ):
+                nf_copy["historicalBaseline"] = True
+                nf_copy["adverse"] = False
             if isinstance(nf.get("links"), list):
                 nf_copy["links"] = [dict(lk) for lk in nf["links"] if isinstance(lk, dict)]
             accepted.append(nf_copy)
@@ -5467,6 +6900,27 @@ def merge_auto_sweep_findings_into_property(
     sweep_date = sweep_timestamp_iso[:10]
     checklist = prop.get("checklist") if isinstance(prop.get("checklist"), list) else []
     findings_by_check = sweep_bundle.get("findingsByCheck") or {}
+
+    # When TDLR chk-10 sweep succeeded with full detail-page verification, prune stale unverified
+    # false-substring tdlr-tabs:* auto-sweep entries inherited from prior runs.
+    if sweep_bundle.get("chk10VerifiedComplete") is True:
+        chk10_row = _find_checklist_row_by_id(checklist, "chk-10")
+        if chk10_row and isinstance(chk10_row.get("checks"), list):
+            verified_ids = {
+                str(nf.get("agencyRecordId") or "").strip()
+                for nf in (findings_by_check.get("chk-10") or [])
+                if isinstance(nf, dict) and str(nf.get("agencyRecordId") or "").strip()
+            }
+            chk10_row["checks"] = [
+                ch
+                for ch in chk10_row["checks"]
+                if not (
+                    _is_auto_sweep_check(ch)
+                    and str(ch.get("agencyRecordId") or "").startswith("tdlr-tabs:")
+                    and str(ch.get("agencyRecordId") or "").strip() not in verified_ids
+                )
+            ]
+
     net_new_by_check = collect_new_auto_sweep_findings(prop, sweep_bundle, sweep_date)
 
     for check_id in findings_by_check.keys():
@@ -5479,6 +6933,15 @@ def merge_auto_sweep_findings_into_property(
         for nf_copy in net_new_by_check.get(check_id, []):
             checks.append(dict(nf_copy))
 
+        for ch in checks:
+            if _is_auto_sweep_check(ch):
+                ref_disc = ch.get("discoveredAt") or prop.get("monitoringStarted") or sweep_date
+                if _is_historical_auto_sweep_date(
+                    ch.get("date"), ref_disc, HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS
+                ):
+                    ch["historicalBaseline"] = True
+                    ch["adverse"] = False
+
         # Keep row['lastChecked'] strictly for human check/acknowledgment dates (relying on
         # row['lastAutoSweepAt'] and chk['discoveredAt'] for machine sweeps) so backdated adverse
         # agency filings (e.g. TDLR TABS or COH permits registered weeks earlier) escalate to 'Flagged'.
@@ -5490,18 +6953,11 @@ def merge_auto_sweep_findings_into_property(
             if is_human_ack
             else str(row.get("lastChecked") or "")
         )
-        auto_checks = [
-            ch
-            for ch in checks
-            if isinstance(ch, dict)
-            and (
-                ch.get("source") == "auto-sweep"
-                or bool(ch.get("automated"))
-                or str(ch.get("result") or "").strip().startswith("[AUTO-SWEEP]")
-            )
-        ]
+        auto_checks = [ch for ch in checks if _is_auto_sweep_check(ch)]
+        manual_checks = [ch for ch in checks if isinstance(ch, dict) and not _is_auto_sweep_check(ch)]
         has_unseen_adverse = any(
             bool(ch.get("adverse"))
+            and ch.get("historicalBaseline") is not True
             and (
                 not human_ack_date
                 or max(str(ch.get("discoveredAt") or ""), str(ch.get("date") or "")) > human_ack_date
@@ -5510,6 +6966,13 @@ def merge_auto_sweep_findings_into_property(
         )
         if has_unseen_adverse and row.get("status") != "N/A":
             row["status"] = "Flagged"
+        elif (
+            row.get("status") == "Flagged"
+            and not row.get("humanStatusEdited")
+            and not manual_checks
+            and not has_unseen_adverse
+        ):
+            row["status"] = "In Progress" if len(checks) > 0 else "To Do"
         elif row.get("status") == "To Do" and len(auto_checks) > 0 and not has_unseen_adverse:
             row["status"] = "In Progress"
 
@@ -5619,18 +7082,23 @@ def is_legacy_unconfirmed_plat_seed(raw: dict | None) -> bool:
     """
     if not isinstance(raw, dict):
         return False
-    if is_removed_watchlist_tombstone(raw):
-        return False
     pid = str(raw.get("id") or "").strip()
     app_ref = str(
         raw.get("appNo")
         or raw.get("sourcePlatApp")
         or (pid[5:] if pid.startswith("plat-") else "")
     ).strip()
+    if BOGUS_DPV_SUBDIV_SEED_RE.match(pid) or BOGUS_DPV_SUBDIV_SEED_RE.match(app_ref):
+        return True
+    if is_removed_watchlist_tombstone(raw):
+        return False
     if not (pid.startswith("plat-") or bool(app_ref)):
         return False
     if has_human_dossier_contributions(raw):
         return False
+    src_cycle = str(raw.get("sourceCycleKey") or raw.get("cycleKey") or "").strip()
+    if src_cycle == RETRACTED_ROUNDED_CYCLE_KEY:
+        return True
     if raw.get("tierConfirmed") is not True:
         return True
     updated_by_lower = str(raw.get("updatedBy") or "").strip().lower()
@@ -6078,11 +7546,7 @@ def normalize_watch_property_record(raw: dict) -> dict:
             rec_key = f"{tpl['id']}::{ch_copy.get('agencyRecordId')}" if ch_copy.get("agencyRecordId") else ""
             if (ck_key and ck_key in deleted_set) or (rec_key and rec_key in deleted_set):
                 continue
-            if tpl["id"] == "chk-05" and (
-                ch_copy.get("source") == "auto-sweep"
-                or bool(ch_copy.get("automated"))
-                or str(ch_copy.get("result") or "").strip().startswith("[AUTO-SWEEP]")
-            ):
+            if tpl["id"] == "chk-05" and _is_auto_sweep_check(ch_copy):
                 ch_copy["result"] = strip_corporate_suffix_commas(str(ch_copy.get("result") or ""))
                 m_hc = re.search(r"\b(\d{13})\b", str(ch_copy.get("result") or ""))
                 chk_hcad = m_hc.group(1) if m_hc else hcad
@@ -6094,6 +7558,13 @@ def normalize_watch_property_record(raw: dict) -> dict:
                         ch_copy["discoveredAt"] = cur_dt
                     if not cur_dt or cur_dt == disc_dt or cur_dt >= "2026-10-25":
                         ch_copy["date"] = acq_dt
+            if _is_auto_sweep_check(ch_copy):
+                ref_disc_dt = ch_copy.get("discoveredAt") or p.get("monitoringStarted") or str(p.get("updatedAt") or "")[:10]
+                if _is_historical_auto_sweep_date(
+                    ch_copy.get("date"), ref_disc_dt, HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS
+                ):
+                    ch_copy["historicalBaseline"] = True
+                    ch_copy["adverse"] = False
             filtered_checks.append(ch_copy)
         out_row["checks"] = filtered_checks
         if matched.get("updatedAt"):
@@ -6231,8 +7702,12 @@ def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
                 or parsed.get("app")
                 or (":".join(parts[2:]) if len(parts) >= 3 else "")
             ).strip()
-            if app_no:
+            if app_no and not BOGUS_DPV_SUBDIV_SEED_RE.match(app_no):
                 rev_obj = dict(parsed.get("review") if isinstance(parsed.get("review"), dict) else parsed)
+                if cycle_key == RETRACTED_ROUNDED_CYCLE_KEY and not (
+                    rev_obj.get("humanEdited") or rev_obj.get("humanEditedFields")
+                ):
+                    continue
                 if norm.get("verified_by") and not rev_obj.get("reviewer"):
                     rev_obj["reviewer"] = norm["verified_by"]
                 plat_reviews[(cycle_key, app_no)] = rev_obj
@@ -7308,7 +8783,7 @@ def build_property_watchlist(
             addr_hit = _lookup_single_address_candidate(raw_addr_str, idx)
             if not addr_hit:
                 # Support hyphenated house ranges (e.g. "1658-1660 Westheimer") and suffixless street names (e.g. "800 Bell", "1905 Crawford")
-                m_range = re.match(r"^\s*(\d{1,5})(?:\s*[-–/&]\s*(\d{1,5}))?\s+([A-Za-z0-9\s.]+?)\s*$", raw_addr_str)
+                m_range = re.match(r"^\s*(\d{1,5})(?:\s*[-\u2013\u2014/&]\s*(\d{1,5}))?\s+([A-Za-z0-9\s.]+?)\s*$", raw_addr_str)
                 if m_range:
                     cand_nums = [m_range.group(1)]
                     if m_range.group(2):
@@ -7501,7 +8976,7 @@ def _merge_prior_disk_watchlist_and_reviews(cloud_sync: dict) -> dict:
 def main() -> None:
     idx = load_atlas_indices()
     cloud_sync = _merge_prior_disk_watchlist_and_reviews(pull_cloud_sheet_sync_rows())
-    scraped_multi = fetch_multi_cycle_agendas_and_notices(max_cycles=4)
+    scraped_multi = fetch_multi_cycle_agendas_and_notices(max_cycles=5)
     plat_dataset = build_plat_agenda_dataset(
         idx,
         scraped_multi,

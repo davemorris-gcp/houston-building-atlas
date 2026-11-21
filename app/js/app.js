@@ -20045,6 +20045,14 @@ export class HoustonAtlasApp {
     if (pillHahc) pillHahc.textContent = fmt(hahc26.main_res_approved ?? 0);
 
     this._renderPermitWatchAnnualBenchmarks(payload);
+    const pwModal = document.getElementById("permit-watch-modal");
+    if (
+      pwModal &&
+      typeof pwModal.classList?.contains === "function" &&
+      !pwModal.classList.contains("hidden")
+    ) {
+      this._renderPermitWatchModalList(this._activePermitWatchSeverity || "all");
+    }
   }
 
   _renderPermitWatchAnnualBenchmarks(payload = null, activeTab = null) {
@@ -20345,6 +20353,7 @@ export class HoustonAtlasApp {
   openPermitWatchModal(filterSeverity = "all", expandBenchmarks = false) {
     const modal = document.getElementById("permit-watch-modal");
     if (!modal) return;
+    this._activePermitWatchSeverity = filterSeverity || "all";
     this._closeTransientTopbarPopovers?.();
     this._syncPermitWatchCounts();
     modal.classList.remove("hidden");
@@ -20363,6 +20372,25 @@ export class HoustonAtlasApp {
     });
 
     this._renderPermitWatchModalList(filterSeverity);
+    if (
+      !this.mapController?.getPermitAlertsPayload?.() &&
+      !this._loadingEarlyPermitWatch &&
+      typeof fetch === "function"
+    ) {
+      this._loadingEarlyPermitWatch = true;
+      fetch("public/data/active_permit_alerts.json?v=20261113c")
+        .then((res) => (res && res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && !this.mapController?.getPermitAlertsPayload?.()) {
+            this.mapController?._indexPermitAlerts?.(data);
+          }
+          this._syncPermitWatchCounts();
+        })
+        .catch(() => {})
+        .finally(() => {
+          this._loadingEarlyPermitWatch = false;
+        });
+    }
   }
 
   _renderPermitWatchModalList(filterSeverity = "all") {

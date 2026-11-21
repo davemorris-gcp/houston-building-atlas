@@ -25,24 +25,38 @@
  *      any daily run where `failedAgencies.length > 0` or `allOk === false`.
  */
 
-import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261113c";
+import {
+  canonicalPropertyAddressKey,
+  parseHcadAccountList,
+} from "./platMonitorHelpers.js?v=20261113c";
 import {
   explainCohWatchPermit,
   explainDshsNotification,
   explainWatchlistCheckText,
 } from "./permitPlainEnglish.js?v=20261113c";
 import {
+  HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
   REMOVED_TIER3_TOMBSTONE,
   REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
   escapeHtmlText,
   findChecklistRow,
+  isAdverseAutoSweepCheck,
   isArchivedWatchlistStatus,
+  isAutoSweepCheck,
+  isHistoricalAutoSweepDate,
   isRemovedWatchlistTombstone,
   normalizeWatchProperty,
   sanitizeExternalLinksList,
   simplifySearchAddress,
 } from "./watchlistSyncHelpers.js?v=20261113c";
+
+export {
+  HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
+  isAdverseAutoSweepCheck,
+  isAutoSweepCheck,
+  isHistoricalAutoSweepDate,
+};
 
 export const ACTIVITY_RETENTION_DAYS = 90;
 export const MAX_STORED_READ_EVENT_IDS = 500;
@@ -180,30 +194,8 @@ export function shiftIsoDate(isoDate, deltaDays) {
   return utc.toISOString().slice(0, 10);
 }
 
-export function isAutoSweepCheck(chk) {
-  if (!chk || typeof chk !== "object") return false;
-  if (String(chk.source || "").trim() === "auto-sweep") return true;
-  if (chk.automated === true) return true;
-  return String(chk.result || "")
-    .trim()
-    .toUpperCase()
-    .startsWith("[AUTO-SWEEP]");
-}
-
 export function isPlatSeedCheck(chk) {
   return Boolean(chk && typeof chk === "object" && String(chk.source || "").trim() === "plat-seed");
-}
-
-export function isAdverseAutoSweepCheck(chk) {
-  if (!isAutoSweepCheck(chk)) return false;
-  if (typeof chk.adverse === "boolean") return chk.adverse;
-  const text = String(chk.result || "");
-  if (
-    /\b(?:no new|0 active|no matching|none found|confirmed match to current owner)\b/i.test(text)
-  ) {
-    return false;
-  }
-  return true;
 }
 
 export function buildAutoCheckEventId(propId, rowId, chk = {}) {
@@ -390,6 +382,7 @@ function makeActivityEvent({
   links = [],
   permitMeta = null,
   syntheticLive = false,
+  historicalBaseline = false,
 }) {
   const effectiveTs = loggedAt || discoveredAt || timestampIso;
   const localDate = toChicagoDateIso(effectiveTs, dateIso) || dateIso;
@@ -427,6 +420,9 @@ function makeActivityEvent({
     designation: sanitizeActivityText(designation),
     links: sanitizeExternalLinksList(links),
   };
+  if (historicalBaseline === true) {
+    out.historicalBaseline = true;
+  }
   if (permitMeta && typeof permitMeta === "object") {
     out.permitMeta = permitMeta;
   }
@@ -591,12 +587,34 @@ export function synthesizeLiveMonitorEvents({
     return cleanDate >= fallback7dFloorDate;
   };
 
+  const nowEpochMs = parseIsoEpochMs(effectiveNowIso);
+  const clampDateNoonToNow = (dayOrIso) => {
+    const dayPrefix = parseIsoDatePrefix(dayOrIso);
+    if (!dayPrefix) return "";
+    const cand = `${dayPrefix}T12:00:00Z`;
+    const candMs = parseIsoEpochMs(cand);
+    return nowEpochMs !== null && candMs !== null && candMs > nowEpochMs
+      ? effectiveNowIso
+      : cand;
+  };
+
   const tryAddSynthetic = (ev) => {
     if (!ev || !ev.id || eventsById.has(ev.id)) return;
     if (!ev.localDate || ev.localDate < retentionFloorDate) return;
     // Clamp any future docket date so no synthetic event lands after todayLocal in the run ledger
     if (todayLocal && ev.localDate > todayLocal) {
       ev.localDate = todayLocal;
+    }
+    if (!ev.loggedAt && nowEpochMs !== null) {
+      for (const tsField of ["timestamp", "discoveredAt"]) {
+        const rawVal = String(ev[tsField] || "");
+        if (rawVal.endsWith("T12:00:00Z")) {
+          const fMs = parseIsoEpochMs(rawVal);
+          if (fMs !== null && fMs > nowEpochMs) {
+            ev[tsField] = effectiveNowIso;
+          }
+        }
+      }
     }
     eventsById.set(ev.id, ev);
   };
@@ -820,24 +838,40 @@ export function synthesizeLiveMonitorEvents({
         if (isAutoSweepCheck(chk)) {
           const evId = buildAutoCheckEventId(pid, rowId, chk);
           if (eventsById.has(evId)) continue;
-          const discRaw = String(
-            chk.discoveredAt || row.lastAutoSweepAt || prop.lastAutoSweepAt || ""
-          ).trim();
-          const discTs = discRaw.includes("T")
-            ? discRaw
-            : discRaw
-            ? `${parseIsoDatePrefix(discRaw)}T12:00:00Z`
-            : "";
+          const sweepIso = String(row.lastAutoSweepAt || prop.lastAutoSweepAt || "").trim();
+          const rawChkDisc = String(chk.discoveredAt || "").trim();
+          let discTs = "";
+          if (rawChkDisc.includes("T")) {
+            discTs = rawChkDisc;
+          } else if (
+            rawChkDisc &&
+            sweepIso.includes("T") &&
+            parseIsoDatePrefix(sweepIso) === parseIsoDatePrefix(rawChkDisc)
+          ) {
+            discTs = sweepIso;
+          } else if (rawChkDisc || sweepIso) {
+            const fbRaw = rawChkDisc || sweepIso;
+            discTs = fbRaw.includes("T") ? fbRaw : clampDateNoonToNow(fbRaw);
+          }
           const candDay = toChicagoDateIso(discTs || chkDate, chkDate);
           if (!passesTemporalGate(discTs, candDay)) continue;
-          const adverse = isAdverseAutoSweepCheck(chk);
+          const isHistBaseline = Boolean(
+            chk.historicalBaseline === true ||
+              isHistoricalAutoSweepDate(
+                chkDate,
+                candDay,
+                HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS
+              )
+          );
+          const adverse = isHistBaseline ? false : isAdverseAutoSweepCheck(chk);
           if (!hasStaticLog && !adverse) continue;
-          const sev =
-            adverse && HIGH_SEVERITY_CHECK_IDS.has(rowId)
-              ? "critical"
-              : adverse
-              ? "warning"
-              : "info";
+          const sev = isHistBaseline
+            ? "info"
+            : adverse && HIGH_SEVERITY_CHECK_IDS.has(rowId)
+            ? "critical"
+            : adverse
+            ? "warning"
+            : "info";
           tryAddSynthetic(
             makeActivityEvent({
               id: evId,
@@ -861,6 +895,7 @@ export function synthesizeLiveMonitorEvents({
               designation: prop.designation || "",
               links: chk.links || [],
               syntheticLive: true,
+              historicalBaseline: isHistBaseline,
             })
           );
         } else {
@@ -1533,6 +1568,8 @@ export function computeWatermarkState({
   caughtUpAt = "",
   readEventIds = [],
   nowIso = "",
+  excludeStaff = false,
+  includeHistoricalBaseline = false,
 } = {}) {
   const effectiveNowIso = String(nowIso || "").trim() || new Date().toISOString();
   const todayLocal = toChicagoDateIso(effectiveNowIso);
@@ -1550,6 +1587,8 @@ export function computeWatermarkState({
 
   for (const ev of Array.isArray(events) ? events : []) {
     if (!ev || !ev.id || ev.kind === "watchlist_sweep_degraded") continue;
+    if (ev.historicalBaseline === true && !includeHistoricalBaseline) continue;
+    if (excludeStaff && ev.stream === "staff") continue;
     const id = String(ev.id);
     if (readIdSet.has(id)) continue;
 
@@ -1653,6 +1692,7 @@ export function filterActivityEvents({
   streamFilter = "all",
   query = "",
   nowIso = "",
+  includeHistoricalBaseline = false,
 } = {}) {
   const effectiveNowIso = String(nowIso || "").trim() || new Date().toISOString();
   const todayLocal = toChicagoDateIso(effectiveNowIso);
@@ -1661,11 +1701,20 @@ export function filterActivityEvents({
   const cleanStream = String(streamFilter || "all").trim().toLowerCase();
   const qNorm = String(query || "").trim().toLowerCase();
   const wm =
-    watermarkState || computeWatermarkState({ events, caughtUpAt: "", readEventIds: [], nowIso: effectiveNowIso });
+    watermarkState ||
+    computeWatermarkState({
+      events,
+      caughtUpAt: "",
+      readEventIds: [],
+      nowIso: effectiveNowIso,
+      excludeStaff: cleanStream === "external",
+      includeHistoricalBaseline,
+    });
 
   const matched = [];
   for (const ev of Array.isArray(events) ? events : []) {
     if (!ev || typeof ev !== "object" || ev.kind === "watchlist_sweep_degraded") continue;
+    if (ev.historicalBaseline === true && !includeHistoricalBaseline) continue;
 
     if (cleanDate) {
       if (ev.localDate !== cleanDate) continue;
@@ -1675,7 +1724,9 @@ export function filterActivityEvents({
       if (!ev.localDate || ev.localDate < floor7d) continue;
     }
 
-    if (cleanStream && cleanStream !== "all" && ev.stream !== cleanStream) {
+    if (cleanStream === "external") {
+      if (ev.stream === "staff") continue;
+    } else if (cleanStream && cleanStream !== "all" && ev.stream !== cleanStream) {
       continue;
     }
 
@@ -1717,6 +1768,171 @@ export function groupActivityEventsByDate(events = []) {
       date,
       events: sortEventsForBriefing(list),
     }));
+}
+
+/**
+ * Group filtered Activity Log events by canonical Property / Parcel identity so cross-stream
+ * signals (Watchlist checks, COH/DSHS permits, and Planning Commission plats) on the same
+ * threatened building consolidate under one Property Header Card instead of scattering.
+ */
+function areHcadSetsCompatible(setA, setB) {
+  if (!setA.size || !setB.size) return true;
+  for (const id of setA) {
+    if (setB.has(id)) return true;
+  }
+  return false;
+}
+
+function mergePropertyGroupFields(target, src) {
+  for (const hid of src.hcadSet) target.hcadSet.add(hid);
+  for (const field of [
+    "address",
+    "hcad",
+    "yearBuilt",
+    "designation",
+    "watchPropertyId",
+    "appNo",
+    "cycleKey",
+    "atlasMapHref",
+  ]) {
+    if (!target[field] && src[field]) target[field] = src[field];
+  }
+}
+
+export function groupActivityEventsByProperty(events = []) {
+  const groups = [];
+  const aliasToIdxs = new Map();
+
+  for (const ev of Array.isArray(events) ? events : []) {
+    if (!ev || typeof ev !== "object") continue;
+    const aliases = [];
+    const wpId = String(ev.watchPropertyId || "").trim();
+    const evHcads = parseHcadAccountList(ev.hcad || "").hcadIds;
+    const evHcadSet = new Set(evHcads);
+    const validHcad = evHcads[0] || "";
+    const addrKey = canonicalPropertyAddressKey(ev.address || "");
+    const appNo = String(ev.appNo || "").trim();
+
+    if (wpId) aliases.push(`prop:${wpId}`);
+    for (const hid of evHcads) aliases.push(`hcad:${hid}`);
+    if (addrKey) aliases.push(`addr:${addrKey}`);
+    if (appNo) aliases.push(`app:${appNo.toUpperCase()}`);
+    if (aliases.length === 0) aliases.push(`event:${String(ev.id || groups.length)}`);
+
+    const effectiveHcadSet = new Set(evHcads);
+    for (const al of aliases) {
+      if (al.startsWith("addr:")) continue;
+      for (const idx of aliasToIdxs.get(al) || []) {
+        const g = groups[idx];
+        if (g) {
+          for (const hid of g.hcadSet) effectiveHcadSet.add(hid);
+        }
+      }
+    }
+
+    const matchedSet = new Set();
+    for (const al of aliases) {
+      for (const idx of aliasToIdxs.get(al) || []) {
+        const candGrp = groups[idx];
+        if (!candGrp) continue;
+        if (al.startsWith("addr:") && !areHcadSetsCompatible(effectiveHcadSet, candGrp.hcadSet)) {
+          continue;
+        }
+        matchedSet.add(idx);
+      }
+    }
+    const matchedIdxs = Array.from(matchedSet);
+    let grpIdx = matchedIdxs.length > 0 ? matchedIdxs[0] : -1;
+
+    for (const otherIdx of matchedIdxs.slice(1)) {
+      const primary = groups[grpIdx];
+      const donor = groups[otherIdx];
+      if (!areHcadSetsCompatible(primary.hcadSet, donor.hcadSet)) continue;
+      primary.events.push(...donor.events);
+      mergePropertyGroupFields(primary, donor);
+      groups[otherIdx] = null;
+      for (const idxSet of aliasToIdxs.values()) {
+        if (idxSet.has(otherIdx)) {
+          idxSet.delete(otherIdx);
+          idxSet.add(grpIdx);
+        }
+      }
+    }
+
+    const evFields = {
+      address: sanitizeActivityText(ev.address || ""),
+      hcad: validHcad || sanitizeActivityText(ev.hcad || ""),
+      hcadSet: evHcadSet,
+      yearBuilt: ev.yearBuilt ?? null,
+      designation: sanitizeActivityText(ev.designation || ""),
+      watchPropertyId: wpId,
+      appNo,
+      cycleKey: String(ev.cycleKey || ""),
+      atlasMapHref: buildEventAtlasMapHref(ev),
+    };
+    if (grpIdx < 0) {
+      grpIdx = groups.length;
+      groups.push({
+        key: aliases[0],
+        label: "",
+        ...evFields,
+        events: [ev],
+      });
+    } else {
+      const g = groups[grpIdx];
+      g.events.push(ev);
+      mergePropertyGroupFields(g, evFields);
+    }
+
+    for (const al of aliases) {
+      if (!aliasToIdxs.has(al)) aliasToIdxs.set(al, new Set());
+      aliasToIdxs.get(al).add(grpIdx);
+    }
+  }
+
+  return groups
+    .filter(Boolean)
+    .map((g) => {
+      const { hcadSet: _omitHcadSet, ...rest } = g;
+      const sortedEvs = sortEventsForBriefing(g.events);
+      const topEv = sortedEvs[0] || {};
+      let derivedLabel = g.address;
+      if (!derivedLabel) {
+        const rawTitle = sanitizeActivityText(topEv.title || "");
+        const colonIdx = rawTitle.indexOf(":");
+        derivedLabel =
+          colonIdx > 0 && rawTitle.length - colonIdx > 3
+            ? rawTitle.slice(colonIdx + 1).trim()
+            : rawTitle;
+      }
+      const streams = Array.from(new Set(sortedEvs.map((e) => e.stream).filter(Boolean)));
+      const adverseCount = sortedEvs.filter((e) => e.adverse || e.severity === "critical").length;
+      const maxSeverity = sortedEvs.some((e) => e.severity === "critical")
+        ? "critical"
+        : sortedEvs.some((e) => e.severity === "warning")
+        ? "warning"
+        : "info";
+      return {
+        ...rest,
+        label: derivedLabel || g.hcad || g.appNo || "Monitoring System Update",
+        maxSeverity,
+        adverseCount,
+        streams,
+        latestDate: topEv.localDate || topEv.date || "",
+        events: sortedEvs,
+      };
+    })
+    .sort((a, b) => {
+      const sevA = SEVERITY_RANK[a.maxSeverity] ?? 2;
+      const sevB = SEVERITY_RANK[b.maxSeverity] ?? 2;
+      if (sevA !== sevB) return sevA - sevB;
+      const advA = a.adverseCount > 0 ? 0 : 1;
+      const advB = b.adverseCount > 0 ? 0 : 1;
+      if (advA !== advB) return advA - advB;
+      const ldCmp = String(b.latestDate || "").localeCompare(String(a.latestDate || ""));
+      if (ldCmp !== 0) return ldCmp;
+      return String(a.label || "").localeCompare(String(b.label || ""));
+    });
 }
 
 /**
@@ -2206,6 +2422,7 @@ export function sanitizeActivityEventForRender(ev = {}) {
     kind: String(ev?.kind || ""),
     severity: ev?.severity === "critical" || ev?.severity === "warning" ? ev.severity : "info",
     adverse: Boolean(ev?.adverse),
+    historicalBaseline: Boolean(ev?.historicalBaseline),
     localDate: parseIsoDatePrefix(ev?.localDate) || parseIsoDatePrefix(ev?.date),
     date: parseIsoDatePrefix(ev?.date) || parseIsoDatePrefix(ev?.localDate),
     safeTitle: escapeHtmlText(sanitizeActivityText(ev?.title || "")),

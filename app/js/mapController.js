@@ -63,6 +63,32 @@ import {
 } from "./hcadViewportParcels.js?v=20261113c";
 import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261113c";
 
+/**
+ * Convert Esri JSON polygon rings (clockwise exterior rings with signed shoelace area <= 0
+ * followed by counter-clockwise interior hole rings with signed shoelace area > 0) into RFC 7946
+ * GeoJSON Polygon or MultiPolygon geometry so multi-tract plats render without hole inversion.
+ */
+export function buildPlatPolygonGeometry(rings) {
+  if (!Array.isArray(rings) || rings.length === 0) return null;
+  const polys = [];
+  for (const rg of rings) {
+    if (!Array.isArray(rg) || rg.length < 4) continue;
+    let s2 = 0;
+    for (let i = 0; i < rg.length - 1; i++) {
+      s2 += rg[i][0] * rg[i + 1][1] - rg[i + 1][0] * rg[i][1];
+    }
+    if (s2 <= 0 || polys.length === 0) {
+      polys.push([rg]);
+    } else {
+      polys[polys.length - 1].push(rg);
+    }
+  }
+  if (polys.length === 0) return null;
+  return polys.length === 1
+    ? { type: "Polygon", coordinates: polys[0] }
+    : { type: "MultiPolygon", coordinates: polys };
+}
+
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
 export const LOST_HOUSTON_LABEL_TIERS = [
@@ -274,6 +300,7 @@ export class AtlasMapController {
     this.permitAlertsByBldId = new Map();
     this.platWatchData = null;
     this.platWatchFC = { type: "FeatureCollection", features: [] };
+    this.platWatchPolygonsFC = { type: "FeatureCollection", features: [] };
     this.platWatchByHcad = new Map();
     this.hahcTrackerData = null;
     this.hahcById = new Map();
@@ -693,13 +720,41 @@ export class AtlasMapController {
     this.platWatchData = platWatchJson && typeof platWatchJson === "object" ? platWatchJson : null;
     this.platWatchByHcad = new Map();
     const pointFeatures = [];
-    const items = Array.isArray(this.platWatchData?.items) ? this.platWatchData.items : [];
-    const reviews =
-      this.platWatchData?.reviews && typeof this.platWatchData.reviews === "object"
-        ? this.platWatchData.reviews
-        : {};
+    const polygonFeatures = [];
+    const combinedEntries = [];
+    const seenApps = new Set();
+    const cyclesObj =
+      this.platWatchData?.cycles && typeof this.platWatchData.cycles === "object"
+        ? this.platWatchData.cycles
+        : null;
+    if (cyclesObj) {
+      const cOrder = Array.isArray(this.platWatchData?.cycleOrder)
+        ? this.platWatchData.cycleOrder
+        : Object.keys(cyclesObj).sort().reverse();
+      for (const cKey of cOrder) {
+        const cyc = cyclesObj[cKey];
+        if (!cyc || !Array.isArray(cyc.items)) continue;
+        const cRevs = cyc.reviews && typeof cyc.reviews === "object" ? cyc.reviews : {};
+        for (const it of cyc.items) {
+          if (!it) continue;
+          const ak = String(it.app || it.appNo || it.id || "").trim();
+          if (ak && seenApps.has(ak)) continue;
+          if (ak) seenApps.add(ak);
+          combinedEntries.push({ item: it, reviews: cRevs });
+        }
+      }
+    } else {
+      const items = Array.isArray(this.platWatchData?.items) ? this.platWatchData.items : [];
+      const reviews =
+        this.platWatchData?.reviews && typeof this.platWatchData.reviews === "object"
+          ? this.platWatchData.reviews
+          : {};
+      for (const it of items) {
+        if (it) combinedEntries.push({ item: it, reviews });
+      }
+    }
 
-    for (const item of items) {
+    for (const { item, reviews } of combinedEntries) {
       if (!item) continue;
       const appKey = String(item.app || item.appNo || item.id || "").trim();
       const rev = (appKey && reviews[appKey]) || {};
@@ -774,40 +829,49 @@ export class AtlasMapController {
       }
 
       if (Number.isFinite(lon) && Number.isFinite(lat)) {
+        const sharedProps = {
+          id: normItem.id,
+          plat_item_id: normItem.id,
+          app_no: normItem.appNo,
+          subdivision_name: item.name || "",
+          plat_type: item.type || "",
+          plat_section: item.section || "I",
+          plat_bucket: item._c?.group || item.bucket || "check",
+          plat_tier: tier,
+          is_variance: isVariance,
+          is_public_hearing: isPublicHearing,
+          variance_summary: normItem.variance_summary,
+          public_hearing_date: item.hearingDateIso || item.public_hearing_date || item.pcDateIso || "",
+          developer: item.developer || "",
+          applicant_company: item.org || item.company || "",
+          hcad_num: primaryHcad,
+          address: addrStr,
+          building_name: normItem.building_name,
+          year_built: yrBuilt,
+          historic_district: item.hd || at.historic_district || "",
+          subdivision: normItem.subdivision,
+          subdivision_earliest_year: Number(at.subdivisionEarliestYear || at.subdivision_earliest_year) || null,
+          notes: normItem.notes,
+          severity: isCritical ? "critical" : "watch",
+          lng: lon,
+          lat: lat,
+        };
         pointFeatures.push({
           type: "Feature",
           geometry: {
             type: "Point",
             coordinates: [lon, lat],
           },
-          properties: {
-            id: normItem.id,
-            plat_item_id: normItem.id,
-            app_no: normItem.appNo,
-            subdivision_name: item.name || "",
-            plat_type: item.type || "",
-            plat_section: item.section || "I",
-            plat_bucket: item._c?.group || item.bucket || "check",
-            plat_tier: tier,
-            is_variance: isVariance,
-            is_public_hearing: isPublicHearing,
-            variance_summary: normItem.variance_summary,
-            public_hearing_date: item.hearingDateIso || item.public_hearing_date || item.pcDateIso || "",
-            developer: item.developer || "",
-            applicant_company: item.org || item.company || "",
-            hcad_num: primaryHcad,
-            address: addrStr,
-            building_name: normItem.building_name,
-            year_built: yrBuilt,
-            historic_district: item.hd || at.historic_district || "",
-            subdivision: normItem.subdivision,
-            subdivision_earliest_year: Number(at.subdivisionEarliestYear || at.subdivision_earliest_year) || null,
-            notes: normItem.notes,
-            severity: isCritical ? "critical" : "watch",
-            lng: lon,
-            lat: lat,
-          },
+          properties: sharedProps,
         });
+        const polyGeom = buildPlatPolygonGeometry(item.platTracker?.polygon);
+        if (polyGeom) {
+          polygonFeatures.push({
+            type: "Feature",
+            geometry: polyGeom,
+            properties: sharedProps,
+          });
+        }
       }
     }
 
@@ -815,6 +879,12 @@ export class AtlasMapController {
       type: "FeatureCollection",
       features: pointFeatures,
     };
+    this.platWatchPolygonsFC = {
+      type: "FeatureCollection",
+      features: polygonFeatures,
+    };
+    this.map?.getSource?.("plat-watch-src")?.setData?.(this.platWatchFC);
+    this.map?.getSource?.("plat-watch-poly-src")?.setData?.(this.platWatchPolygonsFC);
   }
 
   getPlatWatchPayload() {
@@ -1708,6 +1778,10 @@ export class AtlasMapController {
     this.map.addSource("permit-watch-src", {
       type: "geojson",
       data: this.permitAlertsFC || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("plat-watch-poly-src", {
+      type: "geojson",
+      data: this.platWatchPolygonsFC || { type: "FeatureCollection", features: [] },
     });
     this.map.addSource("plat-watch-src", {
       type: "geojson",
@@ -3200,6 +3274,37 @@ export class AtlasMapController {
         ],
         "circle-stroke-color": "#FEF2F2",
         "circle-stroke-width": 2.0,
+      },
+    });
+    this.map.addLayer({
+      id: "plat-watch-poly-fill",
+      type: "fill",
+      source: "plat-watch-poly-src",
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#F43F5E",
+          "#8B5CF6",
+        ],
+        "fill-opacity": 0.16,
+      },
+    });
+    this.map.addLayer({
+      id: "plat-watch-poly-outline",
+      type: "line",
+      source: "plat-watch-poly-src",
+      layout: { visibility: "none" },
+      paint: {
+        "line-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#FB7185",
+          "#A78BFA",
+        ],
+        "line-width": 2.0,
+        "line-opacity": 0.88,
       },
     });
     this.map.addLayer({
@@ -7132,7 +7237,13 @@ export class AtlasMapController {
       allowIsoMarkers && Boolean(state.layers.permitWatch)
     );
     setVis(
-      ["plat-watch-outer-glow", "plat-watch-ring", "plat-watch-circle"],
+      [
+        "plat-watch-poly-fill",
+        "plat-watch-poly-outline",
+        "plat-watch-outer-glow",
+        "plat-watch-ring",
+        "plat-watch-circle",
+      ],
       allowIsoMarkers && Boolean(state.layers.platWatch)
     );
     setVis(
@@ -9594,6 +9705,7 @@ export class AtlasMapController {
         "portfolio-works-circle",
         "permit-watch-circle",
         "plat-watch-circle",
+        "plat-watch-poly-fill",
         "hahc-coa-circle",
         "red-book-1915-circle",
         "good-brick-circle",
@@ -9760,9 +9872,11 @@ export class AtlasMapController {
           continue;
         }
 
+        const isPlatWatchLayer = lid === "plat-watch-circle" || lid === "plat-watch-poly-fill";
+
         if (
           (lid === "permit-watch-circle" ||
-            lid === "plat-watch-circle" ||
+            isPlatWatchLayer ||
             (lid === "landmarks-circle" && !p.demolished) ||
             (lid === "nrhp-properties-circle" && !p.is_demolished_nrhp) ||
             lid === "good-brick-circle" ||
@@ -9773,6 +9887,7 @@ export class AtlasMapController {
             bf.layer?.id !== "portfolio-works-circle" &&
             bf.layer?.id !== "permit-watch-circle" &&
             bf.layer?.id !== "plat-watch-circle" &&
+            bf.layer?.id !== "plat-watch-poly-fill" &&
             bf.layer?.id !== "hahc-coa-circle" &&
             bf.layer?.id !== "red-book-1915-circle" &&
             bf.layer?.id !== "landmarks-circle" &&
@@ -9857,7 +9972,7 @@ export class AtlasMapController {
                   ? p.severity === "critical"
                     ? "⚠️ Demo Alert"
                     : "⚠️ Permit Watch"
-                  : lid === "plat-watch-circle"
+                  : isPlatWatchLayer
                   ? p.is_variance
                     ? "📋 Sec K Variance"
                     : p.is_public_hearing
@@ -9883,7 +9998,7 @@ export class AtlasMapController {
                   ? p.severity === "critical"
                     ? "#EF4444"
                     : "#F59E0B"
-                  : lid === "plat-watch-circle"
+                  : isPlatWatchLayer
                   ? p.severity === "critical"
                     ? "#F43F5E"
                     : "#8B5CF6"
@@ -9991,7 +10106,7 @@ export class AtlasMapController {
             ? p.severity === "critical"
               ? "⚠️ Demo Alert"
               : "⚠️ Permit Watch"
-            : lid === "plat-watch-circle"
+            : isPlatWatchLayer
             ? p.is_variance
               ? "📋 Sec K Variance"
               : p.is_public_hearing
@@ -10005,7 +10120,7 @@ export class AtlasMapController {
             ? p.severity === "critical"
               ? "#EF4444"
               : "#F59E0B"
-            : lid === "plat-watch-circle"
+            : isPlatWatchLayer
             ? p.severity === "critical"
               ? "#F43F5E"
               : "#8B5CF6"

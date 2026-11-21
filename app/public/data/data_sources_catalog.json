@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0.0",
   "title": "Houston Building Atlas Data Ecosystem & Provenance Catalog",
-  "subtitle": "Declarative registry of all 29 municipal, county, state, federal, academic, and archival institutions (46 data feeds) with quantitative universe coverage, Pass-1 vs. Pass-2 extraction fidelity audits, and gap-closure playbooks",
-  "lastUpdated": "2026-11-15",
+  "subtitle": "Declarative registry of all 29 municipal, county, state, federal, academic, and archival institutions (47 data feeds) with quantitative universe coverage, Pass-1 vs. Pass-2 extraction fidelity audits, and gap-closure playbooks",
+  "lastUpdated": "2026-11-20",
   "maintenanceNote": "Add or update any institution or data feed in this JSON file (app/public/data/data_sources_catalog.json). Both the interactive screen explorer and the printable 24x36 architectural blueprint poster in app/data-ecosystem.html render automatically from this catalog.",
   "statusDefinitions": [
     {
@@ -825,6 +825,56 @@
             "sector": "",
             "feedId": "coh_plat_tracker_xlsx",
             "feedName": "Biweekly Plat Tracker Spreadsheets (.xlsx / .csv)"
+          }
+        },
+        {
+          "id": "coh_plattracker_gis_polygons",
+          "name": "City of Houston PlatTracker GIS Boundary Polygons & Final Plats (PT365_PLAT_MAPPING)",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Continuous ArcGIS REST Ingestion",
+          "method": "ArcGIS REST Polygon Query (MapServer/1 + MapServer/0) + Spatial Grid & HCAD Intersection",
+          "recordScale": "1,700+ active annual surveyed subdivision plat boundary polygons across Houston & ETJ",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Interactive Map (plat_watch Polygons)",
+            "Property Watchlist",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "plat_triage",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Surveyed WGS84 subdivision plat boundary polygons, application numbers (AppNo), application class codes (C1/C2/C2R/C3F/C3P/C3R/C3N/GP/SP/VP), review cycle numbers, AppStatus, County Clerk RecordationStatus, lot/reserve counts, and upcoming Planning Commission target dates.",
+          "howCrossChecked": "Intersects every surveyed plat boundary polygon against the Atlas's 1.22M countywide structure spatial grid, historic district/subdivision overlays, and live HCAD parcel interior points to automatically backfill missing Column Z 13-digit HCAD accounts (>91% match rate) and surface newly submitted plats 10 to 14 days before biweekly Excel spreadsheets post.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production; queried daily at 7:00 AM CT to resolve omitted HCAD accounts and render surveyed plat boundary polygons on both plat-monitor.html and index.html.",
+          "coverageAndFidelity": {
+            "volumeCoveragePct": 98,
+            "extractionFidelityPct": 94,
+            "fidelityTier": "pass2_complete",
+            "coveredSummary": "100% of current-year City PlatTracker GIS boundary polygons (MapServer/1) and Final Plat recordation statuses (MapServer/0) ingested with point-in-polygon HCAD & building age resolution",
+            "universeSummary": "City of Houston GeoPlat PT365_PLAT_MAPPING ArcGIS MapServer (active applications + recorded final plats across City limits & ETJ)",
+            "whatIsMissing": "Section K Development Plat Variances (DPVs) are tracked separately via Planning Commission Agenda Outline PDFs and Public Hearing Notice PDFs rather than PT365 subdivision polygons.",
+            "pass2AndGapClosurePlan": "Maintain daily continuous PT365_PLAT_MAPPING synchronization alongside Section K DPV PDF extraction so both subdivision replats and Chapter 42 setback variances have complete parcel-level geometry."
+          },
+          "docArchetypeId": "coh_plattracker_gis_polygons",
+          "docVisual": {
+            "archetypeId": "coh_plattracker_gis_polygons",
+            "shortLabel": "PlatTracker GIS Polygons",
+            "title": "City of Houston PlatTracker GIS Surveyed Plat Boundary Polygons (PT365_PLAT_MAPPING)",
+            "imagePath": "public/img/doc-types/coh-plattracker-gis-polygons.svg",
+            "whatItLooksLike": "Live municipal ArcGIS REST polygon layer mapping exact surveyor-submitted subdivision and replat boundaries, review cycle status, lot/reserve counts, and final recordation status.",
+            "howPreservationUsesIt": "Eliminates hours of manual parcel hunting when applicants omit HCAD numbers in Column Z by intersecting surveyed plat polygons directly against 1.22M historic building footprints and HCAD tax parcels, while catching new filings weeks before biweekly spreadsheets post.",
+            "callouts": [
+              "Auto-resolves >91% of omitted Column Z 13-digit HCAD accounts via surveyed polygon intersection.",
+              "Surfaces newly submitted replats continuously 10 to 14 days before biweekly Excel agendas publish.",
+              "Renders surveyed plat boundary footprints directly inside Plat Monitor cards and the main Atlas Map."
+            ],
+            "institutionName": "City of Houston Planning & Development (Plat Tracker & Planning Commission)",
+            "sector": "",
+            "feedId": "coh_plattracker_gis_polygons",
+            "feedName": "City of Houston PlatTracker GIS Boundary Polygons & Final Plats (PT365_PLAT_MAPPING)"
           }
         },
         {
@@ -3189,18 +3239,35 @@
   ],
   "corpusCompletenessSummary": {
     "totalInstitutions": 29,
-    "totalFeeds": 46,
+    "totalFeeds": 47,
     "averageVolumeCoveragePct": 84,
-    "averageExtractionFidelityPct": 67,
+    "averageExtractionFidelityPct": 68,
     "fidelityTierCounts": {
-      "pass2_complete": 24,
+      "pass2_complete": 25,
       "inventory_only_pull_needed": 5,
       "pass1_needs_pass2": 13,
       "unfetched_gap": 4
     },
-    "keyTakeaway": "Across all 46 institutional data feeds (29 institutions), the Atlas has achieved 84% average source-universe acquisition coverage but 67% average parcel-level extraction fidelity. 13 feeds already have raw scans, bulk SQL tables, or XML finding aids on local disk or online where a targeted Pass-2 deep re-extraction (without waiting on new external orders) can unlock hundreds of thousands of additional resident listings, pre-2004 deeds, historic building footprints, and architect attributions, while 5 catalog-indexed feeds have exact box/page/microfiche call numbers ready for physical or portal pulls."
+    "keyTakeaway": "Across all 47 institutional data feeds (29 institutions), the Atlas has achieved 84% average source-universe acquisition coverage and 68% average parcel-level extraction fidelity. 13 feeds already have raw scans, bulk SQL tables, or XML finding aids on local disk or online where a targeted Pass-2 deep re-extraction (without waiting on new external orders) can unlock hundreds of thousands of additional resident listings, pre-2004 deeds, historic building footprints, and architect attributions, while 5 catalog-indexed feeds have exact box/page/microfiche call numbers ready for physical or portal pulls."
   },
   "documentArchetypes": [
+    {
+      "archetypeId": "coh_plattracker_gis_polygons",
+      "shortLabel": "PlatTracker GIS Polygons",
+      "title": "City of Houston PlatTracker GIS Surveyed Plat Boundary Polygons (PT365_PLAT_MAPPING)",
+      "imagePath": "public/img/doc-types/coh-plattracker-gis-polygons.svg",
+      "whatItLooksLike": "Live municipal ArcGIS REST polygon layer mapping exact surveyor-submitted subdivision and replat boundaries, review cycle status, lot/reserve counts, and final recordation status.",
+      "howPreservationUsesIt": "Eliminates hours of manual parcel hunting when applicants omit HCAD numbers in Column Z by intersecting surveyed plat polygons directly against 1.22M historic building footprints and HCAD tax parcels, while catching new filings weeks before biweekly spreadsheets post.",
+      "callouts": [
+        "Auto-resolves >91% of omitted Column Z 13-digit HCAD accounts via surveyed polygon intersection.",
+        "Surfaces newly submitted replats continuously 10 to 14 days before biweekly Excel agendas publish.",
+        "Renders surveyed plat boundary footprints directly inside Plat Monitor cards and the main Atlas Map."
+      ],
+      "institutionName": "City of Houston Planning & Development (Plat Tracker & Planning Commission)",
+      "sector": "",
+      "feedId": "coh_plattracker_gis_polygons",
+      "feedName": "City of Houston PlatTracker GIS Boundary Polygons & Final Plats (PT365_PLAT_MAPPING)"
+    },
     {
       "archetypeId": "hcad_cama_annual",
       "shortLabel": "HCAD CAMA Bulk Roll",

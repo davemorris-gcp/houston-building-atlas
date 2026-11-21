@@ -42,6 +42,8 @@ if str(REPO_ROOT / "pipeline") not in sys.path:
 
 from atlas_pipeline.schema import (
     extract_curated_demolished_hcads,
+    iter_json_or_gzip_shard_keys,
+    read_json_or_gzip_path,
     read_json_or_gzip_shard,
     write_deterministic_gzip_json_shard,
 )
@@ -968,6 +970,7 @@ def _query_coh_single_window_with_status(
                 "use_desc": proj_desc,
                 "valuation": val,
                 "permit_type": p_type,
+                "window_date": edt.strftime("%Y-%m-%d"),
             }
         )
     return results, False, ""
@@ -1001,15 +1004,30 @@ def fetch_coh_permits_parallel(lookback_days: int = 45, *, return_status: bool =
 
     combined = {}
     errors: list[str] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-        futs = [pool.submit(_query_coh_single_window_with_status, *t) for t in tasks]
+    retry_tasks = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        futs = {pool.submit(_query_coh_single_window_with_status, *t): t for t in tasks}
         for fut in concurrent.futures.as_completed(futs):
+            t = futs[fut]
             rows, failed, err_msg = fut.result()
-            if failed and err_msg:
-                errors.append(err_msg)
+            if failed:
+                retry_tasks.append((t, err_msg))
             for r in rows:
                 key = (r["project_no"], r.get("permit_type", ""), r.get("permit_desc", ""))
                 combined[key] = r
+
+    if retry_tasks and len(retry_tasks) < len(tasks):
+        for t, first_err in retry_tasks:
+            rows, failed, err_msg = _query_coh_single_window_with_status(*t)
+            if failed:
+                errors.append(err_msg or first_err)
+            for r in rows:
+                key = (r["project_no"], r.get("permit_type", ""), r.get("permit_desc", ""))
+                combined[key] = r
+    else:
+        for _t, first_err in retry_tasks:
+            if first_err:
+                errors.append(first_err)
 
     if not return_status:
         return combined
@@ -1038,7 +1056,7 @@ def fetch_coh_permit_detail(project_no: str, permit_type: str) -> dict:
     url = f"{COH_WFSERVLET_URL}?{params}"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=15) as r:
+        with urllib.request.urlopen(req, context=SSL_CTX, timeout=8) as r:
             res = r.read().decode("utf-8", errors="ignore")
     except Exception:
         return {}
@@ -1291,6 +1309,7 @@ def fetch_dshs_houston_notifications(
     by_addr: dict,
     *,
     return_status: bool = False,
+    prev_dshs_cache: dict | None = None,
 ):
     """
     Query Texas DSHS Online Asbestos Notification System for Houston (Harris County = 101,
@@ -1396,20 +1415,26 @@ def fetch_dshs_houston_notifications(
                 "print_action_url": f"{DSHS_BASE_URL}/{m_link.group(1)}",
             }
 
-            try:
-                r_sum = opener.open(item["print_action_url"], timeout=15)
-                b_sum = r_sum.read().decode("utf-8", errors="ignore")
-                note_links = re.findall(
-                    r'(notificationSearchResultAction\.do\?noteId=\d+)', b_sum
-                )
-                if note_links:
-                    latest_note_url = f"{DSHS_BASE_URL}/{note_links[-1]}"
-                    item["pdf_url"] = latest_note_url
-                    r_pdf = opener.open(latest_note_url, timeout=15)
-                    pdf_info = parse_dshs_pdf_text(r_pdf.read())
-                    item.update(pdf_info)
-            except Exception as e:
-                print(f"  [WARN] Could not parse DSHS PDF for {notif_no}: {e}", flush=True)
+            cached_dshs = (prev_dshs_cache or {}).get(notif_no)
+            if isinstance(cached_dshs, dict) and cached_dshs.get("work_type"):
+                for ck, cv in cached_dshs.items():
+                    if ck not in item or not item.get(ck):
+                        item[ck] = cv
+            else:
+                try:
+                    r_sum = opener.open(item["print_action_url"], timeout=10)
+                    b_sum = r_sum.read().decode("utf-8", errors="ignore")
+                    note_links = re.findall(
+                        r'(notificationSearchResultAction\.do\?noteId=\d+)', b_sum
+                    )
+                    if note_links:
+                        latest_note_url = f"{DSHS_BASE_URL}/{note_links[-1]}"
+                        item["pdf_url"] = latest_note_url
+                        r_pdf = opener.open(latest_note_url, timeout=10)
+                        pdf_info = parse_dshs_pdf_text(r_pdf.read())
+                        item.update(pdf_info)
+                except Exception as e:
+                    print(f"  [WARN] Could not parse DSHS PDF for {notif_no}: {e}", flush=True)
 
             matched_notifications.append(item)
 
@@ -1553,6 +1578,63 @@ def summarize_coh_demo_permit_stage_for_parcel(main_bld_coh: list[dict]) -> dict
     }
 
 
+def index_historic_address_shards(
+    addr_shards_dir: Path,
+    by_hcad: dict[str, dict],
+    by_addr: dict[str, list[dict]],
+    *,
+    max_year: int,
+) -> None:
+    """Index countywide historic structures (1836 <= year_built <= max_year) from address_shards into by_hcad and by_addr."""
+    if not addr_shards_dir.exists():
+        return
+    for _sk, sp in iter_json_or_gzip_shard_keys(addr_shards_dir, "addr_", r"[0-9A-Z_]+"):
+        shard_doc = read_json_or_gzip_path(sp)
+        if not isinstance(shard_doc, dict):
+            continue
+        for raw_st, recs in shard_doc.items():
+            st_clean = " ".join(str(raw_st or "").upper().split())
+            if not st_clean or not isinstance(recs, list):
+                continue
+            for r_row in recs:
+                if not isinstance(r_row, list) or len(r_row) < 5:
+                    continue
+                yr_raw = int(r_row[3]) if r_row[3] else 0
+                if not (1836 <= yr_raw <= max_year):
+                    continue
+                hcad_raw = str(r_row[4] or "").strip()
+                if not hcad_raw:
+                    continue
+                hcad_13 = hcad_raw.zfill(13) if hcad_raw.isdigit() else hcad_raw
+                hnum_s = str(r_row[0] or "").strip()
+                if not hnum_s or hnum_s == "0":
+                    continue
+                full_addr = f"{hnum_s} {st_clean}"
+                na = normalize_address(full_addr)
+                if hcad_13 not in by_hcad:
+                    rec = {
+                        "id": f"bld_{hcad_13}",
+                        "hcad_num": hcad_13,
+                        "address": full_addr,
+                        "year_built": yr_raw,
+                        "landmark_name": str(r_row[5] or "") if len(r_row) > 5 else "",
+                        "historic_district": "",
+                        "neighborhood": "",
+                        "good_brick_summary": "",
+                        "style": "",
+                        "architect": "",
+                        "_centroid": [round(float(r_row[1]), 6), round(float(r_row[2]), 6)],
+                        "_has_footprint": False,
+                    }
+                    by_hcad[hcad_13] = rec
+                    if na:
+                        by_addr.setdefault(na, []).append(rec)
+                elif na:
+                    bucket = by_addr.setdefault(na, [])
+                    if by_hcad[hcad_13] not in bucket:
+                        bucket.append(by_hcad[hcad_13])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Fetch live City of Houston permits & Texas DSHS asbestos filings.")
     parser.add_argument("--lookback-days", type=int, default=45, help="Days to look back for COH DEMO/SEWER permits.")
@@ -1661,24 +1743,93 @@ def main():
                 if na:
                     by_addr.setdefault(na, []).append(rec)
 
-    print(f"   Indexed {len(by_addr):,} normalized street addresses across {len(by_hcad):,} structures.", flush=True)
+    # Also index all 50+ year old structures countywide from address_shards (rolling <= current_year - 50)
+    rolling_50yr_cutoff = datetime.date.today().year - 50
+    addr_shards_dir = REPO_ROOT / "app" / "public" / "data" / "address_shards"
+    index_historic_address_shards(addr_shards_dir, by_hcad, by_addr, max_year=rolling_50yr_cutoff)
+
+    print(
+        f"   Indexed {len(by_addr):,} normalized street addresses across {len(by_hcad):,} historic structures (built <= {rolling_50yr_cutoff}).",
+        flush=True,
+    )
+
+    prev_coh_detail_cache: dict[tuple[str, str], dict] = {}
+    prev_dshs_cache: dict[str, dict] = {}
+    if ALERTS_OUTPUT_JSON.exists():
+        try:
+            with open(ALERTS_OUTPUT_JSON, "r", encoding="utf-8") as f_prev:
+                for pa in json.load(f_prev).get("alerts", []) or []:
+                    for cp in pa.get("coh_permits") or []:
+                        pno_c = str(cp.get("project_no") or "").strip()
+                        pt_c = str(cp.get("permit_type") or "").strip()
+                        if pno_c and cp.get("date"):
+                            prev_coh_detail_cache[(pno_c, pt_c)] = {
+                                "project_no": pno_c,
+                                "date": cp.get("date", ""),
+                                "use_desc": cp.get("use_desc", ""),
+                                "permit_type": pt_c,
+                                "fcc_group": cp.get("fcc_group", ""),
+                                "owner_occupant": cp.get("owner_occupant", ""),
+                                "buyer": cp.get("buyer", ""),
+                                "buyer_address": cp.get("buyer_address", ""),
+                                "valuation_formatted": cp.get("valuation", ""),
+                                "job_address": cp.get("job_address", ""),
+                            }
+                    for dn in pa.get("dshs_notifications") or []:
+                        nno_c = str(dn.get("notification_number") or "").strip()
+                        if nno_c:
+                            prev_dshs_cache[nno_c] = dict(dn)
+        except Exception:
+            pass
 
     today = datetime.date.today()
     bdt = today - datetime.timedelta(days=args.lookback_days)
-    print(f"2. Querying City of Houston WebFOCUS Sold Permits ({bdt} to {today})...", flush=True)
+    print(f"2. Ingesting recent weekly Sold Permits .xlsx spreadsheets ({args.weekly_xlsx_count} weeks)...", flush=True)
+    weekly_rows, weekly_failed, weekly_err = fetch_recent_weekly_xlsx_permits(
+        max_files=args.weekly_xlsx_count, return_status=True
+    )
+    weekly_date_by_pno: dict[str, str] = {}
+    for wr in weekly_rows:
+        wpno = str(wr.get("project_no") or "").strip()
+        wdt = str(wr.get("date") or "").strip()
+        if wpno and re.match(r"^\d{4}-\d{2}-\d{2}$", wdt):
+            if wpno not in weekly_date_by_pno or wdt > weekly_date_by_pno[wpno]:
+                weekly_date_by_pno[wpno] = wdt
+
+    print(f"3. Querying City of Houston WebFOCUS Sold Permits ({bdt} to {today})...", flush=True)
     combined_coh, coh_wf_failed, coh_wf_err = fetch_coh_permits_parallel(
         lookback_days=args.lookback_days, return_status=True
     )
     print(f"   Retrieved {len(combined_coh):,} unique City of Houston DEMO / SD permit records.", flush=True)
 
-    # Filter to rows that match an Atlas building first, then fetch details in parallel
-    candidate_coh = [r for r in combined_coh.values() if r["norm_address"] in by_addr]
-    print(f"   Matched {len(candidate_coh)} COH permit records to Atlas addresses; fetching drilldown details...", flush=True)
+    # Filter to rows that match an Atlas building AND represent structural demo / sewer disconnect permits
+    # (skipping Type 13 interior partition remodel permits before hitting WFServlet drilldowns).
+    all_addr_matched_coh = [r for r in combined_coh.values() if r["norm_address"] in by_addr]
+    candidate_coh = []
+    for r in all_addr_matched_coh:
+        pre_stage = classify_coh_demo_permit_stage(
+            r.get("permit_desc", ""),
+            r.get("use_desc", ""),
+            r.get("permit_type", ""),
+        )
+        if pre_stage["is_structural_demo"] and not pre_stage["is_interior_only"]:
+            candidate_coh.append(r)
+
+    print(
+        f"   Matched {len(candidate_coh)} structural/sewer COH permits (out of {len(all_addr_matched_coh)} address hits); fetching drilldown details...",
+        flush=True,
+    )
+
+    def _resolve_coh_detail(r_item: dict) -> dict:
+        ck = (str(r_item.get("project_no") or "").strip(), str(r_item.get("permit_type") or "").strip())
+        if ck in prev_coh_detail_cache and prev_coh_detail_cache[ck].get("buyer"):
+            return prev_coh_detail_cache[ck]
+        return fetch_coh_permit_detail(r_item["project_no"], r_item.get("permit_type", ""))
 
     matched_coh_by_hcad = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
         detail_futs = {
-            pool.submit(fetch_coh_permit_detail, r["project_no"], r.get("permit_type", "")): r
+            pool.submit(_resolve_coh_detail, r): r
             for r in candidate_coh
         }
         for fut in concurrent.futures.as_completed(detail_futs):
@@ -1691,10 +1842,16 @@ def main():
                 use_d,
                 r.get("permit_type") or detail.get("permit_type", ""),
             )
+            resolved_dt = (
+                detail.get("date")
+                or weekly_date_by_pno.get(str(r["project_no"]).strip())
+                or r.get("window_date")
+                or today.strftime("%Y-%m-%d")
+            )
 
             merged_permit = {
                 "project_no": r["project_no"],
-                "date": detail.get("date") or today.strftime("%Y-%m-%d"),
+                "date": resolved_dt,
                 "permit_type": r.get("permit_type") or detail.get("permit_type", ""),
                 "permit_type_label": stage_meta["permit_type_label"],
                 "permit_stage": stage_meta["permit_stage"],
@@ -1715,27 +1872,63 @@ def main():
             for bld in by_addr[na]:
                 hcad = str(bld.get("hcad_num") or bld.get("id") or "")
                 matched_coh_by_hcad.setdefault(hcad, []).append(merged_permit)
-
-    print(f"3. Ingesting recent weekly Sold Permits .xlsx spreadsheets ({args.weekly_xlsx_count} weeks)...", flush=True)
-    weekly_rows, weekly_failed, weekly_err = fetch_recent_weekly_xlsx_permits(
-        max_files=args.weekly_xlsx_count, return_status=True
-    )
-    coh_fetch_failed = bool(coh_wf_failed or (coh_wf_err and weekly_failed))
-    coh_fetch_error = "; ".join(x for x in (coh_wf_err, weekly_err if weekly_failed else "") if x)
     weekly_matched_by_hcad = {}
     for r in weekly_rows:
         na = r["norm_address"]
         if na not in by_addr:
             continue
+        w_stage = classify_coh_demo_permit_stage(
+            r.get("permit_desc", ""),
+            r.get("use_desc", ""),
+            r.get("permit_type", ""),
+        )
         for bld in by_addr[na]:
             hcad = str(bld.get("hcad_num") or bld.get("id") or "")
             weekly_matched_by_hcad.setdefault(hcad, []).append(r)
+            if w_stage["is_structural_demo"] and not w_stage["is_interior_only"]:
+                existing_pnos = {
+                    (c.get("project_no"), c.get("permit_desc"))
+                    for c in matched_coh_by_hcad.get(hcad, [])
+                }
+                if (r["project_no"], r.get("permit_desc", "")) not in existing_pnos:
+                    matched_coh_by_hcad.setdefault(hcad, []).append(
+                        {
+                            "project_no": r["project_no"],
+                            "date": r.get("date") or today.strftime("%Y-%m-%d"),
+                            "permit_type": r.get("permit_type", ""),
+                            "permit_type_label": w_stage["permit_type_label"],
+                            "permit_stage": w_stage["permit_stage"],
+                            "permit_desc": r.get("permit_desc", ""),
+                            "use_desc": r.get("use_desc", ""),
+                            "fcc_group": "",
+                            "owner_occupant": "",
+                            "buyer": "",
+                            "buyer_address": "",
+                            "valuation": "",
+                            "job_address": r.get("raw_address", ""),
+                            "is_sewer_disconnect": w_stage["is_sewer_disconnect"],
+                            "is_demo_permit_issued": w_stage["is_demo_permit_issued"],
+                            "is_garage_only": w_stage["is_garage_only"],
+                            "is_structural_demo": w_stage["is_structural_demo"],
+                            "is_interior_only": w_stage["is_interior_only"],
+                        }
+                    )
+
+    coh_fetch_failed = bool(
+        (coh_wf_failed and (weekly_failed or not weekly_rows))
+        or (not combined_coh and (weekly_failed or not weekly_rows))
+    )
+    coh_fetch_error = (
+        "; ".join(x for x in (coh_wf_err, weekly_err if weekly_failed else "") if x)
+        if coh_fetch_failed
+        else ""
+    )
 
     print("4. Querying Texas DSHS Asbestos Abatement & Demolition Notifications for Houston...", flush=True)
     dshs_start = today - datetime.timedelta(days=45)
     dshs_end = today + datetime.timedelta(days=90)
     dshs_matched, dshs_fetch_failed, dshs_fetch_error = fetch_dshs_houston_notifications(
-        dshs_start, dshs_end, by_addr, return_status=True
+        dshs_start, dshs_end, by_addr, return_status=True, prev_dshs_cache=prev_dshs_cache
     )
     print(f"   Matched {len(dshs_matched)} Texas DSHS notifications to Atlas structures.", flush=True)
 

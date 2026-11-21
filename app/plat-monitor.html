@@ -265,6 +265,15 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .act-stream-badge.staff{background:#E8F4ED;color:#1F6B43}
 .act-stream-badge.permits{background:#FCECE9;color:#8F1D14}
 .act-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.act-prop-group{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(30,43,56,.04)}
+.act-prop-group.critical{border-left:4px solid var(--t1)}
+.act-prop-group.warning{border-left:4px solid var(--t2)}
+.act-prop-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.act-prop-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.3}
+.act-prop-sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.plat-gis-box{display:grid;grid-template-columns:168px minmax(0,1fr);gap:14px;align-items:center;background:#F3F8FC;border:1px solid #C5DCEF;border-radius:6px;padding:10px 12px;margin:10px 0 12px}
+.plat-gis-svg-wrap{background:#fff;border:1px solid #D0E1F0;border-radius:5px;padding:6px;display:flex;align-items:center;justify-content:center}
+.re-review-banner{background:#FFF4E5;border:1px solid #F0B465;color:#7A4100;padding:9px 12px;border-radius:6px;margin:8px 0 12px;font-size:13px;line-height:1.45}
 
 /* Start screen */
 .start{max-width:760px;margin:48px auto;padding:0 24px}
@@ -306,7 +315,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
   .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh;max-height:48dvh}
   .detail{padding:16px 14px calc(48px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
   .funnel{flex-wrap:wrap}.stage{flex:1 1 45%;padding:10px 12px}.stage::after{display:none}
-  .grid2,.snowball-grid,.facts{grid-template-columns:minmax(0,1fr)}
+  .grid2,.snowball-grid,.facts,.plat-gis-box{grid-template-columns:minmax(0,1fr)}
   .facts .fact{grid-column:1 / -1 !important;min-width:0}
   .wl-card{padding:14px 12px;min-width:0;max-width:100%;overflow-x:hidden}
   .links a,.links button,.links span.dis{max-width:100%;white-space:normal;word-break:break-word}
@@ -343,7 +352,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
   <div class="cycle" id="cycleBar">
     <a class="btn dark" href="index.html" title="Return to interactive Houston Building Atlas map">← Back to Atlas Map</a>
     <a class="btn dark" href="index.html#layers=permit_watch,hahc_coa" title="Open Monthly HAHC Certificate of Appropriateness (COA) &amp; Designation Precedent Tracker on the Atlas Map">🏛 HAHC COA Tracker</a>
-    <a class="btn dark" href="data-ecosystem.html" title="Open the interactive &amp; printable Houston Building Atlas Data Ecosystem &amp; Provenance Atlas (29 institutions, 46 data feeds)">🗺️ Data Sources &amp; Ecosystem</a>
+    <a class="btn dark" href="data-ecosystem.html" title="Open the interactive &amp; printable Houston Building Atlas Data Ecosystem &amp; Provenance Atlas (29 institutions, 47 data feeds)">🗺️ Data Sources &amp; Ecosystem</a>
     <button class="btn dark" id="toggleDemoBenchmarksBtn" type="button" aria-expanded="false" title="View 2020-2025 calendar-year and 2026 YTD demolition permit totals across City of Houston, HCAD Countywide, and HAHC Historic Districts">📊 Demolition Stats (<span id="hdrDemoYtdCount">1,755</span> YTD)</button>
     <a class="btn dark hidden" id="staffGuideDocBtn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener" title="Open Preservation Houston Plat &amp; Property Monitoring Guide in Google Docs (Staff Admins only)">📘 Monitoring Guide (Google Doc ↗)</a>
 
@@ -468,13 +477,18 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
       <span id="actDateFilterChip" class="hidden" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;background:var(--survey-soft);border:1px solid #B8D0E8;color:var(--survey);font-size:12.5px;font-weight:700"></span>
     </div>
     <div class="filters">
-      <input type="search" id="actSearchInput" placeholder="Search address, name, HCAD, app #, agency..." aria-label="Search activity log" style="width:240px">
+      <input type="search" id="actSearchInput" placeholder="Search address, name, HCAD, app #, agency..." aria-label="Search activity log" style="width:220px">
       <select id="actStreamFilter" aria-label="Filter activity stream">
-        <option value="all">All 4 Streams</option>
+        <option value="external">External Signals Only (Hide Staff Edits)</option>
+        <option value="all">All 4 Streams (Incl. Staff Edits)</option>
         <option value="watchlist">Watchlist Sweeps</option>
         <option value="agenda">Plat Agendas</option>
-        <option value="staff">Staff Edits</option>
         <option value="permits">Permits &amp; HAHC</option>
+        <option value="staff">Staff Edits</option>
+      </select>
+      <select id="actGroupBySelect" aria-label="Group activity updates" title="Group What's New updates by physical property/parcel or chronologically by date">
+        <option value="property">Group by Property</option>
+        <option value="date">Group by Date</option>
       </select>
     </div>
   </div>
@@ -487,7 +501,6 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 <script type="module">
 import {
   THREAT_CATEGORIES,
-  CARRY_FORWARD_REVIEW_FIELDS,
   HCAD_PUBLIC_QUERY_OUT_FIELDS,
   HCAD_RESIDENTIAL_GRADE_OUT_FIELDS,
   excelSerialToIso,
@@ -505,11 +518,11 @@ import {
   buildOccurrenceKey,
   parseOccurrenceKey,
   getCanonicalPlatAppIds,
-  areContinuitySnapshotsCompatible,
-  normalizeContinuityPlatName,
   mergePlatReviewOverlay,
+  isBoilerplatePlatWhy,
   describeCycleMeetingAction,
   linkCrossCycleHistory,
+  propagatePlatReviewFieldsAcrossCycles,
   mergePlatItemsAcrossCycles,
   normalizeDeveloperEntityKey,
   buildWatchedDeveloperMap,
@@ -537,7 +550,6 @@ import {
   escapeXmlText,
   sanitizeExternalLink,
   sanitizeExternalLinksList,
-  normalizeEmbeddablePhotoUrl,
   sanitizePhotoUrl,
   sanitizePhotoDataUrl,
   buildCheckDeletionKey,
@@ -574,6 +586,7 @@ import {
   buildMarkCaughtUpState,
   filterActivityEvents,
   groupActivityEventsByDate,
+  groupActivityEventsByProperty,
   compactDailyRunsForLedger,
   buildEntityUnreadIndex,
   findMatchingWatchPropertyForAlert,
@@ -604,6 +617,8 @@ const WL_KEY = "phpam:watchlist:v2";
 const LAST_MODE_KEY = "phpam:lastMode";
 const CAUGHT_UP_AT_KEY = "phpam:caughtUpAt";
 const READ_IDS_KEY = "phpam:readEventIds";
+const ACT_STREAM_KEY = "phpam:actStream";
+const ACT_GROUP_KEY = "phpam:actGroupBy";
 
 /* ---------- Helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -853,7 +868,9 @@ let view = {
   wlThreat: "",
   actRange: "since_last_visit",
   actSelectedDate: "",
-  actStream: "all",
+  actStream: typeof store.get(ACT_STREAM_KEY) === "string" && store.get(ACT_STREAM_KEY) ? store.get(ACT_STREAM_KEY) : "external",
+  actGroupBy: typeof store.get(ACT_GROUP_KEY) === "string" && store.get(ACT_GROUP_KEY) ? store.get(ACT_GROUP_KEY) : "property",
+  actShowHistorical: false,
   actQ: "",
   actExpandedQuietRanges: [],
   caughtUpAt: typeof store.get(CAUGHT_UP_AT_KEY) === "string" ? store.get(CAUGHT_UP_AT_KEY) : "",
@@ -1161,9 +1178,11 @@ function startMultiCycle(platPayload){
       cycleKey: ck,
       meetingDate: src.meetingDate || ck,
       pcDate: src.pcDate || (ck + "T00:00:00.000Z"),
+      isEarlyGisCycle: Boolean(src.isEarlyGisCycle),
       fileName: src.fileName || `Plat-Agenda-${ck}.xlsx`,
       sourceSpreadsheetUrl: src.sourceSpreadsheetUrl || "",
       agendaOutlineUrl: src.agendaOutlineUrl || "",
+      minutesPdfUrl: src.minutesPdfUrl || "",
       generatedAt: src.generatedAt || platPayload?.generatedAt || "",
       summary: src.summary || null,
       items,
@@ -1269,17 +1288,6 @@ function revFor(it, create = false){
   return cyc.reviews[it.app] || {};
 }
 
-function canonicalAddressSyncKey(rawAddr = ""){
-  const simp = simplifySearchAddress(String(rawAddr || "")).toUpperCase().trim();
-  if (!simp) return "";
-  const m = simp.match(/^(\d+)[A-Z]?\s+(?:1\/2\s+)?(.+)$/);
-  if (!m) return "";
-  const numVal = Number(m[1]);
-  if (!Number.isFinite(numVal) || numVal <= 0) return "";
-  const street = m[2].replace(/[^A-Z0-9]+/g, " ").trim();
-  return street.length >= 2 ? `${numVal}|${street}` : "";
-}
-
 function reconcileWatchlistTiersOntoCycles({ persist = false, syncCloud = false } = {}){
   if (!S || !S.cycles) return [];
   const touchedCycleKeys = new Set();
@@ -1293,6 +1301,8 @@ function reconcileWatchlistTiersOntoCycles({ persist = false, syncCloud = false 
   for (const wp of allRecords) {
     const isTb = isRemovedWatchlistTombstone(wp);
     const isArchived = isArchivedWatchlistStatus(wp.trackerStatus);
+    const isCompleted = ["Lost", "Saved"].includes(String(wp.trackerStatus || "").trim());
+    if (isCompleted) continue;
     const isConfirmedActive = !isTb && !isArchived && (wp.tierConfirmed === true || wp.humanEdited === true);
     if (!isTb && !isArchived && !isConfirmedActive) continue;
     let desiredTier = String(wp.tier || "1");
@@ -1331,79 +1341,16 @@ function reconcileWatchlistTiersOntoCycles({ persist = false, syncCloud = false 
 function propagateEditedReviewFieldsAcrossCycles(sourceItem, fieldKeys = [], { syncCloud = true } = {}){
   if (!S || !S.cycles || !sourceItem || !Array.isArray(fieldKeys) || !fieldKeys.length) return [];
   const srcCycle = sourceItem._cycleKey || S.cycleKey;
-  const srcRev = revFor(sourceItem);
-  const srcAppIds = new Set(getCanonicalPlatAppIds(sourceItem));
-  const srcHcads = parseHcadAccountList([srcRev.hcad || "", sourceItem.hcad || "", sourceItem.atlas?.hcad_num || ""].join(" ")).hcadIds;
-  const srcHcadSet = new Set(srcHcads);
-  const srcNormName = normalizeContinuityPlatName(sourceItem.name || "");
-  const srcAddrKey = canonicalAddressSyncKey(srcRev.address || sourceItem.atlas?.primaryAddress || sourceItem.noticeLocation || "");
-
-  const touched = [];
-  for (const ck of S.cycleOrder || []) {
-    const cyc = S.cycles[ck];
-    if (!cyc) continue;
-    for (const peerIt of cyc.items || []) {
-      if (ck === srcCycle && peerIt.app === sourceItem.app) continue;
-      const peerRev = cyc.reviews[peerIt.app] ? { ...cyc.reviews[peerIt.app] } : {};
-      const peerHcads = parseHcadAccountList([peerRev.hcad || "", peerIt.hcad || "", peerIt.atlas?.hcad_num || ""].join(" ")).hcadIds;
-      const peerNormName = normalizeContinuityPlatName(peerIt.name || "");
-      const peerAddrKey = canonicalAddressSyncKey(peerRev.address || peerIt.atlas?.primaryAddress || peerIt.noticeLocation || "");
-
-      let matched = false;
-      if (srcAppIds.size > 0) {
-        const peerAppIds = getCanonicalPlatAppIds(peerIt);
-        if (peerAppIds.some(id => srcAppIds.has(id))) {
-          matched = areContinuitySnapshotsCompatible(peerHcads, peerNormName, srcHcads, srcNormName);
-        }
-      }
-      if (!matched && srcHcadSet.size > 0 && peerHcads.some(id => srcHcadSet.has(id))) {
-        matched = true;
-      }
-      if (
-        !matched &&
-        srcAddrKey &&
-        peerAddrKey === srcAddrKey &&
-        !(srcHcadSet.size > 0 && peerHcads.length > 0 && !peerHcads.some(id => srcHcadSet.has(id)))
-      ) {
-        matched = true;
-      }
-      if (!matched) continue;
-
-      const peerHuman = new Set(Array.isArray(peerRev.humanEditedFields) ? peerRev.humanEditedFields.map(String) : []);
-      const peerCarried = new Set(Array.isArray(peerRev.carriedFields) ? peerRev.carriedFields.map(String) : []);
-      let changed = false;
-
-      for (const fk of fieldKeys) {
-        if (fk === "tier") {
-          const nextTier = String(srcRev.tier || "");
-          const nextConf = Boolean(srcRev.tierConfirmed);
-          if ((peerRev.tier || "") !== nextTier || Boolean(peerRev.tierConfirmed) !== nextConf) {
-            peerRev.tier = nextTier;
-            peerRev.tierConfirmed = nextConf;
-            peerCarried.add("tier");
-            changed = true;
-          }
-          continue;
-        }
-        if (peerHuman.has(fk)) continue;
-        const val = String(srcRev[fk] ?? "");
-        if ((peerRev[fk] || "") !== val) {
-          peerRev[fk] = val;
-          peerCarried.add(fk);
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        peerRev.carriedFromCycle = srcCycle;
-        peerRev.carriedFields = Array.from(peerCarried);
-        peerRev.updated = srcRev.updated || new Date().toISOString();
-        cyc.reviews[peerIt.app] = peerRev;
-        persistCycle(ck);
-        if (syncCloud) queueCloudSyncPlatReview(ck, peerIt.app);
-        touched.push({ cycleKey: ck, appNo: peerIt.app });
-      }
-    }
+  const touched = propagatePlatReviewFieldsAcrossCycles(
+    S.cycles,
+    S.cycleOrder || [],
+    srcCycle,
+    sourceItem,
+    fieldKeys
+  );
+  for (const { cycleKey, appNo } of touched) {
+    persistCycle(cycleKey);
+    if (syncCloud) queueCloudSyncPlatReview(cycleKey, appNo);
   }
   return touched;
 }
@@ -1625,19 +1572,6 @@ function persistWatchlistPropertyEdit(prop){
   return norm;
 }
 
-function allHistory(){
-  const out = history.slice();
-  store.keys().filter(k => k.startsWith(PREFIX)).forEach(k => {
-    const c = store.get(k); if (!c || !c.reviews) return;
-    Object.entries(c.reviews).forEach(([app, r]) => {
-      if (!r.tier) return;
-      const it = (c.items || []).find(i => i.app === app) || {};
-      out.push({cycle:c.cycleKey, app, tier:r.tier, developer:it.developer || "", name:it.name || "", why:r.why || ""});
-    });
-  });
-  return out;
-}
-
 function tierOf(it){ return revFor(it).tier || ""; }
 function isResearched(it){
   const r = revFor(it);
@@ -1659,7 +1593,12 @@ function populateHeaderAndFilterControls(){
       const cyc = S.cycles[ck];
       const shortD = formatShortUsDate(ck) || ck;
       const cnt = cyc?.items?.length || 0;
-      return `<option value="${esc(ck)}" ${S.activeCycleChoice === ck ? "selected" : ""}>PC ${esc(shortD)}${idx === 0 ? " (Current)" : ""} · ${cnt} items</option>`;
+      const tag = idx === 0
+        ? " (Current)"
+        : cyc?.isEarlyGisCycle
+        ? " (Early GIS Preview)"
+        : "";
+      return `<option value="${esc(ck)}" ${S.activeCycleChoice === ck ? "selected" : ""}>PC ${esc(shortD)}${tag} · ${cnt} items</option>`;
     });
     if (S.cycleOrder.length > 1) {
       const rawTotal = S.cycleOrder.reduce((sum, ck) => sum + (S.cycles[ck]?.items?.length || 0), 0);
@@ -1725,6 +1664,10 @@ function populateHeaderAndFilterControls(){
   const actStreamEl = $("#actStreamFilter");
   if (actStreamEl && actStreamEl.value !== view.actStream) {
     actStreamEl.value = view.actStream;
+  }
+  const actGroupEl = $("#actGroupBySelect");
+  if (actGroupEl && actGroupEl.value !== view.actGroupBy) {
+    actGroupEl.value = view.actGroupBy;
   }
   const actSearchEl = $("#actSearchInput");
   if (actSearchEl && document.activeElement !== actSearchEl && actSearchEl.value !== view.actQ) {
@@ -1806,17 +1749,22 @@ function getActivityViewContext(){
       hahcPayload: hahcTrackerPayload,
       nowIso,
     });
-    const substantiveEvents = bundle.events.filter(
-      e => e && e.kind !== "watchlist_sweep_degraded"
-    );
-    const floor7d = shiftIsoDate(bundle.todayLocal, -6);
-    const count7d = substantiveEvents.filter(e => e.localDate && e.localDate >= floor7d).length;
     _activityMemo.dataKey = dataKey;
     _activityMemo.bundle = bundle;
-    _activityMemo.substantiveEvents = substantiveEvents;
-    _activityMemo.count7d = count7d;
     _activityMemo.watermarkKey = "";
   }
+
+  const excludeStaff = view.actStream === "external";
+  const includeHistoricalBaseline = Boolean(view.actShowHistorical);
+  const substantiveEvents = _activityMemo.bundle.events.filter(
+    e =>
+      e &&
+      e.kind !== "watchlist_sweep_degraded" &&
+      (!e.historicalBaseline || includeHistoricalBaseline) &&
+      (!excludeStaff || e.stream !== "staff")
+  );
+  const floor7d = shiftIsoDate(_activityMemo.bundle.todayLocal, -6);
+  const count7d = substantiveEvents.filter(e => e.localDate && e.localDate >= floor7d).length;
 
   const readIdsArr = Array.isArray(view.readEventIds) ? view.readEventIds : [];
   const watermarkKey = [
@@ -1825,6 +1773,8 @@ function getActivityViewContext(){
     readIdsArr.length,
     readIdsArr[0] || "",
     readIdsArr[readIdsArr.length - 1] || "",
+    excludeStaff ? "ext" : "all",
+    includeHistoricalBaseline ? "hist1" : "hist0",
   ].join("|");
 
   if (_activityMemo.watermarkKey !== watermarkKey || !_activityMemo.watermarkState) {
@@ -1833,8 +1783,20 @@ function getActivityViewContext(){
       caughtUpAt: view.caughtUpAt,
       readEventIds: readIdsArr,
       nowIso,
+      excludeStaff,
+      includeHistoricalBaseline,
     });
-    const unreadIndex = buildEntityUnreadIndex(_activityMemo.bundle.events, watermarkState);
+    const allUnreadWm = excludeStaff
+      ? computeWatermarkState({
+          events: _activityMemo.bundle.events,
+          caughtUpAt: view.caughtUpAt,
+          readEventIds: readIdsArr,
+          nowIso,
+          excludeStaff: false,
+          includeHistoricalBaseline,
+        })
+      : watermarkState;
+    const unreadIndex = buildEntityUnreadIndex(_activityMemo.bundle.events, allUnreadWm);
     _activityMemo.watermarkKey = watermarkKey;
     _activityMemo.watermarkState = watermarkState;
     _activityMemo.unreadIndex = unreadIndex;
@@ -1848,15 +1810,16 @@ function getActivityViewContext(){
     streamFilter: view.actStream,
     query: view.actQ,
     nowIso,
+    includeHistoricalBaseline,
   });
   return {
     nowIso,
     bundle: _activityMemo.bundle,
-    substantiveEvents: _activityMemo.substantiveEvents,
+    substantiveEvents,
     watermarkState: _activityMemo.watermarkState,
     unreadIndex: _activityMemo.unreadIndex,
     filteredEvents,
-    count7d: _activityMemo.count7d,
+    count7d,
   };
 }
 
@@ -2245,7 +2208,7 @@ function renderActivityLedger(actCtx){
     const healthBadge = isDegraded
       ? `<span class="act-health-pill degraded" data-sweep-status="degraded">⚠ ${okAg}/${totAg} OK (${esc(failedList.join(", "))})</span>`
       : r.liveOnlyDay
-      ? `<span class="act-health-pill neutral" data-sweep-status="live">Archive / Live Day</span>`
+      ? `<span class="act-health-pill neutral" data-sweep-status="live" title="Live browser/cloud activity day; automated 8-agency sweeps run daily at 7:00 AM CT">⏳ Live Edits · Sweeps 7 AM CT</span>`
       : `<span class="act-health-pill ok" data-sweep-status="ok">✓ ${okAg}/${totAg} agencies OK</span>`;
 
     const streamChips = [
@@ -2391,27 +2354,27 @@ function renderActivityBriefing(actCtx){
         <div><b>👋 Morning Briefing (First Visit on This Browser):</b> Showing <b>${wm.unreadCount}</b> update${wm.unreadCount === 1 ? "" : "s"} from the past 7 days across all 4 monitoring streams (${sweepReassure}). Click <b>✓ Mark Caught Up</b> once reviewed to set your personal read watermark.</div>
         <button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>
       </div>`);
-    } else if (filteredEvents.length === 0 && !view.actQ && view.actStream === "all") {
+    } else if (filteredEvents.length === 0 && !view.actQ && (view.actStream === "external" || view.actStream === "all")) {
       banners.push(`<div class="act-banner caughtup" data-caught-up-card="1">
         <div>
           <b style="font-size:15px">✓ All caught up since ${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}</b><br>
-          <span>Zero new filings, permit alerts, or staff edits since your saved watermark. Daily 7:00 AM CT sweeps checked <b>${activeWatchlistCount()}</b> active watched properties (${esc(sweepReassure)}).</span>
+          <span>Zero new filings, permit alerts, or unread updates since your saved watermark. Daily 7:00 AM CT sweeps checked <b>${activeWatchlistCount()}</b> active watched properties (${esc(sweepReassure)}).</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn sm" data-switch-act-range="7d">View Last 7 Days (${actCtx.count7d})</button>
-          <button type="button" class="btn sm" data-switch-act-range="all">Browse 90-Day History (${bundle.events.length})</button>
+          <button type="button" class="btn sm" data-switch-act-range="all">Browse 90-Day History (${actCtx.substantiveEvents.length})</button>
         </div>
       </div>`);
     } else {
       banners.push(`<div class="act-banner info">
-        <div><b>📬 Since Last Visit (${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}):</b> <b>${wm.unreadCount}</b> unread update${wm.unreadCount === 1 ? "" : "s"} (${wm.unreadAdverseCount} critical/adverse).</div>
+        <div><b>📬 Since Last Visit (${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}):</b> <b>${wm.unreadCount}</b> unread update${wm.unreadCount === 1 ? "" : "s"} (${wm.unreadAdverseCount} critical/adverse)${view.actStream === "external" ? " · <i>External signals only (staff edits hidden)</i>" : ""}.</div>
         ${wm.unreadCount > 0 ? `<button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>` : ""}
       </div>`);
     }
   }
 
   if (!filteredEvents.length) {
-    const emptyBody = (view.actRange === "since_last_visit" && !wm.isImplicitFirstVisit && !view.actSelectedDate && !view.actQ && view.actStream === "all")
+    const emptyBody = (view.actRange === "since_last_visit" && !wm.isImplicitFirstVisit && !view.actSelectedDate && !view.actQ && (view.actStream === "external" || view.actStream === "all"))
       ? ""
       : `<div class="list-empty">No monitoring updates match the current time window and filters.</div>`;
     $("#detail").innerHTML = banners.join("") + emptyBody;
@@ -2427,6 +2390,34 @@ function renderActivityBriefing(actCtx){
       </h3>
       ${filteredEvents.map(ev => renderSingleActivityCardHtml(ev, wm)).join("")}
     </section>`;
+  } else if (view.actGroupBy === "property") {
+    const propGroups = groupActivityEventsByProperty(filteredEvents);
+    sectionsHtml = propGroups.map(grp => {
+      const propChips = [
+        grp.yearBuilt ? `<span class="chip ${Number(grp.yearBuilt) <= 1940 ? "critical" : ""}">Built ${esc(grp.yearBuilt)}</span>` : "",
+        grp.hcad ? `<span class="chip">HCAD ${esc(grp.hcad)}</span>` : "",
+        grp.designation ? `<span class="chip ok">${esc(grp.designation)}</span>` : "",
+        `<span class="chip">${grp.events.length} signal${grp.events.length === 1 ? "" : "s"}</span>`,
+      ].filter(Boolean).join("");
+      const hdrActions = [
+        grp.watchPropertyId
+          ? `<button type="button" class="assist-pill" data-act-open-watch="${esc(grp.watchPropertyId)}">Open Watchlist Dossier →</button>`
+          : "",
+        grp.atlasMapHref
+          ? `<a class="assist-pill" href="${esc(grp.atlasMapHref)}" target="_blank" rel="noopener">🗺️ Atlas Map ↗</a>`
+          : "",
+      ].filter(Boolean).join("");
+      return `<section class="act-prop-group ${esc(grp.maxSeverity)}" data-act-prop-group="${esc(grp.key)}">
+        <div class="act-prop-hdr">
+          <div>
+            <div class="act-prop-title">${esc(grp.label)}</div>
+            <div class="act-prop-sub">${propChips}</div>
+          </div>
+          ${hdrActions ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${hdrActions}</div>` : ""}
+        </div>
+        ${grp.events.map(ev => renderSingleActivityCardHtml(ev, wm)).join("")}
+      </section>`;
+    }).join("");
   } else {
     const priorityEvents = filteredEvents.filter(ev => ev.severity === "critical" || ev.adverse);
     const routineEvents = filteredEvents.filter(ev => !(ev.severity === "critical" || ev.adverse));
@@ -2586,6 +2577,12 @@ function renderList(precomputedActCtx = null){
     const confirmedChip = r.tierConfirmed && (t === "1" || t === "2" || (t === "3" && linkedWp && !isArchivedWatchlistStatus(linkedWp.trackerStatus)))
       ? `<span class="chip ok" title="Confirmed and synced to Property Watchlist">✓ On Watchlist</span>`
       : "";
+    const gisChip = it.platTracker?.autoResolvedHcad
+      ? `<span class="chip ok" title="Missing HCAD account automatically resolved from City PlatTracker GIS surveyed boundary polygon">GIS Parcel ✓</span>`
+      : "";
+    const matChangeChip = !r.tierConfirmed && ((Array.isArray(it.materialChanges) && it.materialChanges.length > 0) || r.reReviewReason)
+      ? `<span class="chip strong" title="${esc((it.materialChanges || []).join("; ") || r.reReviewReason || "")}">⚡ Changed</span>`
+      : "";
     const unreadInfo = unreadIdx.agendaOccUnread.get(it._occKey) || unreadIdx.agendaAppUnread.get(`${it._cycleKey}::${it.app}`) || null;
     const unreadChip = unreadInfo
       ? `<span class="unread-dot ${unreadInfo.hasCritical ? "crit" : ""}" data-unread-badge="agenda" title="New or updated since your last What's New watermark">● ${unreadInfo.count > 1 ? `${unreadInfo.count} New` : "New"}</span>`
@@ -2609,7 +2606,7 @@ function renderList(precomputedActCtx = null){
       </div>
       <div class="sub">${esc(subParts.join(" · ") || it.type || "")}</div>
       ${it._c.group === "out" && it._c.reason ? `<div class="screen-reason"><b>Screened Out:</b> ${esc(it._c.reason)}</div>` : ""}
-      <div class="chips">${pcChip}${agendaStatusChip}${hearingChip}${confirmedChip}${yrBadge}${chipsHtml(it, 3)}</div>
+      <div class="chips">${pcChip}${agendaStatusChip}${hearingChip}${confirmedChip}${matChangeChip}${gisChip}${yrBadge}${chipsHtml(it, 3)}</div>
     </button>`;
   }).join("");
 }
@@ -2725,6 +2722,90 @@ function findLinkedWatchProp(it, r){
   }) || null;
 }
 
+function renderPlatPolygonSvgPreview(it, r){
+  const pt = it?.platTracker;
+  if (!pt || !Array.isArray(pt.polygon) || !pt.polygon.length) return "";
+  const allPts = [];
+  for (const ring of pt.polygon) {
+    if (!Array.isArray(ring)) continue;
+    for (const c of ring) {
+      if (Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+        allPts.push(c);
+      }
+    }
+  }
+  if (allPts.length < 3) return "";
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const [x, y] of allPts) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const cosLat = Math.cos(((minY + maxY) * 0.5 * Math.PI) / 180) || 1;
+  const dx = Math.max((maxX - minX) * cosLat, 1e-6);
+  const dy = Math.max(maxY - minY, 1e-6);
+  const w = 152, h = 104, pad = 10;
+  const scale = Math.min((w - 2 * pad) / dx, (h - 2 * pad) / dy);
+  const offX = (w - dx * scale) * 0.5;
+  const offY = (h - dy * scale) * 0.5;
+  const pathData = pt.polygon
+    .map(ring => {
+      if (!Array.isArray(ring) || ring.length < 3) return "";
+      return (
+        ring
+          .map((c, idx) => {
+            const px = (offX + (c[0] - minX) * cosLat * scale).toFixed(1);
+            const py = (offY + (maxY - c[1]) * scale).toFixed(1);
+            return `${idx === 0 ? "M" : "L"}${px},${py}`;
+          })
+          .join(" ") + " Z"
+      );
+    })
+    .filter(Boolean)
+    .join(" ");
+  let interiorDot = "";
+  if (Array.isArray(pt.interiorPoint) && pt.interiorPoint.length >= 2) {
+    const ix = (offX + (pt.interiorPoint[0] - minX) * cosLat * scale).toFixed(1);
+    const iy = (offY + (maxY - pt.interiorPoint[1]) * scale).toFixed(1);
+    interiorDot = `<circle cx="${ix}" cy="${iy}" r="3.2" fill="#C43D2F" stroke="#FFFFFF" stroke-width="1.2"/>`;
+  }
+  const statusChips = [
+    pt.appStatus ? `<span class="chip watch">GIS Status: ${esc(pt.appStatus)}</span>` : "",
+    pt.recordationStatus ? `<span class="chip ok">Recordation: ${esc(pt.recordationStatus)}</span>` : "",
+    pt.reviewCycle != null ? `<span class="chip">Cycle #${esc(pt.reviewCycle)}</span>` : "",
+    pt.autoResolvedHcad ? `<span class="chip ok">✓ HCAD Auto-Resolved from Surveyed Boundary</span>` : "",
+  ].filter(Boolean).join("");
+  const metaParts = [
+    pt.acreage ? `${Number(pt.acreage).toFixed(3)} ac surveyed` : "",
+    pt.lotCount != null ? `${pt.lotCount} lot${pt.lotCount === 1 ? "" : "s"}` : "",
+    pt.reserveCount != null && pt.reserveCount > 0 ? `${pt.reserveCount} reserve${pt.reserveCount === 1 ? "" : "s"}` : "",
+    pt.matchedParcelCount ? `${pt.matchedParcelCount} HCAD parcel${pt.matchedParcelCount === 1 ? "" : "s"} intersected` : "",
+  ].filter(Boolean).join(" · ");
+  const at = it.atlas || {};
+  const mapUrl = at.lat && at.lng
+    ? `index.html?layers=plat_watch,platted_subdivisions,landmarks,historic_districts&lat=${at.lat}&lng=${at.lng}&z=17.5`
+    : "";
+  return `
+    <div class="plat-gis-box" data-plattracker-gis-box="1">
+      <div class="plat-gis-svg-wrap" title="Surveyed WGS84 plat boundary polygon from City of Houston PlatTracker GIS (PT365_PLAT_MAPPING)">
+        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="Surveyed plat boundary polygon">
+          <path d="${pathData}" fill="rgba(47,93,138,0.16)" stroke="#2F5D8A" stroke-width="2" fill-rule="evenodd"/>
+          ${interiorDot}
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--survey);margin-bottom:4px">
+          📐 City of Houston PlatTracker GIS Surveyed Boundary (App #${esc(pt.appNo || it.app)})
+        </div>
+        <div class="chips" style="margin-bottom:5px">${statusChips}</div>
+        ${metaParts ? `<div style="font-size:12.5px;color:#3C4750">${esc(metaParts)}</div>` : ""}
+        ${mapUrl ? `<div style="margin-top:6px"><a class="assist-pill" href="${esc(mapUrl)}" target="_blank" rel="noopener">🗺️ Inspect Plat Boundary Polygon on Atlas Map ↗</a></div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderDetail(){
   const it = findItemBySelection(view.selected);
   if (!it) { $("#detail").innerHTML = '<p class="list-empty">Select an agenda item on the left.</p>'; return; }
@@ -2790,6 +2871,15 @@ function renderDetail(){
     </div>
   ` : (it._c.group !== "check" && it._c.reason ? `<div class="history-note" style="background:var(--t3-soft);border-color:var(--line)">${esc(it._c.reason)}</div>` : "");
 
+  const matChanges = !r.tierConfirmed && Array.isArray(it.materialChanges) && it.materialChanges.length
+    ? it.materialChanges
+    : (!r.tierConfirmed && r.reReviewReason ? [r.reReviewReason] : []);
+  const materialChangeBanner = matChanges.length ? `
+    <div class="re-review-banner" data-material-change-banner="1">
+      <b>⚡ Material Change Detected Since Prior Cycle Review:</b> ${esc(matChanges.join("; "))}. Please verify whether the prior tier assessment still applies.
+    </div>
+  ` : "";
+
   const curWhyNorm = String(r.why || "").trim();
   const priorHistoryHtml = priorCycles.length ? `
     <div class="history-note">
@@ -2801,7 +2891,7 @@ function renderDetail(){
           const showDistinctNote = Boolean(
             pcWhy &&
             pcWhy !== curWhyNorm &&
-            !/^Pre-1976 structure on parcel|^Variance request;|\bPre-1976 structure\b/i.test(pcWhy)
+            !isBoilerplatePlatWhy(pcWhy)
           );
           const minHref = sanitizeExternalLink({ label: "Minutes PDF", url: pc.minutesUrl || "" })?.url || "";
           return `<li style="margin-bottom:4px">
@@ -2849,8 +2939,10 @@ function renderDetail(){
       ${it.agendaItemNo ? " · Agenda Item #" + esc(it.agendaItemNo) : (it.onMeetingAgenda === false ? " · <span style=\"color:#784C07;font-weight:600\">Cycle filing only (not on agenda PDF)</span>" : "")} · ${esc(it.type)}${it.special ? " · " + esc(it.special) : ""}${it.deferral ? " · " + esc(it.deferral) : ""}
     </div>
     ${agendaPresenceBanner}
+    ${materialChangeBanner}
     ${screenOutBanner}
     ${priorHistoryHtml}
+    ${renderPlatPolygonSvgPreview(it, r)}
     ${hasAtlasInfo ? `
       <div class="atlas-box">
         <div class="atlas-head">
@@ -3102,7 +3194,11 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     if (explicitConfirm || hasConfirmedWatchDossier) {
       r.tierConfirmed = true;
       const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
-      if (explicitConfirm) hf.add("tier");
+      if (explicitConfirm) {
+        hf.add("tier");
+        delete r.carriedConfirmedFromCycle;
+      }
+      delete r.reReviewReason;
       r.humanEditedFields = Array.from(hf);
     }
     r.updated = nowIso;
@@ -3285,6 +3381,10 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
     hf.add("tier");
     r.humanEditedFields = Array.from(hf);
+    delete r.carriedConfirmedFromCycle;
+    if (r.tierConfirmed) {
+      delete r.reReviewReason;
+    }
   }
   r.updated = nowIso;
   const syncRes = syncPlatTierToWatchlist(WL.watchedProperties || [], {
@@ -6155,10 +6255,10 @@ async function loadLiveAtlasCycle(forceReload){
   try {
     const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261113c";
     const [platResp, wlResp, alResp, actResp, bpResp] = await Promise.all([
-      fetch("public/data/plat_agenda_monitor.json" + cacheQ),
-      fetch("public/data/property_watchlist.json" + cacheQ),
-      fetch("public/data/active_permit_alerts.json" + cacheQ).catch(() => null),
-      fetch("public/data/monitor_activity_log.json" + cacheQ).catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json" + cacheQ, { cache: "no-cache" }),
+      fetch("public/data/property_watchlist.json" + cacheQ, { cache: "no-cache" }),
+      fetch("public/data/active_permit_alerts.json" + cacheQ, { cache: "no-cache" }).catch(() => null),
+      fetch("public/data/monitor_activity_log.json" + cacheQ, { cache: "no-cache" }).catch(() => null),
       fetch("public/data/building_photos.json" + cacheQ).catch(() => null),
     ]);
 
@@ -7867,8 +7967,20 @@ $("#actSearchInput")?.addEventListener("input", e => {
 });
 $("#actStreamFilter")?.addEventListener("change", e => {
   view.actStream = e.target.value;
+  store.set(ACT_STREAM_KEY, view.actStream);
   if (view.mode === "activity") {
     render();
+    $("#detail").scrollTop = 0;
+  } else {
+    updateModeButtons();
+  }
+});
+$("#actGroupBySelect")?.addEventListener("change", e => {
+  view.actGroupBy = e.target.value;
+  store.set(ACT_GROUP_KEY, view.actGroupBy);
+  if (view.mode === "activity") {
+    const actCtx = getActivityViewContext();
+    renderActivityBriefing(actCtx);
     $("#detail").scrollTop = 0;
   }
 });

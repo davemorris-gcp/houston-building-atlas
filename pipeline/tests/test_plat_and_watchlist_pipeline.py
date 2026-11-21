@@ -3265,6 +3265,680 @@ def test_pass3_feedback_f3_01_through_f3_12_pipeline_invariants() -> None:
     assert fpw.is_archived_watchlist_status(matched_t3) is False
 
 
+def test_polygon_geometry_summary_preserves_straight_corners_on_curved_arcs() -> None:
+    """Verify ray-casting holes and RDP ring simplification preserving single-vertex straight lot corners."""
+    import math
+
+    outer = [
+        [-95.3900, 29.7500],
+        [-95.3880, 29.7500],
+        [-95.3880, 29.7520],
+        [-95.3900, 29.7520],
+        [-95.3900, 29.7500],
+    ]
+    hole = [
+        [-95.3894, 29.7506],
+        [-95.3886, 29.7506],
+        [-95.3886, 29.7514],
+        [-95.3894, 29.7514],
+        [-95.3894, 29.7506],
+    ]
+    assert fpw.point_in_polygon_rings(-95.3898, 29.7510, [outer, hole]) is True
+    assert fpw.point_in_polygon_rings(-95.3890, 29.7510, [outer, hole]) is False
+
+    # Construct a 100-vertex parcel with 3 single-vertex straight corners and a 96-vertex SE chamfer arc
+    arc_pts: list[list[float]] = [
+        [-95.3900, 29.7500],
+        [-95.3900, 29.7520],  # NW corner (odd index 1 - must never be dropped)
+        [-95.3880, 29.7520],  # NE corner
+    ]
+    for step_i in range(96):
+        theta = (math.pi * 0.5) * (step_i / 95.0)
+        arc_x = -95.3882 + 0.0002 * math.cos(theta)
+        arc_y = 29.7502 - 0.0002 * math.sin(theta)
+        arc_pts.append([round(arc_x, 6), round(arc_y, 6)])
+    arc_pts.append([-95.3900, 29.7500])
+    assert len(arc_pts) == 100
+
+    geom_sum = fpw.compute_polygon_geometry_summary([arc_pts])
+    assert geom_sum is not None
+    assert geom_sum["acreage"] > 9.0
+    assert [-95.3900, 29.7520] in geom_sum["polygon"][0]
+    assert fpw.point_in_polygon_rings(-95.3898, 29.7518, geom_sum["polygon"]) is True
+    assert fpw.point_in_polygon_rings(
+        geom_sum["interiorPoint"][0], geom_sum["interiorPoint"][1], geom_sum["polygon"]
+    )
+
+
+def test_resolve_plattracker_spatial_matches_backfills_grid_and_vacant_hcad(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Verify PlatTracker spatial intersections resolve standing structures and live HCAD vacant lots."""
+    import math
+
+    monkeypatch.setattr(fpw, "PLAT_CACHE_DIR", tmp_path / "plat_cache")
+    outer = [
+        [-95.3900, 29.7500],
+        [-95.3880, 29.7500],
+        [-95.3880, 29.7520],
+        [-95.3900, 29.7520],
+        [-95.3900, 29.7500],
+    ]
+    vac_ring = [
+        [-95.4100, 29.7600],
+        [-95.4090, 29.7600],
+        [-95.4090, 29.7610],
+        [-95.4100, 29.7610],
+        [-95.4100, 29.7600],
+    ]
+    geom_sum = fpw.compute_polygon_geometry_summary([outer])
+    vac_geom = fpw.compute_polygon_geometry_summary([vac_ring])
+    assert geom_sum is not None and vac_geom is not None
+
+    monkeypatch.setattr(
+        fpw,
+        "_fetch_json_safe",
+        lambda url, timeout=12: {
+            "features": [
+                {
+                    "attributes": {
+                        "HCAD_NUM": "0410990000099",
+                        "owner": "VACANT LAND HOLDINGS LLC",
+                        "subdivision": "HYDE PARK MAIN",
+                        "address": "1400 HYDE PARK BLVD",
+                        "state_class": "C1",
+                        "impr_val": 0,
+                    }
+                }
+            ]
+        },
+    )
+
+    gx = int(math.floor(-95.3890 / fpw.SPATIAL_GRID_DEG))
+    gy = int(math.floor(29.7510 / fpw.SPATIAL_GRID_DEG))
+    pt_map = {
+        "2026-5001": {
+            "app": "2026-5001",
+            "polygon": geom_sum["polygon"],
+            "bbox": geom_sum["bbox"],
+            "interiorPoint": geom_sum["interiorPoint"],
+        },
+        "2026-5002": {
+            "app": "2026-5002",
+            "polygon": vac_geom["polygon"],
+            "bbox": vac_geom["bbox"],
+            "interiorPoint": vac_geom["interiorPoint"],
+        },
+    }
+    mock_idx = {
+        "spatial_grid": {
+            (gx, gy): [
+                {
+                    "hcad": "0231000000001",
+                    "address": "1210 MONTROSE BLVD",
+                    "lng": -95.3890,
+                    "lat": 29.7510,
+                    "year_built": 1924,
+                }
+            ]
+        },
+        "overlay_polygons": {
+            "super_neighborhoods": [
+                {
+                    "name": "Neartown - Montrose",
+                    "bbox": (-95.42, 29.73, -95.37, 29.77),
+                    "rings": [[[-95.42, 29.73], [-95.37, 29.73], [-95.37, 29.77], [-95.42, 29.77], [-95.42, 29.73]]],
+                },
+            ],
+            "historic_districts": [
+                {
+                    "name": "Westmoreland Historic District",
+                    "bbox": (-95.40, 29.74, -95.38, 29.76),
+                    "rings": [[[-95.40, 29.74], [-95.38, 29.74], [-95.38, 29.76], [-95.40, 29.76], [-95.40, 29.74]]],
+                },
+            ],
+            "platted_subdivisions": [],
+            "council_districts": [
+                {
+                    "name": "C",
+                    "bbox": (-95.45, 29.70, -95.35, 29.80),
+                    "rings": [[[-95.45, 29.70], [-95.35, 29.70], [-95.35, 29.80], [-95.45, 29.80], [-95.45, 29.70]]],
+                },
+            ],
+        },
+    }
+    spatial_hits = fpw.resolve_plattracker_spatial_matches(
+        pt_map, {"2026-5001", "2026-5002"}, mock_idx, allow_live_hcad_fallback=True
+    )
+    assert spatial_hits["2026-5001"]["hcadIds"] == ["0231000000001"]
+    assert spatial_hits["2026-5001"]["addresses"] == ["1210 MONTROSE BLVD"]
+    assert spatial_hits["2026-5001"]["years"] == [1924]
+    assert spatial_hits["2026-5001"]["superN"] == "NEARTOWN - MONTROSE"
+    assert spatial_hits["2026-5001"]["hd"] == "Westmoreland Historic District"
+    assert spatial_hits["2026-5001"]["council"] == "C"
+    assert spatial_hits["2026-5002"]["hcadIds"] == ["0410990000099"]
+    assert spatial_hits["2026-5002"]["confirmedVacant"] is True
+
+
+def test_tdlr_detail_verification_prunes_false_substring_matches(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Verify TDLR detail-page LocationAddress rejects substring collisions and prunes stale hits."""
+    fake_data_dir = tmp_path / "data"
+    fake_data_dir.mkdir(parents=True)
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps({"alerts": []}), encoding="utf-8"
+    )
+    monkeypatch.setattr(fpw, "DATA_DIR", fake_data_dir)
+
+    def mock_tdlr_fetch_bytes(url: str, timeout: int = 12, data: bytes | None = None, headers=None):
+        if "tdlr.texas.gov/TABS/Search/SearchProjects" in url:
+            return json.dumps(
+                {
+                    "data": [
+                        {
+                            "ProjectNumber": "TABS2026048000",
+                            "ProjectName": "Bellaire Plaza Suite 200",
+                            "County": "2101",
+                            "ProjectCreatedOn": "2026-10-15",
+                            "EstimatedCost": "300000",
+                            "WorkType": "Renovation/Alteration",
+                        },
+                        {
+                            "ProjectNumber": "TABS2026000800",
+                            "ProjectName": "800 Bell Lobby Renovation",
+                            "County": "2101",
+                            "ProjectCreatedOn": "2020-03-01",
+                            "EstimatedCost": "750000",
+                            "WorkType": "Renovation/Alteration",
+                        },
+                    ]
+                }
+            ).encode("utf-8")
+        if "TABS2026048000" in url:
+            return (
+                b"<html><body>Location Address: 4800 BELLAIRE BLVD Location County: HARRIS "
+                b"Scope of Work: Dental office Current Status: Registered</body></html>"
+            )
+        if "TABS2026000800" in url:
+            return (
+                b"<html><body>Location Address: 800 BELL ST Location County: HARRIS "
+                b"Scope of Work: Historic lobby Current Status: Completed</body></html>"
+            )
+        if "arcweb.hcad.org" in url or "311" in url or "mycity" in url.lower():
+            return b'{"features": []}'
+        return b"[]"
+
+    monkeypatch.setattr(fpw, "fetch_bytes", mock_tdlr_fetch_bytes)
+
+    bell_prop = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-800-bell",
+            "propertyName": "800 Bell Building",
+            "address": "800 Bell St",
+            "hcadAccount": "0010550000001",
+            "tier": "1",
+            "tierConfirmed": True,
+            "checklist": [
+                {
+                    "id": "chk-10",
+                    "activity": "Accessibility Registration (TDLR TABS)",
+                    "status": "Flagged",
+                    "checks": [
+                        {
+                            "date": "2026-10-15",
+                            "discoveredAt": "2026-11-01",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "tdlr-tabs:TABS2026048000",
+                            "result": "[AUTO-SWEEP] TDLR TABS #TABS2026048000: Bellaire Plaza Suite 200",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    sweep_res = fpw.sweep_watched_property_agencies(
+        prop=bell_prop,
+        plat_data={"cycles": {"2026-11-12": {"items": []}}},
+        idx={},
+        sweep_date_iso="2026-11-20",
+    )
+    assert sweep_res["chk10VerifiedComplete"] is True
+    chk10_hits = sweep_res["findingsByCheck"]["chk-10"]
+    assert len(chk10_hits) == 1
+    assert "TABS2026000800" in chk10_hits[0]["result"]
+
+    fpw.merge_auto_sweep_findings_into_property(
+        bell_prop, sweep_res, "2026-11-20T12:00:00Z"
+    )
+    chk10_after = next(r for r in bell_prop["checklist"] if r["id"] == "chk-10")
+    assert all("TABS2026048000" not in c["result"] for c in chk10_after["checks"])
+    valid_bell_hit = next(c for c in chk10_after["checks"] if "TABS2026000800" in c["result"])
+    assert valid_bell_hit.get("historicalBaseline") is True
+    assert valid_bell_hit.get("adverse") is False
+    assert chk10_after["status"] == "In Progress"
+
+
+def test_tdlr_detail_unparseable_html_suppresses_destructive_pruning(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Verify HTTP 200 TDLR detail HTML lacking LocationAddress marks chk10VerifiedComplete False."""
+    fake_data_dir = tmp_path / "data"
+    fake_data_dir.mkdir(parents=True)
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps({"alerts": []}), encoding="utf-8"
+    )
+    monkeypatch.setattr(fpw, "DATA_DIR", fake_data_dir)
+
+    def mock_waf_tdlr_fetch(url: str, timeout: int = 12, data: bytes | None = None, headers=None):
+        if "tdlr.texas.gov/TABS/Search/SearchProjects" in url:
+            return json.dumps(
+                {
+                    "data": [
+                        {
+                            "ProjectNumber": "TABS2026000800",
+                            "ProjectName": "800 Bell Lobby Renovation",
+                            "County": "2101",
+                            "ProjectCreatedOn": "2026-10-10",
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+        if "TABS2026000800" in url:
+            return b"<html><body>Temporarily unavailable maintenance page</body></html>"
+        if "arcweb.hcad.org" in url or "311" in url or "mycity" in url.lower():
+            return b'{"features": []}'
+        return b"[]"
+
+    monkeypatch.setattr(fpw, "fetch_bytes", mock_waf_tdlr_fetch)
+
+    prop = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-800-bell",
+            "propertyName": "800 Bell Building",
+            "address": "800 Bell St",
+            "hcadAccount": "0010550000001",
+            "tier": "1",
+            "tierConfirmed": True,
+            "checklist": [
+                {
+                    "id": "chk-10",
+                    "activity": "Accessibility Registration (TDLR TABS)",
+                    "status": "Flagged",
+                    "checks": [
+                        {
+                            "date": "2026-10-10",
+                            "discoveredAt": "2026-11-01",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "tdlr-tabs:TABS2026000800",
+                            "result": "[AUTO-SWEEP] TDLR TABS #TABS2026000800: 800 Bell Lobby Renovation",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    sweep_res = fpw.sweep_watched_property_agencies(
+        prop=prop,
+        plat_data={"cycles": {"2026-11-12": {"items": []}}},
+        idx={},
+        sweep_date_iso="2026-11-20",
+    )
+    assert sweep_res["chk10VerifiedComplete"] is False
+    fpw.merge_auto_sweep_findings_into_property(prop, sweep_res, "2026-11-20T12:00:00Z")
+    chk10_after = next(r for r in prop["checklist"] if r["id"] == "chk-10")
+    assert any("TABS2026000800" in c["result"] for c in chk10_after["checks"])
+
+
+def test_boilerplate_seed_and_address_key_helpers() -> None:
+    """Verify multi-line boilerplate preservation, bogus DPV seed rejection, and canonical address key parity."""
+    assert fpw.is_boilerplate_plat_why(
+        "Atlas matched HCAD parcel at 1200 Example St (earliest built 1924).\nVerify rear garage apartment."
+    ) is False
+    assert fpw.is_legacy_unconfirmed_plat_seed(
+        {"id": "plat-DPV-2026-1520", "appNo": "DPV-2026-1520", "tierConfirmed": True}
+    ) is True
+    assert fpw.is_legacy_unconfirmed_plat_seed(
+        {
+            "id": "plat-DPV-26073533",
+            "appNo": "DPV-26073533",
+            "address": "801 McGowen St",
+            "tierConfirmed": True,
+            "updatedAt": "2026-11-10T12:00:00Z",
+        }
+    ) is False
+    assert fpw.canonical_property_address_key("1303-1305 Sawyer St") == "1303|SAWYER"
+    assert fpw.canonical_property_address_key("1226 West Pierce St") == "1226|W PIERCE"
+    assert fpw.canonical_property_address_key("500 North St") == "500|NORTH ST"
+    assert fpw.canonical_property_address_key("909 TEXAS AVE 308") == "909|TEXAS"
+
+
+def test_link_cross_cycle_history_carries_confirmation_and_revokes_on_material_change() -> None:
+    """Verify cross-cycle carry-forward keeps Pass-2 tier on material change and revokes carried confirmation on Run 2."""
+    run1_cycles = fpw.link_cross_cycle_history(
+        {
+            "2026-10-29": {
+                "items": [
+                    {"app": "2026-6001", "name": "Test Walk Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000099", "lots": "2", "developer": "Acme Builders LLC"},
+                    {"app": "2026-6002", "name": "Corner Variance Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000098", "lots": "2", "developer": "Beta Homes LLC"},
+                ],
+                "reviews": {
+                    "2026-6001": {"tier": "3", "tierConfirmed": True, "why": "Reviewed, modern infill."},
+                    "2026-6002": {"tier": "3", "tierConfirmed": True, "why": "Routine split."},
+                },
+            },
+            "2026-11-12": {
+                "items": [
+                    {"app": "2026-6001", "name": "Test Walk Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000099", "lots": "2", "developer": "Acme Builders, LLC"},
+                    {"app": "2026-6002", "name": "Corner Variance Replat", "type": "C3N", "section": "D. Variances", "special": "Variance", "hearingDateIso": "2026-12-03", "hcad": "0410000000098", "lots": "5", "developer": "Gamma Urban Dev LLC"},
+                ],
+                "reviews": {
+                    "2026-6001": {"tier": "2", "tierConfirmed": False, "autoEnriched": True, "why": "Atlas matched HCAD parcel at 100 Test Walk (earliest built 1955)."},
+                    "2026-6002": {"tier": "2", "tierConfirmed": False, "autoEnriched": True, "why": "Atlas matched HCAD parcel at 200 Corner St (earliest built 1938)."},
+                },
+            },
+        },
+        ["2026-10-29", "2026-11-12"],
+    )
+    rev1 = run1_cycles["2026-11-12"]["reviews"]["2026-6001"]
+    assert rev1["tier"] == "3"
+    assert rev1["tierConfirmed"] is True
+    assert rev1["carriedConfirmedFromCycle"] == "2026-10-29"
+
+    rev2 = run1_cycles["2026-11-12"]["reviews"]["2026-6002"]
+    assert rev2["tier"] == "2"
+    assert rev2["tierConfirmed"] is False
+    assert "variance" in rev2["reReviewReason"].lower()
+
+    run1_cycles["2026-11-12"]["items"][0]["section"] = "D. Variances"
+    run1_cycles["2026-11-12"]["items"][0]["special"] = "Variance"
+    run1_cycles["2026-11-12"]["items"][0]["lots"] = "4"
+    run2_cycles = fpw.link_cross_cycle_history(run1_cycles, ["2026-10-29", "2026-11-12"])
+    rev1_after = run2_cycles["2026-11-12"]["reviews"]["2026-6001"]
+    assert rev1_after["tierConfirmed"] is False
+    assert "carriedConfirmedFromCycle" not in rev1_after
+    assert rev1_after["tier"] == "2"
+    assert "variance" in rev1_after["reReviewReason"].lower()
+
+    rev1_after["tier"] = "3"
+    rev1_after["tierConfirmed"] = True
+    rev1_after["humanEditedFields"] = ["tier"]
+    run3_cycles = fpw.link_cross_cycle_history(run2_cycles, ["2026-10-29", "2026-11-12"])
+    assert "reReviewReason" not in run3_cycles["2026-11-12"]["reviews"]["2026-6001"]
+
+    merged_overlay = fpw.merge_plat_review_overlay(
+        {"tier": "1", "tierConfirmed": False, "autoEnriched": True},
+        {
+            "tier": "3",
+            "autoSuggestedTier": "3",
+            "tierConfirmed": True,
+            "carriedConfirmedFromCycle": "2026-10-29",
+            "carriedFields": ["tier", "why", "tierConfirmed"],
+            "why": "Reviewed 1985 townhomes, no historic impact.",
+        },
+        {"app": "2026-6001"},
+    )
+    assert merged_overlay["autoSuggestedTier"] == "1"
+    assert merged_overlay["tier"] == "3"
+    assert merged_overlay["tierConfirmed"] is True
+
+
+def test_reconcile_watchlist_tiers_across_multi_cycle_material_changes_and_terminal_statuses() -> None:
+    """Verify 3+-cycle material-change divergence, Tier 1/2 escalations, manual unbaselined plats, and Lost/Saved skips."""
+    reconcile_cycles = {
+        "2026-10-15": {
+            "items": [{"app": "2026-4101", "name": "Bayland Corner Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000002", "lots": "2", "developer": "Original Owner LLC"}],
+            "reviews": {"2026-4101": {"tier": "3", "tierConfirmed": True}},
+        },
+        "2026-10-29": {
+            "items": [{"app": "2026-4101", "name": "Bayland Corner Replat", "type": "C3N", "section": "D. Variances", "special": "Variance", "hearingDateIso": "2026-12-03", "hcad": "0410000000002", "lots": "6", "developer": "New Townhome Group LLC"}],
+            "reviews": {"2026-4101": {"tier": "2", "tierConfirmed": False, "autoEnriched": True}},
+        },
+        "2026-11-12": {
+            "items": [{"app": "2026-4101", "name": "Bayland Corner Replat", "type": "C3N", "section": "D. Variances", "special": "Variance", "hearingDateIso": "2026-12-03", "hcad": "0410000000002", "lots": "6", "developer": "New Townhome Group LLC"}],
+            "reviews": {"2026-4101": {"tier": "2", "tierConfirmed": False, "autoEnriched": True}},
+        },
+    }
+    fpw._reconcile_watchlist_tiers_onto_cycles(
+        reconcile_cycles,
+        ["2026-10-15", "2026-10-29", "2026-11-12"],
+        {
+            "plat-2026-4101": {
+                "id": "plat-2026-4101",
+                "appNo": "2026-4101",
+                "sourceCycleKey": "2026-10-15",
+                "hcadAccount": "0410000000002",
+                "tier": "3",
+                "tierConfirmed": False,
+                "trackerStatus": "Archived (Tier 3)",
+                "archivedAt": "2026-10-15T18:00:00Z",
+                "updatedAt": "2026-10-15T18:00:00Z",
+                "humanEdited": True,
+            }
+        },
+    )
+    fpw.link_cross_cycle_history(reconcile_cycles, ["2026-10-15", "2026-10-29", "2026-11-12"])
+    for c_key in ("2026-10-29", "2026-11-12"):
+        assert reconcile_cycles[c_key]["reviews"]["2026-4101"]["tier"] == "2"
+        assert reconcile_cycles[c_key]["reviews"]["2026-4101"]["tierConfirmed"] is False
+        assert "variance" in reconcile_cycles[c_key]["reviews"]["2026-4101"]["reReviewReason"].lower()
+
+    active_t2_cycles = {
+        "2026-10-15": {
+            "items": [{"app": "2026-4102", "name": "Landmark Adjacent Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000009", "lots": "2"}],
+            "reviews": {"2026-4102": {"tier": "2", "tierConfirmed": True, "why": "1938 bungalow."}},
+        },
+        "2026-10-29": {
+            "items": [{"app": "2026-4102", "name": "Landmark Adjacent Replat", "type": "C3N", "section": "D. Variances", "special": "Variance", "hearingDateIso": "2026-12-03", "hcad": "0410000000009", "lots": "6"}],
+            "reviews": {"2026-4102": {"tier": "1", "tierConfirmed": False, "autoEnriched": True}},
+        },
+        "2026-11-12": {
+            "items": [{"app": "2026-4102", "name": "Landmark Adjacent Replat", "type": "C3N", "section": "D. Variances", "special": "Variance", "hearingDateIso": "2026-12-03", "hcad": "0410000000009", "lots": "6"}],
+            "reviews": {"2026-4102": {"tier": "1", "tierConfirmed": False, "autoEnriched": True}},
+        },
+    }
+    fpw._reconcile_watchlist_tiers_onto_cycles(
+        active_t2_cycles,
+        ["2026-10-15", "2026-10-29", "2026-11-12"],
+        {
+            "plat-2026-4102": {
+                "id": "plat-2026-4102",
+                "appNo": "2026-4102",
+                "sourceCycleKey": "2026-10-15",
+                "hcadAccount": "0410000000009",
+                "tier": "2",
+                "tierConfirmed": True,
+                "trackerStatus": "Active / High Priority",
+                "updatedAt": "2026-10-15T18:00:00Z",
+                "humanEdited": True,
+            }
+        },
+    )
+    fpw.link_cross_cycle_history(active_t2_cycles, ["2026-10-15", "2026-10-29", "2026-11-12"])
+    for c_key in ("2026-10-29", "2026-11-12"):
+        assert active_t2_cycles[c_key]["reviews"]["2026-4102"]["tier"] == "1"
+        assert active_t2_cycles[c_key]["reviews"]["2026-4102"]["tierConfirmed"] is False
+        assert "variance" in active_t2_cycles[c_key]["reviews"]["2026-4102"]["reReviewReason"].lower()
+
+    escalated_cycles = {
+        "2026-10-29": {
+            "items": [{"app": "2026-4103", "name": "Context Blockface Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000019", "lots": "2"}],
+            "reviews": {"2026-4103": {"tier": "1", "tierConfirmed": True, "why": "Threatens adjacent 1912 landmark blockface."}},
+        },
+        "2026-11-12": {
+            "items": [{"app": "2026-4103", "name": "Context Blockface Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000019", "lots": "6"}],
+            "reviews": {"2026-4103": {"tier": "2", "tierConfirmed": False, "autoEnriched": True}},
+        },
+    }
+    fpw._reconcile_watchlist_tiers_onto_cycles(
+        escalated_cycles,
+        ["2026-10-29", "2026-11-12"],
+        {
+            "plat-2026-4103": {
+                "id": "plat-2026-4103",
+                "appNo": "2026-4103",
+                "sourceCycleKey": "2026-10-29",
+                "hcadAccount": "0410000000019",
+                "tier": "1",
+                "tierConfirmed": True,
+                "trackerStatus": "Active / High Priority",
+                "updatedAt": "2026-10-29T18:00:00Z",
+                "humanEdited": True,
+            }
+        },
+    )
+    fpw.link_cross_cycle_history(escalated_cycles, ["2026-10-29", "2026-11-12"])
+    assert escalated_cycles["2026-11-12"]["reviews"]["2026-4103"]["tier"] == "1"
+    assert escalated_cycles["2026-11-12"]["reviews"]["2026-4103"]["tierConfirmed"] is False
+    assert "2 -> 6 lots" in escalated_cycles["2026-11-12"]["reviews"]["2026-4103"]["reReviewReason"]
+
+    manual_wl_cycles = {
+        "2026-11-12": {
+            "items": [
+                {"app": "2026-1950", "name": "500 Main Variance", "type": "C3N", "section": "D. Variances", "special": "Variance", "hcad": "0010990000001", "lots": "4"},
+                {"app": "2026-1980", "name": "Post-Demo Replat", "type": "C2R", "section": "B. Replats", "hcad": "0410000000059", "lots": "2"},
+            ],
+            "reviews": {
+                "2026-1950": {"tier": "1", "tierConfirmed": False, "autoEnriched": True},
+                "2026-1980": {"tier": "3", "tierConfirmed": False, "autoEnriched": True, "updated": "2026-11-12T19:00:00Z"},
+            },
+        }
+    }
+    fpw._reconcile_watchlist_tiers_onto_cycles(
+        manual_wl_cycles,
+        ["2026-11-12"],
+        {
+            "prop-500-main": {
+                "id": "prop-500-main",
+                "appNo": "",
+                "sourceCycleKey": "",
+                "hcadAccount": "0010990000001",
+                "tier": "2",
+                "tierConfirmed": True,
+                "trackerStatus": "Active / High Priority",
+                "updatedAt": "2026-10-15T18:00:00Z",
+                "humanEdited": True,
+            },
+            "prop-lost-demo": {
+                "id": "prop-lost-demo",
+                "appNo": "",
+                "sourceCycleKey": "",
+                "hcadAccount": "0410000000059",
+                "tier": "1",
+                "tierConfirmed": True,
+                "trackerStatus": "Lost",
+                "updatedAt": "2026-11-20T18:00:00Z",
+                "humanEdited": True,
+            },
+        },
+    )
+    assert manual_wl_cycles["2026-11-12"]["reviews"]["2026-1950"]["tier"] == "1"
+    assert manual_wl_cycles["2026-11-12"]["reviews"]["2026-1950"]["tierConfirmed"] is False
+    assert manual_wl_cycles["2026-11-12"]["reviews"]["2026-1980"]["tier"] == "3"
+    assert manual_wl_cycles["2026-11-12"]["reviews"]["2026-1980"]["tierConfirmed"] is False
+
+
+def test_merge_auto_sweep_preserves_flagged_plat_seed_status() -> None:
+    """Verify merge_auto_sweep_findings_into_property preserves Flagged status on rows with plat-seed/manual checks."""
+    plat_seeded_prop = fpw.normalize_watch_property_record(
+        {
+            "id": "plat-2026-4103",
+            "propertyName": "Context Blockface Replat",
+            "address": "4103 Example St",
+            "hcadAccount": "0410000000019",
+            "tier": "1",
+            "tierConfirmed": True,
+            "checklist": [
+                {
+                    "id": "chk-09",
+                    "activity": "Subdivision Plats",
+                    "status": "Flagged",
+                    "lastChecked": "2026-12-03",
+                    "checks": [{"date": "2026-12-03", "source": "plat-seed", "result": "Plat filing seeded"}],
+                }
+            ],
+        }
+    )
+    fpw.merge_auto_sweep_findings_into_property(
+        plat_seeded_prop, {"findingsByCheck": {"chk-09": []}}, "2026-11-20T12:00:00Z"
+    )
+    chk09_after = next(r for r in plat_seeded_prop["checklist"] if r["id"] == "chk-09")
+    assert chk09_after["status"] == "Flagged"
+
+
+def test_historical_baseline_180_day_parity_between_watchlist_and_activity_log() -> None:
+    """Verify a 128-day-old filing stays adverse across both Watchlist and Activity Log (180-day threshold)."""
+    from atlas_pipeline import build_monitor_activity_log as bmal
+
+    before_wl = {
+        "watchedProperties": [
+            {
+                "id": "prop-parity",
+                "propertyName": "Parity Test Building",
+                "address": "500 Main St",
+                "hcadAccount": "0010990000001",
+                "tier": "1",
+                "tierConfirmed": True,
+                "checklist": [{"id": "chk-04", "activity": "Tax Permits", "status": "To Do", "checks": []}],
+            }
+        ]
+    }
+    after_prop = fpw.normalize_watch_property_record(before_wl["watchedProperties"][0])
+    sweep_bundle = {
+        "findingsByCheck": {
+            "chk-04": [
+                {
+                    "date": "2026-07-15",  # 128 days before 2026-11-20 (<= 180d, > 90d)
+                    "discoveredAt": "2026-11-20",
+                    "source": "auto-sweep",
+                    "automated": True,
+                    "adverse": True,
+                    "agencyRecordId": "comptroller:128d-hit",
+                    "result": "[AUTO-SWEEP] Active Sales Tax Permit opened at 500 Main St",
+                }
+            ]
+        }
+    }
+    fpw.merge_auto_sweep_findings_into_property(after_prop, sweep_bundle, "2026-11-20T12:00:00Z")
+    chk04 = next(r for r in after_prop["checklist"] if r["id"] == "chk-04")
+    assert chk04["status"] == "Flagged"
+    assert chk04["checks"][0]["adverse"] is True
+    assert chk04["checks"][0].get("historicalBaseline") is not True
+
+    deltas = bmal._diff_property_watchlist(
+        before_wl,
+        {"watchedProperties": [after_prop], "lastSweepHealth": {"allOk": True, "failedAgencies": []}},
+        now_iso="2026-11-20T12:05:00Z",
+    )
+    auto_ev = next(e for e in deltas if e["kind"] == "watchlist_auto_finding")
+    assert auto_ev["adverse"] is True
+    assert bool(auto_ev.get("historicalBaseline")) is False
+
+
+def test_permit_watch_indexes_secondary_shared_street_addresses(tmp_path: Path) -> None:
+    """Verify index_historic_address_shards appends secondary street addresses on <= 1976 HCAD accounts to shared by_addr buckets."""
+    from atlas_pipeline import fetch_live_permits as flp
+
+    shards_dir = tmp_path / "address_shards"
+    shards_dir.mkdir()
+    (shards_dir / "addr_CO.json").write_text(
+        json.dumps({"CORNER WALK ST": [["100", -95.39, 29.75, 1925, "0410000000001", ""]]}),
+        encoding="utf-8",
+    )
+    na = flp.normalize_address("100 Corner Walk St")
+    by_hcad = {
+        "0410000000001": {"id": "bld_1", "hcad_num": "0410000000001", "address": "102 Main St", "year_built": 1925},
+        "0410000000002": {"id": "bld_2", "hcad_num": "0410000000002", "address": "100 Corner Walk St", "year_built": 1930},
+    }
+    by_addr: dict[str, list[dict]] = {na: [by_hcad["0410000000002"]]}
+    flp.index_historic_address_shards(shards_dir, by_hcad, by_addr, max_year=1976)
+    assert len(by_addr[na]) == 2
+    assert {b["hcad_num"] for b in by_addr[na]} == {"0410000000001", "0410000000002"}
+
+
+
 
 
 

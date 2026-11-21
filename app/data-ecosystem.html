@@ -1208,18 +1208,18 @@
         <div>
           <h2 class="hero-heading" id="heroHeading">Every Institution, Public Feed &amp; Primary-Source Document Powering the Atlas</h2>
           <p class="hero-sub">
-            Cross-referencing appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and Sanborn fire insurance maps across 29 institutions and 46 data feeds (<code>app/public/data/data_sources_catalog.json</code>).
+            Cross-referencing appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and Sanborn fire insurance maps across <span id="heroOrgCount">29</span> institutions and <span id="heroFeedCount">47</span> data feeds (<code>app/public/data/data_sources_catalog.json</code>).
           </p>
         </div>
       </div>
       <div class="kpi-strip" id="kpiStrip" aria-label="Ecosystem summary metrics"></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px">
         <details class="header-drawer" id="completenessDrawer">
-          <summary><span>📊 Quantitative Completeness Audit (84% Volume Acquired | 67% Parcel Fidelity)</span><span class="mono-tag">Expand ▾</span></summary>
+          <summary><span>📊 Quantitative Completeness Audit (<span id="heroVolPct">84</span>% Volume Acquired | <span id="heroFidPct">68</span>% Parcel Fidelity)</span><span class="mono-tag">Expand ▾</span></summary>
           <div class="completeness-banner" id="completenessBanner" aria-label="Corpus completeness vs extraction fidelity summary"></div>
         </details>
         <details class="header-drawer" id="enginesDrawer">
-          <summary><span>⚙️ 6 Cross-Check Synthesis Engines (Click to Inspect or Isolate Engine)</span><span class="mono-tag">Expand ▾</span></summary>
+          <summary><span>⚙️ <span id="heroEngineCount">6</span> Cross-Check Synthesis Engines (Click to Inspect or Isolate Engine)</span><span class="mono-tag">Expand ▾</span></summary>
           <div class="engines-section" style="margin-top:10px;margin-bottom:4px">
             <div class="section-eyebrow" id="enginesEyebrow">
               <span>Cross-Check Synthesis Engines (Click any engine to isolate its participating feeds)</span>
@@ -1237,7 +1237,7 @@
           <span class="filter-label">View:</span>
           <div class="view-tabs" role="tablist" aria-label="Diagram grouping mode">
             <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution</button>
-            <button type="button" class="view-tab" role="tab" data-view-mode="visuals" aria-selected="false">🖼️ Visual Field Guide (46 Docs)</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="visuals" aria-selected="false">🖼️ Visual Field Guide (47 Docs)</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="architecture" aria-selected="false">⚡ System &amp; LLM Flow</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="gaps" aria-selected="false">📊 Coverage &amp; Gaps</button>
             <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⏱️ By Cadence</button>
@@ -1264,7 +1264,7 @@
           <button type="button" class="btn" id="resetEcosystemFiltersBtn" style="display:none;padding:4px 10px;font-size:12px">Reset Filters</button>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span class="mono-tag" id="visibleFeedCountBadge" style="font-weight:700;color:var(--blue)">Showing 46 feeds</span>
+          <span class="mono-tag" id="visibleFeedCountBadge" style="font-weight:700;color:var(--blue)">Showing 47 feeds</span>
           <details class="header-drawer" style="margin:0;padding:3px 8px">
             <summary style="font-size:11.5px">🎨 Pill Legend</summary>
             <div style="padding-top:6px;display:flex;flex-direction:column;gap:6px">
@@ -1420,6 +1420,19 @@
       const tierCounts = sum.fidelityTierCounts || {};
       const needsPass2 = tierCounts.pass1_needs_pass2 || 0;
       const pullNeeded = tierCounts.inventory_only_pull_needed || 0;
+      const visualsTabBtn = document.querySelector('[data-view-mode="visuals"]');
+      if (visualsTabBtn) {
+        visualsTabBtn.textContent = `🖼️ Visual Field Guide (${allFeeds.length} Docs)`;
+      }
+      const setStat = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val);
+      };
+      setStat("heroOrgCount", totalOrgs);
+      setStat("heroFeedCount", allFeeds.length);
+      setStat("heroVolPct", avgVol);
+      setStat("heroFidPct", avgFid);
+      setStat("heroEngineCount", (catalog.synthesisEngines || []).length);
 
       document.getElementById("kpiStrip").innerHTML = `
         <div class="kpi-box">
@@ -1575,8 +1588,9 @@
       }
       const engSelect = document.getElementById("engineFilterSelect");
       if (engSelect) {
-        const eOpts = [`<option value="">Engine: All 6 Synthesis Engines</option>`];
-        for (const eng of catalog.synthesisEngines || []) {
+        const engList = catalog.synthesisEngines || [];
+        const eOpts = [`<option value="">Engine: All ${engList.length} Synthesis Engines</option>`];
+        for (const eng of engList) {
           const matchingCount = allFeeds.filter(f => (f.engineIds || []).includes(eng.id)).length;
           eOpts.push(`<option value="${esc(eng.id)}" ${state.engineFilter === eng.id ? "selected" : ""}>${esc(eng.icon)} ${esc(eng.shortName)} (${matchingCount})</option>`);
         }
@@ -1724,7 +1738,8 @@
         `;
       }).join("");
 
-      const allFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const totalFeeds = getAllFlattenedFeeds();
+      const allFeeds = totalFeeds.filter(f => matchesFilters(f, f.org));
       const sortedFeeds = [...allFeeds].sort((a, b) => {
         const fa = a.coverageAndFidelity?.extractionFidelityPct ?? 100;
         const fb = b.coverageAndFidelity?.extractionFidelityPct ?? 100;
@@ -1766,7 +1781,7 @@
           <div class="sector-header">
             <div>
               <h2 class="sector-title">🔬 Deep-Dive Fidelity &amp; Gap Spotlights (What Pass 1 Captured vs. How Pass 2 Fills the Gaps)</h2>
-              <p class="sector-desc">Detailed breakdown of the 8 major historical datasets where we distinguish between raw volumes acquired vs. parcel-level records extracted.</p>
+              <p class="sector-desc">Detailed breakdown of the ${spotlights.length} major historical datasets where we distinguish between raw volumes acquired vs. parcel-level records extracted.</p>
             </div>
             <span class="mono-tag">${spotlights.length} deep-dive cohorts</span>
           </div>
@@ -1775,7 +1790,7 @@
         <section class="sector-block">
           <div class="sector-header">
             <div>
-              <h2 class="sector-title">📋 Complete 46-Feed Coverage, Missing Records &amp; Gap-Closure Matrix (Sorted Lowest Fidelity First)</h2>
+              <h2 class="sector-title">📋 Complete ${totalFeeds.length}-Feed Coverage, Missing Records &amp; Gap-Closure Matrix (Sorted Lowest Fidelity First)</h2>
               <p class="sector-desc">Click any row to open the full technical specification and code path for that data feed.</p>
             </div>
             <span class="mono-tag">${sortedFeeds.length} feeds shown</span>
@@ -1799,7 +1814,8 @@
     }
 
     function renderVisualFieldGuide() {
-      const visibleFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const totalFeeds = getAllFlattenedFeeds();
+      const visibleFeeds = totalFeeds.filter(f => matchesFilters(f, f.org));
       const cardsHtml = visibleFeeds.map(f => {
         const vis = f.docVisual || {};
         const calloutsHtml = (vis.callouts || []).map(c => `<li style="margin-bottom:4px">${esc(c)}</li>`).join("");
@@ -1832,12 +1848,12 @@
         <section class="sector-block">
           <div class="sector-header">
             <div>
-              <h2 class="sector-title">🖼️ Visual Field Guide to All 46 Primary-Source Document &amp; Data Feeds</h2>
+              <h2 class="sector-title">🖼️ Visual Field Guide to All ${totalFeeds.length} Primary-Source Document &amp; Data Feeds</h2>
               <p class="sector-desc">Every data feed in the Atlas has its own stylized visual depiction modeled on the real Houston record, ledger, map, or API feed showing how preservation historians cross-check them.</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <button type="button" class="btn-inline-toggle" id="openCompareSourcesBtn" title="Compare any two primary-source record types side-by-side">⚖️ Compare 2 Sources</button>
-              <span class="mono-tag">${visibleFeeds.length} of 46 document visuals</span>
+              <span class="mono-tag">${visibleFeeds.length} of ${totalFeeds.length} document visuals</span>
             </div>
           </div>
           <div class="org-grid">${cardsHtml}</div>

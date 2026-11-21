@@ -175,6 +175,54 @@ WATCHLIST_TRACKER_STATUSES: tuple[str, ...] = (
     "Archived (Tier 4)",
 )
 
+# Canonical age threshold (in days) beyond which backdated automated agency filings
+# (such as historical TDLR TABS or Comptroller permits) are treated as non-adverse
+# historical baseline context rather than net-new early-warning escalations.
+# Mirrored 1:1 as `HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS` in `app/js/watchlistSyncHelpers.js`.
+HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS: int = 180
+
+# Rejects legacy pre-fix seeds where 4-5 digit subdivision plat AppNos (`2026-XXXX`) were
+# mistakenly prefixed with `DPV-`; legitimate COH Section K DPVs use 8-digit ILMS project
+# IDs (`DPV-26XXXXXX`). Mirrored 1:1 in `app/js/watchlistSyncHelpers.js`.
+BOGUS_DPV_SUBDIV_SEED_RE: re.Pattern[str] = re.compile(r"^(?:plat-)?DPV-20\d{2}-\d{3,5}$", re.I)
+
+# Rejects unedited machine seeds from the phantom Friday `2026-10-16` cycle key created
+# before fractional Excel 2:30 PM meeting serials (`0.604167`) were floored to Thursday
+# `2026-10-15`. Mirrored 1:1 in `app/js/watchlistSyncHelpers.js`.
+RETRACTED_ROUNDED_CYCLE_KEY: str = "2026-10-16"
+
+
+def is_auto_sweep_check(chk: object) -> bool:
+    """Return True when a Watchlist check entry originated from an automated agency sweep.
+
+    Mirrored 1:1 with `isAutoSweepCheck` in `app/js/watchlistSyncHelpers.js`.
+    """
+    if not isinstance(chk, dict):
+        return False
+    if str(chk.get("source") or "").strip().lower() == "auto-sweep":
+        return True
+    if chk.get("automated") is True:
+        return True
+    return str(chk.get("result") or "").strip().upper().startswith("[AUTO-SWEEP]")
+
+
+def is_historical_auto_sweep_date(
+    filing_date_iso: object,
+    ref_date_iso: object,
+    max_age_days: int = HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
+) -> bool:
+    """Return True when an automated filing date predates discovery/monitoring start by > max_age_days."""
+    fil_s = str(filing_date_iso or "").strip()[:10]
+    ref_s = str(ref_date_iso or "").strip()[:10]
+    if not (re.match(r"^\d{4}-\d{2}-\d{2}$", fil_s) and re.match(r"^\d{4}-\d{2}-\d{2}$", ref_s)):
+        return False
+    try:
+        return (
+            datetime.date.fromisoformat(ref_s) - datetime.date.fromisoformat(fil_s)
+        ).days > max_age_days
+    except ValueError:
+        return False
+
 
 def is_archived_watchlist_status(prop_or_status: object) -> bool:
     """Return True when a Watchlist record or status string is soft-archived (Tier 3 or Tier 4)."""

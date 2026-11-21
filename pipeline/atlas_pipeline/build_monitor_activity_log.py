@@ -60,11 +60,15 @@ if str(REPO_ROOT / "pipeline") not in sys.path:
 
 from atlas_pipeline.schema import (
     ARCHIVED_WATCHLIST_STATUSES,
+    BOGUS_DPV_SUBDIV_SEED_RE,
+    HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
     REMOVED_TIER3_TOMBSTONE,
     REMOVED_TIER4_TOMBSTONE,
     REMOVED_WATCHLIST_TOMBSTONE,
     WATCHLIST_TOMBSTONE_STATUSES,
     is_archived_watchlist_status,
+    is_auto_sweep_check,
+    is_historical_auto_sweep_date,
     is_removed_watchlist_tombstone,
 )
 
@@ -194,6 +198,16 @@ def parse_iso_date_prefix(val: object) -> str:
     return m.group(1) if m else ""
 
 
+def shift_iso_date(date_iso: str, delta_days: int) -> str:
+    clean = parse_iso_date_prefix(date_iso)
+    if not clean:
+        return ""
+    try:
+        return (dt.date.fromisoformat(clean) + dt.timedelta(days=int(delta_days))).isoformat()
+    except ValueError:
+        return ""
+
+
 def _seed_ts_clamped(candidate_day: str, local_today: str, now_iso: str) -> str:
     """Anchor historical seed records to noon UTC on `candidate_day`, clamped to `<= now_iso` so upcoming meeting dockets never synthesize future sweep days."""
     if not candidate_day or (local_today and candidate_day > local_today):
@@ -204,14 +218,24 @@ def _seed_ts_clamped(candidate_day: str, local_today: str, now_iso: str) -> str:
     return candidate_ts
 
 
-def is_auto_sweep_check(chk: dict) -> bool:
-    if not isinstance(chk, dict):
-        return False
-    if str(chk.get("source") or "").strip() == "auto-sweep":
-        return True
-    if chk.get("automated") is True:
-        return True
-    return str(chk.get("result") or "").strip().upper().startswith("[AUTO-SWEEP]")
+def _resolve_alert_discovery_timestamp(
+    filing_date_iso: str,
+    local_today: str,
+    now_iso: str,
+    *,
+    seed_mode: bool = False,
+) -> str:
+    """Resolve discovery timestamp for newly encountered COH permit and DSHS asbestos alerts.
+
+    Why 3-day backfill cutoff: When a lookback window or building-age expansion (such as rolling
+    <= 1976 countywide indexing) pulls in historical permits issued more than 3 days before today,
+    backdating their discovery timestamp to noon UTC on the permit's issue date records them on
+    their true historical ledger day without flooding today's morning unread briefing.
+    """
+    backfill_floor_3d = shift_iso_date(local_today, -3) if local_today else ""
+    if seed_mode or (filing_date_iso and backfill_floor_3d and filing_date_iso < backfill_floor_3d):
+        return _seed_ts_clamped(filing_date_iso, local_today, now_iso)
+    return now_iso
 
 
 def is_plat_seed_check(chk: dict) -> bool:
@@ -358,6 +382,7 @@ def _make_event(
     designation: str = "",
     links: list[dict[str, str]] | None = None,
     permit_meta: dict | None = None,
+    historical_baseline: bool = False,
 ) -> dict:
     effective_ts = logged_at or discovered_at or timestamp_iso
     local_date = to_chicago_date_iso(effective_ts, date_iso) or date_iso
@@ -393,6 +418,8 @@ def _make_event(
         "designation": sanitize_text(designation),
         "links": sanitize_links(links or []),
     }
+    if historical_baseline:
+        out["historicalBaseline"] = True
     if permit_meta:
         out["permitMeta"] = permit_meta
     return out
@@ -693,16 +720,28 @@ def _diff_property_watchlist(
                     effective_seed_day = parse_iso_date_prefix(disc_raw) or chk_date
                     if seed_mode and retention_floor_iso and effective_seed_day < retention_floor_iso:
                         continue
-                    adverse = is_adverse_auto_sweep_check(a_chk)
+                    is_hist_baseline = bool(
+                        a_chk.get("historicalBaseline") is True
+                        or is_historical_auto_sweep_date(
+                            chk_date,
+                            effective_seed_day,
+                            HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
+                        )
+                    )
+                    adverse = False if is_hist_baseline else is_adverse_auto_sweep_check(a_chk)
                     if adverse:
                         has_new_adverse_auto_on_row = True
                     # In seed mode, suppress routine non-adverse baseline confirmations to keep briefing signal crisp
                     if seed_mode and not adverse:
                         continue
                     sev = (
-                        "critical"
-                        if adverse and row_id in HIGH_SEVERITY_CHECK_IDS
-                        else ("warning" if adverse else "info")
+                        "info"
+                        if is_hist_baseline
+                        else (
+                            "critical"
+                            if adverse and row_id in HIGH_SEVERITY_CHECK_IDS
+                            else ("warning" if adverse else "info")
+                        )
                     )
                     ts_val = (
                         (disc_raw if "T" in disc_raw else _seed_ts_clamped(effective_seed_day, local_today, now_iso))
@@ -731,6 +770,7 @@ def _diff_property_watchlist(
                             year_built=a_prop.get("yearBuilt"),
                             designation=str(a_prop.get("designation") or ""),
                             links=sanitize_links(a_chk.get("links") or []),
+                            historical_baseline=is_hist_baseline,
                         )
                     )
                 else:
@@ -1272,7 +1312,9 @@ def _diff_permit_alerts(
                 or cp.get("is_sewer_disconnect")
                 or str(al.get("severity") or "").lower() == "critical"
             )
-            ts_val = _seed_ts_clamped(p_date, local_today, now_iso) if seed_mode else now_iso
+            ts_val = _resolve_alert_discovery_timestamp(
+                p_date, local_today, now_iso, seed_mode=seed_mode
+            )
             pno = str(cp.get("project_no") or "N/A").strip()
             lbl = sanitize_text(cp.get("permit_type_label") or cp.get("permit_desc") or "City Permit")
             use_d = sanitize_text(cp.get("use_desc") or "")
@@ -1329,7 +1371,9 @@ def _diff_permit_alerts(
             if seed_mode and retention_floor_iso and d_date < retention_floor_iso:
                 continue
             seen_after.add(ev_id)
-            ts_val = _seed_ts_clamped(d_date, local_today, now_iso) if seed_mode else now_iso
+            ts_val = _resolve_alert_discovery_timestamp(
+                d_date, local_today, now_iso, seed_mode=seed_mode
+            )
             nno = str(dn.get("notification_number") or "N/A").strip()
             wtype = sanitize_text(dn.get("work_type") or "Asbestos/Demolition")
             window = (
@@ -1733,6 +1777,31 @@ def merge_and_prune_ledger(
     floor_d = today_d - dt.timedelta(days=max(1, retention_days) - 1)
     floor_iso = floor_d.isoformat()
     after_cycles = _extract_plat_cycles(after_plat) if isinstance(after_plat, dict) else {}
+    wl_doc_lookup = after_watchlist if isinstance(after_watchlist, dict) else {}
+    # Why historical chk-10 pruning runs when chk10_sweep_ok is True: Earlier TDLR SearchProjects
+    # sweeps lacked detail-page LocationAddress verification and recorded false substring matches
+    # (such as '800 Bell' matching '4800 Bellaire Blvd'). Once a clean verified chk-10 sweep
+    # prunes those stale entries from property_watchlist.json, we also prune orphaned chk-10
+    # auto-finding events from the 90-day Activity Log so false hits never linger in What's New.
+    chk10_sweep_ok = bool(
+        ((wl_doc_lookup.get("lastSweepHealth") or {}).get("agencies") or {})
+        .get("chk-10", {})
+        .get("ok")
+        is True
+    )
+    active_chk10_eids_by_prop: dict[str, set[str]] = {}
+    if chk10_sweep_ok:
+        for wp_obj in wl_doc_lookup.get("watchedProperties") or []:
+            if not isinstance(wp_obj, dict) or not wp_obj.get("id"):
+                continue
+            wp_id_str = str(wp_obj["id"]).strip()
+            chk10_row_obj = _find_checklist_row_by_id(wp_obj.get("checklist") or [], "chk-10")
+            valid_eids: set[str] = set()
+            if isinstance(chk10_row_obj, dict):
+                for c_obj in chk10_row_obj.get("checks") or []:
+                    if isinstance(c_obj, dict) and is_auto_sweep_check(c_obj):
+                        valid_eids.add(build_auto_check_event_id(wp_id_str, "chk-10", c_obj))
+            active_chk10_eids_by_prop[wp_id_str] = valid_eids
 
     events_by_id: dict[str, dict] = {}
     for prev_ev in ((existing_log or {}).get("events") or []):
@@ -1740,9 +1809,22 @@ def merge_and_prune_ledger(
             continue
         eid = str(prev_ev.get("id") or "")
         wpid = str(prev_ev.get("watchPropertyId") or "").strip()
-        if wpid in _RETRACTED_ACTIVITY_WATCH_IDS or any(
-            eid.startswith(f"staff:prop:{rid}:") or eid.startswith(f"wl:auto:{rid}:")
-            for rid in _RETRACTED_ACTIVITY_WATCH_IDS
+        if (
+            wpid in _RETRACTED_ACTIVITY_WATCH_IDS
+            or BOGUS_DPV_SUBDIV_SEED_RE.match(wpid)
+            or any(BOGUS_DPV_SUBDIV_SEED_RE.match(seg) for seg in eid.split(":"))
+            or any(
+                eid.startswith(f"staff:prop:{rid}:") or eid.startswith(f"wl:auto:{rid}:")
+                for rid in _RETRACTED_ACTIVITY_WATCH_IDS
+            )
+        ):
+            continue
+        if (
+            chk10_sweep_ok
+            and prev_ev.get("kind") == "watchlist_auto_finding"
+            and prev_ev.get("checkId") == "chk-10"
+            and wpid in active_chk10_eids_by_prop
+            and eid not in active_chk10_eids_by_prop[wpid]
         ):
             continue
         addr_norm = _normalize_seed_match_addr(prev_ev.get("address"))
@@ -1750,11 +1832,21 @@ def merge_and_prune_ledger(
         if has_retracted_seed_addr and prev_ev.get("stream") == "staff":
             continue
         ld = str(prev_ev.get("localDate") or to_chicago_date_iso(prev_ev.get("discoveredAt") or prev_ev.get("timestamp") or "", prev_ev.get("date") or ""))
+        if seed_mode and ld > today_str:
+            ld = today_str
         if not seed_mode and ld == today_str and prev_ev.get("kind") == "watchlist_sweep_degraded":
             continue
         if ld >= floor_iso:
             cp = dict(prev_ev)
             cp["localDate"] = ld
+            if cp.get("kind") == "watchlist_auto_finding":
+                ev_chk_date = parse_iso_date_prefix(cp.get("date"))
+                if cp.get("historicalBaseline") is True or is_historical_auto_sweep_date(
+                    ev_chk_date, ld, HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS
+                ):
+                    cp["historicalBaseline"] = True
+                    cp["adverse"] = False
+                    cp["severity"] = "info"
             if has_retracted_seed_addr and eid.startswith("agenda:item:"):
                 if after_cycles:
                     refreshed = _refresh_retracted_agenda_item_event(cp, after_cycles)
@@ -1769,6 +1861,8 @@ def merge_and_prune_ledger(
         if not isinstance(new_ev, dict) or not new_ev.get("id"):
             continue
         ld = str(new_ev.get("localDate") or to_chicago_date_iso(new_ev.get("discoveredAt") or new_ev.get("timestamp") or "", new_ev.get("date") or ""))
+        if seed_mode and ld > today_str:
+            ld = today_str
         if ld < floor_iso:
             continue
         cp = dict(new_ev)

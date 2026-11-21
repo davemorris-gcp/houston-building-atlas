@@ -1085,13 +1085,30 @@ export function canonicalPropertyAddressKey(rawAddr = "") {
   const numInt = Number(m[1]);
   if (!Number.isFinite(numInt) || numInt <= 0) return "";
   const dirMap = { NORTH: "N", SOUTH: "S", EAST: "E", WEST: "W" };
-  const tokens = m[2]
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((t) => dirMap[t] || t);
-  if (tokens.length >= 2 && CONTINUITY_STREET_SUFFIXES.has(tokens[tokens.length - 1])) {
-    tokens.pop();
+  const dirTokens = new Set(["N", "S", "E", "W", "NORTH", "SOUTH", "EAST", "WEST", "NE", "NW", "SE", "SW"]);
+  const rawTokens = m[2].split(/\s+/).filter(Boolean);
+  if (rawTokens.length >= 3) {
+    const penult = rawTokens[rawTokens.length - 2];
+    const lastTok = rawTokens[rawTokens.length - 1];
+    const coreBeforePenult = rawTokens.slice(0, -2).filter((t) => !dirTokens.has(t));
+    if (
+      CONTINUITY_STREET_SUFFIXES.has(penult) &&
+      coreBeforePenult.length >= 1 &&
+      /^(?:\d+[A-Z]?|[A-Z]\d+)$/.test(lastTok)
+    ) {
+      rawTokens.pop();
+    }
   }
+  if (rawTokens.length >= 2 && CONTINUITY_STREET_SUFFIXES.has(rawTokens[rawTokens.length - 1])) {
+    const coreBeforeSuffix = rawTokens.slice(0, -1).filter((t) => !dirTokens.has(t));
+    if (coreBeforeSuffix.length >= 1) {
+      rawTokens.pop();
+    }
+  }
+  const hasNonDirCore = rawTokens.some(
+    (t) => !dirTokens.has(t) && !CONTINUITY_STREET_SUFFIXES.has(t)
+  );
+  const tokens = rawTokens.map((t) => (hasNonDirCore ? dirMap[t] || t : t));
   const streetCore = tokens.join(" ").replace(/[^A-Z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
   if (streetCore.length < 2) return "";
   return `${numInt}|${streetCore}`;
@@ -1345,9 +1362,14 @@ export function isBoilerplatePlatWhy(text = "") {
   if (/\b(?:ea\s*note|ea\s*:|staff\s*note|ph\s*note)\b/i.test(s)) {
     return false;
   }
+  const nonEmptyLines = s
+    .split(/[\r\n]+/)
+    .map((ln) => ln.trim())
+    .filter(Boolean);
+  if (nonEmptyLines.length > 1) return false;
   const sInner = s.replace(/^[\s(\[]+|[\s)\]]+$/g, "");
   if (!sInner) return true;
-  return /^(?:Atlas matched HCAD parcel at |Atlas matched designated historic resource |Section K Development Plat Variance |Flagged on Planning Commission agenda |Confirmed from \d{4}-\d{2}-\d{2} Planning Commission Agenda|Proposed vacant-parcel development at )/i.test(
+  return /^(?:Atlas matched HCAD parcel at |Atlas matched designated historic resource |City PlatTracker GIS polygon matched HCAD parcel |Section K Development Plat Variance |Flagged on Planning Commission agenda |Confirmed from \d{4}-\d{2}-\d{2} Planning Commission Agenda|Proposed vacant-parcel development at )/i.test(
     sInner
   );
 }
@@ -1385,9 +1407,15 @@ export function mergePlatReviewOverlay(seedRev = {}, incomingRev = null, item = 
     }
   }
 
-  const isConfirmedHuman = Boolean(inc.tierConfirmed) || hasHumanFields || hasHumanWhy;
+  const isConfirmedHuman =
+    Boolean(inc.tierConfirmed && !inc.carriedConfirmedFromCycle) ||
+    hasHumanFields ||
+    hasHumanWhy;
+  const isValidCarriedConfirm =
+    Boolean(inc.carriedConfirmedFromCycle) && inc.tierConfirmed === true && !hasStaleSeed;
   if (!isConfirmedHuman && !inc.overrideScreenOut) {
     const out = { ...base };
+    if (base.tier) out.autoSuggestedTier = String(base.tier);
     for (const [k, v] of Object.entries(inc)) {
       if (v === null || v === undefined || v === "") continue;
       if (
@@ -1402,7 +1430,12 @@ export function mergePlatReviewOverlay(seedRev = {}, incomingRev = null, item = 
       ) {
         continue;
       }
-      if (k === "tier" && isBoilerplatePlatWhy(inc.why) && (inc.autoEnriched === true || !inc.updated)) {
+      if (
+        k === "tier" &&
+        !isValidCarriedConfirm &&
+        isBoilerplatePlatWhy(inc.why) &&
+        (inc.autoEnriched === true || !inc.updated)
+      ) {
         continue;
       }
       out[k] = v;
@@ -1411,6 +1444,7 @@ export function mergePlatReviewOverlay(seedRev = {}, incomingRev = null, item = 
   }
 
   const out = { ...base, ...inc };
+  if (base.tier) out.autoSuggestedTier = String(base.tier);
   if (!hasHumanFields && !hasHumanWhy && hasStaleSeed) {
     for (const f of ["address", "yearBuilt", "designation", "hcad", "why", "sources", "followup"]) {
       if (base[f] !== undefined) out[f] = base[f];
@@ -1419,11 +1453,136 @@ export function mergePlatReviewOverlay(seedRev = {}, incomingRev = null, item = 
   return out;
 }
 
+function hasVarianceOrDpvSignal(entity = {}) {
+  const spec = String(entity?.special || "").toLowerCase();
+  const typ = String(entity?.type || "").toLowerCase();
+  const sec = String(entity?.section || "").trim();
+  const app = String(entity?.app || "").trim().toUpperCase();
+  return (
+    spec.includes("variance") ||
+    typ.includes("dpv") ||
+    app.startsWith("DPV") ||
+    /^(?:d|k)\./i.test(sec)
+  );
+}
+
+/**
+ * Detect substantive changes on a returning plat filing that warrant re-review even when
+ * a prior cycle was already marked tierConfirmed (parity with Python detect_material_plat_changes).
+ */
+export function detectMaterialPlatChanges(curItem = null, priorSnap = null) {
+  if (!curItem || typeof curItem !== "object" || !priorSnap || typeof priorSnap !== "object") {
+    return [];
+  }
+  const changes = [];
+  if (hasVarianceOrDpvSignal(curItem) && !hasVarianceOrDpvSignal(priorSnap)) {
+    changes.push("New variance or Section K DPV request added");
+  }
+  const curHearing = String(curItem.hearingDateIso || "").trim();
+  const prevHearing = String(priorSnap.hearingDateIso || "").trim();
+  if (curHearing && curHearing !== prevHearing) {
+    changes.push(`New public hearing scheduled (${curHearing})`);
+  }
+  const curDev = normalizeDeveloperEntityKey(curItem.developer || "");
+  const prevDev = normalizeDeveloperEntityKey(priorSnap.developer || "");
+  if (curDev && prevDev && curDev !== prevDev) {
+    changes.push(
+      `Developer changed (${stripCorporateSuffixCommas(priorSnap.developer || "")} -> ${stripCorporateSuffixCommas(curItem.developer || "")})`
+    );
+  }
+  const curLots = parseFiniteNum(curItem.lots);
+  const prevLots = parseFiniteNum(priorSnap.lots);
+  if (
+    curLots !== null &&
+    prevLots !== null &&
+    prevLots >= 1 &&
+    curLots > prevLots
+  ) {
+    changes.push(`Proposed lot count increased (${Math.trunc(prevLots)} -> ${Math.trunc(curLots)} lots)`);
+  }
+  return changes;
+}
+
 /**
  * Link deferred, reconsidered, or withdrawn-and-resubmitted items across chronologically
  * ordered Planning Commission agenda cycles, carrying forward complete final human-edited
  * fields and healing legacy keystroke-prefix truncations (F2-09, DF-1, DF-8).
  */
+const PLAT_TIER_RANK = { "1": 1, "2": 2, "3": 3, "4": 4 };
+
+export function formatCarriedFieldsList(carriedSet) {
+  return [
+    ...CARRY_FORWARD_REVIEW_FIELDS.filter((f) => carriedSet.has(f)),
+    ...(carriedSet.has("tierConfirmed") ? ["tierConfirmed"] : []),
+  ];
+}
+
+export function canCarryPlatTierAcrossMaterialChange(priorTier, curAutoTier) {
+  const p = String(priorTier || "").trim();
+  if (!p || p === "3" || p === "4") return false;
+  const c = String(curAutoTier || "").trim();
+  return (PLAT_TIER_RANK[c] ?? 99) > (PLAT_TIER_RANK[p] ?? 99);
+}
+
+export function shouldRevokeCarriedTierOnMaterialChange(curTier, autoSuggestedTier) {
+  const c = String(curTier || "").trim();
+  if (c === "3" || c === "4") return true;
+  const a = String(autoSuggestedTier || "").trim();
+  return (PLAT_TIER_RANK[a] ?? 99) < (PLAT_TIER_RANK[c] ?? 99);
+}
+
+export function buildPlatMatchDescriptor(entity = {}, rev = {}) {
+  const hcads = parseHcadAccountList(
+    [
+      rev?.hcad || "",
+      entity?.hcad || "",
+      entity?.hcadAccount || "",
+      entity?.atlas?.hcad_num || "",
+    ].join(" ")
+  ).hcadIds;
+  return {
+    appIds: new Set(getCanonicalPlatAppIds(entity)),
+    hcads,
+    hcadSet: new Set(hcads),
+    normName: normalizeContinuityPlatName(
+      entity?.platProjectName || entity?.propertyName || entity?.name || ""
+    ),
+    addrKey: canonicalPropertyAddressKey(
+      rev?.address || entity?.address || entity?.atlas?.primaryAddress || entity?.noticeLocation || ""
+    ),
+  };
+}
+
+export function arePlatItemsCrossCycleMatch(srcDesc, peerItem, peerRev = {}) {
+  if (!srcDesc || !peerItem) return false;
+  const peerDesc = buildPlatMatchDescriptor(peerItem, peerRev);
+  if (srcDesc.appIds?.size > 0) {
+    if (
+      Array.from(peerDesc.appIds).some((id) => srcDesc.appIds.has(id)) &&
+      areContinuitySnapshotsCompatible(
+        peerDesc.hcads,
+        peerDesc.normName,
+        srcDesc.hcads,
+        srcDesc.normName
+      )
+    ) {
+      return true;
+    }
+  }
+  if (srcDesc.hcadSet?.size > 0 && peerDesc.hcads.some((id) => srcDesc.hcadSet.has(id))) {
+    return true;
+  }
+  return Boolean(
+    srcDesc.addrKey &&
+      peerDesc.addrKey === srcDesc.addrKey &&
+      !(
+        srcDesc.hcadSet?.size > 0 &&
+        peerDesc.hcadSet.size > 0 &&
+        !peerDesc.hcads.some((id) => srcDesc.hcadSet.has(id))
+      )
+  );
+}
+
 export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
   const ordered =
     Array.isArray(cycleOrder) && cycleOrder.length > 0
@@ -1472,13 +1631,27 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
 
       if (priorCycles.length > 0) {
         const latestPrior = priorCycles[priorCycles.length - 1];
+        const confirmedBaseline =
+          [...priorCycles]
+            .reverse()
+            .find((p) => p.tierConfirmed === true || p.hasDirectTierDecision === true) ||
+          latestPrior;
+        const baselineIsReviewed = Boolean(
+          confirmedBaseline.tierConfirmed === true ||
+            confirmedBaseline.hasDirectTierDecision === true ||
+            confirmedBaseline.isHumanReviewed
+        );
+        const materialChanges = detectMaterialPlatChanges(it, confirmedBaseline);
+        it.materialChanges = materialChanges;
         const humanFields = new Set(
           Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []
         );
         const carriedFields = new Set(
           Array.isArray(r.carriedFields) ? r.carriedFields.map(String) : []
         );
-        const priorIsHuman = Boolean(latestPrior.isHumanReviewed || latestPrior.tierConfirmed);
+        const priorIsHuman = Boolean(
+          latestPrior.isHumanReviewed || latestPrior.tierConfirmed || baselineIsReviewed
+        );
         const curIsUntouchedAuto = Boolean(
           r.autoEnriched === true &&
             !humanFields.size &&
@@ -1486,12 +1659,31 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
             isBoilerplatePlatWhy(r.why)
         );
         let changedCarry = false;
+        if (
+          !r.autoSuggestedTier &&
+          r.tier &&
+          !carriedFields.has("tier") &&
+          !humanFields.has("tier")
+        ) {
+          r.autoSuggestedTier = String(r.tier);
+        }
 
         for (const field of CARRY_FORWARD_REVIEW_FIELDS) {
           if (humanFields.has(field)) continue;
-          const priorVal = String(latestPrior[field] || "").trim();
+          const valSource =
+            field === "tier" && materialChanges.length > 0 && baselineIsReviewed
+              ? confirmedBaseline
+              : latestPrior;
+          const priorVal = String(valSource[field] || "").trim();
           if (!priorVal) continue;
           const curVal = String(r[field] || "").trim();
+          if (
+            field === "tier" &&
+            materialChanges.length > 0 &&
+            !canCarryPlatTierAcrossMaterialChange(priorVal, curVal)
+          ) {
+            continue;
+          }
           const itemHasOwnHcad = field === "hcad" && Boolean(String(it.hcad || "").trim());
           let shouldUpdate = false;
 
@@ -1540,13 +1732,62 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
           }
         }
 
+        if (r.tierConfirmed && !r.carriedConfirmedFromCycle && r.reReviewReason) {
+          delete r.reReviewReason;
+          changedCarry = true;
+        }
+
+        if (
+          (latestPrior.tierConfirmed === true || baselineIsReviewed || priorIsHuman) &&
+          !humanFields.has("tier")
+        ) {
+          if (materialChanges.length === 0) {
+            if (latestPrior.tierConfirmed === true && !r.tierConfirmed) {
+              r.tierConfirmed = true;
+              r.carriedConfirmedFromCycle = latestPrior.cycleKey;
+              r.carriedFromCycle = latestPrior.cycleKey;
+              carriedFields.add("tierConfirmed");
+              changedCarry = true;
+            }
+            if (r.reReviewReason) {
+              delete r.reReviewReason;
+              changedCarry = true;
+            }
+          } else {
+            if (r.carriedConfirmedFromCycle || carriedFields.has("tierConfirmed")) {
+              r.tierConfirmed = false;
+              delete r.carriedConfirmedFromCycle;
+              carriedFields.delete("tierConfirmed");
+              changedCarry = true;
+            }
+            const autoTier = String(
+              r.autoSuggestedTier ||
+                (hasVarianceOrDpvSignal(it) || it.hearingDateIso ? "2" : "")
+            );
+            if (
+              carriedFields.has("tier") &&
+              shouldRevokeCarriedTierOnMaterialChange(r.tier, autoTier)
+            ) {
+              r.tier = autoTier;
+              carriedFields.delete("tier");
+              changedCarry = true;
+            }
+            if (!r.tierConfirmed) {
+              r.reReviewReason = materialChanges.join("; ");
+              changedCarry = true;
+            }
+          }
+        }
+
         if (changedCarry) {
-          r.carriedFields = CARRY_FORWARD_REVIEW_FIELDS.filter((f) => carriedFields.has(f));
+          r.carriedFields = formatCarriedFieldsList(carriedFields);
           reviews[it.app] = r;
           it._c = classifyPlatItem(it, r);
           cKeys = buildContinuityKeys(it, r);
           it.continuityKey = cKeys[0] || "";
         }
+      } else {
+        it.materialChanges = [];
       }
 
       const onAgendaBool = Boolean(
@@ -1575,6 +1816,9 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
         deferral: it.deferral || "",
         section: it.section || "",
         type: it.type || "",
+        special: it.special || "",
+        developer: it.developer || "",
+        lots: it.lots || "",
         agendaItemNo: String(it.agendaItemNo || ""),
         hearingDateIso: String(it.hearingDateIso || ""),
         onMeetingAgenda: onAgendaBool,
@@ -1583,6 +1827,11 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
         meetingAction,
         tier: r.tier || "",
         tierConfirmed: Boolean(r.tierConfirmed),
+        hasDirectTierDecision: Boolean(
+          (r.tierConfirmed && !r.carriedConfirmedFromCycle) ||
+            (Array.isArray(r.humanEditedFields) && r.humanEditedFields.includes("tier")) ||
+            r.humanEdited === true
+        ),
         isHumanReviewed: Boolean(
           r.tierConfirmed ||
             r.humanEdited ||
@@ -1611,6 +1860,112 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
   }
 
   return cyclesMap;
+}
+
+/**
+ * Pure cross-cycle review field propagation helper shared by plat-monitor.html and unit tests.
+ * Propagates edited review fields across matching filings in cyclesMap while protecting
+ * per-cycle human tier confirmations and skipping Tier propagation onto newer materially
+ * changed cycles (preserving human Tier 1/2 escalations unconfirmed with reReviewReason).
+ */
+export function propagatePlatReviewFieldsAcrossCycles(
+  cyclesMap = {},
+  cycleOrder = [],
+  srcCycleKey = "",
+  sourceItem = null,
+  fieldKeys = [],
+  nowIso = ""
+) {
+  if (
+    !cyclesMap ||
+    typeof cyclesMap !== "object" ||
+    !sourceItem ||
+    !Array.isArray(fieldKeys) ||
+    fieldKeys.length === 0
+  ) {
+    return [];
+  }
+  const srcCycle = String(srcCycleKey || sourceItem._cycleKey || "").trim();
+  const srcRev = cyclesMap[srcCycle]?.reviews?.[sourceItem.app] || {};
+  const srcDesc = buildPlatMatchDescriptor(sourceItem, srcRev);
+
+  const ordered =
+    Array.isArray(cycleOrder) && cycleOrder.length > 0 ? cycleOrder : Object.keys(cyclesMap);
+  const touched = [];
+
+  for (const ck of ordered) {
+    const cyc = cyclesMap[ck];
+    if (!cyc || !Array.isArray(cyc.items)) continue;
+    if (!cyc.reviews || typeof cyc.reviews !== "object") cyc.reviews = {};
+    for (const peerIt of cyc.items) {
+      if (ck === srcCycle && peerIt.app === sourceItem.app) continue;
+      const peerRev = cyc.reviews[peerIt.app] ? { ...cyc.reviews[peerIt.app] } : {};
+      if (!arePlatItemsCrossCycleMatch(srcDesc, peerIt, peerRev)) continue;
+
+      const peerHuman = new Set(
+        Array.isArray(peerRev.humanEditedFields) ? peerRev.humanEditedFields.map(String) : []
+      );
+      const peerCarried = new Set(
+        Array.isArray(peerRev.carriedFields) ? peerRev.carriedFields.map(String) : []
+      );
+      let changed = false;
+
+      for (const fk of fieldKeys) {
+        if (fk === "tier") {
+          if (peerHuman.has("tier")) continue;
+          const nextTier = String(srcRev.tier || "");
+          const matChanges = ck > srcCycle ? detectMaterialPlatChanges(peerIt, sourceItem) : [];
+          if (matChanges.length > 0) {
+            if (canCarryPlatTierAcrossMaterialChange(nextTier, peerRev.tier)) {
+              if ((peerRev.tier || "") !== nextTier || peerRev.tierConfirmed) {
+                peerRev.tier = nextTier;
+                peerRev.tierConfirmed = false;
+                delete peerRev.carriedConfirmedFromCycle;
+                peerCarried.delete("tierConfirmed");
+                peerCarried.add("tier");
+                peerRev.reReviewReason = matChanges.join("; ");
+                changed = true;
+              }
+            }
+            continue;
+          }
+          const nextConf = Boolean(srcRev.tierConfirmed);
+          if ((peerRev.tier || "") !== nextTier || Boolean(peerRev.tierConfirmed) !== nextConf) {
+            peerRev.tier = nextTier;
+            peerRev.tierConfirmed = nextConf;
+            if (nextConf) {
+              peerRev.carriedConfirmedFromCycle = srcCycle;
+              peerCarried.add("tierConfirmed");
+              delete peerRev.reReviewReason;
+            } else {
+              delete peerRev.carriedConfirmedFromCycle;
+              peerCarried.delete("tierConfirmed");
+            }
+            peerCarried.add("tier");
+            changed = true;
+          }
+          continue;
+        }
+        if (peerHuman.has(fk)) continue;
+        const val = String(srcRev[fk] ?? "");
+        if ((peerRev[fk] || "") !== val) {
+          peerRev[fk] = val;
+          peerCarried.add(fk);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        peerRev.carriedFromCycle = srcCycle;
+        peerRev.carriedFields = formatCarriedFieldsList(peerCarried);
+        peerRev.updated = srcRev.updated || nowIso || new Date().toISOString();
+        cyc.reviews[peerIt.app] = peerRev;
+        peerIt._c = classifyPlatItem(peerIt, peerRev);
+        touched.push({ cycleKey: ck, appNo: peerIt.app });
+      }
+    }
+  }
+  return touched;
 }
 
 /**

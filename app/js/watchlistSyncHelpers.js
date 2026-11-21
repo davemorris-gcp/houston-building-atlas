@@ -18,9 +18,10 @@ import {
   parseHcadAccountList,
   hasHumanDossierContributions,
   getCanonicalPlatAppIds,
-  areContinuitySnapshotsCompatible,
-  normalizeContinuityPlatName,
+  buildPlatMatchDescriptor,
+  arePlatItemsCrossCycleMatch,
   classifyPlatItem,
+  detectMaterialPlatChanges,
   stripCorporateSuffixCommas,
   cleanEntityListString,
   canonicalPropertyAddressKey,
@@ -134,19 +135,39 @@ export function createWatchlistTombstone(
   });
 }
 
+// Rejects legacy pre-fix seeds where 4-5 digit subdivision plat AppNos (`2026-XXXX`) were
+// mistakenly prefixed with `DPV-`; legitimate COH Section K DPVs use 8-digit ILMS project
+// IDs (`DPV-26XXXXXX`). Mirrored 1:1 in `pipeline/atlas_pipeline/schema.py`.
+export const BOGUS_DPV_SUBDIV_SEED_RE = /^(?:plat-)?DPV-20\d{2}-\d{3,5}$/i;
+
+// Rejects unedited machine seeds from the phantom Friday `2026-10-16` cycle key created
+// before fractional Excel 2:30 PM meeting serials (`0.604167`) were floored to Thursday
+// `2026-10-15`. Mirrored 1:1 in `pipeline/atlas_pipeline/schema.py`.
+export const RETRACTED_ROUNDED_CYCLE_KEY = "2026-10-16";
+
+// Canonical age threshold (in days) beyond which backdated automated agency filings
+// are treated as non-adverse historical baseline context rather than net-new escalations.
+// Mirrored 1:1 with `HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS` in `pipeline/atlas_pipeline/schema.py`.
+export const HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS = 180;
+
 /**
  * Return true when a RAW (pre-normalization) Watchlist record is a legacy auto-dumped unconfirmed
  * plat seed or retracted pre-Pass-2 baseline mis-geocode without human dossier contributions (DF-1).
  */
 export function isLegacyUnconfirmedPlatSeed(rawProp) {
   if (!rawProp || typeof rawProp !== "object") return false;
-  if (isRemovedWatchlistTombstone(rawProp)) return false;
   const pid = String(rawProp.id || "").trim();
   const appRef = String(
     rawProp.appNo || rawProp.sourcePlatApp || (pid.startsWith("plat-") ? pid.slice(5) : "")
   ).trim();
+  if (BOGUS_DPV_SUBDIV_SEED_RE.test(pid) || BOGUS_DPV_SUBDIV_SEED_RE.test(appRef)) {
+    return true;
+  }
+  if (isRemovedWatchlistTombstone(rawProp)) return false;
   if (!pid.startsWith("plat-") && !appRef) return false;
   if (hasHumanDossierContributions(rawProp)) return false;
+  const srcCycle = String(rawProp.sourceCycleKey || rawProp.cycleKey || "").trim();
+  if (srcCycle === RETRACTED_ROUNDED_CYCLE_KEY) return true;
   if (rawProp.tierConfirmed !== true) return true;
   const updatedByLower = String(rawProp.updatedBy || "").trim().toLowerCase();
   if (updatedByLower.includes("houston building atlas") && rawProp.humanEdited !== true) {
@@ -1100,14 +1121,32 @@ export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
   return pills;
 }
 
-export function isAutoSweepFinding(checkEntry) {
+export function isAutoSweepCheck(checkEntry) {
   if (!checkEntry || typeof checkEntry !== "object") return false;
-  if (checkEntry.source === "auto-sweep") return true;
+  if (String(checkEntry.source || "").trim().toLowerCase() === "auto-sweep") return true;
+  if (checkEntry.automated === true) return true;
   return /^\[AUTO-SWEEP\]/i.test(String(checkEntry.result || "").trim());
 }
+/** @deprecated Use isAutoSweepCheck. */
+export const isAutoSweepFinding = isAutoSweepCheck;
 
-export function isAdverseAutoSweepFinding(checkEntry) {
-  if (!isAutoSweepFinding(checkEntry)) return false;
+export function isHistoricalAutoSweepDate(
+  filingDateIso,
+  refDateIso,
+  maxAgeDays = HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS
+) {
+  const fil = String(filingDateIso || "").trim().slice(0, 10);
+  const ref = String(refDateIso || "").trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fil) || !/^\d{4}-\d{2}-\d{2}$/.test(ref)) return false;
+  const filMs = Date.parse(`${fil}T00:00:00Z`);
+  const refMs = Date.parse(`${ref}T00:00:00Z`);
+  if (!Number.isFinite(filMs) || !Number.isFinite(refMs)) return false;
+  return Math.round((refMs - filMs) / 86400000) > maxAgeDays;
+}
+
+export function isAdverseAutoSweepCheck(checkEntry) {
+  if (!isAutoSweepCheck(checkEntry)) return false;
+  if (checkEntry.historicalBaseline === true) return false;
   if (typeof checkEntry.adverse === "boolean") return checkEntry.adverse;
   const text = String(checkEntry.result || "");
   if (
@@ -1117,6 +1156,8 @@ export function isAdverseAutoSweepFinding(checkEntry) {
   }
   return true;
 }
+/** @deprecated Use isAdverseAutoSweepCheck. */
+export const isAdverseAutoSweepFinding = isAdverseAutoSweepCheck;
 
 export function getAutoSweepDedupeKey(rowId, checkEntry) {
   const rid = String(rowId || "").trim().toLowerCase();
@@ -1147,8 +1188,8 @@ export function rebuildFindingsLog(prop) {
         rowId: row.id || "",
         checkIndex: idxChk,
         result: chk.result || "",
-        source: isAutoSweepFinding(chk) ? "auto-sweep" : "manual",
-        automated: isAutoSweepFinding(chk) || Boolean(row.automated),
+        source: isAutoSweepCheck(chk) ? "auto-sweep" : "manual",
+        automated: isAutoSweepCheck(chk) || Boolean(row.automated),
         links: cleanLinks,
         _order: `${chk.date || "9999-99-99"}-${String(idxRow).padStart(2, "0")}-${String(
           idxChk
@@ -1158,6 +1199,7 @@ export function rebuildFindingsLog(prop) {
       if (chk.loggedAt) entry.loggedAt = String(chk.loggedAt);
       if (chk.agencyRecordId) entry.agencyRecordId = String(chk.agencyRecordId);
       if (typeof chk.adverse === "boolean") entry.adverse = chk.adverse;
+      if (chk.historicalBaseline === true) entry.historicalBaseline = true;
       log.push(entry);
     });
   });
@@ -1184,7 +1226,7 @@ export function isCheckEntryDeleted(rowId = "", chk = {}, deletedCheckKeys = [])
   const delSet = new Set(deletedCheckKeys.map((k) => String(k || "").trim().toUpperCase()));
   const k1 = buildCheckDeletionKey(rowId, chk).toUpperCase();
   if (delSet.has(k1)) return true;
-  if (isAutoSweepFinding(chk)) {
+  if (isAutoSweepCheck(chk)) {
     const k2 = getAutoSweepDedupeKey(rowId, chk).toUpperCase();
     if (delSet.has(k2)) return true;
   }
@@ -1245,7 +1287,7 @@ export function updateChecklistEntryInProperty(
   const newDelKey = buildCheckDeletionKey(row.id, updatedChk);
   if (oldDelKey && oldDelKey.toUpperCase() !== newDelKey.toUpperCase()) {
     const extraDelKeys = [oldDelKey];
-    if (isAutoSweepFinding(oldChk)) {
+    if (isAutoSweepCheck(oldChk)) {
       extraDelKeys.push(getAutoSweepDedupeKey(row.id, oldChk));
     }
     prop.deletedCheckKeys = uniqueNonEmptyStrings([
@@ -1374,6 +1416,7 @@ export function normalizeWatchProperty(rawProp = {}) {
         if (c?.loggedAt) entry.loggedAt = String(c.loggedAt);
         if (c?.agencyRecordId) entry.agencyRecordId = String(c.agencyRecordId);
         if (typeof c?.adverse === "boolean") entry.adverse = c.adverse;
+        if (c?.historicalBaseline === true) entry.historicalBaseline = true;
         const cleanLinks = sanitizeExternalLinksList(c?.links);
         if (cleanLinks.length > 0) entry.links = cleanLinks;
         return entry;
@@ -1850,7 +1893,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     let lockedManualList = false;
     for (const srcRow of orderedManualSources) {
       for (const chk of srcRow.checks || []) {
-        if (isAutoSweepFinding(chk)) continue;
+        if (isAutoSweepCheck(chk)) continue;
         if (isCheckEntryDeleted(tpl.id, chk, unionDeletedCheckKeys)) continue;
         const mKey = `${chk.date || ""}::${String(chk.result || "").trim()}`;
         if (!manualByKey.has(mKey)) {
@@ -1875,13 +1918,41 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       }
     }
 
+    const latestRowSweep =
+      [sRow, cRow, lRow]
+        .map((r) => String(r?.lastAutoSweepAt || ""))
+        .filter(Boolean)
+        .sort()
+        .pop() || "";
+    const sRowSweepAt = String(sRow?.lastAutoSweepAt || "");
+    const sRowTdlrIds =
+      tpl.id === "chk-10" && sRow
+        ? new Set(
+            (sRow.checks || [])
+              .map((c) => String(c?.agencyRecordId || "").trim())
+              .filter((id) => id.startsWith("tdlr-tabs:"))
+          )
+        : null;
+
     // Union-merge all machine [AUTO-SWEEP] checks across static, cloud, and local idempotently,
-    // retaining the earliest discoveredAt when an identical finding exists across sources.
+    // retaining the earliest discoveredAt while pruning older cloud/local false-substring TDLR hits.
     const autoByKey = new Map();
     for (const srcRow of [sRow, cRow, lRow].filter(Boolean)) {
+      const srcSweepAt = String(srcRow.lastAutoSweepAt || "");
       for (const chk of srcRow.checks || []) {
-        if (!isAutoSweepFinding(chk)) continue;
+        if (!isAutoSweepCheck(chk)) continue;
         if (isCheckEntryDeleted(tpl.id, chk, unionDeletedCheckKeys)) continue;
+        const recId = String(chk.agencyRecordId || "").trim();
+        if (
+          sRowTdlrIds &&
+          srcRow !== sRow &&
+          recId.startsWith("tdlr-tabs:") &&
+          sRowSweepAt &&
+          (!srcSweepAt || sRowSweepAt > srcSweepAt) &&
+          !sRowTdlrIds.has(recId)
+        ) {
+          continue;
+        }
         const aKey = getAutoSweepDedupeKey(tpl.id, chk);
         if (!autoByKey.has(aKey)) {
           autoByKey.set(aKey, {
@@ -1899,7 +1970,14 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
         }
       }
     }
-    const autoChecks = Array.from(autoByKey.values());
+    const autoChecks = Array.from(autoByKey.values()).map((entry) => {
+      const refDisc =
+        entry.discoveredAt || base.keyDates?.monitoringStarted || latestRowSweep || "";
+      if (entry.historicalBaseline === true || isHistoricalAutoSweepDate(entry.date, refDisc)) {
+        return { ...entry, historicalBaseline: true, adverse: false };
+      }
+      return entry;
+    });
 
     const combinedChecks = [...manualChecks, ...autoChecks].sort((a, b) =>
       String(a.date || "").localeCompare(String(b.date || ""))
@@ -1923,7 +2001,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     const hasUnseenAdverseAutoHit =
       !isTerminalStatus &&
       autoChecks.some((chk) => {
-        if (!isAdverseAutoSweepFinding(chk)) return false;
+        if (!isAdverseAutoSweepCheck(chk)) return false;
         const effectiveHitDate =
           [String(chk.discoveredAt || ""), String(chk.date || "")]
             .filter(Boolean)
@@ -1941,16 +2019,16 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       }
     } else if (hasUnseenAdverseAutoHit && humanStatus !== "N/A") {
       nextStatus = "Flagged";
+    } else if (
+      humanStatus === "Flagged" &&
+      !rowHumanWinner?.humanStatusEdited &&
+      manualChecks.length === 0 &&
+      !hasUnseenAdverseAutoHit
+    ) {
+      nextStatus = combinedChecks.length > 0 ? "In Progress" : "To Do";
     } else if (humanStatus === "To Do" && autoChecks.length > 0 && !hasUnseenAdverseAutoHit) {
       nextStatus = "In Progress";
     }
-
-    const latestRowSweep =
-      [sRow, cRow, lRow]
-        .map((r) => String(r?.lastAutoSweepAt || ""))
-        .filter(Boolean)
-        .sort()
-        .pop() || "";
 
     const mergedRow = {
       ...tpl,
@@ -2131,7 +2209,7 @@ export function mergeDuplicateWatchlistPair(propA, propB) {
     for (const src of [pRow, sRow].filter(Boolean)) {
       for (const c of src.checks || []) {
         if (isCheckEntryDeleted(row.id, c, unionDeleted)) continue;
-        const k = isAutoSweepFinding(c)
+        const k = isAutoSweepCheck(c)
           ? getAutoSweepDedupeKey(row.id, c)
           : buildCheckDeletionKey(row.id, c).toUpperCase();
         if (!seenCheckKeys.has(k)) {
@@ -2235,20 +2313,10 @@ export function dedupeWatchlistProperties(list = []) {
   return mergedList;
 }
 
-function canonicalSitusMatchKey(rawAddr = "") {
-  return canonicalPropertyAddressKey(rawAddr);
-}
-
 /**
  * Synchronize a tier change made on the Property Watchlist back across ALL matching cycle items
- * on the Biweekly Plat Monitor (F2-01, DF-5).
- *
- * Matches safely by:
- *   1. Exact (sourceCycleKey, appNo), OR
- *   2. Canonical real application numbers (skipping PH-<n> / DPV-<1..5 digit> placeholders and
- *      guarding against recycled reference IDs via areContinuitySnapshotsCompatible), OR
- *   3. Overlapping 13-digit HCAD account numbers, OR
- *   4. Positive house number (>= 1) + simplified canonical street root (when HCAD sets do not conflict).
+ * on the Biweekly Plat Monitor (F2-01, DF-5) via shared buildPlatMatchDescriptor +
+ * arePlatItemsCrossCycleMatch, skipping post-anchor materially changed cycles across all tiers.
  */
 export function syncWatchlistTierToPlatReviews({
   prop = {},
@@ -2265,73 +2333,75 @@ export function syncWatchlistTierToPlatReviews({
   if (!prop || typeof prop !== "object" || !cleanTier || !cycles || typeof cycles !== "object") {
     return { touched: [], cycles };
   }
+  const isCompletedWatchStatus = ["Lost", "Saved"].includes(String(prop.trackerStatus || "").trim());
+  if (isCompletedWatchStatus && cleanTier !== "4") {
+    return { touched: [], cycles };
+  }
 
   const ts = nowIso || new Date().toISOString();
   const srcCycle = String(prop.sourceCycleKey || "").trim();
   const propApp = String(prop.appNo || prop.sourcePlatApp || "").trim();
-  const propAppIds = new Set(getCanonicalPlatAppIds(prop));
-  const propHcads = parseHcadAccountList(prop.hcadAccount || "").hcadIds;
-  const propHcadSet = new Set(propHcads);
-  const propNormName = normalizeContinuityPlatName(
-    prop.platProjectName || prop.propertyName || ""
-  );
-  const propAddrKey = canonicalSitusMatchKey(prop.address || "");
+  const propDesc = buildPlatMatchDescriptor(prop);
   const wpMs = Date.parse(prop.updatedAt || prop.archivedAt || "") || 0;
+  const wpAnchorDay =
+    [
+      String(prop.archivedAt || "").trim().slice(0, 10),
+      String(prop.updatedAt || "").trim().slice(0, 10),
+      srcCycle.slice(0, 10),
+    ]
+      .filter(Boolean)
+      .sort()
+      .pop() || "";
 
-  const orderedCycles =
+  const orderedCycles = (
     Array.isArray(cycleOrder) && cycleOrder.length > 0
       ? cycleOrder.filter((ck) => Object.prototype.hasOwnProperty.call(cycles, ck))
-      : Object.keys(cycles);
+      : Object.keys(cycles)
+  )
+    .slice()
+    .sort();
 
   const touched = [];
+  let priorMatchedItem = null;
+  let divergedAfterAnchor = false;
   for (const ck of orderedCycles) {
     const cyc = cycles[ck];
     if (!cyc || !Array.isArray(cyc.items)) continue;
     if (!cyc.reviews || typeof cyc.reviews !== "object") cyc.reviews = {};
     for (const it of cyc.items) {
       const curRev = cyc.reviews[it.app] ? { ...cyc.reviews[it.app] } : {};
-      const itHcads = parseHcadAccountList(
-        [curRev.hcad || "", it.hcad || "", it.atlas?.hcad_num || ""].join(" ")
-      ).hcadIds;
-      const itNormName = normalizeContinuityPlatName(it.name || "");
-      const itAddrKey = canonicalSitusMatchKey(
-        curRev.address || it.atlas?.primaryAddress || it.noticeLocation || ""
-      );
-
       const exactSource = Boolean(srcCycle && ck === srcCycle && propApp && it.app === propApp);
-      let appMatch = false;
-      if (!exactSource && propAppIds.size > 0) {
-        const itAppIds = getCanonicalPlatAppIds(it);
-        if (itAppIds.some((id) => propAppIds.has(id))) {
-          appMatch = areContinuitySnapshotsCompatible(
-            itHcads,
-            itNormName,
-            propHcads,
-            propNormName
-          );
-        }
+      if (!exactSource && !arePlatItemsCrossCycleMatch(propDesc, it, curRev)) continue;
+      const sameTrackedPlatApp =
+        propDesc.appIds.size > 0 &&
+        getCanonicalPlatAppIds(it).some((id) => propDesc.appIds.has(id));
+      if (
+        !exactSource &&
+        respectNewerReviews &&
+        wpAnchorDay &&
+        ck > wpAnchorDay &&
+        (divergedAfterAnchor ||
+          (!priorMatchedItem && !sameTrackedPlatApp) ||
+          (priorMatchedItem && detectMaterialPlatChanges(it, priorMatchedItem).length > 0))
+      ) {
+        divergedAfterAnchor = true;
+        continue;
       }
-      const hcadMatch = Boolean(
-        propHcadSet.size > 0 && itHcads.some((id) => propHcadSet.has(id))
-      );
-      const addrMatch = Boolean(
-        propAddrKey &&
-          itAddrKey === propAddrKey &&
-          !(
-            propHcadSet.size > 0 &&
-            itHcads.length > 0 &&
-            !itHcads.some((id) => propHcadSet.has(id))
-          )
-      );
-
-      if (!exactSource && !appMatch && !hcadMatch && !addrMatch) continue;
-      if (respectNewerReviews && wpMs > 0) {
-        const revMs = Date.parse(curRev.updated || "") || 0;
-        if (revMs > wpMs) {
+      priorMatchedItem = it;
+      if (respectNewerReviews) {
+        const revIsMachineOnly = Boolean(
+          (curRev.autoEnriched === true || curRev.carriedConfirmedFromCycle) &&
+            !curRev.reviewer &&
+            !(Array.isArray(curRev.humanEditedFields) && curRev.humanEditedFields.length > 0) &&
+            !(curRev.tierConfirmed && !curRev.carriedConfirmedFromCycle)
+        );
+        const revMs = revIsMachineOnly ? 0 : Date.parse(curRev.updated || "") || 0;
+        if (revMs > 0 && (wpMs <= 0 || revMs >= wpMs)) {
           if (
             (curRev.tier === "1" || curRev.tier === "2") &&
             Boolean(prop.tierConfirmed) &&
             !isArchivedWatchlistStatus(prop) &&
+            !isCompletedWatchStatus &&
             !curRev.tierConfirmed
           ) {
             curRev.tierConfirmed = true;
@@ -2774,10 +2844,17 @@ export function parseCloudSheetSyncRows(csvText = "") {
       const appNo = String(
         parsed.appNo || parsed.app || (parts.length >= 3 ? parts.slice(2).join(":") : "")
       ).trim();
-      if (!appNo) continue;
+      if (!appNo || BOGUS_DPV_SUBDIV_SEED_RE.test(appNo)) continue;
       const revObj = {
         ...(parsed.review && typeof parsed.review === "object" ? parsed.review : parsed),
       };
+      if (
+        cycleKey === RETRACTED_ROUNDED_CYCLE_KEY &&
+        !revObj.humanEdited &&
+        !(Array.isArray(revObj.humanEditedFields) && revObj.humanEditedFields.length > 0)
+      ) {
+        continue;
+      }
       if (sheetYr && sheetYr !== "0" && !revObj.yearBuilt) revObj.yearBuilt = sheetYr;
       if (sheetDesig && !revObj.designation) revObj.designation = sheetDesig;
       if (sheetTier && !revObj.tier) revObj.tier = sheetTier;
