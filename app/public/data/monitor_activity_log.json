@@ -1,21 +1,19 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-21T18:39:03Z",
-  "lastSweepAt": "2026-11-21T18:32:58Z",
+  "generatedAt": "2026-11-22T18:59:40Z",
+  "lastSweepAt": "2026-11-22T18:56:54Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-24",
+  "retentionFloorDate": "2026-08-25",
   "lastSweepHealth": {
-    "timestamp": "2026-11-21T18:32:58Z",
+    "timestamp": "2026-11-22T18:56:54Z",
     "sweepsExecuted": true,
     "propertiesSwept": 39,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
-    "failedAgencies": [
-      "chk-15"
-    ],
+    "succeededAgencies": 8,
+    "failedAgencies": [],
     "skippedAgencies": [],
-    "allOk": false,
+    "allOk": true,
     "agencies": {
       "chk-04": {
         "status": "ok",
@@ -67,29 +65,48 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 39,
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "failedPropertyCount": 0,
+        "error": ""
       }
     }
   },
   "summary": {
     "totalEvents": 1506,
-    "criticalCount": 468,
+    "criticalCount": 470,
     "warningCount": 372,
-    "infoCount": 666,
+    "infoCount": 664,
     "byStream": {
-      "watchlist": 342,
-      "agenda": 279,
-      "staff": 388,
+      "watchlist": 344,
+      "agenda": 278,
+      "staff": 387,
       "permits": 497
     },
     "operationalNoticeCount": 19,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-22",
+      "lastRunAt": "2026-11-22T18:59:40Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 39,
+      "totalAgencies": 8,
+      "succeededAgencies": 8,
+      "failedAgencies": [],
+      "allOk": true,
+      "eventCount": 2,
+      "adverseEventCount": 2,
+      "byStream": {
+        "watchlist": 2,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-21",
       "lastRunAt": "2026-11-21T18:39:03Z",
@@ -254,12 +271,12 @@
       "succeededAgencies": 8,
       "failedAgencies": [],
       "allOk": true,
-      "eventCount": 144,
+      "eventCount": 143,
       "adverseEventCount": 0,
       "byStream": {
         "watchlist": 2,
         "agenda": 0,
-        "staff": 142,
+        "staff": 141,
         "permits": 0
       }
     },
@@ -1895,29 +1912,63 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-24",
-      "lastRunAt": "2026-08-24T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "propertiesSwept": 20,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 1,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 1,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "wl:auto:plat-PH-135:chk-14:txt:1e06f032",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-22",
+      "localDate": "2026-11-22",
+      "timestamp": "2026-11-22T18:59:40Z",
+      "discoveredAt": "2026-11-22T18:59:40Z",
+      "loggedAt": "",
+      "title": "Eastwood Street Villas: Demolition & Building Permits",
+      "summary": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-31: RES DEMO/SEWER DISC).",
+      "address": "7108 EASTWOOD",
+      "hcad": "0332280550022",
+      "watchPropertyId": "plat-PH-135",
+      "checkId": "chk-14",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.6858,
+      "lng": -95.35616,
+      "yearBuilt": "1949",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:auto:plat-2026-1442:chk-14:txt:178c232c",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-22",
+      "localDate": "2026-11-22",
+      "timestamp": "2026-11-22T18:59:40Z",
+      "discoveredAt": "2026-11-22T18:59:40Z",
+      "loggedAt": "",
+      "title": "Forest Green Reserve: Demolition & Building Permits",
+      "summary": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-31: RES DEMO/SEWER DISC).",
+      "address": "8803 FOREST HOLLOW ST",
+      "hcad": "1023520000101",
+      "watchPropertyId": "plat-2026-1442",
+      "checkId": "chk-14",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.86458,
+      "lng": -95.26207,
+      "yearBuilt": "1968",
+      "designation": "None found",
+      "links": []
+    },
     {
       "id": "wl:status:plat-2026-1442:chk-14:flagged:2026-11-21",
       "stream": "watchlist",
@@ -20074,33 +20125,6 @@
           "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
         }
       ]
-    },
-    {
-      "id": "staff:prop:plat-2026-1585:edited:2026-11-14",
-      "stream": "staff",
-      "kind": "watchlist_property_edited",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-11-14",
-      "localDate": "2026-11-14",
-      "timestamp": "2026-11-14T21:48:08.689Z",
-      "discoveredAt": "2026-11-21T18:39:03Z",
-      "loggedAt": "2026-11-14T21:48:08.689Z",
-      "title": "Watchlist Dossier Updated: Montrose Residences",
-      "summary": "Updated buyer/related entities by emily@preservationhouston.org.",
-      "address": "1226 W PIERCE ST",
-      "hcad": "1490700010001",
-      "watchPropertyId": "plat-2026-1585",
-      "checkId": "",
-      "cycleKey": "",
-      "appNo": "",
-      "occKey": "",
-      "buildingId": "",
-      "lat": 29.75416,
-      "lng": -95.39492,
-      "yearBuilt": "2025",
-      "designation": "None found",
-      "links": []
     },
     {
       "id": "staff:review:2026-10-29:2026-1562:t3",
@@ -63479,38 +63503,6 @@
           "facility_owner": "HARRIS COUNTY FLOOD"
         }
       }
-    },
-    {
-      "id": "agenda:item:2026-10-29:2026-1427:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-08-24",
-      "localDate": "2026-08-24",
-      "timestamp": "2026-08-24T12:00:00Z",
-      "discoveredAt": "2026-08-24T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-10-29): Neyland Manors (2026-1427)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1948.",
-      "address": "604 NEYLAND ST",
-      "hcad": "0661100030002",
-      "watchPropertyId": "",
-      "checkId": "",
-      "cycleKey": "2026-10-29",
-      "appNo": "2026-1427",
-      "occKey": "2026-10-29::2026-1427",
-      "buildingId": "",
-      "lat": 29.82565,
-      "lng": -95.39165,
-      "yearBuilt": 1948,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D"
-        }
-      ]
     }
   ]
 }
