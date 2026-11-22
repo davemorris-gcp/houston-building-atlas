@@ -19,6 +19,7 @@ from atlas_pipeline.schema import (
     ACTIVE_TAX_YEAR,
     DEFAULT_ATLAS_BASE_URL,
     DEFAULT_ATLAS_SANDBOX_URL,
+    is_demolished_permit_alert,
     sanitize_atlas_text,
 )
 
@@ -378,14 +379,20 @@ def build_llms_full_txt_content(
             seen_alert_idx.add(idx)
     dshs_demo_added = 0
     dshs_abatement_added = 0
+    demolished_added = 0
     for idx, al in enumerate(alerts_list):
         if idx in seen_alert_idx or not isinstance(al, dict):
             continue
+        is_demo_site = is_demolished_permit_alert(al)
         lbl = (
             f"{al.get('permit_stage_label') or ''} {al.get('badge') or ''} "
             f"{al.get('severity_label') or ''} {al.get('source') or ''}"
         ).lower()
-        if "dshs abatement" in lbl and dshs_abatement_added < 10:
+        if is_demo_site and demolished_added < 5:
+            selected_alerts.append(al)
+            seen_alert_idx.add(idx)
+            demolished_added += 1
+        elif "dshs abatement" in lbl and dshs_abatement_added < 10:
             selected_alerts.append(al)
             seen_alert_idx.add(idx)
             dshs_abatement_added += 1
@@ -393,13 +400,14 @@ def build_llms_full_txt_content(
             selected_alerts.append(al)
             seen_alert_idx.add(idx)
             dshs_demo_added += 1
-        if dshs_demo_added >= 10 and dshs_abatement_added >= 10:
+        if dshs_demo_added >= 10 and dshs_abatement_added >= 10 and demolished_added >= 5:
             break
 
     for al in selected_alerts:
         if not isinstance(al, dict):
             continue
-        sev = _clean_dash_text(al.get("severity") or "watch").upper()
+        is_demo_row = is_demolished_permit_alert(al)
+        sev = "DEMOLISHED" if is_demo_row else _clean_dash_text(al.get("severity") or "watch").upper()
         sig = _clean_dash_text(
             al.get("permit_stage_label")
             or al.get("badge")

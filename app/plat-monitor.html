@@ -279,8 +279,8 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
 .act-prop-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--line)}
 .act-prop-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.3}
 .act-prop-sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
-.plat-gis-box{display:grid;grid-template-columns:168px minmax(0,1fr);gap:14px;align-items:center;background:#F3F8FC;border:1px solid #C5DCEF;border-radius:6px;padding:10px 12px;margin:10px 0 12px}
-.plat-gis-svg-wrap{background:#fff;border:1px solid #D0E1F0;border-radius:5px;padding:6px;display:flex;align-items:center;justify-content:center}
+.plat-gis-box{display:grid;grid-template-columns:168px minmax(0,1fr);gap:14px;align-items:center;background:#F3F8FC;border:1px solid #C5DCEF;border-radius:8px;padding:10px 12px;margin:10px 0 12px}
+.plat-gis-svg-wrap{display:flex;align-items:center;justify-content:center}
 .re-review-banner{background:#FFF4E5;border:1px solid #F0B465;color:#7A4100;padding:9px 12px;border-radius:6px;margin:8px 0 12px;font-size:13px;line-height:1.45}
 
 /* Start screen */
@@ -637,6 +637,14 @@ import {
   syncUserRoamingStateWithCloud,
 } from "./js/userRoamingState.js?v=20261113c";
 
+import {
+  computeHoustonDowntownContext,
+  ensureSpatialContextThumbnailsInitialized,
+  renderSpatialContextThumbnailHtml,
+} from "./js/spatialContextThumbnails.js?v=20261113c";
+
+ensureSpatialContextThumbnailsInitialized();
+
 /* ---------- Storage ---------- */
 const store = {
   get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(_e){ return null; } },
@@ -945,10 +953,35 @@ let view = {
 };
 
 let atlasLookupCachePromise = null;
+let atlasLookupSnapshot = null;
+let atlasLookupHydrating = false;
+let permitAlertsPayloadCache = null;
 let monitorManifestPromise = null;
 const addressShardCache = new Map();
 const liveHcadParcelCache = new Map();
 const liveHcadGradeCache = new Map();
+
+function setPermitAlertsPayloadCache(data){
+  permitAlertsPayloadCache = data || null;
+  if (typeof window !== "undefined") window.__permitAlertsPayload = permitAlertsPayloadCache;
+}
+
+function getPermitAlertsPayloadCache(){
+  return permitAlertsPayloadCache || (typeof window !== "undefined" ? window.__permitAlertsPayload || null : null);
+}
+
+function requestAtlasLookupHydration(){
+  if (atlasLookupSnapshot || atlasLookupHydrating) return;
+  atlasLookupHydrating = true;
+  ensureLocalAtlasLookupContext()
+    .then(() => {
+      if (view.mode === "agenda") renderDetail();
+      else if (view.mode === "watchlist") renderWatchlistDetail();
+    })
+    .finally(() => {
+      atlasLookupHydrating = false;
+    });
+}
 
 function ensureMonitorManifest(){
   if (!monitorManifestPromise) {
@@ -1001,16 +1034,20 @@ async function ensureLocalAtlasLookupContext(){
               existing.lat = Number(pt[1]);
             }
           }
+          if (!existing.geometry && feat?.geometry) {
+            existing.geometry = feat.geometry;
+          }
           localHcadMap.set(hid, existing);
         }
       };
       ingestFc(bldRes);
       ingestFc(pclRes);
-      return {
+      atlasLookupSnapshot = {
         curatedOverrides: ovRes?.overrides || ovRes || {},
         localHcadMap,
         overlays: ovlRes || {},
       };
+      return atlasLookupSnapshot;
     })();
   }
   return atlasLookupCachePromise;
@@ -1784,7 +1821,7 @@ function markActivityDirty(){
 function getActivityViewContext(){
   const nowIso = new Date().toISOString();
   const minuteBucket = nowIso.slice(0, 16);
-  const alertsRef = window.__permitAlertsPayload || null;
+  const alertsRef = getPermitAlertsPayloadCache();
   const wlLen = Array.isArray(WL.watchedProperties) ? WL.watchedProperties.length : 0;
   const tbLen = WL.removedTombstones ? Object.keys(WL.removedTombstones).length : 0;
   const dataKey = [
@@ -2167,7 +2204,7 @@ function updateModeButtons(precomputedActCtx = null){
 }
 
 function buildDemoStageHtml(){
-  const b = resolveAnnualDemolitionBenchmarks(window.__permitAlertsPayload);
+  const b = resolveAnnualDemolitionBenchmarks(getPermitAlertsPayloadCache());
   const defCoh = DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions;
   const ytdRow = (b.coh_structural_demolitions || [])[0] || defCoh[0];
   const fy25Row = (b.coh_structural_demolitions || [])[1] || defCoh[1];
@@ -2182,7 +2219,7 @@ function buildDemoStageHtml(){
 function renderDemoBenchmarksDrawer(){
   const drawer = $("#demoBenchmarksDrawer");
   if (!drawer) return;
-  const payload = window.__permitAlertsPayload || null;
+  const payload = getPermitAlertsPayloadCache();
   const b = resolveAnnualDemolitionBenchmarks(payload);
   const def = DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS;
   const s = (payload && payload.summary) || {};
@@ -2250,7 +2287,7 @@ function toggleDemoBenchmarksDrawer(forceState){
 }
 
 async function copyDemoBenchmarksSummary(){
-  const txt = formatDemolitionBenchmarksGrantText(window.__permitAlertsPayload || null);
+  const txt = formatDemolitionBenchmarksGrantText(getPermitAlertsPayloadCache());
   try {
     await navigator.clipboard.writeText(txt);
   } catch (_e) {
@@ -2265,7 +2302,7 @@ async function copyDemoBenchmarksSummary(){
 }
 
 async function copyDemoPolicyBriefRichTables(btnEl){
-  const payload = window.__permitAlertsPayload || null;
+  const payload = getPermitAlertsPayloadCache();
   const html = formatDemolitionPolicyBriefRichHtml(payload);
   const txt = formatDemolitionPolicyBriefText(payload);
   try {
@@ -2939,56 +2976,42 @@ function findLinkedWatchProp(it, r){
 function renderPlatPolygonSvgPreview(it, r){
   const pt = it?.platTracker;
   if (!pt || !Array.isArray(pt.polygon) || !pt.polygon.length) return "";
-  const allPts = [];
-  for (const ring of pt.polygon) {
-    if (!Array.isArray(ring)) continue;
-    for (const c of ring) {
-      if (Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
-        allPts.push(c);
-      }
-    }
-  }
-  if (allPts.length < 3) return "";
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const [x, y] of allPts) {
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  }
-  const cosLat = Math.cos(((minY + maxY) * 0.5 * Math.PI) / 180) || 1;
-  const dx = Math.max((maxX - minX) * cosLat, 1e-6);
-  const dy = Math.max(maxY - minY, 1e-6);
-  const w = 152, h = 104, pad = 10;
-  const scale = Math.min((w - 2 * pad) / dx, (h - 2 * pad) / dy);
-  const offX = (w - dx * scale) * 0.5;
-  const offY = (h - dy * scale) * 0.5;
-  const pathData = pt.polygon
-    .map(ring => {
-      if (!Array.isArray(ring) || ring.length < 3) return "";
-      return (
-        ring
-          .map((c, idx) => {
-            const px = (offX + (c[0] - minX) * cosLat * scale).toFixed(1);
-            const py = (offY + (maxY - c[1]) * scale).toFixed(1);
-            return `${idx === 0 ? "M" : "L"}${px},${py}`;
-          })
-          .join(" ") + " Z"
-      );
-    })
-    .filter(Boolean)
-    .join(" ");
-  let interiorDot = "";
-  if (Array.isArray(pt.interiorPoint) && pt.interiorPoint.length >= 2) {
-    const ix = (offX + (pt.interiorPoint[0] - minX) * cosLat * scale).toFixed(1);
-    const iy = (offY + (maxY - pt.interiorPoint[1]) * scale).toFixed(1);
-    interiorDot = `<circle cx="${ix}" cy="${iy}" r="3.2" fill="#C43D2F" stroke="#FFFFFF" stroke-width="1.2"/>`;
-  }
+  const at = it.atlas || {};
+  const centerPt = Array.isArray(pt.interiorPoint) && pt.interiorPoint.length >= 2
+    ? pt.interiorPoint
+    : Array.isArray(pt.centroid) && pt.centroid.length >= 2
+    ? pt.centroid
+    : [Number(at.lng), Number(at.lat)];
+  const cLng = Number(centerPt[0]);
+  const cLat = Number(centerPt[1]);
+  const cleanHd = String(it.hd || "").trim();
+  const superNb = String(at.superNeighborhoodMatch || it.superN || "").trim();
+  const councilStr = String(it.council || "").replace(/^City Council\s+/i, "").trim();
+  const zoneBadgeParts = [cleanHd || superNb, councilStr].filter(Boolean);
+  const dtCtx = computeHoustonDowntownContext(cLat, cLng);
+
+  requestAtlasLookupHydration();
+  const thumbHtml = renderSpatialContextThumbnailHtml({
+    lat: cLat,
+    lng: cLng,
+    polygonRings: pt.polygon,
+    neighborhood: superNb,
+    historicDistrict: cleanHd,
+    overlaysData: atlasLookupSnapshot?.overlays || null,
+    theme: "light",
+    tone: "survey",
+    width: 164,
+    height: 106,
+    ariaLabel: `Surveyed plat boundary and Houston 610 Loop locator for ${at.primaryAddress || it.name || it.app}`,
+  });
+  if (!thumbHtml) return "";
+
   const statusChips = [
     pt.appStatus ? `<span class="chip watch">GIS Status: ${esc(pt.appStatus)}</span>` : "",
     pt.recordationStatus ? `<span class="chip ok">Recordation: ${esc(pt.recordationStatus)}</span>` : "",
     pt.reviewCycle != null ? `<span class="chip">Cycle #${esc(pt.reviewCycle)}</span>` : "",
     pt.autoResolvedHcad ? `<span class="chip ok">✓ HCAD Auto-Resolved from Surveyed Boundary</span>` : "",
+    zoneBadgeParts.length ? `<span class="chip" style="background:#E0F2FE;color:#075985;border-color:#BAE6FD">📍 ${esc(zoneBadgeParts.join(" · "))}</span>` : "",
   ].filter(Boolean).join("");
   const metaParts = [
     pt.acreage ? `${Number(pt.acreage).toFixed(3)} ac surveyed` : "",
@@ -2996,17 +3019,15 @@ function renderPlatPolygonSvgPreview(it, r){
     pt.reserveCount != null && pt.reserveCount > 0 ? `${pt.reserveCount} reserve${pt.reserveCount === 1 ? "" : "s"}` : "",
     pt.matchedParcelCount ? `${pt.matchedParcelCount} HCAD parcel${pt.matchedParcelCount === 1 ? "" : "s"} intersected` : "",
   ].filter(Boolean).join(" · ");
-  const at = it.atlas || {};
-  const mapUrl = at.lat && at.lng
-    ? `index.html?layers=plat_watch,platted_subdivisions,landmarks,historic_districts&lat=${at.lat}&lng=${at.lng}&z=17.5`
+  const mapLat = Number.isFinite(Number(at.lat)) ? at.lat : cLat;
+  const mapLng = Number.isFinite(Number(at.lng)) ? at.lng : cLng;
+  const mapUrl = Number.isFinite(Number(mapLat)) && Number.isFinite(Number(mapLng))
+    ? `index.html?layers=plat_watch,platted_subdivisions,landmarks,historic_districts&lat=${mapLat}&lng=${mapLng}&z=17.5`
     : "";
   return `
     <div class="plat-gis-box" data-plattracker-gis-box="1">
-      <div class="plat-gis-svg-wrap" title="Surveyed WGS84 plat boundary polygon from City of Houston PlatTracker GIS (PT365_PLAT_MAPPING)">
-        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="Surveyed plat boundary polygon">
-          <path d="${pathData}" fill="rgba(47,93,138,0.16)" stroke="#2F5D8A" stroke-width="2" fill-rule="evenodd"/>
-          ${interiorDot}
-        </svg>
+      <div class="plat-gis-svg-wrap">
+        ${thumbHtml}
       </div>
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--survey);margin-bottom:4px">
@@ -3014,6 +3035,7 @@ function renderPlatPolygonSvgPreview(it, r){
         </div>
         <div class="chips" style="margin-bottom:5px">${statusChips}</div>
         ${metaParts ? `<div style="font-size:12.5px;color:#3C4750">${esc(metaParts)}</div>` : ""}
+        ${dtCtx ? `<div style="font-size:12px;color:#475569;margin-top:3px"><b>Where:</b> ${esc(dtCtx.summaryText)} · <span style="color:#64748b">Hover or tap corner 610 Loop map to zoom out</span></div>` : ""}
         ${mapUrl ? `<div style="margin-top:6px"><a class="assist-pill" href="${esc(mapUrl)}" target="_blank" rel="noopener">🗺️ Inspect Plat Boundary Polygon on Atlas Map ↗</a></div>` : ""}
       </div>
     </div>
@@ -4508,20 +4530,76 @@ function renderWatchlistDetail(precomputedActCtx = null){
     ? (curatedPhoto.caption || "Curated Archival Photograph")
     : (aerialPreviewSrc ? "Parcel Aerial Imagery Preview (Esri World Imagery · Click 🚶 Open Google Street View ↗ for 360° street-level pano)" : "");
 
+  requestAtlasLookupHydration();
+  const wlPrimaryHcad = String(p.hcadAccount || "").split(/[,;\s]+/)[0]?.replace(/\D/g, "") || "";
+  const wlPaddedHcad = wlPrimaryHcad ? wlPrimaryHcad.padStart(13, "0") : "";
+  let wlPolyRings = [];
+  if (S) {
+    const allCycleItems = Object.values(S.cycles || {}).flatMap(c => c?.items || []);
+    const matchedPlat = (p.appNo && allCycleItems.find(it => String(it.app || "") === String(p.appNo) && it?.platTracker?.polygon?.length))
+      || (wlPaddedHcad && allCycleItems.find(it => String(it.hcad || "").includes(wlPaddedHcad) && it?.platTracker?.polygon?.length));
+    if (matchedPlat?.platTracker?.polygon) {
+      wlPolyRings = matchedPlat.platTracker.polygon;
+    }
+  }
+  const alertsPayload = getPermitAlertsPayloadCache();
+  if (!wlPolyRings.length && wlPaddedHcad && Array.isArray(alertsPayload?.alerts)) {
+    const matchedAl = alertsPayload.alerts.find(
+      a => (
+        String(a.hcad_num || "").trim().padStart(13, "0") === wlPaddedHcad ||
+        (Array.isArray(a.related_hcads) && a.related_hcads.some(rh => String(rh || "").trim().padStart(13, "0") === wlPaddedHcad))
+      ) && Array.isArray(a.footprint_ring) && a.footprint_ring.length >= 3
+    );
+    if (matchedAl) wlPolyRings = [matchedAl.footprint_ring];
+  }
+  if (!wlPolyRings.length && wlPaddedHcad && atlasLookupSnapshot) {
+    const ovEntry = atlasLookupSnapshot.curatedOverrides?.[wlPaddedHcad];
+    const fallbackGeom =
+      ovEntry?.geometry ||
+      ovEntry?._pre_suppress_geometry ||
+      atlasLookupSnapshot.localHcadMap?.get(wlPaddedHcad)?.geometry ||
+      null;
+    if (fallbackGeom) wlPolyRings = fallbackGeom;
+  }
+  const wlDtCtx = computeHoustonDowntownContext(p.lat, p.lng);
+  const wlThumbHtml = (Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+    ? renderSpatialContextThumbnailHtml({
+        lat: Number(p.lat),
+        lng: Number(p.lng),
+        polygonRings: wlPolyRings,
+        neighborhood: p.neighborhood || "",
+        historicDistrict: p.historicDistrict || "",
+        overlaysData: atlasLookupSnapshot?.overlays || null,
+        theme: "light",
+        tone: isLost ? "demolished" : curTier === "1" ? "critical" : "watch",
+        width: 152,
+        height: 96,
+        ariaLabel: `Block street map and Houston 610 Loop locator for ${primaryHeading}`,
+      })
+    : "";
+
   $("#detail").innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <div>
-        <h2>${esc(primaryHeading)}</h2>
-        <div class="meta" style="margin-bottom:6px">
-          ${showSubName ? `<b>${esc(p.propertyName)}</b> · ` : ""}
-          ${p.platProjectName && p.platProjectName !== p.propertyName ? `Plat: <b>${esc(p.platProjectName)}</b> · ` : ""}
-          <span class="tierbadge t${esc(curTier)}">Tier ${esc(curTier)}</span> ·
-          <b>${esc(p.trackerStatus || "Active / High Priority")}</b>
-          ${p.demolishedDate ? ` (Demolished <b>${esc(p.demolishedDate)}</b>)` : ""}
-          ${p.threatCategory ? ` · <span>${esc(p.threatCategory)}</span>` : ""}
-          · HCAD <b>${esc(p.hcadAccount || "N/A")}</b>
-          ${p.yearBuilt ? ` · Built <b>${esc(p.yearBuilt)}</b>` : ""}${p.yearRemodeled ? ` / Remodeled ${esc(p.yearRemodeled)}` : ""}
-          ${p.architect ? ` · Architect: ${esc(p.architect)}` : ""}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap;flex:1;min-width:260px">
+        ${wlThumbHtml}
+        <div style="flex:1;min-width:210px">
+          <h2>${esc(primaryHeading)}</h2>
+          <div class="meta" style="margin-bottom:4px">
+            ${showSubName ? `<b>${esc(p.propertyName)}</b> · ` : ""}
+            ${p.platProjectName && p.platProjectName !== p.propertyName ? `Plat: <b>${esc(p.platProjectName)}</b> · ` : ""}
+            <span class="tierbadge t${esc(curTier)}">Tier ${esc(curTier)}</span> ·
+            <b>${esc(p.trackerStatus || "Active / High Priority")}</b>
+            ${p.demolishedDate ? ` (Demolished <b>${esc(p.demolishedDate)}</b>)` : ""}
+            ${p.threatCategory ? ` · <span>${esc(p.threatCategory)}</span>` : ""}
+            · HCAD <b>${esc(p.hcadAccount || "N/A")}</b>
+            ${p.yearBuilt ? ` · Built <b>${esc(p.yearBuilt)}</b>` : ""}${p.yearRemodeled ? ` / Remodeled ${esc(p.yearRemodeled)}` : ""}
+            ${p.architect ? ` · Architect: ${esc(p.architect)}` : ""}
+          </div>
+          ${(p.historicDistrict || p.neighborhood || wlDtCtx) ? `
+            <div style="font-size:12px;color:#475569">
+              📍 ${esc([p.historicDistrict, p.neighborhood, wlDtCtx?.summaryText].filter(Boolean).join(" · "))}
+            </div>
+          ` : ""}
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -6576,10 +6654,13 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
   if (!foundWp && (paddedQHcad || qAddr)) {
     let alertMatch = null;
     try {
-      let alData = window.__permitAlertsPayload || null;
+      let alData = getPermitAlertsPayloadCache();
       if (!alData) {
         const alResp = await fetch("public/data/active_permit_alerts.json?v=20261113c");
-        if (alResp.ok) alData = await alResp.json();
+        if (alResp.ok) {
+          alData = await alResp.json();
+          setPermitAlertsPayloadCache(alData);
+        }
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
       alertMatch = alerts.find(a =>
@@ -6665,7 +6746,7 @@ async function loadLiveAtlasCycle(forceReload){
 
     if (alResp && alResp.ok) {
       try {
-        window.__permitAlertsPayload = await alResp.json();
+        setPermitAlertsPayloadCache(await alResp.json());
         markActivityDirty();
       } catch (_e) {}
     }

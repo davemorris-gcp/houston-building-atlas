@@ -42,7 +42,10 @@ if str(REPO_ROOT / "pipeline") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "pipeline"))
 
 from atlas_pipeline.schema import (
-    extract_curated_demolished_hcads,
+    ACTIVE_TAX_YEAR,
+    is_demolished_permit_alert,
+    is_removed_watchlist_tombstone,
+    is_sub_building_override,
     iter_json_or_gzip_shard_keys,
     read_json_or_gzip_path,
     read_json_or_gzip_shard,
@@ -73,11 +76,382 @@ def format_demolished_permit_badge_and_severity(demolished_date_str: str) -> tup
     try:
         pretty_dt = datetime.date.fromisoformat(raw).strftime("%b %-d, %Y")
     except ValueError:
-        pretty_dt = raw or "2026"
+        pretty_dt = raw or str(ACTIVE_TAX_YEAR)
     return (
         f"⚫ Demolished ({pretty_dt})",
         f"Confirmed Demolished ({pretty_dt}) • Graduated to Lost Houston",
     )
+
+
+def extract_simplified_footprint_ring(geom_obj: dict | None, max_vertices: int = 20) -> list[list[float]]:
+    """Extract a compact WGS84 outer ring `[[lng, lat], ...]` for thumbnail rendering."""
+    if not isinstance(geom_obj, dict):
+        return []
+    gtype = geom_obj.get("type")
+    coords = geom_obj.get("coordinates") or []
+    ring: list = []
+    if gtype == "Polygon" and coords and isinstance(coords[0], list):
+        ring = coords[0]
+    elif gtype == "MultiPolygon" and coords:
+        best_len = 0
+        for poly in coords:
+            if isinstance(poly, list) and poly and isinstance(poly[0], list) and len(poly[0]) > best_len:
+                ring = poly[0]
+                best_len = len(poly[0])
+    clean = [
+        [round(float(pt[0]), 6), round(float(pt[1]), 6)]
+        for pt in ring
+        if isinstance(pt, (list, tuple)) and len(pt) >= 2
+    ]
+    if len(clean) < 3:
+        return []
+    if len(clean) > max_vertices:
+        step = max(1, len(clean) // max_vertices)
+        sampled = clean[::step]
+        if sampled[-1] != clean[-1]:
+            sampled.append(clean[-1])
+        clean = sampled
+    return clean
+
+
+def _parse_four_digit_year(val: object) -> int:
+    m = re.match(r"^(\d{4})", str(val or "").strip())
+    return int(m.group(1)) if m else 0
+
+
+def index_curated_overrides_into_lookup(
+    ov_map: dict,
+    demolished_hcads_set: set[str] | dict[str, dict],
+    by_hcad: dict[str, dict],
+    by_addr: dict[str, list[dict]],
+) -> None:
+    """Index curated overrides into `by_hcad` and `by_addr` without letting sub-building overrides hijack bare 13-digit HCAD keys."""
+    for ov_key, ov in ov_map.items():
+        if not isinstance(ov, dict):
+            continue
+        key_str = str(ov_key).strip()
+        hcad = str(ov.get("hcad_num") or key_str.split("#")[0]).strip()
+        is_sub = is_sub_building_override(key_str, ov)
+        if ov.get("suppress_only") and (is_sub or hcad not in demolished_hcads_set):
+            continue
+        bid = str(ov.get("building_id") or ov.get("id") or key_str).strip()
+        addr = ov.get("address") or ""
+        na = normalize_address(addr)
+        geom_obj = ov.get("geometry") or ov.get("_pre_suppress_geometry")
+        c = compute_feature_centroid(geom_obj) if geom_obj else None
+        if not c or (abs(c[0] - (-95.3698)) < 1e-4 and abs(c[1] - 29.7604) < 1e-4):
+            continue
+        rec = {
+            "id": bid,
+            "building_id": bid,
+            "hcad_num": hcad,
+            "address": addr,
+            "year_built": ov.get("year_built") or ov.get("original_hcad_year") or 0,
+            "landmark_name": ov.get("landmark_name") or ov.get("building_name") or "",
+            "building_name": ov.get("building_name") or ov.get("landmark_name") or "",
+            "historic_district": ov.get("historic_district") or "",
+            "neighborhood": ov.get("neighborhood") or "",
+            "good_brick_summary": ov.get("good_brick_summary") or "",
+            "style": ov.get("style") or "",
+            "architect": ov.get("architect") or "",
+            "owner": ov.get("owner") or "",
+            "_centroid": c,
+            "_has_footprint": True,
+            "_footprint_ring": extract_simplified_footprint_ring(geom_obj),
+        }
+        if key_str not in by_hcad:
+            by_hcad[key_str] = rec
+        if not is_sub and hcad and hcad not in by_hcad:
+            by_hcad[hcad] = rec
+        if na and not (is_sub and (key_str in demolished_hcads_set or bid in demolished_hcads_set)):
+            by_addr.setdefault(na, []).append(rec)
+
+
+def build_general_demolished_catalog(
+    overrides_raw: dict | None = None,
+    overlays_raw: dict | None = None,
+    watchlist_raw: dict | None = None,
+) -> dict[str, dict]:
+    """
+    Build a general HCAD / sub-building -> demolished metadata map across:
+      1. `curated_overrides.json` whole-parcel overrides (`is_demolished`, `demolished_date`, `lost_houston_id`, or whole-parcel `suppress_only`; sub-building `#b2` / `osm_city_*` / `bld_*` overrides stay scoped to their exact feature key)
+      2. `overlays.json -> lost_houston` active-window graduations (`year_demolished >= ACTIVE_TAX_YEAR` without overriding standing parcel overrides)
+      3. `property_watchlist.json -> watchedProperties` (`trackerStatus == 'Lost'` / `demolishedDate` / `lostHoustonId`, excluding removed tombstones)
+    """
+    out: dict[str, dict] = {}
+    standing_override_hcads: set[str] = set()
+    ov_map = (
+        overrides_raw.get("overrides", overrides_raw)
+        if isinstance(overrides_raw, dict)
+        else {}
+    )
+    if isinstance(ov_map, dict):
+        for ov_key, ov in ov_map.items():
+            if not isinstance(ov, dict):
+                continue
+            key_str = str(ov_key).strip()
+            hcad = str(ov.get("hcad_num") or key_str.split("#")[0]).strip()
+            if not hcad:
+                continue
+            is_sub_building = is_sub_building_override(key_str, ov)
+            is_demo_entry = bool(
+                ov.get("is_demolished") is True
+                or ov.get("demolished_date")
+                or ov.get("lost_houston_id")
+                or ov.get("suppress_only") is True
+            )
+            if is_demo_entry:
+                target_key = key_str if is_sub_building else hcad
+                prev = out.get(target_key, {})
+                out[target_key] = {
+                    "is_demolished": True,
+                    "demolished_date": str(ov.get("demolished_date") or prev.get("demolished_date") or "").strip(),
+                    "lost_houston_id": str(ov.get("lost_houston_id") or prev.get("lost_houston_id") or "").strip(),
+                    "geometry": ov.get("geometry") or ov.get("_pre_suppress_geometry") or prev.get("geometry"),
+                }
+            elif not is_sub_building:
+                standing_override_hcads.add(hcad)
+
+    if isinstance(overlays_raw, dict):
+        lost_feats = (overlays_raw.get("lost_houston") or {}).get("features") or []
+        for feat in lost_feats:
+            props = (feat or {}).get("properties") or {}
+            hcad = str(props.get("hcad_num") or "").strip()
+            if not hcad or hcad in standing_override_hcads:
+                continue
+            yr_demo_str = str(
+                props.get("demolished_date")
+                or props.get("year_demolished")
+                or props.get("demolished_year")
+                or ""
+            ).strip()
+            demo_yr = _parse_four_digit_year(yr_demo_str) or _parse_four_digit_year(
+                props.get("year_demolished") or props.get("demolished_year")
+            )
+            # Only apply parcel-level Lost Houston auto-demotion for active-window demolitions
+            # (or HCADs already confirmed demolished in curated_overrides) so historical
+            # 19th/20th-century predecessors never demote standing successor landmarks.
+            if hcad not in out and demo_yr < ACTIVE_TAX_YEAR:
+                continue
+            prev = out.get(hcad, {})
+            out[hcad] = {
+                "is_demolished": True,
+                "demolished_date": prev.get("demolished_date") or yr_demo_str,
+                "lost_houston_id": prev.get("lost_houston_id") or str(props.get("id") or "").strip(),
+                "geometry": prev.get("geometry") or (feat or {}).get("geometry"),
+            }
+
+    if isinstance(watchlist_raw, dict):
+        for wp in watchlist_raw.get("watchedProperties") or []:
+            if not isinstance(wp, dict) or is_removed_watchlist_tombstone(wp):
+                continue
+            if (
+                wp.get("trackerStatus") == "Lost"
+                or wp.get("demolishedDate")
+                or wp.get("lostHoustonId")
+            ):
+                raw_hcads = str(wp.get("hcadAccount") or "").replace(";", ",")
+                for tok in raw_hcads.split(","):
+                    hcad = re.sub(r"\D", "", tok.strip())
+                    if len(hcad) == 13:
+                        prev = out.get(hcad, {})
+                        out[hcad] = {
+                            "is_demolished": True,
+                            "demolished_date": prev.get("demolished_date") or str(wp.get("demolishedDate") or "").strip(),
+                            "lost_houston_id": prev.get("lost_houston_id") or str(wp.get("lostHoustonId") or "").strip(),
+                            "geometry": prev.get("geometry"),
+                        }
+    return out
+
+
+def permit_alert_sort_key(a: dict) -> tuple:
+    """
+    Sort standing actionable threats ahead of confirmed-demolished / graduated structures,
+    then order by severity, landmark/Good Brick status, footprint availability, and build year.
+    """
+    is_demo = is_demolished_permit_alert(a)
+    has_fp = bool(a.get("_has_footprint") or a.get("footprint_ring"))
+    yr = int(a.get("year_built") or 0)
+    return (
+        1 if is_demo else 0,
+        0 if a.get("severity") == "critical" else 1,
+        0 if (a.get("landmark_name") or a.get("good_brick_summary")) else 1,
+        0 if has_fp else 1,
+        yr if yr >= 1836 else 9999,
+    )
+
+
+def compute_alerts_summary_counts(alerts_list: list[dict]) -> dict[str, int]:
+    """Compute both total 180-day window counts and active standing-structure counts."""
+    standing = [
+        a
+        for a in alerts_list
+        if not is_demolished_permit_alert(a)
+    ]
+    demolished_cnt = len(alerts_list) - len(standing)
+    return {
+        "total_flagged_buildings": len(alerts_list),
+        "standing_count": len(standing),
+        "standing_critical_count": sum(1 for a in standing if a.get("severity") == "critical"),
+        "standing_watch_count": sum(1 for a in standing if a.get("severity") == "watch"),
+        "demolished_count": demolished_cnt,
+        "critical_count": sum(1 for a in alerts_list if a.get("severity") == "critical"),
+        "watch_count": sum(1 for a in alerts_list if a.get("severity") == "watch"),
+        "coh_permits_matched": sum(len(a.get("coh_permits") or []) for a in alerts_list),
+        "dshs_notifications_matched": sum(len(a.get("dshs_notifications") or []) for a in alerts_list),
+    }
+
+
+def _project_mvt_geom_to_wgs_polys(
+    geom: dict, xt: int, yt: int, z: int, extent: int, px_to_lnglat_fn
+) -> list[list[list[list[float]]]]:
+    """Project an MVT Polygon or MultiPolygon geometry into WGS84 MultiPolygon outer rings."""
+    gtype = geom.get("type")
+    coords = geom.get("coordinates") or []
+    if gtype == "Polygon" and coords and len(coords[0]) >= 3:
+        return [[[px_to_lnglat_fn(xt, yt, pt[0], pt[1], z, extent) for pt in coords[0]]]]
+    if gtype == "MultiPolygon" and coords:
+        return [
+            [[px_to_lnglat_fn(xt, yt, pt[0], pt[1], z, extent) for pt in poly[0]]]
+            for poly in coords
+            if isinstance(poly, list) and poly and len(poly[0]) >= 3
+        ]
+    return []
+
+
+def _match_hcad_footprint_in_mvt_tile(
+    decoded_tile: dict,
+    hcad: str,
+    target_bid: str,
+    xt: int,
+    yt: int,
+    z: int,
+    px_to_lnglat_fn,
+    max_vertices: int,
+) -> list[list[float]]:
+    """Select the exact `building_id` match or largest outer footprint ring for `hcad` in a decoded MVT tile."""
+    best_polys: list[list[list[list[float]]]] = []
+    best_area = -1.0
+    for lyr in decoded_tile.values():
+        ext = int(lyr.get("extent", 4096))
+        for feat in lyr.get("features", []):
+            props = feat.get("properties") or {}
+            if str(props.get("hcad_num") or "").strip() != hcad:
+                continue
+            wgs_polys = _project_mvt_geom_to_wgs_polys(
+                feat.get("geometry") or {}, xt, yt, z, ext, px_to_lnglat_fn
+            )
+            if not wgs_polys:
+                continue
+            feat_bid = str(props.get("building_id") or props.get("id") or "").strip()
+            if target_bid and feat_bid == target_bid:
+                return extract_simplified_footprint_ring(
+                    {"type": "MultiPolygon", "coordinates": wgs_polys},
+                    max_vertices=max_vertices,
+                )
+            ring0 = max((p[0] for p in wgs_polys), key=len)
+            xs = [pt[0] for pt in ring0]
+            ys = [pt[1] for pt in ring0]
+            bbox_area = (max(xs) - min(xs)) * (max(ys) - min(ys))
+            if bbox_area > best_area:
+                best_area = bbox_area
+                best_polys = wgs_polys
+    if not best_polys:
+        return []
+    return extract_simplified_footprint_ring(
+        {"type": "MultiPolygon", "coordinates": best_polys},
+        max_vertices=max_vertices,
+    )
+
+
+def enrich_alerts_with_pmtiles_footprints(
+    alerts_list: list[dict],
+    data_dir: Path | None = None,
+    max_vertices: int = 20,
+) -> int:
+    """Backfill `footprint_ring` on countywide alerts directly from local z=15 PMTiles building shards."""
+    try:
+        import gzip
+        import math
+        import mapbox_vector_tile
+        from pmtiles.reader import MmapSource, Reader
+    except ImportError:
+        return 0
+
+    base_dir = data_dir or (REPO_ROOT / "app" / "public" / "data")
+    pm_paths = sorted(base_dir.glob("houston_buildings_*.pmtiles"))
+    core_pm = base_dir / "houston_atlas.pmtiles"
+    if core_pm.exists():
+        pm_paths.append(core_pm)
+    if not pm_paths:
+        return 0
+
+    readers = []
+    for pf in pm_paths:
+        try:
+            fobj = open(pf, "rb")
+            r = Reader(MmapSource(fobj))
+            hdr = r.header()
+            readers.append((pf.name, r, int(hdr.get("max_zoom", 15)), fobj))
+        except Exception as exc:
+            print(f"  [warn] Skipping unreadable PMTiles shard {pf.name}: {exc}", flush=True)
+            continue
+
+    def _lnglat_to_tile(lng_v: float, lat_v: float, z: int) -> tuple[int, int]:
+        n = 2**z
+        xt = int((lng_v + 180.0) / 360.0 * n)
+        lat_rad = math.radians(lat_v)
+        yt = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
+        return xt, yt
+
+    def _tile_px_to_lnglat(xt: int, yt: int, px: float, py: float, z: int, extent: int) -> list[float]:
+        n = 2**z
+        lng_v = (xt + px / extent) / n * 360.0 - 180.0
+        lat_rad = math.atan(math.sinh(math.pi * (1.0 - 2.0 * (yt + (extent - py) / extent) / n)))
+        return [round(lng_v, 6), round(math.degrees(lat_rad), 6)]
+
+    tile_cache: dict[tuple[str, int, int, int], dict | None] = {}
+    enriched = 0
+    try:
+        for alert in alerts_list:
+            if alert.get("footprint_ring"):
+                continue
+            hcad = str(alert.get("hcad_num") or "").strip()
+            lon = alert.get("lon") if alert.get("lon") is not None else alert.get("lng")
+            lat = alert.get("lat")
+            if not hcad or lon is None or lat is None:
+                continue
+            lon_f, lat_f = float(lon), float(lat)
+            target_bid = str(alert.get("building_id") or "").strip()
+            for name, r, max_z, _ in readers:
+                z = min(15, max_z)
+                xt, yt = _lnglat_to_tile(lon_f, lat_f, z)
+                ck = (name, z, xt, yt)
+                if ck not in tile_cache:
+                    raw = r.get(z, xt, yt)
+                    if raw:
+                        if raw[:2] == b"\x1f\x8b":
+                            raw = gzip.decompress(raw)
+                        tile_cache[ck] = mapbox_vector_tile.decode(raw)
+                    else:
+                        tile_cache[ck] = None
+                dec = tile_cache[ck]
+                if not dec:
+                    continue
+                hit_ring = _match_hcad_footprint_in_mvt_tile(
+                    dec, hcad, target_bid, xt, yt, z, _tile_px_to_lnglat, max_vertices
+                )
+                if hit_ring:
+                    alert["footprint_ring"] = hit_ring
+                    enriched += 1
+                    break
+    finally:
+        for _, _, _, fobj in readers:
+            try:
+                fobj.close()
+            except Exception:
+                pass
+    return enriched
 BUILDINGS_GEOJSON = REPO_ROOT / "app" / "public" / "data" / "buildings.geojson"
 SEARCH_INDEX_JSON = REPO_ROOT / "app" / "public" / "data" / "search_index.json"
 PERMITS_DIR = REPO_ROOT / "app" / "public" / "data" / "permits"
@@ -1660,6 +2034,7 @@ def main():
         p_with_geom = dict(p)
         p_with_geom["_centroid"] = centroid
         p_with_geom["_has_footprint"] = True
+        p_with_geom["_footprint_ring"] = extract_simplified_footprint_ring(feat.get("geometry"))
         na = normalize_address(p.get("address", ""))
         if na:
             by_addr.setdefault(na, []).append(p_with_geom)
@@ -1667,52 +2042,19 @@ def main():
         if hcad:
             by_hcad[hcad] = p_with_geom
 
-    # Also index curated_overrides.json so campus/landmark overrides (including recently demolished landmarks) have exact polygon centroids
+    # Also index curated_overrides.json, overlays.json (lost_houston), and property_watchlist.json
     overrides_json_path = REPO_ROOT / "app" / "public" / "data" / "curated_overrides.json"
-    demolished_overrides_by_hcad: dict[str, dict] = {}
+    overlays_json_path = REPO_ROOT / "app" / "public" / "data" / "overlays.json"
+    watchlist_json_path = REPO_ROOT / "app" / "public" / "data" / "property_watchlist.json"
+    ov_raw = json.loads(overrides_json_path.read_text(encoding="utf-8")) if overrides_json_path.exists() else {}
+    overlays_raw = json.loads(overlays_json_path.read_text(encoding="utf-8")) if overlays_json_path.exists() else {}
+    watchlist_raw = json.loads(watchlist_json_path.read_text(encoding="utf-8")) if watchlist_json_path.exists() else {}
+    demolished_overrides_by_hcad = build_general_demolished_catalog(ov_raw, overlays_raw, watchlist_raw)
+
     if overrides_json_path.exists():
-        with open(overrides_json_path, "r", encoding="utf-8") as f:
-            ov_raw = json.load(f)
         ov_map = ov_raw.get("overrides", ov_raw) if isinstance(ov_raw, dict) else {}
-        demolished_hcads_set = extract_curated_demolished_hcads(ov_raw)
-        for ov_key, ov in ov_map.items():
-            if not isinstance(ov, dict):
-                continue
-            hcad = str(ov.get("hcad_num") or str(ov_key).split("#")[0]).strip()
-            if hcad in demolished_hcads_set:
-                demolished_overrides_by_hcad[hcad] = ov
-            if ov.get("suppress_only") and hcad not in demolished_hcads_set:
-                continue
-            bid = str(ov.get("building_id") or ov.get("id") or ov_key).strip()
-            addr = ov.get("address") or ""
-            na = normalize_address(addr)
-            geom_obj = ov.get("geometry") or ov.get("_pre_suppress_geometry")
-            c = compute_feature_centroid(geom_obj) if geom_obj else None
-            if not c or (abs(c[0] - (-95.3698)) < 1e-4 and abs(c[1] - 29.7604) < 1e-4):
-                continue
-            rec = {
-                "id": bid,
-                "building_id": bid,
-                "hcad_num": hcad,
-                "address": addr,
-                "year_built": ov.get("year_built") or ov.get("original_hcad_year") or 0,
-                "landmark_name": ov.get("landmark_name") or ov.get("building_name") or "",
-                "building_name": ov.get("building_name") or ov.get("landmark_name") or "",
-                "historic_district": ov.get("historic_district") or "",
-                "neighborhood": ov.get("neighborhood") or "",
-                "good_brick_summary": ov.get("good_brick_summary") or "",
-                "style": ov.get("style") or "",
-                "architect": ov.get("architect") or "",
-                "owner": ov.get("owner") or "",
-                "_centroid": c,
-                "_has_footprint": True,
-            }
-            if ov_key not in by_hcad:
-                by_hcad[ov_key] = rec
-            if hcad and hcad not in by_hcad:
-                by_hcad[hcad] = rec
-            if na:
-                by_addr.setdefault(na, []).append(rec)
+        demolished_hcads_set = set(demolished_overrides_by_hcad.keys())
+        index_curated_overrides_into_lookup(ov_map, demolished_hcads_set, by_hcad, by_addr)
 
     # Also index search_index.json so all 26,419 countywide structures are covered
     if SEARCH_INDEX_JSON.exists():
@@ -2109,25 +2451,30 @@ def main():
         if hcad == "0152300000001":
             preservation_note = KIRBY_MANSION_PRESERVATION_NOTE
 
-        demo_ov = demolished_overrides_by_hcad.get(hcad) or {}
+        bld_id_lookup = str(bld.get("id") or bld.get("building_id") or "").strip()
+        demo_ov = (
+            (demolished_overrides_by_hcad.get(bld_id_lookup) if bld_id_lookup else None)
+            or demolished_overrides_by_hcad.get(hcad)
+            or {}
+        )
+        demo_ov_yr = _parse_four_digit_year(demo_ov.get("demolished_date"))
+        if yr >= 1836 and demo_ov_yr and yr > demo_ov_yr:
+            demo_ov = {}
         is_confirmed_demo = bool(
-            hcad == "0152300000001"
-            or demo_ov.get("is_demolished")
+            demo_ov.get("is_demolished")
             or demo_ov.get("demolished_date")
             or demo_ov.get("lost_houston_id")
         )
-        demolished_date_str = str(
-            demo_ov.get("demolished_date") or ("2026-11-02" if hcad == "0152300000001" else "")
-        ).strip()
-        lost_id_str = str(
-            demo_ov.get("lost_houston_id") or ("lost_kirby_mansion_1894" if hcad == "0152300000001" else "")
-        ).strip()
+        demolished_date_str = str(demo_ov.get("demolished_date") or "").strip()
+        lost_id_str = str(demo_ov.get("lost_houston_id") or "").strip()
         if is_confirmed_demo:
             badge_short, severity_label = format_demolished_permit_badge_and_severity(
                 demolished_date_str
             )
             if hcad == "0152300000001":
                 headline = KIRBY_MANSION_PERMIT_HEADLINE
+
+        fp_ring = bld.get("_footprint_ring") or extract_simplified_footprint_ring(demo_ov.get("geometry"))
 
         alert_obj = {
             "hcad_num": hcad,
@@ -2147,6 +2494,7 @@ def main():
             "lng": centroid[0],
             "lon": centroid[0],
             "lat": centroid[1],
+            **({"footprint_ring": fp_ring} if fp_ring else {}),
             "severity": severity,
             "severity_label": severity_label,
             "badge": badge_short,
@@ -2157,24 +2505,17 @@ def main():
             "demolition_status": "demolished" if is_confirmed_demo else "active_watch",
             "is_demolished": is_confirmed_demo,
             "demolished_date": demolished_date_str,
-            "year_demolished": int(demolished_date_str[:4]) if len(demolished_date_str) >= 4 and demolished_date_str[:4].isdigit() else (2026 if is_confirmed_demo else None),
+            "year_demolished": _parse_four_digit_year(demolished_date_str) or (ACTIVE_TAX_YEAR if is_confirmed_demo else None),
             "lost_houston_id": lost_id_str,
             "preservation_note": preservation_note,
             "latest_filing_date": latest_date,
             "coh_permits": structural_coh if structural_coh else dedup_coh,
             "dshs_notifications": dshs_list,
-            "_has_footprint": bool(bld.get("_has_footprint")),
+            "_has_footprint": bool(bld.get("_has_footprint") or fp_ring),
         }
         alerts_list.append(alert_obj)
 
-    alerts_list.sort(
-        key=lambda a: (
-            0 if a["severity"] == "critical" else 1,
-            0 if (a["landmark_name"] or a["good_brick_summary"]) else 1,
-            0 if a.get("_has_footprint") else 1,
-            a["year_built"] if a["year_built"] >= 1836 else 9999,
-        )
-    )
+    alerts_list.sort(key=permit_alert_sort_key)
 
     # Deduplicate multi-building campus/lot addresses into a single primary alert entry
     # while preserving all related_hcads so every footprint on the site gets the Inspector banner
@@ -2196,6 +2537,8 @@ def main():
             if na:
                 by_norm_addr_alert[na] = a
     alerts_list = dedup_alerts
+    enrich_alerts_with_pmtiles_footprints(alerts_list)
+    alerts_list.sort(key=permit_alert_sort_key)
 
     existing_benchmarks = None
     if ALERTS_OUTPUT_JSON.exists():
@@ -2216,13 +2559,7 @@ def main():
         "dshs_fetch_failed": bool(dshs_fetch_failed),
         "coh_fetch_error": coh_fetch_error,
         "dshs_fetch_error": dshs_fetch_error,
-        "summary": {
-            "total_flagged_buildings": len(alerts_list),
-            "critical_count": sum(1 for a in alerts_list if a["severity"] == "critical"),
-            "watch_count": sum(1 for a in alerts_list if a["severity"] == "watch"),
-            "coh_permits_matched": sum(len(a["coh_permits"]) for a in alerts_list),
-            "dshs_notifications_matched": sum(len(a["dshs_notifications"]) for a in alerts_list),
-        },
+        "summary": compute_alerts_summary_counts(alerts_list),
         "annual_benchmarks": annual_benchmarks,
         "alerts": alerts_list,
     }

@@ -47,6 +47,7 @@ import {
   extractCanonicalFootprintId,
   hasMatchingFootprintCentroid,
   isBareAttributeParcelOverride,
+  isDemolishedPermitAlert,
   isSingleShardReplaceOverride,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
@@ -424,7 +425,6 @@ export class AtlasMapController {
         permitAlertsJson = null;
       }
     }
-    this._indexPermitAlerts(permitAlertsJson);
 
     let platWatchJson = null;
     if (platWatchRes && platWatchRes.ok) {
@@ -446,6 +446,7 @@ export class AtlasMapController {
     }
 
     this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
+    this._indexPermitAlerts(permitAlertsJson);
     this.globalRejections = (overridesResult && overridesResult.globalRejections) || {
       rejectedPhotos: [],
       rejectedClaims: [],
@@ -651,9 +652,10 @@ export class AtlasMapController {
         }
       }
 
-      const lng = Number(alert.lng);
+      const isDemolishedAlert = isDemolishedPermitAlert(alert, this.curatedOverrides);
+      const lng = Number(alert.lng ?? alert.lon);
       const lat = Number(alert.lat);
-      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      if (!isDemolishedAlert && Number.isFinite(lng) && Number.isFinite(lat)) {
         pointFeatures.push({
           type: "Feature",
           geometry: {
@@ -692,6 +694,9 @@ export class AtlasMapController {
       type: "FeatureCollection",
       features: pointFeatures,
     };
+    if (this.map && this.map.getSource("permit-watch-src")) {
+      this.map.getSource("permit-watch-src").setData(this.permitAlertsFC);
+    }
   }
 
   getPermitAlertsPayload() {
@@ -1265,6 +1270,9 @@ export class AtlasMapController {
     this._rehydrateCachedDynamicParcelsIfChanged();
     if (this.map && this.map.getSource("curated-overrides-src")) {
       this.map.getSource("curated-overrides-src").setData(this.overridesFC);
+    }
+    if (this.permitAlertsData) {
+      this._indexPermitAlerts(this.permitAlertsData);
     }
     const cleanKey = targetKey ? String(targetKey).trim() : "";
     const cleanHcad = cleanKey ? cleanKey.split("#")[0].trim() : "";

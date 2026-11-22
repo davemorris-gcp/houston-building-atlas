@@ -749,6 +749,33 @@ export function isEntitySuppressedByOverrides(
 }
 
 /**
+ * Canonical client-side demolished/Lost permit-alert predicate mirroring
+ * `pipeline/atlas_pipeline/schema.py::is_demolished_permit_alert` plus live
+ * whole-parcel / exact-building `isEntitySuppressedByOverrides` parity.
+ */
+export function isDemolishedPermitAlert(al, curatedOverrides = null) {
+  if (!al || typeof al !== "object") return false;
+  if (
+    Boolean(al.demolished) ||
+    Boolean(al.is_demolished) ||
+    String(al.demolition_status || "").trim().toLowerCase() === "demolished" ||
+    Boolean(String(al.lost_houston_id || "").trim())
+  ) {
+    return true;
+  }
+  if (
+    curatedOverrides &&
+    isEntitySuppressedByOverrides(curatedOverrides, {
+      buildingId: al.building_id || "",
+      hcadNum: al.hcad_num || "",
+    })
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Return true when an override row or submission payload marks a demolished structure
  * whose lot is currently vacant (hiding the ghost building footprint while leaving
  * the parcel clickable as a vacant lot).

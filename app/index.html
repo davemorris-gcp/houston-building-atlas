@@ -3227,7 +3227,7 @@
       <div class="modal-card permit-watch-modal-card">
         <div class="modal-header">
           <div>
-            <span class="brand-kicker" style="color:#FCA5A5;">&#9888; Preservation Houston Early-Warning Feed</span>
+            <span class="brand-kicker" style="color:#93C5FD;">&#9888; Preservation Houston Early-Warning Feed</span>
             <h2 class="modal-title" id="permit-watch-modal-title">Active Permit &amp; Demolition Watchlist</h2>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -3239,29 +3239,64 @@
         </div>
 
         <div class="modal-body permit-watch-modal-body">
-          <div class="permit-watch-intro-banner">
-            <div>
-              <strong>Automated Municipal &amp; State Regulatory Surveillance:</strong>
-              Combines daily <strong>City of Houston Permitting Center</strong> (<em>Houston Public Works, Building Code Enforcement - Sold Permits Database</em>: Standard Demolition <code>SD</code>, Dangerous Building Demolition <code>4D</code>, Pre-Demo Sewer Disconnection <code>12/4P</code>, and House Moving, while screening out Type <code>13</code> interior remodel/addition/pool building permits) with <strong>Texas Department of State Health Services (DSHS)</strong> Asbestos Abatement &amp; Demolition notifications (10-working-day advance filings) cross-referenced against 50+ year old historic structures (built &lt;= 1976), City Landmarks, and Historic Districts.
+          <div class="permit-watch-filter-bar">
+            <div class="permit-watch-filter-pills" role="tablist" aria-label="Filter Watchlist Alerts by Status">
+              <button type="button" class="permit-watch-filter-pill active" data-pw-filter="all">
+                Standing Threats (<span id="pw-pill-count-all">15</span>)
+              </button>
+              <button type="button" class="permit-watch-filter-pill critical" data-pw-filter="critical">
+                Stage 2 / Sewer (<span id="pw-pill-count-critical">5</span>)
+              </button>
+              <button type="button" class="permit-watch-filter-pill watch" data-pw-filter="watch">
+                Abatement / Watch (<span id="pw-pill-count-watch">10</span>)
+              </button>
+              <button type="button" class="permit-watch-filter-pill demolished" data-pw-filter="demolished">
+                &#9899; Demolished / Lost (<span id="pw-pill-count-demolished">0</span>)
+              </button>
             </div>
-          </div>
-
-          <div class="permit-watch-summary-strip" id="permit-watch-summary-strip">
-            <div class="permit-watch-stat-box critical">
-              <span class="permit-watch-stat-label">Critical Demo / Sewer Threats</span>
-              <span class="permit-watch-stat-val mono" id="pw-stat-critical">5</span>
-            </div>
-            <div class="permit-watch-stat-box watch">
-              <span class="permit-watch-stat-label">Abatement / Garage Watch</span>
-              <span class="permit-watch-stat-val mono" id="pw-stat-watch">10</span>
-            </div>
-            <div class="permit-watch-stat-box">
-              <span class="permit-watch-stat-label">COH Permits Matched</span>
-              <span class="permit-watch-stat-val mono" id="pw-stat-coh">8</span>
-            </div>
-            <div class="permit-watch-stat-box">
-              <span class="permit-watch-stat-label">TX DSHS Filings Matched</span>
-              <span class="permit-watch-stat-val mono" id="pw-stat-dshs">7</span>
+            <div class="permit-watch-portal-links">
+              <a
+                href="plat-monitor.html"
+                class="action-pill subtle"
+                style="text-decoration:none;"
+                title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
+              >
+                Plat Monitor &#8599;
+              </a>
+              <a
+                href="plat-monitor.html?tab=watchlist"
+                class="action-pill subtle"
+                style="text-decoration:none;"
+                title="Open 15-Point Multi-Agency Property Watchlist &amp; Case Archive"
+              >
+                15-Point Watchlist &#8599;
+              </a>
+              <button
+                type="button"
+                class="action-pill subtle"
+                id="btn-pw-open-hahc-modal"
+                title="Open Monthly HAHC Certificate of Appropriateness (COA) &amp; Landmark Designation Docket"
+              >
+                HAHC Docket
+              </button>
+              <a
+                href="https://www.houstonpermittingcenter.org/sold-permits-search"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="action-pill subtle"
+                title="Open City of Houston Permitting Center Sold Permits Search"
+              >
+                COH Permits &#8599;
+              </a>
+              <a
+                href="https://vo.ras.dshs.state.tx.us/datamart/notificationSearchAction.do"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="action-pill subtle"
+                title="Open Texas Department of State Health Services Asbestos &amp; Demolition Notification Search"
+              >
+                TX DSHS &#8599;
+              </a>
             </div>
           </div>
 
@@ -3269,11 +3304,11 @@
             <summary class="pw-annual-benchmarks-summary">
               <div class="pw-annual-summary-left">
                 <span class="pw-annual-chevron" aria-hidden="true">&#9656;</span>
-                <span class="pw-annual-title">&#128202; Annual &amp; 2026 YTD Demolition Permit Benchmarks (2020 - 2026 Grant &amp; Report Stats)</span>
+                <span class="pw-annual-title">&#9432; Methodology, Agency Counts &amp; 2020-2026 Grant Benchmarks</span>
               </div>
               <div class="pw-annual-summary-pills">
-                <span class="pw-annual-pill crit">2026 YTD COH: <strong class="mono" id="pw-bench-pill-ytd">1,755</strong></span>
-                <span class="pw-annual-pill warn">2025 COH: <strong class="mono" id="pw-bench-pill-2025">2,187</strong></span>
+                <span class="pw-annual-pill">2026 YTD COH: <strong class="mono" id="pw-bench-pill-ytd">1,755</strong></span>
+                <span class="pw-annual-pill">2025 COH: <strong class="mono" id="pw-bench-pill-2025">2,187</strong></span>
                 <span class="pw-annual-pill">2025 Countywide: <strong class="mono" id="pw-bench-pill-hcad">2,791</strong></span>
                 <span class="pw-annual-pill ok">2026 HAHC Main Approved: <strong class="mono" id="pw-bench-pill-hahc">0</strong></span>
                 <button
@@ -3286,67 +3321,34 @@
                 </button>
               </div>
             </summary>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:10px 12px 4px;">
+              <div class="permit-watch-intro-banner">
+                <div>
+                  <strong>Automated Municipal &amp; State Regulatory Surveillance:</strong>
+                  Combines daily <strong>City of Houston Permitting Center</strong> (<em>Houston Public Works, Building Code Enforcement - Sold Permits Database</em>: Standard Demolition <code>SD</code>, Dangerous Building Demolition <code>4D</code>, Pre-Demo Sewer Disconnection <code>12/4P</code>, and House Moving, while screening out Type <code>13</code> interior remodel/addition/pool building permits) with <strong>Texas Department of State Health Services (DSHS)</strong> Asbestos Abatement &amp; Demolition notifications (10-working-day advance filings) cross-referenced against 50+ year old historic structures (built &lt;= 1976), City Landmarks, and Historic Districts. Confirmed demolitions automatically move out of Standing Threats into the <strong>Demolished / Lost</strong> archive tab.
+                </div>
+              </div>
+              <div class="permit-watch-summary-strip" id="permit-watch-summary-strip">
+                <div class="permit-watch-stat-box critical">
+                  <span class="permit-watch-stat-label">Standing Critical / Sewer</span>
+                  <span class="permit-watch-stat-val mono" id="pw-stat-critical">5</span>
+                </div>
+                <div class="permit-watch-stat-box watch">
+                  <span class="permit-watch-stat-label">Abatement / Garage Watch</span>
+                  <span class="permit-watch-stat-val mono" id="pw-stat-watch">10</span>
+                </div>
+                <div class="permit-watch-stat-box">
+                  <span class="permit-watch-stat-label">COH Permits Matched</span>
+                  <span class="permit-watch-stat-val mono" id="pw-stat-coh">8</span>
+                </div>
+                <div class="permit-watch-stat-box">
+                  <span class="permit-watch-stat-label">TX DSHS Filings Matched</span>
+                  <span class="permit-watch-stat-val mono" id="pw-stat-dshs">7</span>
+                </div>
+              </div>
+            </div>
             <div class="pw-annual-benchmarks-body" id="pw-annual-benchmarks-body"></div>
           </details>
-
-          <div class="permit-watch-filter-bar">
-            <div class="permit-watch-filter-pills" role="tablist" aria-label="Filter Watchlist Alerts by Severity">
-              <button type="button" class="permit-watch-filter-pill active" data-pw-filter="all">
-                All Flagged Structures (<span id="pw-pill-count-all">15</span>)
-              </button>
-              <button type="button" class="permit-watch-filter-pill critical" data-pw-filter="critical">
-                &#128680; Critical Demo / Sewer Disc (<span id="pw-pill-count-critical">5</span>)
-              </button>
-              <button type="button" class="permit-watch-filter-pill watch" data-pw-filter="watch">
-                &#9888; Abatement / Garage Watch (<span id="pw-pill-count-watch">10</span>)
-              </button>
-            </div>
-            <div class="permit-watch-portal-links">
-              <a
-                href="plat-monitor.html"
-                class="action-pill"
-                style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.18);color:#E9D5FF;"
-                title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
-              >
-                &#128203; Plat &amp; Variance Monitor &#8599;
-              </a>
-              <a
-                href="plat-monitor.html?tab=watchlist"
-                class="action-pill"
-                style="text-decoration:none;border-color:rgba(248,113,113,0.45);background:rgba(239,68,68,0.18);color:#FECACA;"
-                title="Open 15-Point Multi-Agency Property Watchlist &amp; Case Archive"
-              >
-                &#127963; 15-Point Property Watchlist &#8599;
-              </a>
-              <button
-                type="button"
-                class="action-pill"
-                id="btn-pw-open-hahc-modal"
-                style="border-color:rgba(20,184,166,0.45);background:rgba(20,184,166,0.18);color:#99F6E4;"
-                title="Open Monthly HAHC Certificate of Appropriateness (COA) &amp; Landmark Designation Docket"
-              >
-                &#127963; HAHC COA &amp; Designation Docket
-              </button>
-              <a
-                href="https://www.houstonpermittingcenter.org/sold-permits-search"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="action-pill subtle"
-                title="Open City of Houston Permitting Center Sold Permits Search"
-              >
-                COH Sold Permits Portal &#8599;
-              </a>
-              <a
-                href="https://vo.ras.dshs.state.tx.us/datamart/notificationSearchAction.do"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="action-pill subtle"
-                title="Open Texas Department of State Health Services Asbestos &amp; Demolition Notification Search"
-              >
-                TX DSHS Asbestos Portal &#8599;
-              </a>
-            </div>
-          </div>
 
           <div class="permit-watch-list" id="permit-watch-modal-list"></div>
         </div>

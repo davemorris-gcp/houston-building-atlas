@@ -268,6 +268,32 @@ def is_removed_watchlist_tombstone(prop: object) -> bool:
         return True
     return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
 
+
+def is_demolished_permit_alert(alert: object) -> bool:
+    """Return True when an alert dict represents a confirmed-demolished / Lost Houston structure."""
+    if not isinstance(alert, dict):
+        return False
+    return bool(
+        alert.get("demolished")
+        or alert.get("is_demolished")
+        or str(alert.get("demolition_status") or "").strip().lower() == "demolished"
+        or str(alert.get("lost_houston_id") or "").strip()
+    )
+
+
+def is_sub_building_override(ov_key: object, ov: dict[str, Any]) -> bool:
+    """Return True when a curated override scopes to a sub-building or duplicate feature ID rather than the 13-digit parcel."""
+    key_str = str(ov_key).strip()
+    hcad = str(ov.get("hcad_num") or key_str.split("#")[0]).strip()
+    clean_bid = str(ov.get("building_id") or "").strip()
+    return (
+        (bool(hcad) and key_str != hcad)
+        or ("#" in key_str)
+        or ("#" in clean_bid)
+        or (bool(hcad) and not hcad.isdigit())
+        or bool(ov.get("is_building_override"))
+    )
+
 DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant"
 DEMOLISHED_REPLACED_ISSUE = "Building demolished & replaced by newer structure"
 DEMOLISHED_VACANT_CITATION_TAG = "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT]"
@@ -5105,7 +5131,7 @@ def extract_curated_demolished_hcads(
     )
     out: set[str] = set()
     for key, ov in raw_ov_dict.items():
-        if not isinstance(ov, dict):
+        if not isinstance(ov, dict) or is_sub_building_override(key, ov):
             continue
         is_demo = bool(
             ov.get("is_demolished") is True
