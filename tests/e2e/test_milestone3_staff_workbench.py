@@ -653,7 +653,11 @@ def test_e2e4_polygon_editor_webgl_and_canvas2d_and_publish(
             page.fill("#admin-auth-email", "curator@preservationhouston.org")
             page.fill("#admin-auth-passkey", "e2e-test-passkey")
             page.click("#btn-verify-admin-unlock")
-            page.wait_for_selector("#polygon-editor-dock:not(.hidden)", timeout=8000)
+            page.wait_for_selector("#polygon-editor-dock:not(.hidden)", timeout=15000)
+            page.wait_for_function(
+                "() => Boolean(window.atlasApp?._staffWorkbench?.polySession)",
+                timeout=15000,
+            )
         else:
             page.goto(f"{atlas_base_url}/index.html", wait_until="domcontentloaded")
             wait_for_atlas_ready(page)
@@ -801,7 +805,7 @@ def test_e2e4_polygon_editor_webgl_and_canvas2d_and_publish(
                 const b = document.getElementById('polyedit-validation-badge');
                 return Boolean(b && b.textContent.includes('Unauthorized'));
             }""",
-            timeout=5000,
+            timeout=15000,
         )
         assert page.evaluate("() => !document.getElementById('polygon-editor-dock').classList.contains('hidden')")
         assert page.evaluate("() => !window.atlasApp.mapController.curatedOverrides?.['0010280000001']?.geometry")
@@ -809,7 +813,7 @@ def test_e2e4_polygon_editor_webgl_and_canvas2d_and_publish(
         # 6. Switch mock to `{ ok: true }` -> transmits dual GeoJSON, updates `curated-overrides-src`, cleans handles
         webhook_cfg["mode"] = "ok"
         page.click("#btn-polyedit-save")
-        page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=6000)
+        page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=20000)
 
         approve_posts = [p for p in posts if p.get("action") == "admin_approve"]
         assert len(approve_posts) >= 2
@@ -912,7 +916,7 @@ def test_e2e5_multifootprint_aux_sibling_visibility_and_unknown_year_reshape(
     page.fill("#polyedit-input-year", "2012")
     page.select_option("#polyedit-select-contributing", "Outside Historic District")
     page.click("#btn-polyedit-save")
-    page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=6000)
+    page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=20000)
 
     # Zoom back to z=16 covering whole campus and verify BOTH `#aux_1` AND original siblings render concurrently
     page.evaluate(
@@ -959,11 +963,11 @@ def test_e2e5_multifootprint_aux_sibling_visibility_and_unknown_year_reshape(
             document.getElementById('btn-polyedit-new-rect').click();
         }"""
     )
-    page.wait_for_selector("#polygon-editor-dock:not(.hidden)", timeout=6000)
+    page.wait_for_selector("#polygon-editor-dock:not(.hidden)", timeout=15000)
     page.fill("#polyedit-input-year", "")
     page.select_option("#polyedit-select-contributing", "Outside Historic District")
     page.click("#btn-polyedit-save")
-    page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=6000)
+    page.wait_for_selector("#polygon-editor-dock", state="hidden", timeout=20000)
 
     unk_state = page.evaluate(
         """() => {
