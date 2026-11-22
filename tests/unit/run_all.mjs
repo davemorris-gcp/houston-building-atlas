@@ -21,3 +21,4 @@ import "./milestone13_permit_plain_english.test.mjs";
 import "./mobile_ux_responsive.test.mjs";
 import "./thc_survey_form_generator.test.mjs";
 import "./ai_companion_and_environments.test.mjs";
+import "./user_roaming_and_workspace_sync.test.mjs";

@@ -231,6 +231,14 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .mode-btn .pill.alert-pill{background:var(--t1);color:#fff}
 .unread-dot{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700;background:#EAF2FA;color:var(--survey);border:1px solid #B8D0E8;white-space:nowrap}
 .unread-dot.crit{background:var(--t1-soft);color:var(--t1);border-color:#E5A5A0}
+button.unread-toggle-btn{cursor:pointer;font-family:inherit;line-height:1.35;transition:background .15s,transform .1s}
+button.unread-toggle-btn:hover{filter:brightness(0.95)}
+button.read-toggle-btn{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#F5F7F9;color:var(--muted);border:1px solid var(--line);cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s}
+button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color:#B8D0E8}
+.act-sync-callout{border-radius:6px;padding:9px 14px;margin-bottom:12px;font-size:12.5px;line-height:1.4;background:#F7FAFC;border:1px solid #CBD5E1;color:#334155;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sync-inline-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:600;background:#E8F4ED;color:#1F6B43;border:1px solid #95D5B2;white-space:nowrap}
+.sync-inline-chip.pending{background:#FEF9C3;color:#854D0E;border-color:#FDE047}
+.sync-inline-chip.offline{background:#FEF3C7;color:#92400E;border-color:#FCD34D}
 @keyframes rowFlash{0%{background:#FFF3CD}45%{background:#FFE299}100%{background:transparent}}
 .wl-table tr.wl-row-flash{animation:rowFlash 2.4s ease-out;outline:2px solid #D97706;outline-offset:-2px;opacity:1 !important}
 .act-ledger-head{padding:10px 14px;background:var(--vellum);border-bottom:1px solid var(--line);font-size:12px;color:#3C4750;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:2}
@@ -293,7 +301,10 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .modal h3{margin:0 0 10px}
 .modal textarea{width:100%;min-height:240px;border:1px solid var(--line);border-radius:4px;padding:10px;font-size:13.5px;line-height:1.45}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
-.toast{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:6px;font-size:14px;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.25);pointer-events:none;max-width:calc(100vw - 24px);text-align:center}
+.toast{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:6px;font-size:14px;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.25);pointer-events:none;max-width:calc(100vw - 24px);text-align:center;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.toast.interactive{pointer-events:auto}
+.toast .toast-act-btn{background:#fff;color:var(--ink);border:0;border-radius:4px;padding:3px 9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.toast .toast-act-btn:hover{background:#E2E8F0}
 
 @media screen and (max-width:900px){
   html,body{overflow-x:hidden;max-width:100vw}
@@ -392,7 +403,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="dondb">Import Dangerous Buildings CSV<small>Cross-check City DONDB*.csv against historic buildings &amp; districts</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="history">Add past findings for continuity<small>Findings CSVs from earlier cycles</small></button>
-        <a role="menuitem" id="loadMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Data in Google Sheet (Plat_&amp;_Watchlist_Sync ↗)<small>Jump directly to the live synced Google Sheet tab (Staff Admins only)</small></a>
+        <a role="menuitem" id="loadMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=1383259584" target="_blank" rel="noopener">Open Community Moderation Hub (Google Sheet ↗)<small>Optional spreadsheet view for community date/photo suggestions (Staff Admins only)</small></a>
       </div>
     </div>
     <div class="menu" id="exportMenu">
@@ -410,7 +421,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="watchlist-csv">Download Property Watchlist Log (CSV)<small>Opens in Google Sheets or Excel; checklist &amp; dated findings log</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="savework">Save work file (.json)<small>Pick up later or hand off to a colleague</small></button>
-        <a role="menuitem" id="exportMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Data in Google Sheet (Plat_&amp;_Watchlist_Sync ↗)<small>Jump directly to the live synced Google Sheet tab (Staff Admins only)</small></a>
+        <a role="menuitem" id="exportMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=1383259584" target="_blank" rel="noopener">Open Community Moderation Hub (Google Sheet ↗)<small>Optional spreadsheet view for community date/photo suggestions (Staff Admins only)</small></a>
         <a role="menuitem" id="exportMenuGuideLink" class="hidden" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Open Plat &amp; Property Monitoring Guide (Google Doc ↗)<small>SOP including Section K DPV Variances &amp; Atlas automation (Staff Admins only)</small></a>
       </div>
     </div>
@@ -606,6 +617,26 @@ import {
   explainWatchlistCheckText,
 } from "./js/permitPlainEnglish.js?v=20261113c";
 
+import {
+  DEFAULT_SHEET_WEBHOOK_URL,
+  DEFAULT_SHEET_PUBLISHED_CSV_URL,
+  normalizeStaffEmail,
+  createEmptyRoamingState,
+  deriveWatermarkInputsFromRoamingState,
+  applyMarkCaughtUpToRoamingState,
+  applyRestoreRoamingSnapshot,
+  applyToggleEventReadState,
+  applyBatchEventsReadState,
+  applyRoamingPrefUpdate,
+  getRoamingPrefValue,
+  loadLocalUserRoamingState,
+  saveLocalUserRoamingState,
+  clearLegacyMirrorOnSignOut,
+  hydrateRoamingStateFromVerifyResponse,
+  pushCloudUserRoamingState,
+  syncUserRoamingStateWithCloud,
+} from "./js/userRoamingState.js?v=20261113c";
+
 /* ---------- Storage ---------- */
 const store = {
   get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(_e){ return null; } },
@@ -619,19 +650,36 @@ const CAUGHT_UP_AT_KEY = "phpam:caughtUpAt";
 const READ_IDS_KEY = "phpam:readEventIds";
 const ACT_STREAM_KEY = "phpam:actStream";
 const ACT_GROUP_KEY = "phpam:actGroupBy";
+const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
 
 /* ---------- Helpers ---------- */
 const $ = s => document.querySelector(s);
 const esc = escapeHtmlText;
 const num = v => { const n = parseFloat(String(v ?? "").replace(/,/g,"")); return isNaN(n) ? null : n; };
 
-function toast(msg){
+function toast(msg, opts = null){
+  document.querySelectorAll(".toast.interactive").forEach(el => el.remove());
   const t = document.createElement("div");
-  t.className = "toast";
-  t.textContent = msg;
+  const hasAction = Boolean(opts && opts.actionLabel && typeof opts.onAction === "function");
+  t.className = hasAction ? "toast interactive" : "toast";
+  const span = document.createElement("span");
+  span.textContent = msg;
+  t.appendChild(span);
+  if (hasAction) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toast-act-btn";
+    btn.textContent = opts.actionLabel;
+    btn.addEventListener("click", () => {
+      t.remove();
+      opts.onAction();
+    });
+    t.appendChild(btn);
+  }
   t.setAttribute("role", "status");
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
+  const ttl = Number(opts?.durationMs) || (hasAction ? 6500 : 3200);
+  setTimeout(() => t.remove(), ttl);
 }
 
 function download(name, content, type){
@@ -850,6 +898,13 @@ let curatedBuildingPhotosByBldId = new Map();
 let curatedBuildingPhotosByHcad = new Map();
 let curatedBuildingPhotosByAddr = new Map();
 let history = store.get("phpam:history") || [];
+let roamingState = loadLocalUserRoamingState({ email: getStaffSession()?.email || "" });
+let roamingSyncStatus = getStaffSession() ? "synced" : "signed_out"; // "signed_out" | "syncing" | "synced" | "offline"
+let lastRoamingCloudSyncAt = "";
+const _initialWmInputs = deriveWatermarkInputsFromRoamingState(
+  roamingState,
+  Array.isArray(store.get(READ_IDS_KEY)) ? store.get(READ_IDS_KEY) : []
+);
 let view = {
   mode: "agenda",
   group: "check",
@@ -857,7 +912,7 @@ let view = {
   selectedWatchId: null,
   editingWatchId: null,
   editingCheckTarget: null, // { propId, rowId, checkIdx }
-  allCyclesMode: "merged",
+  allCyclesMode: getRoamingPrefValue(roamingState, "cycleViewMode", "merged") === "unmerged" ? "unmerged" : "merged",
   q: "",
   nb: "",
   flag: "",
@@ -868,13 +923,22 @@ let view = {
   wlThreat: "",
   actRange: "since_last_visit",
   actSelectedDate: "",
-  actStream: typeof store.get(ACT_STREAM_KEY) === "string" && store.get(ACT_STREAM_KEY) ? store.get(ACT_STREAM_KEY) : "external",
-  actGroupBy: typeof store.get(ACT_GROUP_KEY) === "string" && store.get(ACT_GROUP_KEY) ? store.get(ACT_GROUP_KEY) : "property",
+  actStream: getRoamingPrefValue(
+    roamingState,
+    "actStream",
+    typeof store.get(ACT_STREAM_KEY) === "string" && store.get(ACT_STREAM_KEY) ? store.get(ACT_STREAM_KEY) : "external"
+  ),
+  actGroupBy: getRoamingPrefValue(
+    roamingState,
+    "actGroupBy",
+    typeof store.get(ACT_GROUP_KEY) === "string" && store.get(ACT_GROUP_KEY) ? store.get(ACT_GROUP_KEY) : "property"
+  ),
   actShowHistorical: false,
   actQ: "",
   actExpandedQuietRanges: [],
-  caughtUpAt: typeof store.get(CAUGHT_UP_AT_KEY) === "string" ? store.get(CAUGHT_UP_AT_KEY) : "",
-  readEventIds: Array.isArray(store.get(READ_IDS_KEY)) ? store.get(READ_IDS_KEY) : [],
+  caughtUpAt: _initialWmInputs.caughtUpAt || (typeof store.get(CAUGHT_UP_AT_KEY) === "string" ? store.get(CAUGHT_UP_AT_KEY) : ""),
+  readEventIds: _initialWmInputs.readEventIds,
+  unreadEventIds: _initialWmInputs.unreadEventIds,
   highlightCheckId: "",
   initialWatchDeepLinkResolved: false,
   userSwitchedMode: false,
@@ -1767,12 +1831,12 @@ function getActivityViewContext(){
   const count7d = substantiveEvents.filter(e => e.localDate && e.localDate >= floor7d).length;
 
   const readIdsArr = Array.isArray(view.readEventIds) ? view.readEventIds : [];
+  const unreadIdsArr = Array.isArray(view.unreadEventIds) ? view.unreadEventIds : [];
   const watermarkKey = [
     dataKey,
     view.caughtUpAt || "",
-    readIdsArr.length,
-    readIdsArr[0] || "",
-    readIdsArr[readIdsArr.length - 1] || "",
+    readIdsArr.join(","),
+    unreadIdsArr.join(","),
     excludeStaff ? "ext" : "all",
     includeHistoricalBaseline ? "hist1" : "hist0",
   ].join("|");
@@ -1782,6 +1846,7 @@ function getActivityViewContext(){
       events: _activityMemo.bundle.events,
       caughtUpAt: view.caughtUpAt,
       readEventIds: readIdsArr,
+      unreadEventIds: unreadIdsArr,
       nowIso,
       excludeStaff,
       includeHistoricalBaseline,
@@ -1791,6 +1856,7 @@ function getActivityViewContext(){
           events: _activityMemo.bundle.events,
           caughtUpAt: view.caughtUpAt,
           readEventIds: readIdsArr,
+          unreadEventIds: unreadIdsArr,
           nowIso,
           excludeStaff: false,
           includeHistoricalBaseline,
@@ -1837,9 +1903,76 @@ function formatCaughtUpTimestamp(isoStr){
   }) + " CT";
 }
 
+function applyRoamingStateToView(nextRoamingState, { allowModeUpdate = false, resetMissingPrefs = false } = {}){
+  roamingState = nextRoamingState || createEmptyRoamingState();
+  const wmInputs = deriveWatermarkInputsFromRoamingState(roamingState);
+  view.caughtUpAt = wmInputs.caughtUpAt;
+  view.readEventIds = wmInputs.readEventIds;
+  view.unreadEventIds = wmInputs.unreadEventIds;
+
+  const prefStream = getRoamingPrefValue(roamingState, "actStream");
+  if (typeof prefStream === "string" && prefStream) {
+    view.actStream = prefStream;
+    const sel = $("#actStreamFilter");
+    if (sel && sel.value !== prefStream) sel.value = prefStream;
+  } else if (resetMissingPrefs) {
+    view.actStream = "external";
+    const sel = $("#actStreamFilter");
+    if (sel) sel.value = "external";
+  }
+  const prefGroup = getRoamingPrefValue(roamingState, "actGroupBy");
+  if (typeof prefGroup === "string" && prefGroup) {
+    view.actGroupBy = prefGroup;
+    const gSel = $("#actGroupBySelect");
+    if (gSel && gSel.value !== prefGroup) gSel.value = prefGroup;
+  } else if (resetMissingPrefs) {
+    view.actGroupBy = "property";
+    const gSel = $("#actGroupBySelect");
+    if (gSel) gSel.value = "property";
+  }
+  const prefCycMode = getRoamingPrefValue(roamingState, "cycleViewMode");
+  if (prefCycMode === "unmerged" || prefCycMode === "merged") {
+    view.allCyclesMode = prefCycMode;
+  } else if (resetMissingPrefs) {
+    view.allCyclesMode = "merged";
+  }
+  const prefRev = getRoamingPrefValue(roamingState, "reviewerName");
+  if (typeof prefRev === "string" && prefRev && $("#reviewer") && document.activeElement !== $("#reviewer")) {
+    $("#reviewer").value = prefRev;
+    if (S) S.reviewer = prefRev;
+  } else if (resetMissingPrefs && $("#reviewer") && document.activeElement !== $("#reviewer")) {
+    $("#reviewer").value = "Preservation Houston";
+    if (S) S.reviewer = "Preservation Houston";
+  }
+  if (allowModeUpdate && !view.userSwitchedMode) {
+    const prefMode = getRoamingPrefValue(roamingState, "lastMode");
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlRoute = ["mode", "tab", "watch", "hcad", "address", "cycle", "app", "id"].some(k => params.has(k));
+    if (!hasUrlRoute && (prefMode === "agenda" || prefMode === "watchlist" || prefMode === "activity")) {
+      view.mode = prefMode;
+    }
+  }
+}
+
+function commitRoamingStateMutation(nextState, { syncCloud = true } = {}){
+  const sess = getStaffSession();
+  const email = sess ? sess.email : "";
+  const saved = saveLocalUserRoamingState(nextState, {
+    email,
+    markDirty: Boolean(sess && syncCloud),
+    mirrorLegacy: true,
+  });
+  applyRoamingStateToView(saved);
+  if (sess && syncCloud) {
+    queueCloudSyncUserRoamingState();
+  }
+  return saved;
+}
+
 function persistModeChoice(nextMode){
   if (nextMode === "agenda" || nextMode === "watchlist" || nextMode === "activity") {
     store.set(LAST_MODE_KEY, nextMode);
+    commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "lastMode", nextMode));
   }
 }
 
@@ -1881,18 +2014,65 @@ function resolvePlatJumpTarget({ ck = "", appNo = "", occKey = "" } = {}){
 }
 
 function markActivityCaughtUp(){
+  const prevSnapshot = JSON.parse(JSON.stringify(roamingState));
   const actCtx = getActivityViewContext();
   const nextWm = buildMarkCaughtUpState({
     events: actCtx.bundle.events,
     prevReadEventIds: view.readEventIds,
     nowIso: actCtx.nowIso,
   });
-  view.caughtUpAt = nextWm.caughtUpAt;
-  view.readEventIds = nextWm.readEventIds;
-  store.set(CAUGHT_UP_AT_KEY, view.caughtUpAt);
-  store.set(READ_IDS_KEY, view.readEventIds);
+  const nextRoaming = applyMarkCaughtUpToRoamingState(roamingState, {
+    caughtUpAt: nextWm.caughtUpAt,
+    readEventIds: nextWm.readEventIds,
+    nowMs: Date.now(),
+  });
+  commitRoamingStateMutation(nextRoaming);
   render();
-  toast("Marked all current updates as caught up on this browser.");
+  const sess = getStaffSession();
+  toast(
+    sess
+      ? `Marked all updates as caught up · Synced to ${sess.email}.`
+      : "Marked all current updates as caught up · Sign in to sync across computers.",
+    {
+      actionLabel: "Undo",
+      onAction: () => {
+        const restored = applyRestoreRoamingSnapshot(prevSnapshot, Date.now(), roamingState);
+        commitRoamingStateMutation(restored);
+        render();
+        toast("Restored previous unread state.");
+      },
+    }
+  );
+}
+
+function toggleSingleActivityEventRead(eventId){
+  const cleanId = String(eventId || "").trim();
+  if (!cleanId) return;
+  const actCtx = getActivityViewContext();
+  const currentlyUnread = actCtx.watermarkState.unreadIds.has(cleanId);
+  const nextIsRead = currentlyUnread;
+  const nextRoaming = applyToggleEventReadState(roamingState, cleanId, nextIsRead, Date.now());
+  commitRoamingStateMutation(nextRoaming);
+  const sc = $("#detail")?.scrollTop || 0;
+  render();
+  if ($("#detail")) $("#detail").scrollTop = sc;
+  const sess = getStaffSession();
+  toast(
+    nextIsRead
+      ? (sess ? "Marked item read · Synced across your browsers." : "Marked item read.")
+      : (sess ? "Marked item unread · Pinned for follow-up across your browsers." : "Marked item unread.")
+  );
+}
+
+function markPropertyGroupEventsRead(eventIds = [], propLabel = ""){
+  const ids = (Array.isArray(eventIds) ? eventIds : []).map(x => String(x || "").trim()).filter(Boolean);
+  if (!ids.length) return;
+  const nextRoaming = applyBatchEventsReadState(roamingState, ids, true, Date.now());
+  commitRoamingStateMutation(nextRoaming);
+  const sc = $("#detail")?.scrollTop || 0;
+  render();
+  if ($("#detail")) $("#detail").scrollTop = sc;
+  toast(`Marked ${ids.length} signal${ids.length === 1 ? "" : "s"} read${propLabel ? ` for ${propLabel}` : ""}.`);
 }
 
 async function copyCurrentActivityBriefing(){
@@ -2295,14 +2475,19 @@ function renderSingleActivityCardHtml(ev, wm){
     s.safeHcad ? `<span class="chip">HCAD ${s.safeHcad}</span>` : "",
   ].filter(Boolean).join("");
 
+  const readToggleHtml = isUnread
+    ? `<button type="button" class="unread-dot unread-toggle-btn ${s.severity === "critical" || s.adverse ? "crit" : ""}" data-card-unread="1" data-toggle-event-read="${s.safeId}" title="Click to mark this item as read (syncs across your signed-in browsers)">● Unread · Mark Read</button>`
+    : `<button type="button" class="read-toggle-btn" data-toggle-event-read="${s.safeId}" title="Keep unread so this item stays in Since Last Visit across your computers">○ Keep Unread</button>`;
+
   return `<article class="act-card ${esc(s.severity)}" data-event-id="${s.safeId}" data-stream="${esc(s.stream)}" data-severity="${esc(s.severity)}">
     <div class="act-card-top">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span class="act-stream-badge ${esc(s.stream)}">${esc(ACTIVITY_STREAM_META[s.stream]?.label || s.streamLabel)}</span>
         ${sevBadge}
-        ${isUnread ? `<span class="unread-dot ${s.severity === "critical" || s.adverse ? "crit" : ""}" data-card-unread="1">● Unread</span>` : ""}
+        ${isUnread ? readToggleHtml : ""}
         ${metaChips}
       </div>
+      ${!isUnread ? `<div>${readToggleHtml}</div>` : ""}
     </div>
     <div class="act-card-title">${s.safeTitle}</div>
     ${s.safeSummary ? `<div class="act-card-sum">${s.safeSummary}</div>` : ""}
@@ -2311,9 +2496,29 @@ function renderSingleActivityCardHtml(ev, wm){
   </article>`;
 }
 
+function buildRoamingSyncBadgeHtml(){
+  const sess = getStaffSession();
+  if (!sess) return "";
+  if (roamingSyncStatus === "syncing") {
+    return `<span class="sync-inline-chip pending" data-roaming-sync-chip="syncing">↻ Syncing account...</span>`;
+  }
+  if (roamingSyncStatus === "offline") {
+    return `<span class="sync-inline-chip offline" data-roaming-sync-chip="offline" title="Changes are saved locally and will push automatically when back online">⚡ Saved locally · Sync queued</span>`;
+  }
+  return `<span class="sync-inline-chip" data-roaming-sync-chip="synced" title="Your read/unread progress and view preferences follow ${esc(sess.email)} across work and home browsers">☁️ Synced · ${esc(sess.email)}</span>`;
+}
+
 function renderActivityBriefing(actCtx){
   const { bundle, watermarkState: wm, filteredEvents } = actCtx;
   const banners = [];
+  const staffSess = getStaffSession();
+
+  if (!staffSess) {
+    banners.push(`<div class="act-sync-callout" data-roaming-signin-callout="1">
+      <div><b>☁️ Working across office and home computers?</b> Sign in once on each browser so your <b>What's New</b> read/unread progress, Watchlist notes, and view preferences carry over automatically.</div>
+      <button type="button" class="btn sm primary" data-open-staff-auth="1">🔒 Sign In to Sync Across Browsers</button>
+    </div>`);
+  }
 
   if (!bundle.hasStaticLog) {
     banners.push(`<div class="act-banner info" data-fallback-log-banner="1">
@@ -2343,6 +2548,8 @@ function renderActivityBriefing(actCtx){
     ? `${okDefaultAg}/${totDefaultAg} agencies completed (${failedList.length} degraded)`
     : `all ${okDefaultAg}/${totDefaultAg} agencies reported cleanly`;
 
+  const syncChipHtml = buildRoamingSyncBadgeHtml();
+
   if (view.actSelectedDate) {
     banners.push(`<div class="act-banner info">
       <div><b>📅 Single-Day Inspection: ${esc(formatLongUsDate(view.actSelectedDate) || view.actSelectedDate)}</b> · Showing ${filteredEvents.length} update${filteredEvents.length === 1 ? "" : "s"} recorded on this Houston calendar date.</div>
@@ -2351,13 +2558,16 @@ function renderActivityBriefing(actCtx){
   } else if (view.actRange === "since_last_visit") {
     if (wm.isImplicitFirstVisit) {
       banners.push(`<div class="act-banner info" data-first-visit-banner="1">
-        <div><b>👋 Morning Briefing (First Visit on This Browser):</b> Showing <b>${wm.unreadCount}</b> update${wm.unreadCount === 1 ? "" : "s"} from the past 7 days across all 4 monitoring streams (${sweepReassure}). Click <b>✓ Mark Caught Up</b> once reviewed to set your personal read watermark.</div>
+        <div><b>👋 Morning Briefing (${staffSess ? "Initial Account View" : "First Visit on This Browser"}):</b> Showing <b>${wm.unreadCount}</b> update${wm.unreadCount === 1 ? "" : "s"} from the past 7 days across all 4 monitoring streams (${sweepReassure}). Click <b>✓ Mark Caught Up</b> once reviewed to save your read watermark${staffSess ? " across all your browsers" : ""}. ${syncChipHtml}</div>
         <button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>
       </div>`);
     } else if (filteredEvents.length === 0 && !view.actQ && (view.actStream === "external" || view.actStream === "all")) {
       banners.push(`<div class="act-banner caughtup" data-caught-up-card="1">
         <div>
-          <b style="font-size:15px">✓ All caught up since ${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}</b><br>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:2px">
+            <b style="font-size:15px">✓ All caught up since ${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}</b>
+            ${syncChipHtml}
+          </div>
           <span>Zero new filings, permit alerts, or unread updates since your saved watermark. Daily 7:00 AM CT sweeps checked <b>${activeWatchlistCount()}</b> active watched properties (${esc(sweepReassure)}).</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2367,7 +2577,7 @@ function renderActivityBriefing(actCtx){
       </div>`);
     } else {
       banners.push(`<div class="act-banner info">
-        <div><b>📬 Since Last Visit (${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}):</b> <b>${wm.unreadCount}</b> unread update${wm.unreadCount === 1 ? "" : "s"} (${wm.unreadAdverseCount} critical/adverse)${view.actStream === "external" ? " · <i>External signals only (staff edits hidden)</i>" : ""}.</div>
+        <div><b>📬 Since Last Visit (${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}):</b> <b>${wm.unreadCount}</b> unread update${wm.unreadCount === 1 ? "" : "s"} (${wm.unreadAdverseCount} critical/adverse)${view.actStream === "external" ? " · <i>External signals only (staff edits hidden)</i>" : ""}. ${syncChipHtml}</div>
         ${wm.unreadCount > 0 ? `<button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>` : ""}
       </div>`);
     }
@@ -2393,6 +2603,7 @@ function renderActivityBriefing(actCtx){
   } else if (view.actGroupBy === "property") {
     const propGroups = groupActivityEventsByProperty(filteredEvents);
     sectionsHtml = propGroups.map(grp => {
+      const unreadInGroup = grp.events.filter(ev => wm.unreadIds.has(String(ev.id || ""))).map(ev => String(ev.id || "")).filter(Boolean);
       const propChips = [
         grp.yearBuilt ? `<span class="chip ${Number(grp.yearBuilt) <= 1940 ? "critical" : ""}">Built ${esc(grp.yearBuilt)}</span>` : "",
         grp.hcad ? `<span class="chip">HCAD ${esc(grp.hcad)}</span>` : "",
@@ -2400,6 +2611,9 @@ function renderActivityBriefing(actCtx){
         `<span class="chip">${grp.events.length} signal${grp.events.length === 1 ? "" : "s"}</span>`,
       ].filter(Boolean).join("");
       const hdrActions = [
+        unreadInGroup.length > 0
+          ? `<button type="button" class="assist-pill ok" data-mark-group-read="${esc(JSON.stringify(unreadInGroup))}" data-mark-group-label="${esc(grp.label)}" title="Mark ${unreadInGroup.length} unread signal${unreadInGroup.length === 1 ? "" : "s"} on this property as read">✓ Mark Read (${unreadInGroup.length})</button>`
+          : "",
         grp.watchPropertyId
           ? `<button type="button" class="assist-pill" data-act-open-watch="${esc(grp.watchPropertyId)}">Open Watchlist Dossier →</button>`
           : "",
@@ -3013,11 +3227,11 @@ function renderDetail(){
       </h3>
       ${getStaffSession()
         ? `<div style="margin-bottom:10px;padding:7px 10px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:4px;font-size:12px;color:#1F6B43;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-             <span><strong>&#9729; Google Sheet Cloud Sync Active:</strong> Signed in as <strong>${esc(getStaffSession().email)}</strong>. All changes save automatically to the shared Preservation Houston Google Sheet.</span>
-             <a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener" style="color:#1F6B43;font-weight:700;text-decoration:underline;white-space:nowrap;">Open Raw Sheet Tab &#8599;</a>
+             <span><strong>&#9729; Cloud Sync Active (${esc(getStaffSession().email)}):</strong> Your reviews and What's New read/unread progress automatically follow your account across browsers.</span>
+             <button type="button" class="btn sm" data-open-staff-auth="1" style="padding:2px 8px;font-size:11.5px;border-color:#95D5B2;color:#1F6B43;background:#fff">Account &amp; Sync</button>
            </div>`
         : `<div style="margin-bottom:10px;padding:8px 10px;background:#FDF2E3;border:1px solid #F3D19E;border-radius:4px;font-size:12px;color:#8E5109;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-             <span><strong>&#128274; Staff Sign-In Required to Edit &amp; Save to Google Sheet:</strong> Sign in with a Google Account that has Editor access on the Preservation Houston Google Sheet.</span>
+             <span><strong>&#128274; Staff Sign-In Required to Edit &amp; Sync:</strong> Sign in once on this browser to edit reviews and carry your progress across computers.</span>
              <button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>
            </div>`
       }
@@ -4366,9 +4580,9 @@ function renderWatchlistDetail(precomputedActCtx = null){
       ${/^https?:/i.test(p.noticePdf) && p.noticePdf !== p.platPdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Hearing Notice PDF ↗</a>` : ""}
     </div>
 
-    <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
-      <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Property edits, snowball terms, Google Drive links, photos, building history, and checklist updates sync automatically to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to edit property details, attach links, upload photos, or log checklist findings.`}</span>
-      ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener" style="color:#175e3c;font-weight:600;text-decoration:underline;white-space:nowrap;margin-left:8px;">Open Raw Sheet Tab ↗</a>`}
+    <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
+      <span>${staffSess ? `☁️ <b>Cloud Sync Active (${esc(staffSess.email)})</b>: Dossier edits, snowball terms, photos, checklist logs, and your What's New read/unread progress sync automatically across your browsers.` : `🔒 <b>Read-Only Mode</b>: Sign in once on this browser to edit property details, log checklist findings, and sync your progress across computers.`}</span>
+      ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<button type="button" class="btn sm" data-open-staff-auth="1" style="padding:2px 8px;font-size:11.5px;border-color:#9ccbb5;color:#175e3c;background:#fff">Account &amp; Sync</button>`}
     </div>
 
     <div class="wl-card">
@@ -5837,10 +6051,10 @@ function showEmail(){
 }
 
 /* ---------- Google Sheet Staff Admin Auth & Live Ownership-Partitioned Cloud Sync ---------- */
-const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw1axAzEHZgcIKcdRUAjltDIsq505PJRalUMOfmJJa07qR-RCdsWBAwPv1gjN3sJlEbtg/exec";
-const SHEET_PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6oiB-T1JH-oy8coeDD1Gqey_l9rP7Its3NWe7KerNQyBF_Mqrx1NHPLWV8yKTtgS0CTXoJySi3jcO/pub?gid=1876369840&single=true&output=csv";
-const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
+const SHEET_WEBHOOK_URL = DEFAULT_SHEET_WEBHOOK_URL;
+const SHEET_PUBLISHED_CSV_URL = DEFAULT_SHEET_PUBLISHED_CSV_URL;
 const cloudSyncTimers = {};
+let endpointSupportsRoamingSync = null; // null = unknown, true = confirmed, false = legacy/stub
 
 function getStaffSession(){
   try {
@@ -5866,16 +6080,30 @@ function updateStaffAuthButtonUI(){
   if (loadSheetLink) loadSheetLink.classList.toggle("hidden", !sess);
   if (!btn) return;
   if (sess) {
-    btn.innerHTML = `&#9729; Cloud Sync: ${esc(sess.email.split("@")[0])}`;
-    btn.style.background = "#1F6B43";
-    btn.style.borderColor = "#40916C";
-    btn.style.color = "#FFFFFF";
+    const shortUser = esc((sess.email || "").split("@")[0]);
+    if (roamingSyncStatus === "syncing") {
+      btn.innerHTML = `&#8635; Syncing: ${shortUser}`;
+      btn.style.background = "#1E4E8C";
+      btn.style.borderColor = "#60A5FA";
+      btn.style.color = "#FFFFFF";
+    } else if (roamingSyncStatus === "offline") {
+      btn.innerHTML = `&#9889; Offline Queue: ${shortUser}`;
+      btn.style.background = "#92400E";
+      btn.style.borderColor = "#FBBF24";
+      btn.style.color = "#FFFFFF";
+    } else {
+      btn.innerHTML = `&#9729; Synced: ${shortUser}`;
+      btn.style.background = "#1F6B43";
+      btn.style.borderColor = "#40916C";
+      btn.style.color = "#FFFFFF";
+    }
     if ((!$("#reviewer").value || $("#reviewer").value === "Preservation Houston") && sess.email) {
       $("#reviewer").value = sess.email;
       store.set("phpam:reviewer", sess.email);
       if (S) S.reviewer = sess.email;
     }
   } else {
+    roamingSyncStatus = "signed_out";
     btn.innerHTML = `&#128274; Staff Sign-In`;
     btn.style.background = "";
     btn.style.borderColor = "";
@@ -5883,9 +6111,80 @@ function updateStaffAuthButtonUI(){
   }
 }
 
+function queueCloudSyncUserRoamingState(delayMs = 700){
+  const sess = getStaffSession();
+  if (!sess || !sess.authorized || endpointSupportsRoamingSync === false) return;
+  const timerKey = "roaming:user";
+  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
+  roamingSyncStatus = "syncing";
+  updateStaffAuthButtonUI();
+  cloudSyncTimers[timerKey] = setTimeout(async () => {
+    delete cloudSyncTimers[timerKey];
+    const activeSess = getStaffSession();
+    if (!activeSess || !activeSess.authorized) return;
+    const res = await pushCloudUserRoamingState({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      session: activeSess,
+      state: roamingState,
+    });
+    if (res.ok) {
+      endpointSupportsRoamingSync = true;
+      roamingSyncStatus = "synced";
+      lastRoamingCloudSyncAt = new Date().toISOString();
+      const saved = saveLocalUserRoamingState(res.userState, {
+        email: activeSess.email,
+        markDirty: false,
+        mirrorLegacy: true,
+      });
+      applyRoamingStateToView(saved);
+    } else {
+      roamingSyncStatus = (typeof navigator !== "undefined" && navigator.onLine === false) ? "offline" : "synced";
+    }
+    updateStaffAuthButtonUI();
+    if (view.mode === "activity") {
+      const chipEl = document.querySelector("[data-roaming-sync-chip]");
+      if (chipEl) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = buildRoamingSyncBadgeHtml();
+        if (tmp.firstElementChild) chipEl.replaceWith(tmp.firstElementChild);
+      }
+    }
+  }, delayMs);
+}
+
+async function syncRoamingUserProfile({ includeAnonState = false, allowModeUpdate = false } = {}){
+  const sess = getStaffSession();
+  if (!sess || !sess.authorized || endpointSupportsRoamingSync === false) return false;
+  const res = await syncUserRoamingStateWithCloud({
+    webhookUrl: SHEET_WEBHOOK_URL,
+    session: sess,
+    includeAnonState,
+  });
+  if (res.ok) {
+    endpointSupportsRoamingSync = true;
+    roamingSyncStatus = "synced";
+    lastRoamingCloudSyncAt = new Date().toISOString();
+    applyRoamingStateToView(res.state, { allowModeUpdate });
+    updateStaffAuthButtonUI();
+    if (res.changedFromLocal) {
+      markActivityDirty();
+      const activeEl = document.activeElement;
+      const isTyping = Boolean(
+        activeEl &&
+        $("#detail")?.contains(activeEl) &&
+        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+      );
+      if (!isTyping) render();
+    }
+    return true;
+  }
+  updateStaffAuthButtonUI();
+  return false;
+}
+
 function requireStaffAuth(actionDesc){
   if (getStaffSession()) return true;
-  toast("Sign in as a Google Sheet Editor to " + (actionDesc || "edit and sync to the Google Sheet") + ".");
+  toast("Sign in with your staff account to " + (actionDesc || "edit and sync changes across browsers") + ".");
   openStaffAuthModal();
   return false;
 }
@@ -5896,63 +6195,101 @@ function openStaffAuthModal(){
   const sess = getStaffSession();
   const back = document.createElement("div");
   back.className = "modal-back";
-  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
-    <h3>&#128272; Preservation Houston Staff Admin Verification &amp; Google Sheet Sync</h3>
+  const caughtUpSummary = view.caughtUpAt
+    ? formatCaughtUpTimestamp(view.caughtUpAt)
+    : "Not yet marked caught up";
+  const lastSyncSummary = lastRoamingCloudSyncAt
+    ? new Date(lastRoamingCloudSyncAt).toLocaleTimeString()
+    : "Active";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:570px">
+    <h3>&#9729; Staff Account &amp; Cross-Browser Cloud Sync</h3>
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px 0;line-height:1.5">
-      Editing Plat Reviews and the 15-Point Property Watchlist is restricted to Google Accounts with <strong>Editor</strong> access on the Preservation Houston Google Sheet. Once verified, every edit saves automatically to the shared Google Sheet in the background.
+      Sign in once on each browser (office desktop, home laptop, or tablet) using your authorized Preservation Houston Google Account. Your <strong>What's New read/unread progress</strong>, <strong>15-Point Watchlist dossiers</strong>, <strong>Plat reviews</strong>, and <strong>view preferences</strong> follow your account automatically.
     </p>
     ${sess ? `
-      <div style="padding:10px 12px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:4px;margin-bottom:12px;font-size:13px;color:#1F6B43">
-        <strong>&#10003; Currently Authenticated:</strong> ${esc(sess.email)}<br>
-        <span style="font-size:12px">Live two-way Google Sheet Cloud Sync is active on this browser.</span>
+      <div style="padding:11px 13px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:6px;margin-bottom:12px;font-size:13px;color:#1F6B43">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div><strong>&#10003; Signed In:</strong> ${esc(sess.email)}</div>
+          <button class="btn sm" id="saSyncNowBtn" type="button" style="background:#fff;color:#1F6B43;border-color:#95D5B2">&#8635; Sync Now</button>
+        </div>
+        <div style="font-size:12px;margin-top:5px;color:#14532D;line-height:1.4">
+          Read watermark: <b>${esc(caughtUpSummary)}</b> · Cloud sync: <b>${esc(lastSyncSummary)}</b>
+        </div>
       </div>
     ` : ""}
-    <div class="grid2">
-      <div class="field">
-        <label for="sa-email">Google Account Email (Sheet Editor)</label>
-        <input id="sa-email" type="email" placeholder="name@preservationhouston.org" value="${esc(sess ? sess.email : "")}">
+    <form id="staffAuthForm" autocomplete="on" style="margin:0">
+      <div class="grid2">
+        <div class="field">
+          <label for="sa-email">Staff Google Account Email</label>
+          <input id="sa-email" name="username" autocomplete="username" type="email" placeholder="advocate@example.org" value="${esc(sess ? sess.email : "")}">
+        </div>
+        <div class="field">
+          <label for="sa-passkey">Staff Sync Passkey</label>
+          <input id="sa-passkey" name="password" autocomplete="current-password" type="password" placeholder="Enter Staff Sync Passkey" value="${esc(sess ? sess.adminPasskey : "")}">
+        </div>
       </div>
-      <div class="field">
-        <label for="sa-passkey">Sheet Editor Passkey (Tab 3, Cell B6)</label>
-        <input id="sa-passkey" type="password" placeholder="Enter Sheet Editor Passkey" value="${esc(sess ? sess.adminPasskey : "")}">
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4">
+        Tip: Allow your browser or password manager to save this sign-in once so switching between office and home browsers is effortless.
       </div>
-    </div>
-    <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--t1)"></div>
-    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <a class="btn" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Sheet Tab &#8599;</a>
-        ${sess ? `<a class="btn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Monitoring Guide (Google Doc &#8599;)</a>` : ""}
-        ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--t1);border-color:#E5B4B0">Sign Out / Lock</button>` : ""}
+      <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--t1)"></div>
+      <details style="margin-top:8px;font-size:12px;color:var(--muted)">
+        <summary style="cursor:pointer;font-weight:600">Advanced &amp; Reference Links (Optional)</summary>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)">
+          <a class="btn sm" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=1383259584" target="_blank" rel="noopener">Community Moderation Sheet &#8599;</a>
+          <a class="btn sm" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Monitoring Guide (Google Doc &#8599;)</a>
+        </div>
+      </details>
+      <div class="actions" style="justify-content:space-between;flex-wrap:wrap;margin-top:14px">
+        <div>
+          ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--t1);border-color:#E5B4B0">Sign Out on This Browser</button>` : ""}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="saCancel" type="button">Close</button>
+          <button class="btn primary" id="saVerify" type="submit">&#10003; ${sess ? "Re-Verify &amp; Sync" : "Sign In &amp; Enable Sync"}</button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" id="saCancel" type="button">Close</button>
-        <button class="btn primary" id="saVerify" type="button">&#10003; Verify Sheet Editor &amp; Enable Cloud Sync</button>
-      </div>
-    </div>
+    </form>
   </div>`;
   document.body.appendChild(back);
   back.addEventListener("click", e => { if (e.target === back || e.target.id === "saCancel") back.remove(); });
+  $("#saSyncNowBtn")?.addEventListener("click", async () => {
+    const syncBtn = $("#saSyncNowBtn");
+    if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = "Syncing..."; }
+    await Promise.all([syncRoamingUserProfile({ includeAnonState: false }), pullCloudSheetSync()]);
+    back.remove();
+    toast("Synced your read/unread progress, Watchlist, and Plat reviews with the cloud.");
+  });
   $("#saLock")?.addEventListener("click", () => {
+    if (cloudSyncTimers["roaming:user"]) {
+      clearTimeout(cloudSyncTimers["roaming:user"]);
+      delete cloudSyncTimers["roaming:user"];
+    }
     sessionStorage.removeItem(LS_ADMIN_SESSION_KEY);
     localStorage.removeItem(LS_ADMIN_SESSION_KEY);
+    endpointSupportsRoamingSync = null;
+    clearLegacyMirrorOnSignOut();
+    roamingState = loadLocalUserRoamingState({ email: "" });
+    applyRoamingStateToView(roamingState, { resetMissingPrefs: true });
+    markActivityDirty();
     updateStaffAuthButtonUI();
     render();
     back.remove();
-    toast("Signed out of Staff Admin Cloud Sync.");
+    toast("Signed out on this browser.");
   });
-  $("#saVerify").addEventListener("click", async () => {
+  $("#staffAuthForm")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
     const email = ($("#sa-email").value || "").trim();
     const passkey = ($("#sa-passkey").value || "").trim();
     const msgEl = $("#sa-msg");
     if (!email || !passkey) {
-      msgEl.textContent = "Please enter both your Sheet Editor Google Account Email and the Sheet Editor Passkey.";
+      msgEl.textContent = "Please enter both your Staff Google Account Email and the Staff Sync Passkey.";
       return;
     }
     const btn = $("#saVerify");
     btn.disabled = true;
-    btn.textContent = "Verifying with Google Sheet...";
+    btn.textContent = "Signing in & syncing...";
     msgEl.style.color = "var(--muted)";
-    msgEl.textContent = "Checking Spreadsheet.getEditors() and passkey...";
+    msgEl.textContent = "Verifying staff editor access and loading your cloud profile...";
     try {
       const res = await fetch(SHEET_WEBHOOK_URL, {
         method: "POST",
@@ -5966,29 +6303,58 @@ function openStaffAuthModal(){
       const data = await res.json();
       if (!data || !data.authorized) {
         msgEl.style.color = "var(--t1)";
-        msgEl.textContent = (data && data.error) || "Access denied: Google account is not listed as an Editor on the Google Sheet or passkey is invalid.";
+        msgEl.textContent = (data && data.error) || "Access denied: Google account is not listed as an Editor on the Moderation Sheet or passkey is invalid.";
         btn.disabled = false;
-        btn.textContent = "Verify Sheet Editor & Enable Cloud Sync";
+        btn.textContent = "Sign In & Enable Sync";
         return;
       }
+      const resolvedEmail = normalizeStaffEmail(data.email || email) || email;
+      const prevEmail = normalizeStaffEmail(getStaffSession()?.email || "");
+      const switchedAccount = Boolean(prevEmail && prevEmail !== resolvedEmail);
       const newSession = {
         authorized: true,
         verifiedByWebhook: true,
-        email: data.email || email,
+        email: resolvedEmail,
         adminPasskey: passkey,
         unlockedAt: new Date().toISOString(),
       };
       sessionStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
       localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
+      roamingSyncStatus = "synced";
+      lastRoamingCloudSyncAt = new Date().toISOString();
+
+      const hydrated = hydrateRoamingStateFromVerifyResponse({
+        verifyData: data,
+        email: resolvedEmail,
+      });
+      if (hydrated.supportsRoamingSync) {
+        endpointSupportsRoamingSync = true;
+        if (switchedAccount) {
+          if ($("#reviewer")) $("#reviewer").value = "Preservation Houston";
+          if (S) S.reviewer = "Preservation Houston";
+        }
+        applyRoamingStateToView(hydrated.state, {
+          allowModeUpdate: true,
+          resetMissingPrefs: switchedAccount,
+        });
+        if (hydrated.needsPush) {
+          queueCloudSyncUserRoamingState(900);
+        }
+      } else {
+        endpointSupportsRoamingSync = false;
+      }
+
+      updateModeButtons();
       updateStaffAuthButtonUI();
+      markActivityDirty();
       render();
       back.remove();
-      toast("Verified Sheet Editor (" + newSession.email + "). Live Google Sheet Cloud Sync enabled.");
+      toast("Signed in as " + newSession.email + ". Cross-browser sync is active.");
     } catch (err) {
       msgEl.style.color = "var(--t1)";
-      msgEl.textContent = "Could not reach Google Sheet verification service: " + (err.message || err);
+      msgEl.textContent = "Could not reach cloud verification service: " + (err.message || err);
       btn.disabled = false;
-      btn.textContent = "Verify Sheet Editor & Enable Cloud Sync";
+      btn.textContent = "Sign In & Enable Sync";
     }
   });
 }
@@ -6084,17 +6450,32 @@ function queueCloudSyncWatchProperty(prop){
 
 async function pullCloudSheetSync(){
   try {
-    let csvText = "";
+    let platReviews = [];
+    let watchProperties = [];
     try {
-      const r = await fetch(SHEET_WEBHOOK_URL, { cache: "no-store" });
-      if (r.ok) csvText = await r.text();
+      const r = await fetch(`${SHEET_WEBHOOK_URL}?feed=plat_sync`, { cache: "no-store" });
+      if (r.ok) {
+        const csvText = await r.text();
+        if (csvText) {
+          const parsed = parseCloudSheetSyncRows(csvText);
+          platReviews = parsed.platReviews;
+          watchProperties = parsed.watchProperties;
+        }
+      }
     } catch (_e) {}
-    if (!csvText) {
-      const r2 = await fetch(SHEET_PUBLISHED_CSV_URL, { cache: "no-store" });
-      if (r2.ok) csvText = await r2.text();
+    if (!platReviews.length && !watchProperties.length) {
+      try {
+        const r2 = await fetch(SHEET_PUBLISHED_CSV_URL, { cache: "no-store" });
+        if (r2.ok) {
+          const csvText2 = await r2.text();
+          if (csvText2) {
+            const parsed2 = parseCloudSheetSyncRows(csvText2);
+            platReviews = parsed2.platReviews;
+            watchProperties = parsed2.watchProperties;
+          }
+        }
+      } catch (_e2) {}
     }
-    if (!csvText) return;
-    const { platReviews, watchProperties } = parseCloudSheetSyncRows(csvText);
     if (!platReviews.length && !watchProperties.length) return;
 
     let appliedPlat = 0;
@@ -6373,7 +6754,10 @@ async function loadLiveAtlasCycle(forceReload){
       if (forceReload) toast(`Loaded ${S.cycleOrder.length} Planning Commission agenda cycles (active: ${S.cycleKey}).`);
     }
 
-    await pullCloudSheetSync();
+    await Promise.all([
+      pullCloudSheetSync(),
+      syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false }),
+    ]);
     if (!forceReload && (await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved }))) {
       render();
     }
@@ -6419,6 +6803,19 @@ document.addEventListener("click", async e => {
   // What's New & Daily Log controls (Mode 3)
   if (e.target.closest("#markCaughtUpBtn") || e.target.closest("[data-mark-caught-up]")) {
     markActivityCaughtUp();
+    return;
+  }
+  const toggleReadBtn = e.target.closest("[data-toggle-event-read]");
+  if (toggleReadBtn) {
+    toggleSingleActivityEventRead(toggleReadBtn.dataset.toggleEventRead || "");
+    return;
+  }
+  const groupReadBtn = e.target.closest("[data-mark-group-read]");
+  if (groupReadBtn) {
+    try {
+      const ids = JSON.parse(groupReadBtn.dataset.markGroupRead || "[]");
+      markPropertyGroupEventsRead(ids, groupReadBtn.dataset.markGroupLabel || "");
+    } catch (_e) {}
     return;
   }
   if (e.target.closest("#copyActivityBriefingBtn")) {
@@ -7922,9 +8319,11 @@ $("#cycleViewModeSelect")?.addEventListener("change", e => {
   } else if (modeVal === "unmerged") {
     S.activeCycleChoice = "all";
     view.allCyclesMode = "unmerged";
+    commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "cycleViewMode", "unmerged"));
   } else {
     S.activeCycleChoice = "all";
     view.allCyclesMode = "merged";
+    commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "cycleViewMode", "merged"));
   }
   view.selected = null;
   clearBootDeepLinkUrlParams();
@@ -7968,6 +8367,7 @@ $("#actSearchInput")?.addEventListener("input", e => {
 $("#actStreamFilter")?.addEventListener("change", e => {
   view.actStream = e.target.value;
   store.set(ACT_STREAM_KEY, view.actStream);
+  commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "actStream", view.actStream));
   if (view.mode === "activity") {
     render();
     $("#detail").scrollTop = 0;
@@ -7978,6 +8378,7 @@ $("#actStreamFilter")?.addEventListener("change", e => {
 $("#actGroupBySelect")?.addEventListener("change", e => {
   view.actGroupBy = e.target.value;
   store.set(ACT_GROUP_KEY, view.actGroupBy);
+  commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "actGroupBy", view.actGroupBy));
   if (view.mode === "activity") {
     const actCtx = getActivityViewContext();
     renderActivityBriefing(actCtx);
@@ -7991,6 +8392,7 @@ $("#reviewer").addEventListener("input", e => {
     persistAllCycles();
   }
   store.set("phpam:reviewer", e.target.value);
+  commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "reviewerName", e.target.value));
 });
 
 $("#pickLive")?.addEventListener("click", () => loadLiveAtlasCycle(true));
@@ -8038,14 +8440,19 @@ document.addEventListener("drop", async e => {
 
 (function init(){
   const params = new URLSearchParams(window.location.search);
+  const storedMode = getRoamingPrefValue(roamingState, "lastMode", store.get(LAST_MODE_KEY) || "");
   const bootMode = resolveInitialMonitorMode({
     searchString: window.location.search,
-    storedLastMode: store.get(LAST_MODE_KEY) || "",
+    storedLastMode: storedMode,
   });
   view.mode = bootMode.mode;
   if (params.get("watch")) {
     view.selectedWatchId = params.get("watch");
   }
+  const streamSel = $("#actStreamFilter");
+  if (streamSel && view.actStream) streamSel.value = view.actStream;
+  const grpSel = $("#actGroupBySelect");
+  if (grpSel && view.actGroupBy) grpSel.value = view.actGroupBy;
   updateModeButtons();
   loadLiveAtlasCycle(false);
   let lastFocusSync = Date.now();
@@ -8055,9 +8462,22 @@ document.addEventListener("drop", async e => {
     if (Date.now() - lastFocusSync < 12000) return;
     lastFocusSync = Date.now();
     pullCloudSheetSync();
+    syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false });
   };
   window.addEventListener("focus", syncOnFocus);
   document.addEventListener("visibilitychange", syncOnFocus);
+  window.addEventListener("online", () => {
+    roamingSyncStatus = getStaffSession() ? "synced" : "signed_out";
+    updateStaffAuthButtonUI();
+    syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false });
+    pullCloudSheetSync();
+  });
+  window.addEventListener("offline", () => {
+    if (getStaffSession()) {
+      roamingSyncStatus = "offline";
+      updateStaffAuthButtonUI();
+    }
+  });
 })();
 </script>
 </body>

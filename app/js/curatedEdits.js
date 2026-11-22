@@ -12,6 +12,12 @@
  *    Preservation Houston administrator changes the row's status dropdown to `Approved`.
  */
 
+import {
+  clearLegacyMirrorOnSignOut,
+  hydrateRoamingStateFromVerifyResponse,
+  pushCloudUserRoamingState,
+} from "./userRoamingState.js?v=20261113c";
+
 const LS_SHEET_CSV_URL_KEY = "ph_atlas_sheet_csv_url";
 const LS_WEBHOOK_URL_KEY = "ph_atlas_submission_webhook_url";
 const LS_PENDING_SUGGESTIONS_KEY = "ph_atlas_pending_suggestions";
@@ -2415,6 +2421,18 @@ export function getAdminSession() {
   }
 }
 
+const ADMIN_SIGNOUT_LISTENERS_SYM = Symbol.for("ph.atlas.adminSignOutListeners");
+const _adminSignOutListeners =
+  globalThis[ADMIN_SIGNOUT_LISTENERS_SYM] ||
+  (globalThis[ADMIN_SIGNOUT_LISTENERS_SYM] = new Set());
+
+export function onAdminSessionCleared(listener) {
+  if (typeof listener === "function") {
+    _adminSignOutListeners.add(listener);
+  }
+  return () => _adminSignOutListeners.delete(listener);
+}
+
 /**
  * Clear the active Admin session (lock Admin Mode).
  */
@@ -2424,6 +2442,12 @@ export function clearAdminSession() {
   }
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem(LS_ADMIN_SESSION_KEY);
+    clearLegacyMirrorOnSignOut();
+  }
+  for (const fn of _adminSignOutListeners) {
+    try {
+      fn();
+    } catch (_e) {}
   }
 }
 
@@ -2454,6 +2478,7 @@ export async function authenticateAdminSession({
   let verifiedByWebhook = false;
   let resolvedEmail = email || "Preservation Houston Sheet Editor";
 
+  let verifyResponseData = null;
   if (targetUrl) {
     try {
       const res = await fetch(targetUrl, {
@@ -2480,6 +2505,7 @@ export async function authenticateAdminSession({
       }
       verifiedByWebhook = true;
       resolvedEmail = data.email || resolvedEmail;
+      verifyResponseData = data;
     } catch (err) {
       return {
         ok: false,
@@ -2502,6 +2528,19 @@ export async function authenticateAdminSession({
   }
   if (typeof localStorage !== "undefined") {
     localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(session));
+  }
+  if (verifiedByWebhook && verifyResponseData && typeof localStorage !== "undefined") {
+    const hydrated = hydrateRoamingStateFromVerifyResponse({
+      verifyData: verifyResponseData,
+      email: resolvedEmail,
+    });
+    if (hydrated.supportsRoamingSync && hydrated.needsPush && targetUrl) {
+      pushCloudUserRoamingState({
+        webhookUrl: targetUrl,
+        session,
+        state: hydrated.state,
+      }).catch(() => {});
+    }
   }
   return { ok: true, session };
 }

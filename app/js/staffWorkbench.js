@@ -30,6 +30,7 @@ import {
   stripEmbeddedGeometryTag,
   stripEmbeddedFieldSurveyTag,
   getAdminSession,
+  onAdminSessionCleared,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   getLocalFieldSurveys,
@@ -50,6 +51,14 @@ import {
   normalizeAuditSort,
   normalizeComparableAddress,
 } from "./filterStore.js?v=20261113c";
+import {
+  DEFAULT_SHEET_WEBHOOK_URL,
+  applyRoamingAuditDecision,
+  loadLocalUserRoamingState,
+  pushCloudUserRoamingState,
+  saveLocalUserRoamingState,
+  syncUserRoamingStateWithCloud,
+} from "./userRoamingState.js?v=20261113c";
 export { VALID_AUDIT_SORT_MODES, normalizeAuditSort };
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
@@ -861,7 +870,16 @@ export function loadAuditDecisions() {
     if (!raw) return merged;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return { ...parsed, ...merged };
+      const out = { ...parsed };
+      for (const [k, memVal] of Object.entries(merged)) {
+        const storedVal = out[k];
+        const memAt = Number(memVal?.at) || 0;
+        const storedAt = Number(storedVal?.at) || 0;
+        if (!storedVal || memAt >= storedAt) {
+          out[k] = memVal;
+        }
+      }
+      return out;
     }
   } catch (_err) {
     return merged;
@@ -869,15 +887,54 @@ export function loadAuditDecisions() {
   return merged;
 }
 
+let _roamingAuditSyncTimer = null;
+let _pendingRoamingAuditFlushFn = null;
+
+export function resetInMemoryAuditSessionState() {
+  if (_roamingAuditSyncTimer) {
+    clearTimeout(_roamingAuditSyncTimer);
+    _roamingAuditSyncTimer = null;
+  }
+  _pendingRoamingAuditFlushFn = null;
+  for (const k of Object.keys(_auditMemoryFallback)) {
+    delete _auditMemoryFallback[k];
+  }
+}
+
+export async function flushPendingRoamingAuditSync() {
+  if (_roamingAuditSyncTimer) {
+    clearTimeout(_roamingAuditSyncTimer);
+    _roamingAuditSyncTimer = null;
+  }
+  const fn = _pendingRoamingAuditFlushFn;
+  _pendingRoamingAuditFlushFn = null;
+  if (typeof fn === "function") {
+    await fn();
+  }
+}
+
+onAdminSessionCleared(resetInMemoryAuditSessionState);
+
+function _resolveWorkbenchWebhookUrl() {
+  try {
+    if (typeof globalThis !== "undefined" && globalThis.atlasApp?.curatedEditsManager?.submissionWebhookUrl) {
+      return globalThis.atlasApp.curatedEditsManager.submissionWebhookUrl;
+    }
+  } catch (_e) {}
+  return DEFAULT_SHEET_WEBHOOK_URL;
+}
+
 export function saveAuditDecision(findingId, status, note = "") {
   const fid = String(findingId || "").trim();
   if (!fid) return loadAuditDecisions();
   const cleanStatus = String(status || "pending").trim().toLowerCase();
   const current = loadAuditDecisions();
+  const nowMs = Date.now();
   const entry = {
     status: cleanStatus,
     note: String(note || "").trim(),
-    updated_at: new Date().toISOString(),
+    at: nowMs,
+    updated_at: new Date(nowMs).toISOString(),
   };
   current[fid] = entry;
   _auditMemoryFallback[fid] = entry;
@@ -885,6 +942,33 @@ export function saveAuditDecision(findingId, status, note = "") {
   if (store) {
     try {
       store.setItem(LS_AUDIT_DECISIONS_KEY, JSON.stringify(current));
+      if (!_auditStorageOverride) {
+        const sess = getAdminSession();
+        const email = sess?.email || "";
+        const prevRoaming = loadLocalUserRoamingState({ email, storage: store });
+        const nextRoaming = applyRoamingAuditDecision(prevRoaming, fid, entry, nowMs);
+        saveLocalUserRoamingState(nextRoaming, {
+          email,
+          storage: store,
+          markDirty: Boolean(sess?.authorized),
+          mirrorLegacy: false,
+        });
+        if (sess?.authorized && sess?.verifiedByWebhook) {
+          if (_roamingAuditSyncTimer) clearTimeout(_roamingAuditSyncTimer);
+          _pendingRoamingAuditFlushFn = () =>
+            pushCloudUserRoamingState({
+              webhookUrl: _resolveWorkbenchWebhookUrl(),
+              session: sess,
+              state: loadLocalUserRoamingState({ email, storage: store }),
+            }).catch(() => {});
+          _roamingAuditSyncTimer = setTimeout(() => {
+            _roamingAuditSyncTimer = null;
+            const fn = _pendingRoamingAuditFlushFn;
+            _pendingRoamingAuditFlushFn = null;
+            if (fn) fn();
+          }, 900);
+        }
+      }
     } catch (_err) {
       // Safari Private Mode / QuotaExceededError safe fallback (`DF-11`)
     }
@@ -2441,6 +2525,19 @@ export class StaffWorkbenchController {
       this.auditQueueDoc = doc;
       this.auditItems = hydrateAuditQueuePayload(doc);
       this._syncAuditLaunchButtonBadges(this.auditItems.length);
+      const sess = getAdminSession();
+      if (sess?.authorized && sess?.verifiedByWebhook) {
+        syncUserRoamingStateWithCloud({
+          webhookUrl: _resolveWorkbenchWebhookUrl(),
+          session: sess,
+        })
+          .then((res) => {
+            if (res?.ok && res.changedFromLocal) {
+              this._applyAuditFiltersAndRender({ preserveCurrentFid: true });
+            }
+          })
+          .catch(() => {});
+      }
       return this.auditItems;
     })();
     try {

@@ -63,11 +63,15 @@ jobs:
             --update-log \
             --before-dir /tmp/atlas_monitor_before
 
+      - name: Snapshot Google Workspace Cloud Sync State to Git Backup
+        run: |
+          python3 pipeline/atlas_pipeline/backup_workspace_state.py
+
       - name: Commit and push updated permit alerts, plat monitor, watchlist, HAHC tracker, and activity log
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/public/data/active_permit_alerts.json app/public/data/permits/ app/public/data/plat_agenda_monitor.json app/public/data/property_watchlist.json app/public/data/hahc_coa_tracker.json app/public/data/monitor_activity_log.json app/public/data/overlays.json app/public/data/search_index.json
+          git add app/public/data/active_permit_alerts.json app/public/data/permits/ app/public/data/plat_agenda_monitor.json app/public/data/property_watchlist.json app/public/data/hahc_coa_tracker.json app/public/data/monitor_activity_log.json app/public/data/overlays.json app/public/data/search_index.json pipeline/backups/workspace_cloud_backup.json
           if git diff --cached --quiet; then
             echo "No new permit or asbestos changes detected."
           else

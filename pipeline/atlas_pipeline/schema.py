@@ -39,6 +39,33 @@ QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
 DEFAULT_ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
 DEFAULT_ATLAS_SANDBOX_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
 
+DEFAULT_SHEET_WEBHOOK_URL = (
+    "https://script.google.com/macros/s/"
+    "AKfycbw1axAzEHZgcIKcdRUAjltDIsq505PJRalUMOfmJJa07qR-RCdsWBAwPv1gjN3sJlEbtg/exec"
+)
+DEFAULT_SHEET_PUBLISHED_CSV_URL = (
+    "https://docs.google.com/spreadsheets/d/e/"
+    "2PACX-1vS6oiB-T1JH-oy8coeDD1Gqey_l9rP7Its3NWe7KerNQyBF_Mqrx1NHPLWV8yKTtgS0CTXoJySi3jcO/"
+    "pub?gid=1876369840&single=true&output=csv"
+)
+PLAT_SYNC_HEADERS: list[str] = [
+    "status",
+    "hcad_num",
+    "address",
+    "year_built",
+    "original_hcad_year",
+    "historic_district",
+    "contributing",
+    "source_type",
+    "source_citation",
+    "source_url",
+    "verified_by",
+    "updated_at",
+]
+DEFAULT_WORKSPACE_BACKUP_PATH = (
+    Path(__file__).resolve().parents[2] / "pipeline" / "backups" / "workspace_cloud_backup.json"
+)
+
 
 def resolve_atlas_base_url(
     env: str | None = None,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import io
 import json
 import urllib.parse
@@ -9,7 +10,12 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from conftest import wait_for_atlas_ready as _wait_for_atlas_ready
+from conftest import (
+    DEFAULT_E2E_VIEWPORT,
+    attach_error_monitors,
+    configure_fast_e2e_context,
+    wait_for_atlas_ready as _wait_for_atlas_ready,
+)
 
 
 SYNTHETIC_OUTER_CORE_PARCELS_GEOJSON: dict[str, Any] = {
@@ -2066,6 +2072,333 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
         timeout=15000,
     )
     assert "3346 SCOTT ST" in page.locator("body").inner_text() or "1330170010001" in page.locator("body").inner_text()
+
+
+def test_cross_computer_roaming_sync_keep_unread_pin_undo_and_signout_isolation(
+    browser: Any,
+    atlas_base_url: str,
+) -> None:
+    """E2E multi-context cross-computer Google Workspace roaming sync:
+    Browser A (office desktop) signs into Staff Sync, marks a Property Group + single item read,
+    pins 1 item Keep Unread, sets stream/grouping preferences, clicks Mark Caught Up, tests Undo,
+    and re-marks Caught Up -> Browser B (fresh home computer context) signs in as the same staff
+    email and immediately hydrates exact read/unread state, Keep Unread pin, and preferences.
+    """
+    cloud_user_states: dict[str, dict[str, Any]] = {}
+    put_calls: list[dict[str, Any]] = []
+    log_json_path = (
+        Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "monitor_activity_log.json"
+    )
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    today_iso_date = (now_utc - dt.timedelta(hours=6)).strftime("%Y-%m-%d")
+    fresh_ts_base = (now_utc - dt.timedelta(minutes=30)).replace(microsecond=0)
+
+    def _serve_fresh_activity_log(route: Any) -> None:
+        doc = json.loads(log_json_path.read_text(encoding="utf-8"))
+        t1 = (fresh_ts_base + dt.timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
+        t2 = (fresh_ts_base + dt.timedelta(minutes=2)).isoformat().replace("+00:00", "Z")
+        t3 = (fresh_ts_base + dt.timedelta(minutes=3)).isoformat().replace("+00:00", "Z")
+        t4 = (fresh_ts_base + dt.timedelta(minutes=4)).isoformat().replace("+00:00", "Z")
+        injected = [
+            {
+                "id": "permit:coh:0621100000014:99000001",
+                "stream": "permits",
+                "kind": "permit_coh",
+                "severity": "critical",
+                "adverse": True,
+                "localDate": today_iso_date,
+                "date": today_iso_date,
+                "at": t4,
+                "hcad": "0621100000014",
+                "address": "1127 Key St",
+                "yearBuilt": 1925,
+                "designation": "Norhill Historic District",
+                "title": "1127 Key St: Structural Permit Filing #99000001",
+                "summary": "Synthetic test signal 1 on 1127 Key St parcel.",
+            },
+            {
+                "id": "permit:coh:0621100000014:99000002",
+                "stream": "permits",
+                "kind": "permit_coh",
+                "severity": "warning",
+                "adverse": True,
+                "localDate": today_iso_date,
+                "date": today_iso_date,
+                "at": t3,
+                "hcad": "0621100000014",
+                "address": "1127 Key St",
+                "yearBuilt": 1925,
+                "designation": "Norhill Historic District",
+                "title": "1127 Key St: Plumbing Disconnect Filing #99000002",
+                "summary": "Synthetic test signal 2 on 1127 Key St parcel.",
+            },
+            {
+                "id": "permit:coh:0610870390001:99000003",
+                "stream": "permits",
+                "kind": "permit_coh",
+                "severity": "warning",
+                "adverse": True,
+                "localDate": today_iso_date,
+                "date": today_iso_date,
+                "at": t2,
+                "hcad": "0610870390001",
+                "address": "1506 Heights Blvd",
+                "yearBuilt": 1915,
+                "designation": "Houston Heights Historic District East",
+                "title": "1506 Heights Blvd: Foundation Permit #99000003",
+                "summary": "Synthetic single-item read toggle fixture.",
+            },
+            {
+                "id": "permit:coh:0152300000001:99000004",
+                "stream": "permits",
+                "kind": "permit_coh",
+                "severity": "critical",
+                "adverse": True,
+                "localDate": today_iso_date,
+                "date": today_iso_date,
+                "at": t1,
+                "hcad": "0152300000001",
+                "address": "2000 Smith St",
+                "yearBuilt": 1894,
+                "designation": "City Landmark",
+                "title": "2000 Smith St: Pinned Follow-Up Alert #99000004",
+                "summary": "Synthetic Keep Unread cross-computer pin fixture.",
+            },
+        ]
+        doc["generatedAt"] = (fresh_ts_base + dt.timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+        doc["events"] = injected + list(doc.get("events") or [])
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=json.dumps(doc).encode("utf-8"),
+        )
+
+    def _cloud_roaming_webhook(route: Any) -> None:
+        if route.request.method.upper() == "POST":
+            payload = json.loads(route.request.post_data or "{}")
+            action = payload.get("action")
+            email = str(payload.get("admin_email") or "").strip().lower()
+            passkey = str(payload.get("admin_passkey") or "").strip()
+            if passkey != "test-passkey-2026" or email not in ("advocate@example.org", "colleague@example.org"):
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps({"ok": False, "authorized": False, "error": "Invalid credentials"}).encode("utf-8"),
+                )
+                return
+            if action == "verify_admin":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps(
+                        {
+                            "authorized": True,
+                            "supportsRoamingSync": True,
+                            "email": email,
+                            "userState": cloud_user_states.get(email),
+                        }
+                    ).encode("utf-8"),
+                )
+                return
+            if action == "get_user_state":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps(
+                        {
+                            "ok": True,
+                            "authorized": True,
+                            "supportsRoamingSync": True,
+                            "email": email,
+                            "userState": cloud_user_states.get(email),
+                        }
+                    ).encode("utf-8"),
+                )
+                return
+            if action == "put_user_state":
+                user_state = payload.get("user_state") or {}
+                cloud_user_states[email] = user_state
+                put_calls.append({"email": email, "userState": user_state})
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps(
+                        {
+                            "ok": True,
+                            "authorized": True,
+                            "supportsRoamingSync": True,
+                            "email": email,
+                            "userState": user_state,
+                        }
+                    ).encode("utf-8"),
+                )
+                return
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=b'{"ok":true,"authorized":true}',
+            )
+            return
+
+        # GET ?feed=plat_sync or default Approved_Edits CSV
+        route.fulfill(
+            status=200,
+            content_type="text/csv; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=b"status,hcad_num,source_type,source_citation\n",
+        )
+
+    ctx_a = browser.new_context(viewport=DEFAULT_E2E_VIEWPORT)
+    ctx_b = browser.new_context(viewport=DEFAULT_E2E_VIEWPORT)
+    try:
+        configure_fast_e2e_context(ctx_a, atlas_base_url)
+        configure_fast_e2e_context(ctx_b, atlas_base_url)
+        for ctx in (ctx_a, ctx_b):
+            ctx.route("**/data/monitor_activity_log.json*", _serve_fresh_activity_log)
+            ctx.route("**/script.google.com/macros/**", _cloud_roaming_webhook)
+
+        page_a = ctx_a.new_page()
+        pa_err, pa_con, pa_http = attach_error_monitors(page_a, atlas_base_url)
+
+        # --- Browser A ("Office Desktop") ---
+        page_a.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+        page_a.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+        page_a.wait_for_selector(
+            "#detail .act-card[data-event-id='permit:coh:0621100000014:99000001']",
+            timeout=15000,
+        )
+        assert page_a.locator("#detail [data-roaming-signin-callout='1']").count() == 1
+
+        # Sign into Staff Sync on Browser A
+        page_a.locator("#detail [data-open-staff-auth='1']").first.click()
+        page_a.fill("#sa-email", "advocate@example.org")
+        page_a.fill("#sa-passkey", "test-passkey-2026")
+        page_a.click("#saVerify")
+        page_a.wait_for_selector(".modal-back", state="detached", timeout=10000)
+        assert page_a.locator("#detail [data-roaming-signin-callout='1']").count() == 0
+        page_a.wait_for_selector("#detail [data-roaming-sync-chip='synced']", timeout=5000)
+        assert "advocate@example.org" in page_a.locator("#detail [data-roaming-sync-chip='synced']").inner_text()
+
+        # 1. Click Property Group '✓ Mark Read (N)' on 1127 Key St multi-signal group
+        key_group_btn = page_a.locator(
+            "#detail button[data-mark-group-read*='permit:coh:0621100000014:99000001']"
+        ).first
+        assert key_group_btn.count() == 1
+        key_group_btn.click()
+        assert (
+            page_a.locator("#detail .act-card[data-event-id='permit:coh:0621100000014:99000001']").count()
+            == 0
+        )
+        assert (
+            page_a.locator("#detail .act-card[data-event-id='permit:coh:0621100000014:99000002']").count()
+            == 0
+        )
+
+        # 2. Mark 1506 Heights Blvd read individually, then switch to 7d and pin 2000 Smith St as 'Keep Unread'
+        page_a.locator(
+            "#detail button[data-toggle-event-read='permit:coh:0610870390001:99000003']"
+        ).click()
+        assert (
+            page_a.locator("#detail .act-card[data-event-id='permit:coh:0610870390001:99000003']").count()
+            == 0
+        )
+
+        # Toggle 2000 Smith St read first, then switch to 7d and click '○ Keep Unread' to create explicit r:0 pin
+        pinned_id = "permit:coh:0152300000001:99000004"
+        page_a.locator(f"#detail button[data-toggle-event-read='{pinned_id}']").click()
+        page_a.click("#activityRangeTabs [data-act-range='7d']")
+        keep_unread_btn = page_a.locator(f"#detail button.read-toggle-btn[data-toggle-event-read='{pinned_id}']")
+        assert keep_unread_btn.count() == 1
+        assert "Keep Unread" in keep_unread_btn.inner_text()
+        keep_unread_btn.click()
+        assert (
+            page_a.locator(f"#detail button.unread-toggle-btn[data-toggle-event-read='{pinned_id}']").count()
+            == 1
+        )
+
+        # 3. Configure preferences (stream='all', group='date', lastMode='activity') and return to Since Last Visit
+        page_a.click("#activityRangeTabs [data-act-range='since_last_visit']")
+        page_a.select_option("#actStreamFilter", "all")
+        page_a.select_option("#actGroupBySelect", "date")
+        page_a.click("#modeActivityBtn")  # persists lastMode='activity'
+
+        unread_before_catchup = int(page_a.locator("#modeActivityCount").inner_text().strip())
+        assert unread_before_catchup >= 1
+
+        # 4. Click '✓ Mark Caught Up' -> only the 1 'Keep Unread' pin remains unread; test 'Undo'; re-mark Caught Up
+        puts_before = len(put_calls)
+        page_a.locator("#detail button[data-mark-caught-up='1']").click()
+        assert page_a.locator("#modeActivityCount").inner_text().strip() == "1"
+        assert page_a.locator(f"#detail .act-card[data-event-id='{pinned_id}']").count() == 1
+
+        undo_btn = page_a.locator(".toast.interactive .toast-act-btn", has_text="Undo")
+        undo_btn.wait_for(state="visible", timeout=5000)
+        undo_btn.click()
+        assert int(page_a.locator("#modeActivityCount").inner_text().strip()) == unread_before_catchup
+
+        # Re-mark Caught Up and wait for debounced put_user_state to land in cloud mock
+        puts_before_final = len(put_calls)
+        page_a.locator("#detail button[data-mark-caught-up='1']").click()
+        assert page_a.locator("#modeActivityCount").inner_text().strip() == "1"
+
+        waited_ms = 0
+        while waited_ms < 5000 and (
+            len(put_calls) <= puts_before_final
+            or not cloud_user_states.get("advocate@example.org", {}).get("caughtUpAt")
+        ):
+            page_a.wait_for_timeout(150)
+            waited_ms += 150
+
+        assert len(put_calls) > puts_before
+        assert cloud_user_states["advocate@example.org"]["readLedger"][pinned_id]["r"] == 0
+
+        # --- Browser B ("Home Computer" fresh isolated context with empty storage) ---
+        page_b = ctx_b.new_page()
+        pb_err, pb_con, pb_http = attach_error_monitors(page_b, atlas_base_url)
+
+        # Boot bare plat-monitor.html (starts signed out on default 'agenda' tab)
+        page_b.goto(f"{atlas_base_url}/plat-monitor.html", wait_until="domcontentloaded")
+        page_b.wait_for_selector("#app:not(.hidden)", timeout=15000)
+        assert page_b.locator("#modeAgendaBtn").get_attribute("aria-selected") == "true"
+
+        # Sign in as same staff email -> 1-RTT verify_admin immediately switches to synced 'activity' mode,
+        # restores stream='all' & group='date', and hydrates caughtUpAt + Keep Unread pin!
+        page_b.click("#staffAuthBtn")
+        page_b.fill("#sa-email", "advocate@example.org")
+        page_b.fill("#sa-passkey", "test-passkey-2026")
+        page_b.click("#saVerify")
+        page_b.wait_for_selector(".modal-back", state="detached", timeout=10000)
+
+        assert page_b.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+        assert page_b.locator("#actStreamFilter").input_value() == "all"
+        assert page_b.locator("#actGroupBySelect").input_value() == "date"
+        assert page_b.locator("#modeActivityCount").inner_text().strip() == "1"
+        assert page_b.locator(f"#detail .act-card[data-event-id='{pinned_id}']").count() == 1
+        assert (
+            page_b.locator("#detail .act-card[data-event-id='permit:coh:0621100000014:99000001']").count()
+            == 0
+        )
+
+        # Sign out on Browser B -> resets shared legacy mirrors & preferences cleanly
+        page_b.click("#staffAuthBtn")
+        page_b.click("#saLock")
+        page_b.wait_for_selector(".modal-back", state="detached", timeout=5000)
+        assert page_b.locator("#detail [data-roaming-signin-callout='1']").count() == 1
+        assert page_b.locator("#actStreamFilter").input_value() == "external"
+        assert page_b.locator("#actGroupBySelect").input_value() == "property"
+        assert page_b.evaluate("() => localStorage.getItem('phpam:actStream')") is None
+
+        assert not pa_err and not pa_con and not pa_http
+        assert not pb_err and not pb_con and not pb_http
+    finally:
+        ctx_a.close()
+        ctx_b.close()
+
 
 
 

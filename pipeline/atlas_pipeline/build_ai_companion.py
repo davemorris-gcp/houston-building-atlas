@@ -368,7 +368,35 @@ def build_llms_full_txt_content(
         "| Severity | Signal Type | Address | Building / Landmark Name | Year | HCAD Account | Permit / Project # | Atlas Link |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ])
-    for al in alerts_list[:60]:
+    selected_alerts: list[dict[str, Any]] = []
+    seen_alert_idx: set[int] = set()
+    for idx, al in enumerate(alerts_list):
+        if not isinstance(al, dict):
+            continue
+        if len(selected_alerts) < 50:
+            selected_alerts.append(al)
+            seen_alert_idx.add(idx)
+    dshs_demo_added = 0
+    dshs_abatement_added = 0
+    for idx, al in enumerate(alerts_list):
+        if idx in seen_alert_idx or not isinstance(al, dict):
+            continue
+        lbl = (
+            f"{al.get('permit_stage_label') or ''} {al.get('badge') or ''} "
+            f"{al.get('severity_label') or ''} {al.get('source') or ''}"
+        ).lower()
+        if "dshs abatement" in lbl and dshs_abatement_added < 10:
+            selected_alerts.append(al)
+            seen_alert_idx.add(idx)
+            dshs_abatement_added += 1
+        elif "dshs" in lbl and dshs_demo_added < 10:
+            selected_alerts.append(al)
+            seen_alert_idx.add(idx)
+            dshs_demo_added += 1
+        if dshs_demo_added >= 10 and dshs_abatement_added >= 10:
+            break
+
+    for al in selected_alerts:
         if not isinstance(al, dict):
             continue
         sev = _clean_dash_text(al.get("severity") or "watch").upper()

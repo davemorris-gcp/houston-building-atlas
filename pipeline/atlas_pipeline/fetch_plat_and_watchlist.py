@@ -96,13 +96,13 @@ PLAT_TRACKER_APP_CODE_LABELS: dict[str, str] = {
     "VP": "Vacating Plat (VP)",
     "VF": "Variance Filing (VF)",
 }
-SPATIAL_GRID_DEG = 0.005
-
-SHEET_PUBLISHED_CSV_URL = (
-    "https://docs.google.com/spreadsheets/d/e/"
-    "2PACX-1vS6oiB-T1JH-oy8coeDD1Gqey_l9rP7Its3NWe7KerNQyBF_Mqrx1NHPLWV8yKTtgS0CTXoJySi3jcO/"
-    "pub?gid=1876369840&single=true&output=csv"
+from atlas_pipeline.schema import (
+    DEFAULT_SHEET_PUBLISHED_CSV_URL as SHEET_PUBLISHED_CSV_URL,
+    DEFAULT_SHEET_WEBHOOK_URL as SHEET_WEBHOOK_URL,
+    DEFAULT_WORKSPACE_BACKUP_PATH,
 )
+
+SPATIAL_GRID_DEG = 0.005
 AUTO_SWEEP_SCHEDULE = "Daily at 7:00 AM CT"
 PLAT_CACHE_DIR = REPO_ROOT / "pipeline" / "cache" / "plat_spreadsheets_2026"
 
@@ -7666,25 +7666,23 @@ def evaluate_likely_demolished_signal(prop: dict, today_iso: str = "") -> tuple[
     return False, ""
 
 
-def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
-    """Pull approved PLAT_MONITOR_REVIEW and PROPERTY_WATCHLIST_UPDATE rows from Plat_&_Watchlist_Sync."""
-    if csv_text is None:
-        raw_b = fetch_bytes(f"{SHEET_PUBLISHED_CSV_URL}&_cb={int(dt.datetime.now().timestamp())}", timeout=15)
-        if not raw_b:
-            return {"platReviews": {}, "watchProperties": {}}
-        csv_text = raw_b.decode("utf-8", errors="ignore")
-
+def _parse_cloud_sheet_sync_csv_text(csv_text: str) -> dict:
     plat_reviews: dict[tuple[str, str], dict] = {}
     watch_props: dict[str, dict] = {}
+    if not csv_text or not csv_text.strip():
+        return {"platReviews": plat_reviews, "watchProperties": watch_props}
 
     reader = csv.DictReader(io.StringIO(csv_text))
     for row in reader:
         norm = {str(k or "").strip().lower(): str(v or "").strip() for k, v in row.items()}
         if norm.get("status", "").lower() != "approved":
             continue
-        key = norm.get("hcad_num", "")
-        src_type = norm.get("source_type", "").upper()
-        citation = norm.get("source_citation", "")
+        key = norm.get("hcad_num") or norm.get("record key (cycle/property)", "")
+        src_type = (norm.get("source_type") or norm.get("record type", "")).upper()
+        citation = (
+            norm.get("source_citation")
+            or norm.get("json state payload (synced to plat & property monitor)", "")
+        )
         if not citation.startswith("{"):
             continue
         try:
@@ -7710,7 +7708,11 @@ def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
                     continue
                 if norm.get("verified_by") and not rev_obj.get("reviewer"):
                     rev_obj["reviewer"] = norm["verified_by"]
-                plat_reviews[(cycle_key, app_no)] = rev_obj
+                prev_rev = plat_reviews.get((cycle_key, app_no))
+                prev_ts = str((prev_rev or {}).get("updated") or "")
+                cand_ts = str(rev_obj.get("updated") or parsed.get("updatedAt") or "")
+                if prev_rev is None or cand_ts >= prev_ts:
+                    plat_reviews[(cycle_key, app_no)] = rev_obj
         elif src_type == "PROPERTY_WATCHLIST_UPDATE" or key.startswith("WATCH_PROP:"):
             prop_obj = dict(parsed.get("property") if isinstance(parsed.get("property"), dict) else parsed)
             pid = str(prop_obj.get("id") or key.replace("WATCH_PROP:", "", 1)).strip()
@@ -7738,6 +7740,72 @@ def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
                     watch_props[pid] = norm_rec
 
     return {"platReviews": plat_reviews, "watchProperties": watch_props}
+
+
+def pull_cloud_sheet_sync_rows(
+    csv_text: str | None = None,
+    backup_json_path: Path | None = DEFAULT_WORKSPACE_BACKUP_PATH,
+) -> dict:
+    """Pull approved PLAT_MONITOR_REVIEW and PROPERTY_WATCHLIST_UPDATE rows from Plat_&_Watchlist_Sync."""
+    if csv_text is not None:
+        return _parse_cloud_sheet_sync_csv_text(csv_text)
+
+    cb = int(dt.datetime.now().timestamp())
+    primary_b = fetch_bytes(f"{SHEET_WEBHOOK_URL}?feed=plat_sync", timeout=35)
+    if primary_b:
+        parsed_primary = _parse_cloud_sheet_sync_csv_text(primary_b.decode("utf-8", errors="ignore"))
+        if parsed_primary["platReviews"] or parsed_primary["watchProperties"]:
+            return parsed_primary
+
+    raw_b = fetch_bytes(f"{SHEET_PUBLISHED_CSV_URL}&_cb={cb}", timeout=20)
+    if raw_b:
+        parsed_fallback = _parse_cloud_sheet_sync_csv_text(raw_b.decode("utf-8", errors="ignore"))
+        if parsed_fallback["platReviews"] or parsed_fallback["watchProperties"]:
+            return parsed_fallback
+
+    if backup_json_path is not None and backup_json_path.exists():
+        try:
+            bk = json.loads(backup_json_path.read_text(encoding="utf-8"))
+            plat_revs: dict[tuple[str, str], dict] = {}
+            watch_props: dict[str, dict] = {}
+            for k, obj in (bk.get("platReviews") or {}).items():
+                if not isinstance(obj, dict):
+                    continue
+                ck = str(obj.get("cycleKey") or "").strip()
+                ap = str(obj.get("appNo") or "").strip()
+                if (not ck or not ap) and k.startswith("PLAT_REV:"):
+                    parts = k.split(":", 2)
+                    if len(parts) == 3:
+                        ck = ck or parts[1]
+                        ap = ap or parts[2]
+                rev_obj = dict(obj.get("review") if isinstance(obj.get("review"), dict) else obj)
+                if ck and ap:
+                    plat_revs[(ck, ap)] = rev_obj
+            for k, obj in (bk.get("watchProperties") or {}).items():
+                if not isinstance(obj, dict):
+                    continue
+                prop_obj = dict(obj.get("property") if isinstance(obj.get("property"), dict) else obj)
+                pid = str(prop_obj.get("id") or k.replace("WATCH_PROP:", "", 1)).strip()
+                if pid and not is_legacy_unconfirmed_plat_seed(prop_obj):
+                    prop_obj["id"] = pid
+                    norm_rec = normalize_watch_property_record(prop_obj)
+                    norm_rec["_hasExplicitSearchTerms"] = isinstance(prop_obj.get("searchTerms"), dict) or bool(
+                        prop_obj.get("searchTermsUpdatedAt")
+                    )
+                    norm_rec["_hasExplicitDriveLinks"] = (
+                        isinstance(prop_obj.get("driveLinks"), list)
+                        or isinstance(prop_obj.get("documents"), list)
+                        or bool(prop_obj.get("driveLinksUpdatedAt"))
+                    )
+                    norm_rec["_hasExplicitChecklist"] = isinstance(prop_obj.get("checklist"), list) and len(
+                        prop_obj.get("checklist")
+                    ) > 0
+                    watch_props[pid] = norm_rec
+            if plat_revs or watch_props:
+                return {"platReviews": plat_revs, "watchProperties": watch_props}
+        except Exception:
+            pass
+    return {"platReviews": {}, "watchProperties": {}}
 
 
 def _build_kirby_mansion_seed(sweep_date: str) -> dict:

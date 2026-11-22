@@ -1567,6 +1567,7 @@ export function computeWatermarkState({
   events = [],
   caughtUpAt = "",
   readEventIds = [],
+  unreadEventIds = [],
   nowIso = "",
   excludeStaff = false,
   includeHistoricalBaseline = false,
@@ -1574,10 +1575,15 @@ export function computeWatermarkState({
   const effectiveNowIso = String(nowIso || "").trim() || new Date().toISOString();
   const todayLocal = toChicagoDateIso(effectiveNowIso);
   const implicitFloorDate = shiftIsoDate(todayLocal, -6);
+  const unreadOverrideSet = new Set(
+    (Array.isArray(unreadEventIds) ? unreadEventIds : [])
+      .map((x) => String(x || "").trim())
+      .filter(Boolean)
+  );
   const readIdSet = new Set(
     (Array.isArray(readEventIds) ? readEventIds : [])
       .map((x) => String(x || "").trim())
-      .filter(Boolean)
+      .filter((id) => Boolean(id) && !unreadOverrideSet.has(id))
   );
 
   const wmMs = parseIsoEpochMs(caughtUpAt);
@@ -1593,7 +1599,9 @@ export function computeWatermarkState({
     if (readIdSet.has(id)) continue;
 
     let isUnread = false;
-    if (isImplicitFirstVisit) {
+    if (unreadOverrideSet.has(id)) {
+      isUnread = true;
+    } else if (isImplicitFirstVisit) {
       const ld = parseIsoDatePrefix(ev.localDate) || parseIsoDatePrefix(ev.date);
       isUnread = Boolean(ld && ld >= implicitFloorDate);
     } else {

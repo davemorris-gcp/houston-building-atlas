@@ -214,18 +214,344 @@ function sanitizeSheetFormulaPrefix_(val) {
   return s;
 }
 
-function doGet(e) {
-  // Serves ONLY the Approved_Edits tab as CSV so the Sheet itself can remain Restricted!
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Approved_Edits');
-  var values = sheet ? sheet.getDataRange().getValues() : [];
+function getScriptCacheSafe_() {
+  if (typeof CacheService !== 'undefined' && CacheService && typeof CacheService.getScriptCache === 'function') {
+    try { return CacheService.getScriptCache(); } catch (_e) { return null; }
+  }
+  return null;
+}
+
+function getScriptPropsSafe_() {
+  if (typeof PropertiesService !== 'undefined' && PropertiesService && typeof PropertiesService.getScriptProperties === 'function') {
+    try { return PropertiesService.getScriptProperties(); } catch (_e) { return null; }
+  }
+  return null;
+}
+
+function invalidateCacheKey_(key) {
+  var c = getScriptCacheSafe_();
+  if (c && key) {
+    try { c.remove(key); } catch (_e) {}
+  }
+}
+
+function sheetToCsvText_(sheet) {
+  var values = (sheet && typeof sheet.getDataRange === 'function') ? sheet.getDataRange().getValues() : [];
   var dqRe = new RegExp(DQUOTE_, 'g');
-  var csv = values.map(function(row) {
+  return values.map(function(row) {
     return row.map(function(cell) {
       var s = String(cell === null || cell === undefined ? '' : cell);
       return (s.indexOf(',') !== -1 || s.indexOf(DQUOTE_) !== -1 || s.indexOf('\\n') !== -1) ? DQUOTE_ + s.replace(dqRe, DQUOTE_ + DQUOTE_) + DQUOTE_ : s;
     }).join(',');
   }).join('\\n');
+}
+
+function toSafeEpochMs_(val, fallbackVal) {
+  if (typeof val === 'number' && isFinite(val) && val > 0) return Math.floor(val);
+  var s = String(val || '').trim();
+  if (!s) return fallbackVal;
+  var ms = Date.parse(s);
+  return isFinite(ms) && ms > 0 ? Math.floor(ms) : fallbackVal;
+}
+
+function readFlagRankServer_(r) {
+  if (r === 0) return 0;
+  if (r === 1) return 1;
+  return 2;
+}
+
+var ALLOWED_PREF_KEYS_ = {
+  actStream: true, actGroupBy: true, lastMode: true, cycleViewMode: true,
+  reviewerName: true, inspectorWide: true, ecosystemTheme: true, actRange: true
+};
+
+function sanitizePlainPrefVal_(val) {
+  if (typeof val === 'string') return val.replace(/[\\r\\n\\t]+/g, ' ').trim().slice(0, 500);
+  if (typeof val === 'boolean' || (typeof val === 'number' && isFinite(val))) return val;
+  return '';
+}
+
+function normalizeRoamingUserObj_(raw, maxReadCap, maxAuditCap) {
+  var readCap = maxReadCap || 300;
+  var auditCap = maxAuditCap || 300;
+  if (!raw || typeof raw !== 'object') {
+    return { schemaVersion: 1, updatedAt: '', caughtUpAt: '', caughtUpUpdatedAt: 0, readLedger: {}, prefs: {}, auditDecisions: {} };
+  }
+  var cuRaw = String(raw.caughtUpAt || '').trim();
+  var cuMs = Date.parse(cuRaw);
+  var caughtUpAt = isFinite(cuMs) && cuMs > 0 ? new Date(cuMs).toISOString() : '';
+  var caughtUpUpdatedAt = toSafeEpochMs_(raw.caughtUpUpdatedAt, isFinite(cuMs) && cuMs > 0 ? Math.floor(cuMs) : 0);
+
+  var mergedRawLedger = {};
+  if (raw.readLedger && typeof raw.readLedger === 'object') {
+    for (var lk in raw.readLedger) {
+      if (Object.prototype.hasOwnProperty.call(raw.readLedger, lk)) mergedRawLedger[lk] = raw.readLedger[lk];
+    }
+  }
+  if (Array.isArray(raw.readEventIds)) {
+    var legTs = isFinite(cuMs) && cuMs > 0 ? Math.floor(cuMs) : 1;
+    for (var ri = 0; ri < raw.readEventIds.length; ri++) {
+      var rid = String(raw.readEventIds[ri] || '').trim().slice(0, 180);
+      if (rid && !mergedRawLedger[rid]) mergedRawLedger[rid] = { r: 1, t: legTs };
+    }
+  }
+  if (Array.isArray(raw.unreadEventIds)) {
+    var legUTs = (isFinite(cuMs) && cuMs > 0 ? Math.floor(cuMs) : 1) + 1;
+    for (var ui = 0; ui < raw.unreadEventIds.length; ui++) {
+      var uid = String(raw.unreadEventIds[ui] || '').trim().slice(0, 180);
+      if (uid && !mergedRawLedger[uid]) mergedRawLedger[uid] = { r: 0, t: legUTs };
+    }
+  }
+
+  var ledgerArr = [];
+  for (var id in mergedRawLedger) {
+    if (!Object.prototype.hasOwnProperty.call(mergedRawLedger, id)) continue;
+    var cleanId = String(id || '').trim().slice(0, 180);
+    var ent = mergedRawLedger[id];
+    if (!cleanId || !ent || typeof ent !== 'object') continue;
+    var rFlag = ent.r === -1 ? -1 : ((ent.r === 0 || ent.read === false) ? 0 : 1);
+    var tMs = toSafeEpochMs_(ent.t !== undefined ? ent.t : ent.at, 1);
+    ledgerArr.push([cleanId, { r: rFlag, t: tMs }]);
+  }
+  ledgerArr.sort(function(a, b) {
+    if (b[1].t !== a[1].t) return b[1].t - a[1].t;
+    var ra = readFlagRankServer_(a[1].r);
+    var rb = readFlagRankServer_(b[1].r);
+    if (ra !== rb) return ra - rb;
+    return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0);
+  });
+  var readLedger = {};
+  for (var li = 0; li < ledgerArr.length && li < readCap; li++) {
+    readLedger[ledgerArr[li][0]] = ledgerArr[li][1];
+  }
+
+  var prefs = {};
+  var rawPrefs = (raw.prefs && typeof raw.prefs === 'object') ? raw.prefs : {};
+  for (var pk in rawPrefs) {
+    if (!Object.prototype.hasOwnProperty.call(rawPrefs, pk) || !ALLOWED_PREF_KEYS_[pk]) continue;
+    var pv = rawPrefs[pk];
+    if (pv && typeof pv === 'object' && ('v' in pv)) {
+      prefs[pk] = { v: sanitizePlainPrefVal_(pv.v), t: toSafeEpochMs_(pv.t, 1) };
+    } else if (pv !== undefined && pv !== null) {
+      prefs[pk] = { v: sanitizePlainPrefVal_(pv), t: 1 };
+    }
+  }
+
+  var rawAud = (raw.auditDecisions && typeof raw.auditDecisions === 'object') ? raw.auditDecisions : {};
+  var audArr = [];
+  for (var ak in rawAud) {
+    if (!Object.prototype.hasOwnProperty.call(rawAud, ak)) continue;
+    var av = rawAud[ak];
+    if (!av || typeof av !== 'object' || !av.status) continue;
+    var aMs = toSafeEpochMs_(av.at !== undefined ? av.at : (av.updatedAt || av.updated_at || av.decidedAt), 1);
+    var cleanAud = { status: String(av.status).slice(0, 40), at: aMs, updated_at: new Date(aMs).toISOString() };
+    if (av.hcad_num) cleanAud.hcad_num = String(av.hcad_num).slice(0, 32);
+    if (av.category) cleanAud.category = String(av.category).slice(0, 64);
+    if (av.suggestedYear !== undefined && av.suggestedYear !== null && av.suggestedYear !== '') {
+      var sYr = Number(av.suggestedYear);
+      if (isFinite(sYr)) cleanAud.suggestedYear = Math.floor(sYr);
+    }
+    if (av.note) cleanAud.note = String(av.note).slice(0, 200);
+    audArr.push([String(ak).slice(0, 120), cleanAud]);
+  }
+  audArr.sort(function(a, b) {
+    if (b[1].at !== a[1].at) return b[1].at - a[1].at;
+    return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0);
+  });
+  var auditDecisions = {};
+  for (var ai = 0; ai < audArr.length && ai < auditCap; ai++) {
+    auditDecisions[audArr[ai][0]] = audArr[ai][1];
+  }
+
+  var maxTs = caughtUpUpdatedAt;
+  for (var rk in readLedger) { if (readLedger[rk].t > maxTs) maxTs = readLedger[rk].t; }
+  for (var pfk in prefs) { if (prefs[pfk].t > maxTs) maxTs = prefs[pfk].t; }
+  for (var adk in auditDecisions) { if (auditDecisions[adk].at > maxTs) maxTs = auditDecisions[adk].at; }
+  var expMs = toSafeEpochMs_(raw.updatedAt, 0);
+  if (expMs > maxTs) maxTs = expMs;
+
+  return {
+    schemaVersion: 1,
+    updatedAt: maxTs > 0 ? new Date(maxTs).toISOString() : '',
+    caughtUpAt: caughtUpAt,
+    caughtUpUpdatedAt: caughtUpUpdatedAt,
+    readLedger: readLedger,
+    prefs: prefs,
+    auditDecisions: auditDecisions
+  };
+}
+
+function mergeUserRoamingStateServer_(stateA, stateB) {
+  var a = normalizeRoamingUserObj_(stateA, 300, 300);
+  var b = normalizeRoamingUserObj_(stateB, 300, 300);
+  var cuAt = a.caughtUpAt;
+  var cuUpd = a.caughtUpUpdatedAt;
+  if (b.caughtUpUpdatedAt > a.caughtUpUpdatedAt) {
+    cuAt = b.caughtUpAt;
+    cuUpd = b.caughtUpUpdatedAt;
+  } else if (b.caughtUpUpdatedAt === a.caughtUpUpdatedAt) {
+    if (toSafeEpochMs_(b.caughtUpAt, -1) > toSafeEpochMs_(a.caughtUpAt, -1)) cuAt = b.caughtUpAt;
+  }
+  var mergedLedger = {};
+  var k;
+  for (k in a.readLedger) { if (Object.prototype.hasOwnProperty.call(a.readLedger, k)) mergedLedger[k] = a.readLedger[k]; }
+  for (k in b.readLedger) {
+    if (!Object.prototype.hasOwnProperty.call(b.readLedger, k)) continue;
+    var ex = mergedLedger[k];
+    var inc = b.readLedger[k];
+    if (!ex || inc.t > ex.t) mergedLedger[k] = inc;
+    else if (inc.t === ex.t) mergedLedger[k] = { r: readFlagRankServer_(inc.r) < readFlagRankServer_(ex.r) ? inc.r : ex.r, t: ex.t };
+  }
+  var mergedPrefs = {};
+  for (k in a.prefs) { if (Object.prototype.hasOwnProperty.call(a.prefs, k)) mergedPrefs[k] = a.prefs[k]; }
+  for (k in b.prefs) {
+    if (!Object.prototype.hasOwnProperty.call(b.prefs, k)) continue;
+    var exP = mergedPrefs[k];
+    var incP = b.prefs[k];
+    if (!exP || incP.t > exP.t) mergedPrefs[k] = incP;
+    else if (incP.t === exP.t && ((typeof incP.v) + ':' + String(incP.v)) > ((typeof exP.v) + ':' + String(exP.v))) mergedPrefs[k] = incP;
+  }
+  var mergedAudit = {};
+  for (k in a.auditDecisions) { if (Object.prototype.hasOwnProperty.call(a.auditDecisions, k)) mergedAudit[k] = a.auditDecisions[k]; }
+  for (k in b.auditDecisions) {
+    if (!Object.prototype.hasOwnProperty.call(b.auditDecisions, k)) continue;
+    var exA = mergedAudit[k];
+    var incA = b.auditDecisions[k];
+    if (!exA || incA.at > exA.at) mergedAudit[k] = incA;
+    else if (incA.at === exA.at && JSON.stringify(incA) > JSON.stringify(exA)) mergedAudit[k] = incA;
+  }
+  var maxUpd = Math.max(toSafeEpochMs_(a.updatedAt, 0), toSafeEpochMs_(b.updatedAt, 0), cuUpd);
+  return normalizeRoamingUserObj_({
+    schemaVersion: 1,
+    updatedAt: maxUpd > 0 ? new Date(maxUpd).toISOString() : '',
+    caughtUpAt: cuAt,
+    caughtUpUpdatedAt: cuUpd,
+    readLedger: mergedLedger,
+    prefs: mergedPrefs,
+    auditDecisions: mergedAudit
+  }, 300, 300);
+}
+
+function readUserRoamingState_(ss, rawEmail) {
+  var email = String(rawEmail || '').trim().toLowerCase();
+  if (!email) return null;
+  var cacheKey = 'USER_STATE_V1:' + email;
+  var cache = getScriptCacheSafe_();
+  if (cache) {
+    try {
+      var cachedStr = cache.get(cacheKey);
+      if (cachedStr) return JSON.parse(cachedStr);
+    } catch (_e) {}
+  }
+  var fromProps = null;
+  var props = getScriptPropsSafe_();
+  if (props) {
+    try {
+      var propStr = props.getProperty(cacheKey);
+      if (propStr) fromProps = JSON.parse(propStr);
+    } catch (_e2) {}
+  }
+  var fromSheet = null;
+  if (ss && typeof ss.getSheetByName === 'function') {
+    var uSheet = ss.getSheetByName('_Staff_User_State');
+    if (uSheet && typeof uSheet.getDataRange === 'function') {
+      var vals = uSheet.getDataRange().getValues();
+      for (var i = 1; i < vals.length; i++) {
+        if (String(vals[i][0] || '').trim().toLowerCase() === email) {
+          try { fromSheet = JSON.parse(String(vals[i][2] || '')); } catch (_e3) {}
+          break;
+        }
+      }
+    }
+  }
+  if (!fromProps && !fromSheet) return null;
+  var combined = (fromProps && fromSheet) ? mergeUserRoamingStateServer_(fromProps, fromSheet) : normalizeRoamingUserObj_(fromSheet || fromProps, 300, 300);
+  if (cache && combined) {
+    try { cache.put(cacheKey, JSON.stringify(combined), 600); } catch (_e4) {}
+  }
+  return combined;
+}
+
+function writeUserRoamingState_(ss, rawEmail, incomingRaw) {
+  var email = String(rawEmail || '').trim().toLowerCase();
+  if (!email) return null;
+  var current = readUserRoamingState_(ss, email);
+  var merged = current ? mergeUserRoamingStateServer_(current, incomingRaw) : normalizeRoamingUserObj_(incomingRaw, 300, 300);
+  var fullJson = JSON.stringify(merged);
+  if (fullJson.length > 44000) {
+    merged = normalizeRoamingUserObj_(merged, 120, 120);
+    fullJson = JSON.stringify(merged);
+  }
+  var cacheKey = 'USER_STATE_V1:' + email;
+  var props = getScriptPropsSafe_();
+  if (props) {
+    // PropertiesService enforces a 9 KB per-key quota; compact above 7.8 KB and delete if still > 8.5 KB
+    var propJson = fullJson.length <= 7800 ? fullJson : JSON.stringify(normalizeRoamingUserObj_(merged, 60, 50));
+    if (propJson.length <= 8500) {
+      try { props.setProperty(cacheKey, propJson); } catch (_ep) {}
+    } else {
+      try { props.deleteProperty(cacheKey); } catch (_ed) {}
+    }
+  }
+  if (ss && typeof ss.getSheetByName === 'function') {
+    var uSheet = ss.getSheetByName('_Staff_User_State');
+    if (!uSheet && typeof ss.insertSheet === 'function') {
+      uSheet = ss.insertSheet('_Staff_User_State');
+      uSheet.getRange(1, 1, 1, 3).setValues([['email', 'updated_at', 'state_json']]);
+      if (typeof uSheet.hideSheet === 'function') uSheet.hideSheet();
+    }
+    if (uSheet) {
+      var colA = uSheet.getRange('A:A').getValues();
+      var targetRow = 0;
+      var lastPopRow = 1;
+      for (var r = 1; r < colA.length; r++) {
+        var existingEm = String(colA[r][0] || '').trim().toLowerCase();
+        if (existingEm !== '') {
+          lastPopRow = r + 1;
+          if (existingEm === email) { targetRow = r + 1; break; }
+        }
+      }
+      var writeR = targetRow > 0 ? targetRow : (lastPopRow + 1);
+      uSheet.getRange(writeR, 1, 1, 3).setValues([[
+        sanitizeSheetFormulaPrefix_(email),
+        merged.updatedAt || new Date().toISOString(),
+        sanitizeSheetFormulaPrefix_(fullJson)
+      ]]);
+    }
+  }
+  var cache = getScriptCacheSafe_();
+  if (cache && fullJson.length <= 90000) {
+    try { cache.put(cacheKey, fullJson, 600); } catch (_ec) {}
+  }
+  return merged;
+}
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var feed = (e && e.parameter && e.parameter.feed) ? String(e.parameter.feed).trim().toLowerCase() : '';
+  var cache = getScriptCacheSafe_();
+  if (feed === 'plat_sync') {
+    if (cache) {
+      var cachedSync = cache.get('PLAT_SYNC_CSV_V1');
+      if (cachedSync) return ContentService.createTextOutput(cachedSync).setMimeType(ContentService.MimeType.CSV);
+    }
+    var syncSheet = ss.getSheetByName('Plat_&_Watchlist_Sync');
+    var syncCsv = sheetToCsvText_(syncSheet);
+    if (cache && syncCsv && syncCsv.length <= 95000) {
+      try { cache.put('PLAT_SYNC_CSV_V1', syncCsv, 300); } catch (_e) {}
+    }
+    return ContentService.createTextOutput(syncCsv).setMimeType(ContentService.MimeType.CSV);
+  }
+  // Serves ONLY the Approved_Edits tab as CSV so the Sheet itself can remain Restricted!
+  if (cache) {
+    var cachedApp = cache.get('APPROVED_EDITS_CSV_V1');
+    if (cachedApp) return ContentService.createTextOutput(cachedApp).setMimeType(ContentService.MimeType.CSV);
+  }
+  var sheet = ss.getSheetByName('Approved_Edits');
+  var csv = sheetToCsvText_(sheet);
+  if (cache && csv && csv.length <= 95000) {
+    try { cache.put('APPROVED_EDITS_CSV_V1', csv, 180); } catch (_e2) {}
+  }
   return ContentService.createTextOutput(csv).setMimeType(ContentService.MimeType.CSV);
 }
 
@@ -235,10 +561,107 @@ function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents || '{}');
     if (payload.action === 'verify_admin') {
-      return ContentService.createTextOutput(JSON.stringify(isAuthorizedSheetEditor_(payload))).setMimeType(ContentService.MimeType.JSON);
+      var vRes = isAuthorizedSheetEditor_(payload);
+      if (vRes.authorized) {
+        vRes.supportsRoamingSync = true;
+        vRes.userState = readUserRoamingState_(SpreadsheetApp.getActiveSpreadsheet(), vRes.email);
+      }
+      return ContentService.createTextOutput(JSON.stringify(vRes)).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (payload.action === 'get_user_state') {
+      var gAuth = isAuthorizedSheetEditor_(payload);
+      if (!gAuth.authorized) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, authorized: false, error: gAuth.error })).setMimeType(ContentService.MimeType.JSON);
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        authorized: true,
+        supportsRoamingSync: true,
+        email: gAuth.email,
+        userState: readUserRoamingState_(SpreadsheetApp.getActiveSpreadsheet(), gAuth.email)
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (payload.action === 'put_user_state') {
+      var pAuth = isAuthorizedSheetEditor_(payload);
+      if (!pAuth.authorized) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, authorized: false, error: pAuth.error })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var savedUserState = writeUserRoamingState_(SpreadsheetApp.getActiveSpreadsheet(), pAuth.email, payload.user_state || {});
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        authorized: true,
+        supportsRoamingSync: true,
+        email: pAuth.email,
+        userState: savedUserState
+      })).setMimeType(ContentService.MimeType.JSON);
     }
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var rawSourceType = String(payload.source_type || 'Houston City Directory').trim();
+
+    // Route Plat Reviews & Property Watchlist updates into Plat_&_Watchlist_Sync with key upsert
+    if (
+      payload.action === 'sync_plat_watchlist' ||
+      (payload.action === 'admin_approve' && (rawSourceType.toUpperCase() === 'PLAT_MONITOR_REVIEW' || rawSourceType.toUpperCase() === 'PROPERTY_WATCHLIST_UPDATE'))
+    ) {
+      var syncAuth = isAuthorizedSheetEditor_(payload);
+      if (!syncAuth.authorized) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, authorized: false, error: syncAuth.error })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var rawSyncCite = String(payload.source_citation || '');
+      if (rawSyncCite.length > 49000) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Sync payload exceeds 49,000-character sheet cell limit.' })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var syncKey = sanitizeSheetFormulaPrefix_(payload.hcad_num || '');
+      if (!syncKey) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Missing sync record key (hcad_num).' })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var syncSheet = ss.getSheetByName('Plat_&_Watchlist_Sync');
+      if (!syncSheet) {
+        syncSheet = ss.insertSheet('Plat_&_Watchlist_Sync');
+        if (typeof syncSheet.hideSheet === 'function') syncSheet.hideSheet();
+      }
+      var syncRow = [
+        'Approved',
+        syncKey,
+        sanitizeSheetFormulaPrefix_(payload.address || ''),
+        Number(payload.suggested_year_built || payload.year_built || 0) || '',
+        Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '',
+        sanitizeSheetFormulaPrefix_(payload.historic_district || ''),
+        sanitizeSheetFormulaPrefix_(payload.contributing || ''),
+        sanitizeSheetFormulaPrefix_(rawSourceType),
+        sanitizeSheetFormulaPrefix_(rawSyncCite),
+        sanitizeSheetFormulaPrefix_(payload.source_url || ''),
+        sanitizeSheetFormulaPrefix_('Preservation Houston (' + syncAuth.email + ')'),
+        new Date().toISOString()
+      ];
+      var syncColB = syncSheet.getRange('B:B').getValues();
+      var targetSyncRow = 0;
+      var lastSyncRow = 1;
+      if (!syncColB.length || String(syncColB[0][0] || '').trim() === '') {
+        syncSheet.getRange(1, 1, 1, 12).setValues([['status', 'hcad_num', 'address', 'year_built', 'original_hcad_year', 'historic_district', 'contributing', 'source_type', 'source_citation', 'source_url', 'verified_by', 'updated_at']]);
+      } else {
+        for (var srIdx = 1; srIdx < syncColB.length; srIdx++) {
+          var exSyncKey = String(syncColB[srIdx][0] || '').trim();
+          if (exSyncKey !== '') {
+            lastSyncRow = srIdx + 1;
+            if (exSyncKey === syncKey) {
+              targetSyncRow = srIdx + 1;
+              break;
+            }
+          }
+        }
+      }
+      var writeSyncRow = targetSyncRow > 0 ? targetSyncRow : (lastSyncRow + 1);
+      syncSheet.getRange(writeSyncRow, 1, 1, syncRow.length).setValues([syncRow]);
+      invalidateCacheKey_('PLAT_SYNC_CSV_V1');
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        status: 'Approved',
+        authorized: true,
+        routed_to: 'Plat_&_Watchlist_Sync',
+        upserted: targetSyncRow > 0
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // Route Walk-the-Block Field Survey envelopes directly into Field_Surveys (A:R) with survey_id upsert
     if (payload.action === 'field_survey' || rawSourceType.toUpperCase() === 'FIELD_SURVEY_OBSERVATION') {
@@ -397,6 +820,7 @@ function doPost(e) {
       // Write geometry_geojson explicitly into Column W (col 23) so S:V ARRAYFORMULAs stay untouched
       sheet.getRange(lastRow + 1, 23, 1, 1).setValues([[sanitizeSheetFormulaPrefix_(geomGeoJsonStr)]]);
     }
+    invalidateCacheKey_('APPROVED_EDITS_CSV_V1');
     return ContentService.createTextOutput(JSON.stringify({ ok: true, status: finalStatus, authorized: authResult.authorized })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     lock.releaseLock();
@@ -963,7 +1387,7 @@ def build_instructions_rows() -> list[list]:
         [
             "1. Lock Down Google Sheet Access (Restricted to Editors Only)",
             "• Click 'Share' (top right of this Google Sheet) and set General Access to 'Restricted' (Only people with access can open with the link).\n"
-            "• Add only Preservation Houston administrators (e.g. Dave, Jim, authorized staff Google accounts) as 'Editors'.\n"
+            "• Add only authorized Preservation Houston staff Google accounts as 'Editors'.\n"
             "• Then click File -> Share -> Publish to web -> change 'Entire Document' to 'Approved_Edits' and 'Web page' to 'Comma-separated values (.csv)'.\n"
             "• Result: Nobody on the public internet can open this workbook or see 'Pending_Submissions' or 'Field_Surveys', while the public map reads ONLY the 'Approved_Edits' tab!",
             "One-Time Setup / When Adding or Removing Staff Editors\nTab: File -> Share",
@@ -1009,7 +1433,7 @@ def build_instructions_rows() -> list[list]:
             "     3. '🏷️ 3. Building Name & Alias Suggestions' - Submissions proposing a primary building name or historical/colloquial alias.\n"
             "     4. '📷 4. Photo Contributions Queue' - Submissions containing a historic or modern photograph URL.\n"
             "     5. '✅ 5. Approved & Live Overrides (Newest First)' - All approved sheet overrides currently live on the map.\n"
-            "     6. '📚 6. City Directory Batch Candidates (1866-1926)' - Automated HPL City Directory audit candidates sorted by Historic District & Street Address for neighborhood batch review.\n"
+            "     6. '📚 6. City Directory Batch Candidates (1866-1926)' - Newly uploaded HPL City Directory audit candidates (unreviewed baseline batch rows are archived in hidden _CityDir_Batch_Archive).\n"
             "     7. '🏛️ 7. Pre-1900 Pioneer Structures' - All Victorian / 19th-century structures (year_built < 1900), sorted oldest first.\n"
             "     8. '⏸️ 8. On Hold / Needs Info / Rejected' - Deferred or rejected items.\n\n"
             "C. Direct Row Action Links (Columns S, T, U on Pending_Submissions):\n"
@@ -1361,16 +1785,17 @@ def main(argv: list[str] | None = None) -> None:
     results_hdr_idx = HUB_RESULTS_HEADER_ROW - 1
 
     raw_requests = [
-        # 1. Core tab ordering & dimensions across the 12-tab workbook
+        # 1. Core tab ordering, dimensions & calm 3-visible-tab defaults (Admin_Hub, Pending_Submissions, Field_Surveys visible)
         {
             "updateSheetProperties": {
                 "properties": {
                     "sheetId": SID_HUB,
                     "index": 0,
+                    "hidden": False,
                     "gridProperties": {"rowCount": 220, "columnCount": 14, "frozenRowCount": 2},
                     "tabColor": c_sage,
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount),tabColor",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount),tabColor",
             }
         },
         {
@@ -1378,10 +1803,11 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_PENDING,
                     "index": 1,
+                    "hidden": False,
                     "gridProperties": {"rowCount": 5000, "columnCount": 25, "frozenRowCount": 1, "frozenColumnCount": 3},
                     "tabColor": rgb("#f1c232"),
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
             }
         },
         {
@@ -1389,10 +1815,11 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_APPROVED,
                     "index": 2,
+                    "hidden": True,
                     "gridProperties": {"rowCount": 2500, "columnCount": 18, "frozenRowCount": 1, "frozenColumnCount": 3},
                     "tabColor": rgb("#6aa84f"),
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
             }
         },
         {
@@ -1400,10 +1827,11 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_INSTR,
                     "index": 3,
+                    "hidden": True,
                     "gridProperties": {"rowCount": 60, "columnCount": 6, "frozenRowCount": 1, "frozenColumnCount": 1},
                     "tabColor": rgb("#4894d5"),
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount),tabColor",
             }
         },
         {
@@ -1411,9 +1839,10 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_GB,
                     "index": 4,
+                    "hidden": True,
                     "gridProperties": {"rowCount": 600, "columnCount": 18, "frozenRowCount": 1, "frozenColumnCount": 2},
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
             }
         },
         {
@@ -1421,9 +1850,10 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_PHOTOS,
                     "index": 5,
+                    "hidden": True,
                     "gridProperties": {"rowCount": 500, "columnCount": 15, "frozenRowCount": 1, "frozenColumnCount": 2},
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
             }
         },
         {
@@ -1431,9 +1861,46 @@ def main(argv: list[str] | None = None) -> None:
                 "properties": {
                     "sheetId": SID_TPIA,
                     "index": 6,
+                    "hidden": True,
                     "gridProperties": {"rowCount": 200, "columnCount": 12, "frozenRowCount": 1, "frozenColumnCount": 3},
                 },
-                "fields": "index,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
+                "fields": "index,hidden,gridProperties(rowCount,columnCount,frozenRowCount,frozenColumnCount)",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_PLAT_SYNC, "hidden": True},
+                "fields": "hidden",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_PC_AGENDA, "hidden": True},
+                "fields": "hidden",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_AUDIT, "hidden": True},
+                "fields": "hidden",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_LOST, "hidden": True},
+                "fields": "hidden",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_SURVEYS, "hidden": False},
+                "fields": "hidden",
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": SID_TRIAGE_1927, "hidden": True},
+                "fields": "hidden",
             }
         },
         # 2. Style Admin_Hub_&_Quick_Filter
