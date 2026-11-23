@@ -11,8 +11,11 @@
  *   3. Strips stale custom polygon tags when approving a `Demolished / Vacant Lot` report.
  */
 
-import { sanitizeMonitoringText } from "./parcelMonitoringModel.js?v=20261113c";
-import { stripEmbeddedGeometryTagClient } from "./sourceConflictResolver.js?v=20261113c";
+import {
+  MONITORING_SCHEMA_CONTRACT,
+  sanitizeMonitoringText,
+  stripEmbeddedGeometryTag,
+} from "./parcelMonitoringModel.js?v=20261113c";
 
 export const DISPUTE_FLAG_TYPES = new Set([
   "PHOTO_MISATTRIBUTION_FLAG",
@@ -150,11 +153,14 @@ export function buildModerationDecisionPayload(
   const hasExplicitValidYear =
     editedYear !== "" &&
     Number.isFinite(Number(editedYear)) &&
-    Number(editedYear) >= 1836 &&
-    Number(editedYear) <= 2035;
+    Number(editedYear) >= MONITORING_SCHEMA_CONTRACT.minStandingYear &&
+    Number(editedYear) <= MONITORING_SCHEMA_CONTRACT.maxStandingYear;
   const suppressOnly =
     inlineEdits.suppress_only !== undefined
-      ? Boolean(inlineEdits.suppress_only)
+      ? Boolean(inlineEdits.suppress_only) ||
+        (editedYear === "0" &&
+          inlineEdits.suggested_year_built !== undefined &&
+          item.suggestedYearBuilt !== "0")
       : item.isVacantReport || editedYear === "0";
 
   // Dispute flags without an explicit replacement year resolve to "Resolved" so blank-year rows never enter Approved_Edits
@@ -173,7 +179,7 @@ export function buildModerationDecisionPayload(
       : item.geometryGeojson;
   if (suppressOnly) {
     finalGeom = "";
-    finalCitation = stripEmbeddedGeometryTagClient(finalCitation);
+    finalCitation = stripEmbeddedGeometryTag(finalCitation);
   }
 
   return {

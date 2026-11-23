@@ -1545,3 +1545,272 @@ test("MOD-3 & DF-10: monitoringAuthClient JWT expiry retry queue, Staff->Screene
     "contributing"
   );
 });
+
+test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated Sheet Editor RBAC block, Screener Watchlist field lock + concurrency, standing Col W polygon preservation, nested GeoJSON tag stripping, and moderation HCAD/year-0 persistence", () => {
+  const cjsPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "apps_script", "Code.cjs");
+  const exported = requireCjs(cjsPath);
+
+  // 1. Deep structural parity between Code.cjs constants and monitoring_schema_contract.json (issue_100)
+  for (const [tableName, contractTable] of Object.entries(MONITORING_SCHEMA_CONTRACT.tables)) {
+    const cjsTable = exported.TABLE_REGISTRY[tableName];
+    assert.ok(cjsTable, `Code.cjs TABLE_REGISTRY missing table ${tableName}`);
+    assert.equal(cjsTable.workbook, contractTable.workbook);
+    assert.equal(cjsTable.sheetName, contractTable.sheetName);
+    assert.equal(cjsTable.primaryKey, contractTable.primaryKey);
+    assert.deepEqual(cjsTable.headers, contractTable.headers, `Header mismatch on ${tableName}`);
+  }
+  assert.deepEqual(
+    Object.keys(exported.PIPELINE_MACHINE_PARCEL_COLS).sort(),
+    [...MONITORING_SCHEMA_CONTRACT.columnOwnership.pipelineMachineOwnedParcelCols].sort()
+  );
+  assert.deepEqual(
+    Object.keys(exported.STAFF_ONLY_DECISION_COLS).sort(),
+    [...MONITORING_SCHEMA_CONTRACT.columnOwnership.staffOnlyDecisionCols].sort()
+  );
+  assert.deepEqual(
+    Object.keys(exported.TERMINAL_OUTCOMES).sort(),
+    [...MONITORING_SCHEMA_CONTRACT.enums.terminalOutcomes].sort()
+  );
+
+  // 2. Run ALL shared attentionVectors against Code.cjs computeAttentionServer_ (issue_096)
+  const vectorsPath = path.join(REPO_ROOT, "tests", "fixtures", "phase1_monitoring_parity_vectors.json");
+  const suite = JSON.parse(fs.readFileSync(vectorsPath, "utf8"));
+  for (const vec of suite.attentionVectors) {
+    const srvActual = exported.computeAttentionServer_(
+      vec.parcel,
+      suite.areasById,
+      vec.asOfDateCst,
+      vec.nextHearingDateCst
+    );
+    assert.equal(
+      srvActual,
+      vec.expectedAttention,
+      `Code.cjs computeAttentionServer_ mismatch on ${vec.id}: expected ${vec.expectedAttention}, got ${srvActual}`
+    );
+  }
+
+  // Tombstone custom area cutoff parity (issue_100)
+  const tombCustomCutoff = migrateLegacyTierToParcelFields(
+    { removedFromWatchlist: true, why: "Demolished on site", yearBuilt: 1980 },
+    { isWatchlist: true, areaContext: { areaIds: ["area:custom"], ageRuleCutoffYear: 1985 } }
+  );
+  assert.equal(tombCustomCutoff.outcome, "lost");
+
+  // 3. Deactivated _Monitoring_Roles user + Screener listed in ss.getEditors() must NOT fail open to Staff (issue_093)
+  const nowSec = Math.floor(1795440000000 / 1000);
+  const staffJwt = "jwt-r18-staff";
+  const screenerJwt = "jwt-r18-screener";
+  const inactiveEditorJwt = "jwt-r18-inactive-editor";
+  const h = createPhase1AppsScriptHarness({
+    editors: [
+      "staff@preservation.example.org",
+      "screener@preservation.example.org",
+      "inactive@preservation.example.org",
+    ],
+    tokenDirectory: {
+      [staffJwt]: {
+        claims: {
+          aud: "atlas-client-id.apps.googleusercontent.com",
+          email: "staff@preservation.example.org",
+          email_verified: true,
+          exp: String(nowSec + 3600),
+        },
+      },
+      [screenerJwt]: {
+        claims: {
+          aud: "atlas-client-id.apps.googleusercontent.com",
+          email: "screener@preservation.example.org",
+          email_verified: true,
+          exp: String(nowSec + 3600),
+        },
+      },
+      [inactiveEditorJwt]: {
+        claims: {
+          aud: "atlas-client-id.apps.googleusercontent.com",
+          email: "inactive@preservation.example.org",
+          email_verified: true,
+          exp: String(nowSec + 3600),
+        },
+      },
+    },
+  });
+  h.callPost({ action: "bootstrap_phase1_vaults", google_id_token: staffJwt });
+
+  const deactVerify = h.callPost({ action: "verify_admin", google_id_token: inactiveEditorJwt });
+  assert.equal(deactVerify.authorized, false, "Deactivated _Monitoring_Roles user in getEditors() must be blocked");
+  const deactPasskey = h.callPost({
+    action: "verify_admin",
+    admin_email: "inactive@preservation.example.org",
+    admin_passkey: "staff-passkey-phase1",
+  });
+  assert.equal(deactPasskey.authorized, false);
+  const screenerInEditors = h.callPost({ action: "verify_admin", google_id_token: screenerJwt });
+  assert.equal(screenerInEditors.role, "screener", "Screener in getEditors() must stay restricted to screener");
+
+  // 4. Watchlist dossier Screener Staff-only field lock + expected_updated_at conflict guard (issue_094)
+  const seedWl = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: staffJwt,
+    dossier: {
+      id: "prop-r18-1",
+      address: "500 Main St",
+      significanceLevel: "high",
+      advocacyStatus: "active_advocacy",
+      outcome: "",
+      updatedAt: "2026-11-23T10:00:00.000Z",
+    },
+  });
+  assert.equal(seedWl.ok, true);
+
+  for (const [forbiddenKey, badVal] of [
+    ["significanceLevel", "not_significant"],
+    ["advocacyStatus", "closed"],
+    ["outcome", "not_relevant"],
+    ["removedFromWatchlist", true],
+  ]) {
+    const badScreenerWl = h.callPost({
+      action: "upsert_watchlist_dossier",
+      google_id_token: screenerJwt,
+      dossier: {
+        id: "prop-r18-1",
+        address: "500 Main St",
+        significanceLevel: "high",
+        advocacyStatus: "active_advocacy",
+        outcome: "",
+        [forbiddenKey]: badVal,
+      },
+    });
+    assert.equal(badScreenerWl.ok, false);
+    assert.equal(badScreenerWl.authorized, false);
+    assert.equal(badScreenerWl.forbiddenField, forbiddenKey);
+  }
+
+  const staleWl = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: staffJwt,
+    expected_updated_at: "2026-11-20T00:00:00.000Z",
+    dossier: { id: "prop-r18-1", address: "500 Main St", updatedAt: "2026-11-23T11:00:00.000Z" },
+  });
+  assert.equal(staleWl.ok, false);
+  assert.equal(staleWl.conflict, true);
+
+  const okScreenerWl = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: screenerJwt,
+    expected_updated_at: "2026-11-23T10:00:00.000Z",
+    dossier: {
+      id: "prop-r18-1",
+      address: "500 Main St",
+      significanceLevel: "high",
+      advocacyStatus: "active_advocacy",
+      outcome: "",
+      notes: "Screener deed note added",
+      updatedAt: "2026-11-23T10:30:00.000Z",
+    },
+  });
+  assert.equal(okScreenerWl.ok, true);
+
+  // 5. upsert_parcel_decision preserves COH Historic District binding protection_level, array significance_basis, and 14-day urgent hearing (issue_096)
+  const sixthWardRes = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0010010000001",
+    as_of_date_cst: "2026-11-23",
+    patch: {
+      significance_level: "high",
+      significance_basis: ["architectural", "community_cultural"],
+      threat_stage: 3,
+      protection_level: "binding",
+      designation_summary: "Old Sixth Ward",
+    },
+  });
+  assert.equal(sixthWardRes.ok, true);
+  assert.equal(sixthWardRes.parcel.protection_level, "binding");
+  assert.equal(sixthWardRes.parcel.significance_basis, "architectural; community_cultural");
+  assert.equal(sixthWardRes.parcel.attention_level, "watch");
+
+  const urgentHearingRes = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0010010000002",
+    as_of_date_cst: "2026-11-23",
+    next_hearing_date_cst: "2026-11-28",
+    patch: {
+      significance_level: "high",
+      threat_stage: 0,
+      protection_level: "none",
+    },
+  });
+  assert.equal(urgentHearingRes.ok, true);
+  assert.equal(urgentHearingRes.parcel.attention_level, "act");
+
+  // 6. Standing Approved_Edits updates preserve Col W custom polygon & metadata, and nested GeometryCollection tags strip cleanly (issue_095, issue_103)
+  const polyJson = JSON.stringify({
+    type: "Polygon",
+    coordinates: [[[-95.36, 29.75], [-95.35, 29.75], [-95.35, 29.76], [-95.36, 29.75]]],
+  });
+  const seedStanding = h.callPost({
+    action: "admin_approve",
+    google_id_token: staffJwt,
+    hcad_num: "0621100000099",
+    address: "900 BAYLAND AVE",
+    suggested_year_built: 1924,
+    building_name: "Historic Bungalow",
+    bld_style: "Craftsman",
+    architect: "Master Builder",
+    geometry_geojson: polyJson,
+    source_citation: "1924 Permit",
+  });
+  assert.equal(seedStanding.ok, true);
+
+  // Update year_built via Field_Surveys promotion without passing polygon or architect -> must preserve Col W & architect!
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_R18_KEEP_POLY",
+    hcad_num: "0621100000099",
+    address: "900 BAYLAND AVE",
+    observed_year_or_demo_note: "1926",
+    field_notes: "Porch intact",
+  });
+  const promoteKeepPoly = h.callPost({
+    action: "moderate_submission",
+    google_id_token: staffJwt,
+    sourceTab: "Field_Surveys",
+    rowNumber: 2,
+    survey_id: "SURV_R18_KEEP_POLY",
+    decision: "Approved",
+  });
+  assert.equal(promoteKeepPoly.ok, true);
+  const pendSheet = h.coreWb.getSheetByName("Pending_Submissions");
+  assert.equal(pendSheet.getRange(2, 4).getValue(), 1926);
+  assert.equal(pendSheet.getRange(2, 23).getValue(), polyJson, "Standing survey promotion must preserve Col W polygon");
+  assert.equal(pendSheet.getRange(2, 15).getValue(), "Historic Bungalow");
+  assert.equal(pendSheet.getRange(2, 18).getValue(), "Master Builder");
+
+  const nestedGeomCollectionCitation =
+    'Field verified [GEOMETRY_GEOJSON: {"geometries":[{"type":"Polygon","coordinates":[[[-95.36,29.75],[-95.35,29.75],[-95.35,29.76],[-95.36,29.75]]]}],"type":"GeometryCollection"}] archival note';
+  assert.equal(stripEmbeddedGeometryTagClient(nestedGeomCollectionCitation), "Field verified archival note");
+
+  // Demolish/vacant suppression on row with nested GeoJSON citation strips entire balanced tag cleanly on server
+  h.callPost({
+    hcad_num: "0123456000001",
+    address: "700 DEMO ST",
+    suggested_year_built: 1930,
+    source_citation: nestedGeomCollectionCitation,
+  });
+  const modItems = h.callPost({ action: "list_pending_submissions", google_id_token: staffJwt }).items;
+  const demoItem = classifyModerationQueueItem(modItems.find((it) => it.address === "700 DEMO ST"));
+  // Moderator edits HCAD to #b2 AND types "0" into #mq-year without checking #mq-suppress-vacant (issue_097)
+  const modDecisionPayload = buildModerationDecisionPayload(demoItem, "Approved", {
+    hcad_num: "123456000001#b2",
+    suggested_year_built: "0",
+    suppress_only: false,
+  });
+  assert.equal(modDecisionPayload.suppress_only, true, "Explicit moderator year '0' must set suppress_only: true");
+  assert.equal(modDecisionPayload.suggested_year_built, 0);
+  const modExec = h.callPost({ ...modDecisionPayload, google_id_token: staffJwt });
+  assert.equal(modExec.ok, true);
+  assert.equal(pendSheet.getRange(3, 2).getValue(), "0123456000001#b2", "Edited #mq-hcad must persist and zero-pad prefix");
+  assert.equal(pendSheet.getRange(3, 4).getValue(), 0);
+  assert.equal(pendSheet.getRange(3, 9).getValue(), "Field verified archival note");
+});

@@ -143,49 +143,12 @@ INST_RE = re.compile(
     re.I,
 )
 
-OLDER_RING_SUPER_N = {
-    "ACRES HOME",
-    "CENTRAL NORTHWEST",
-    "DENVER HARBOR / PORT HOUSTON",
-    "DOWNTOWN",
-    "EAST END",
-    "EAST HOUSTON",
-    "EAST LITTLE YORK / HOMESTEAD",
-    "EASTEX - JENSEN AREA",
-    "FOURTH WARD",
-    "GREATER EASTWOOD",
-    "GREATER FIFTH WARD",
-    "GREATER HEIGHTS",
-    "GREATER OST / SOUTH UNION",
-    "GREATER THIRD WARD",
-    "GREATER UPTOWN",
-    "GULFGATE RIVERVIEW / PINE VALLEY",
-    "INDEPENDENCE HEIGHTS",
-    "KASHMERE GARDENS",
-    "LAWNDALE / WAYSIDE",
-    "MACGREGOR",
-    "MAGNOLIA PARK",
-    "MEMORIAL",
-    "MIDTOWN",
-    "MUSEUM PARK",
-    "NEAR NORTHSIDE",
-    "NEARTOWN - MONTROSE",
-    "NORTHSIDE/NORTHLINE",
-    "NORTHSIDE VILLAGE",
-    "PARK PLACE",
-    "PECAN PARK",
-    "SECOND WARD",
-    "SETTEGAST",
-    "SOUTH ACRES / CRESTMONT PARK",
-    "SOUTH PARK",
-    "SPRING BRANCH CENTRAL",
-    "SPRING BRANCH EAST",
-    "SPRING BRANCH WEST",
-    "SUNNYSIDE",
-    "TRINITY / HOUSTON GARDENS",
-    "UNIVERSITY PLACE",
-    "WASHINGTON AVENUE COALITION / MEMORIAL PARK",
-}
+from atlas_pipeline.parcel_monitoring_model import (
+    MONITORING_SCHEMA_CONTRACT as _MON_CONTRACT,
+    compute_public_plat_suggested_tier,
+)
+
+OLDER_RING_SUPER_N = set(_MON_CONTRACT["olderRingSuperNeighborhoods"])
 
 GENERIC_STANDALONE_PLAT_NAMES = {
     "RESERVE",
@@ -1052,33 +1015,16 @@ def resolve_multi_parcel_building_tier(
     )
     is_confirmed_vacant = bool(all_parcels_confirmed_vacant and oldest_yr == 0 and not unique_desigs)
 
-    suggested_tier = ""
     if norm_override_tier in ("1", "2", "3", "4"):
         suggested_tier = norm_override_tier
-    elif is_confirmed_vacant:
-        suggested_tier = "3"
-    elif unique_desigs:
-        suggested_tier = "1"
-    elif "dpv" in flag_set:
-        suggested_tier = (
-            "1"
-            if ((1836 <= oldest_yr <= 1976) or (norm_sn in OLDER_RING_SUPER_N))
-            else "2"
+    else:
+        suggested_tier = compute_public_plat_suggested_tier(
+            oldest_yr=oldest_yr,
+            designations=unique_desigs,
+            flags=flag_set,
+            super_n=norm_sn,
+            is_confirmed_vacant=is_confirmed_vacant,
         )
-    elif 1836 <= oldest_yr <= 1965 and (
-        "hearing" in flag_set
-        or "variance" in flag_set
-        or "split" in flag_set
-        or "use" in flag_set
-        or oldest_yr <= 1935
-    ):
-        suggested_tier = (
-            "1"
-            if ("hearing" in flag_set or "variance" in flag_set or oldest_yr <= 1935)
-            else "2"
-        )
-    elif 1836 <= oldest_yr <= 1976:
-        suggested_tier = "2"
 
     return {
         "oldestYearBuilt": oldest_yr,
@@ -7874,6 +7820,7 @@ def push_sweep_results_to_workspace(
     *,
     plat_dataset: dict | None = None,
     watched_entities: list[dict] | None = None,
+    existing_parcels: list[dict] | None = None,
     webhook_url: str | None = None,
     pipeline_token: str = "",
     timeout: int = 60,
@@ -7885,6 +7832,7 @@ def push_sweep_results_to_workspace(
         return {"ok": False, "skipped": True}
 
     from atlas_pipeline.parcel_monitoring_model import (
+        build_campus_parcel_index,
         classify_protection_level,
         compute_threat_stage_from_events,
         detect_parcel_signal_flags,
@@ -7895,6 +7843,12 @@ def push_sweep_results_to_workspace(
         to_chicago_calendar_date,
     )
 
+    campus_index = build_campus_parcel_index(existing_parcels or [])
+    existing_parcel_by_id: dict[str, dict] = {
+        str(p.get("parcel_id") or "").strip(): p
+        for p in (existing_parcels or [])
+        if isinstance(p, dict) and str(p.get("parcel_id") or "").strip()
+    }
     as_of_cst = to_chicago_calendar_date(watchlist_doc.get("lastAutoSweepAt") or "")
     parcel_patches_by_id: dict[str, dict] = {}
     events_out: list[dict] = []
@@ -7907,10 +7861,12 @@ def push_sweep_results_to_workspace(
         hcads = parse_related_hcads(wp.get("hcadAccount") or "")
         pid = resolve_canonical_parcel_id(
             parcel_id=str(wp.get("parcelId") or ""),
+            campus_group_id=str(wp.get("campusGroupId") or ""),
             hcad_ids=hcads,
             app_no=str(wp.get("appNo") or ""),
             address=str(wp.get("address") or ""),
             name=str(wp.get("propertyName") or wp["id"]),
+            campus_index=campus_index,
         )
         added_at = str((wp.get("keyDates") or {}).get("monitoringStarted") or wp.get("updatedAt") or "")
         party_candidates = [
@@ -7985,8 +7941,8 @@ def push_sweep_results_to_workspace(
             "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
         }
 
-    # Also flag active-cycle Planning Commission plat applications filed by Staff-curated Watched_People_And_Firms
-    if plat_dataset and watched_entities:
+    # Escalate active-cycle Planning Commission plat filings that hit existing Parcels/CAMPUS assemblages OR match Watched_People_And_Firms
+    if plat_dataset and (watched_entities or existing_parcel_by_id):
         cyc_key = str(plat_dataset.get("cycleKey") or "")
         for it in plat_dataset.get("items") or []:
             if not isinstance(it, dict):
@@ -7997,9 +7953,11 @@ def push_sweep_results_to_workspace(
                 str(it.get("applicant") or ""),
                 str(atlas_meta.get("owner") or ""),
             ]
-            matched_plat_ents = match_watched_entities_against_parties(item_parties, watched_entities)
-            if not matched_plat_ents:
-                continue
+            matched_plat_ents = (
+                match_watched_entities_against_parties(item_parties, watched_entities)
+                if watched_entities
+                else []
+            )
             it_hcads = parse_related_hcads(
                 [
                     it.get("hcad") or "",
@@ -8012,8 +7970,22 @@ def push_sweep_results_to_workspace(
                 app_no=app_no,
                 address=str(atlas_meta.get("primaryAddress") or ""),
                 name=str(it.get("name") or app_no),
+                campus_index=campus_index,
             )
+            ex_parcel_row = existing_parcel_by_id.get(pid)
+            if not matched_plat_ents and ex_parcel_row is None:
+                continue
             ev_id = f"EVT:chk-09:{cyc_key}_{app_no}:{pid}"
+            ev_headline = (
+                f"Watched Entity Filing ({matched_plat_ents[0]}): {it.get('name') or app_no}"[:160]
+                if matched_plat_ents
+                else f"Planning Commission Filing ({app_no}): {it.get('name') or app_no}"[:160]
+            )
+            ev_summary = (
+                f"Matched curated Watched_People_And_Firms ({', '.join(matched_plat_ents)}) on {app_no}."[:1000]
+                if matched_plat_ents
+                else f"Active Planning Commission {it.get('type') or 'plat'} filing {app_no} on monitored parcel {pid}."[:1000]
+            )
             events_out.append(
                 {
                     "event_id": ev_id,
@@ -8025,38 +7997,39 @@ def push_sweep_results_to_workspace(
                     "filing_date": to_chicago_calendar_date(it.get("submittedIso") or cyc_key) or cyc_key,
                     "detected_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
                     "is_historical_baseline": False,
-                    "headline": f"Watched Entity Filing ({matched_plat_ents[0]}): {it.get('name') or app_no}"[:160],
-                    "summary": f"Matched curated Watched_People_And_Firms ({', '.join(matched_plat_ents)}) on {app_no}."[:1000],
+                    "headline": ev_headline,
+                    "summary": ev_summary,
                     "party_names": "; ".join([p for p in item_parties if p]),
-                    "mismatch_flag": "watched_entity_match",
+                    "mismatch_flag": "watched_entity_match" if matched_plat_ents else "",
                     "source_url": str(it.get("pdf") or it.get("noticePdf") or ""),
                     "raw_ref_id": app_no,
                 }
             )
             if pid in parcel_patches_by_id:
                 ex_flags = [f.strip() for f in parcel_patches_by_id[pid].get("signal_flags", "").split(";") if f.strip()]
-                if "watched_entity_match" not in ex_flags:
+                if matched_plat_ents and "watched_entity_match" not in ex_flags:
                     ex_flags.append("watched_entity_match")
                 parcel_patches_by_id[pid]["signal_flags"] = "; ".join(ex_flags)
                 parcel_patches_by_id[pid]["threat_stage"] = max(int(parcel_patches_by_id[pid].get("threat_stage") or 0), 3)
             else:
                 it_flags = detect_parcel_signal_flags(
-                    owner_of_record=str(atlas_meta.get("owner") or ""),
+                    owner_of_record=str(atlas_meta.get("owner") or (ex_parcel_row or {}).get("owner_of_record") or ""),
                     party_names=[str(it.get("developer") or ""), str(it.get("applicant") or "")],
-                    land_use_class=str(it.get("landUse") or ""),
+                    land_use_class=str(it.get("landUse") or (ex_parcel_row or {}).get("land_use_class") or ""),
                     event_kinds=[str(it.get("type") or "Plat Application")],
                 )
-                if "watched_entity_match" not in it_flags:
+                if matched_plat_ents and "watched_entity_match" not in it_flags:
                     it_flags.append("watched_entity_match")
+                desig_str = "; ".join(atlas_meta.get("designations") or []) or str((ex_parcel_row or {}).get("designation_summary") or "")
                 parcel_patches_by_id[pid] = {
                     "parcel_id": pid,
-                    "hcad_num": it_hcads[0] if it_hcads else "",
-                    "primary_address": str(atlas_meta.get("primaryAddress") or it.get("name") or ""),
-                    "owner_of_record": str(atlas_meta.get("owner") or ""),
-                    "land_use_class": str(it.get("landUse") or ""),
-                    "designation_summary": "; ".join(atlas_meta.get("designations") or []),
-                    "protection_level": classify_protection_level("; ".join(atlas_meta.get("designations") or [])),
-                    "threat_stage": 3,
+                    "hcad_num": str((ex_parcel_row or {}).get("hcad_num") or (it_hcads[0] if it_hcads else "")),
+                    "primary_address": str((ex_parcel_row or {}).get("primary_address") or atlas_meta.get("primaryAddress") or it.get("name") or ""),
+                    "owner_of_record": str(atlas_meta.get("owner") or (ex_parcel_row or {}).get("owner_of_record") or ""),
+                    "land_use_class": str(it.get("landUse") or (ex_parcel_row or {}).get("land_use_class") or ""),
+                    "designation_summary": desig_str,
+                    "protection_level": classify_protection_level(desig_str),
+                    "threat_stage": max(int((ex_parcel_row or {}).get("threat_stage") or 0), 3),
                     "signal_flags": "; ".join(it_flags),
                     "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
                 }
@@ -9441,6 +9414,7 @@ def main() -> None:
             watchlist,
             plat_dataset=sweep_plat_dataset,
             watched_entities=cloud_sync.get("watchedEntities"),
+            existing_parcels=cloud_sync.get("parcels"),
         )
         print(f"      Pushed private sweep updates to Google Workspace: {push_res}")
 

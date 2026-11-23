@@ -100,6 +100,39 @@ test("GitHub Pages bundle size limits (every file < 95 MB, total app/ < 980 MB)"
     declaredSlugs,
     "app/public/data/export_cache/*.json files must match HoustonAtlasApp.SHIPPED_EXPORT_CACHE_SLUGS 1:1"
   );
+
+  // 3) Lockstep ES module cache-buster token (?v=...) across all app/*.html and app/js/*.js imports
+  const moduleSources = [
+    ...fs
+      .readdirSync(APP_DIR)
+      .filter((f) => f.endsWith(".html"))
+      .map((f) => path.join(APP_DIR, f)),
+    ...fs
+      .readdirSync(path.join(APP_DIR, "js"))
+      .filter((f) => f.endsWith(".js"))
+      .map((f) => path.join(APP_DIR, "js", f)),
+  ];
+  const versionTokensByToken = new Map();
+  const relModuleSpecRe = /(?:from|import)\s*\(?["'](\.\.?\/[^"']*?\.js)\?v=([^"']+)["']/g;
+  const scriptSrcRe = /<script[^>]+src=["'](\.\.?\/[^"']*?\.js)\?v=([^"']+)["']/gi;
+  for (const srcPath of moduleSources) {
+    const srcText = fs.readFileSync(srcPath, "utf8");
+    const relPath = path.relative(REPO_ROOT, srcPath);
+    for (const re of [relModuleSpecRe, scriptSrcRe]) {
+      for (const m of srcText.matchAll(re)) {
+        const tok = m[2];
+        if (!versionTokensByToken.has(tok)) versionTokensByToken.set(tok, []);
+        versionTokensByToken.get(tok).push(`${relPath} -> ${m[1]}?v=${tok}`);
+      }
+    }
+  }
+  assert.equal(
+    versionTokensByToken.size,
+    1,
+    `All relative .js?v= specifiers across app/*.html and app/js/*.js must share one lockstep cache-buster token; found: ${JSON.stringify(
+      Object.fromEntries(versionTokensByToken)
+    )}`
+  );
 });
 
 test("overlays.json contains all 23 GeoJSON FeatureCollections + HOLC grade summary with valid Harris County coordinates", () => {

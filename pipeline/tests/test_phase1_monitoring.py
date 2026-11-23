@@ -1035,3 +1035,134 @@ def test_it3_daily_sweep_pipeline_end_to_end_with_watched_entities_and_stdlib_ru
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify Python merge_parcel_and_decision_concurrent parity, campus sweep rollup, and ai-companion leak gate."""
+    # 1. merge_parcel_and_decision_concurrent with existing_parcel={} / existing_decision={} matches JS 1:1 (issue_099)
+    pipe_res = pmm.merge_parcel_and_decision_concurrent(
+        existing_parcel={},
+        existing_decision={},
+        patch={"significance_level": "high", "threat_stage": 4},
+        actor_role="pipeline",
+        now_iso="2026-11-23T12:00:00Z",
+    )
+    assert pipe_res["ok"] is True
+    assert pipe_res["parcel"]["significance_level"] == ""
+    assert pipe_res["parcel"]["threat_stage"] == 4
+    assert pipe_res["decision"] == {}
+
+    staff_res = pmm.merge_parcel_and_decision_concurrent(
+        existing_parcel=None,
+        existing_decision=None,
+        patch={
+            "parcel_id": "0420090000001",
+            "review_status": "assessed",
+            "significance_level": "high",
+            "story_check_json": [{"step": "year_source", "checked": True}],
+        },
+        actor_role="staff",
+        actor_label="Preservation Staff",
+        now_iso="2026-11-23T12:05:00Z",
+    )
+    assert staff_res["ok"] is True
+    assert staff_res["parcel"]["significance_level"] == "high"
+    assert json.loads(staff_res["decision"]["story_check_json"])[0]["step"] == "year_source"
+
+    screener_denied = pmm.merge_parcel_and_decision_concurrent(
+        existing_parcel=staff_res["parcel"],
+        existing_decision=staff_res["decision"],
+        patch={"significance_level": "not_significant"},
+        actor_role="screener",
+    )
+    assert screener_denied["ok"] is False
+    assert screener_denied["forbiddenField"] == "significance_level"
+
+    # Tombstone custom areaContext.ageRuleCutoffYear parity (issue_100)
+    tomb_custom = pmm.migrate_legacy_tier_to_parcel_fields(
+        {"removedFromWatchlist": True, "why": "Demolished on site", "yearBuilt": 1980},
+        is_watchlist=True,
+        area_context={"areaIds": ["area:custom"], "ageRuleCutoffYear": 1985},
+    )
+    assert tomb_custom["outcome"] == "lost"
+
+    # 2. push_sweep_results_to_workspace resolves secondary member HCAD onto existing CAMPUS:<slug> parcel (issue_098)
+    captured_pushes: list[dict[str, Any]] = []
+
+    def fake_urlopen(req: object, timeout: float = 30.0) -> object:
+        body = json.loads(req.data.decode("utf-8"))  # type: ignore[attr-defined]
+        captured_pushes.append(body)
+
+        class _Resp:
+            def __enter__(self) -> _Resp:
+                return self
+
+            def __exit__(self, *_a: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return b'{"ok": true, "authorized": true, "actorType": "pipeline"}'
+
+        return _Resp()
+
+    monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "r18-token")
+    monkeypatch.setattr(fpw.urllib.request, "urlopen", fake_urlopen)
+    fpw.push_sweep_results_to_workspace(
+        {"lastAutoSweepAt": "2026-11-23T12:00:00Z", "watchedProperties": []},
+        plat_dataset={
+            "cycleKey": "2026-11-12",
+            "items": [
+                {
+                    "app": "2026-7777",
+                    "name": "Parish Annex Replat",
+                    "type": "C2R",
+                    "hcad": "0420010000002",
+                    "atlas": {"primaryAddress": "1202 Annex St", "owner": "PARISH BOARD"},
+                    "_c": {"group": "check", "flags": ["pre1976"]},
+                }
+            ],
+            "cycles": {},
+        },
+        existing_parcels=[
+            {
+                "parcel_id": "CAMPUS:PARISH_ASSEMBLAGE",
+                "campus_group_id": "PARISH_ASSEMBLAGE",
+                "hcad_num": "0420010000001",
+                "related_hcads": "0420010000001; 0420010000002",
+            }
+        ],
+    )
+    assert len(captured_pushes) == 1
+    pushed_ids = [p["parcel_id"] for p in captured_pushes[0]["parcels"]]
+    assert pushed_ids == ["CAMPUS:PARISH_ASSEMBLAGE"]
+
+    # 3. validate_public_bundle_zero_leaks catches app/public/ai-companion/* and activity log event leaks (issue_098)
+    ai_dir = tmp_path / "app" / "public" / "ai-companion"
+    data_dir = tmp_path / "app" / "public" / "data"
+    ai_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True)
+    (ai_dir / "guide.md").write_text(
+        "## Active Investigative Property Watchlist\nreviewer@preservation.example.org\n",
+        encoding="utf-8",
+    )
+    (data_dir / "monitor_activity_log.json").write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "id": "agenda:1",
+                        "stream": "agenda",
+                        "reviewer": "Preservation Staff",
+                        "watchPropertyId": "prop-1",
+                    }
+                ],
+                "summary": {"byStream": {"agenda": 1, "permits": 0, "watchlist": 0, "staff": 0}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    leaks = pbg.validate_public_bundle_zero_leaks(tmp_path)
+    assert any("guide.md" in err for err in leaks)
+    assert any("monitor_activity_log.json event" in err for err in leaks)

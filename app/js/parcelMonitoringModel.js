@@ -58,6 +58,72 @@ export function sanitizeMonitoringText(rawVal) {
 }
 
 /**
+ * Strip embedded `[GEOMETRY_GEOJSON: {...}]` spans from citation text using balanced
+ * brace/string scanning so nested GeoJSON arrays or `GeometryCollection` objects never
+ * leave trailing JSON fragments in `source_citation`.
+ */
+export function stripEmbeddedGeometryTag(rawCitation = "") {
+  let s = String(rawCitation || "");
+  const prefix = "[GEOMETRY_GEOJSON:";
+  let searchFrom = 0;
+  for (;;) {
+    const idx = s.toUpperCase().indexOf(prefix, searchFrom);
+    if (idx === -1) break;
+    let i = idx + prefix.length;
+    while (i < s.length && /\s/.test(s[i])) i += 1;
+    if (s[i] !== "{") {
+      searchFrom = idx + prefix.length;
+      continue;
+    }
+    const startJson = i;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let endJson = -1;
+    let endIdx = -1;
+    for (; i < s.length; i += 1) {
+      const ch = s[i];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (ch === "\\") esc = true;
+        else if (ch === '"') inStr = false;
+      } else if (ch === '"') {
+        inStr = true;
+      } else if (ch === "{") {
+        depth += 1;
+      } else if (ch === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          endJson = i + 1;
+          let close = endJson;
+          while (close < s.length && /\s/.test(s[close])) close += 1;
+          if (s[close] === "]") endIdx = close + 1;
+          break;
+        }
+      }
+    }
+    if (endIdx === -1 || endJson === -1) {
+      searchFrom = idx + prefix.length;
+      continue;
+    }
+    try {
+      JSON.parse(s.slice(startJson, endJson));
+    } catch (_e) {
+      searchFrom = idx + prefix.length;
+      continue;
+    }
+    s = `${s.slice(0, idx)}${s.slice(endIdx)}`;
+    searchFrom = idx;
+  }
+  return sanitizeMonitoringText(s)
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s*\|\s*$/, "")
+    .replace(/^\s*\|\s*/, "")
+    .replace(/\s*\|\s*\|\s*/g, " | ")
+    .trim();
+}
+
+/**
  * Normalize an ISO timestamp or date string into a `YYYY-MM-DD` calendar date in `America/Chicago`
  * so 14-day hearing windows and 180-day historical baseline checks evaluate identically on browsers
  * in any timezone and UTC GitHub Actions runners.
@@ -578,7 +644,7 @@ export function computeAttentionLevel(
   const activeStage = hasActiveStage ? stage : 0;
 
   let hasUrgentHearing = false;
-  if (asOfDateCst && nextHearingDateCst) {
+  if (stage !== 6 && asOfDateCst && nextHearingDateCst) {
     const deltaDays = calendarDaysBetween(asOfDateCst, nextHearingDateCst);
     if (
       deltaDays !== null &&
@@ -650,7 +716,7 @@ export function explainAttentionLevel(
   const activeStage = stage >= 1 && stage <= 5 ? stage : 0;
   const stageLabel = MONITORING_SCHEMA_CONTRACT.enums.threatStages[String(stage)] || "None";
   let hasUrgentHearing = false;
-  if (asOfDateCst && nextHearingDateCst) {
+  if (stage !== 6 && asOfDateCst && nextHearingDateCst) {
     const deltaDays = calendarDaysBetween(asOfDateCst, nextHearingDateCst);
     hasUrgentHearing =
       deltaDays !== null &&
@@ -746,8 +812,10 @@ export function migrateLegacyTierToParcelFields(
 
   if (isTombstone) {
     advocacyStatus = "closed";
+    const effCutoff =
+      areaContext?.ageRuleCutoffYear || MONITORING_SCHEMA_CONTRACT.defaultAgeCutoffYear;
     outcome =
-      demolishedCue && yr >= MONITORING_SCHEMA_CONTRACT.minStandingYear && yr <= 1976
+      demolishedCue && yr >= MONITORING_SCHEMA_CONTRACT.minStandingYear && yr <= effCutoff
         ? "lost"
         : "not_relevant";
     threatStage = 6;

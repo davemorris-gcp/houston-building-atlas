@@ -65,6 +65,47 @@ def sanitize_monitoring_text(raw_val: Any) -> str:
     )
 
 
+def compute_public_plat_suggested_tier(
+    *,
+    oldest_yr: int,
+    designations: Sequence[str] | Iterable[str] = (),
+    flags: Iterable[str] = (),
+    super_n: str = "",
+    is_confirmed_vacant: bool = False,
+) -> str:
+    """Compute automated public pre-screen plat tier strictly from public Atlas facts."""
+    desig_list = [d for d in designations if d]
+    flag_set = set(flags or ())
+    norm_sn = str(super_n or "").strip().upper()
+    older_ring = frozenset(MONITORING_SCHEMA_CONTRACT["olderRingSuperNeighborhoods"])
+
+    if is_confirmed_vacant and oldest_yr == 0 and not desig_list:
+        return "3"
+    if desig_list:
+        return "1"
+    if "dpv" in flag_set:
+        return (
+            "1"
+            if ((1836 <= oldest_yr <= 1976) or (norm_sn in older_ring))
+            else "2"
+        )
+    if 1836 <= oldest_yr <= 1965 and (
+        "hearing" in flag_set
+        or "variance" in flag_set
+        or "split" in flag_set
+        or "use" in flag_set
+        or oldest_yr <= 1935
+    ):
+        return (
+            "1"
+            if ("hearing" in flag_set or "variance" in flag_set or oldest_yr <= 1935)
+            else "2"
+        )
+    if 1836 <= oldest_yr <= 1976:
+        return "2"
+    return ""
+
+
 def to_chicago_calendar_date(raw_ts_or_date: Any) -> str:
     """Normalize an ISO timestamp or date string into `YYYY-MM-DD` in `America/Chicago`."""
     s = sanitize_monitoring_text(raw_ts_or_date)
@@ -538,7 +579,7 @@ def compute_attention_level(
     active_stage = stage if has_active_stage else 0
 
     has_urgent_hearing = False
-    if as_of_date_cst and next_hearing_date_cst:
+    if stage != 6 and as_of_date_cst and next_hearing_date_cst:
         delta_days = calendar_days_between(as_of_date_cst, next_hearing_date_cst)
         if (
             delta_days is not None
@@ -609,7 +650,7 @@ def explain_attention_level(
     active_stage = stage if 1 <= stage <= 5 else 0
     stage_label = MONITORING_SCHEMA_CONTRACT["enums"]["threatStages"].get(str(stage), "None")
     has_urgent_hearing = False
-    if as_of_date_cst and next_hearing_date_cst:
+    if stage != 6 and as_of_date_cst and next_hearing_date_cst:
         delta_days = calendar_days_between(as_of_date_cst, next_hearing_date_cst)
         has_urgent_hearing = (
             delta_days is not None
@@ -716,10 +757,14 @@ def migrate_legacy_tier_to_parcel_fields(
 
     if is_tombstone:
         advocacy_status = "closed"
+        tombstone_cutoff = int(
+            (area_context or {}).get("ageRuleCutoffYear")
+            or MONITORING_SCHEMA_CONTRACT["defaultAgeCutoffYear"]
+        )
         outcome = (
             "lost"
             if demolished_cue
-            and int(MONITORING_SCHEMA_CONTRACT["minStandingYear"]) <= yr <= 1976
+            and int(MONITORING_SCHEMA_CONTRACT["minStandingYear"]) <= yr <= tombstone_cutoff
             else "not_relevant"
         )
         threat_stage = 6
@@ -1109,7 +1154,7 @@ def merge_parcel_and_decision_concurrent(
 
     if role == "pipeline":
         merged_raw = dict(base_parcel)
-        if not existing_parcel:
+        if existing_parcel is None:
             for k, v in patch_obj.items():
                 if v is not None:
                     merged_raw[k] = v
@@ -1128,7 +1173,7 @@ def merge_parcel_and_decision_concurrent(
             "ok": True,
             "conflict": False,
             "parcel": next_parcel,
-            "decision": dict(base_decision) if existing_decision else None,
+            "decision": dict(base_decision) if existing_decision is not None else None,
         }
 
     for staff_col in _STAFF_ONLY_DECISION_COLS:
@@ -1150,7 +1195,7 @@ def merge_parcel_and_decision_concurrent(
         return default
 
     raw_story = patch_obj.get("story_check_json")
-    if isinstance(raw_story, dict):
+    if isinstance(raw_story, (dict, list)):
         story_check_str = json.dumps(
             _sanitize_payload_dashes(raw_story), separators=(",", ":"), ensure_ascii=False
         )
@@ -1266,7 +1311,7 @@ def merge_parcel_and_decision_concurrent(
         and k not in _SCREENER_DECISION_COLS
     }
     merged_parcel_raw: dict[str, Any] = {
-        **baseParcel_clean(base_parcel),
+        **base_parcel,
         **non_decision_patch,
         "parcel_id": next_decision["parcel_id"]
         or base_parcel.get("parcel_id")
@@ -1299,7 +1344,3 @@ def merge_parcel_and_decision_concurrent(
         "parcel": next_parcel,
         "decision": next_decision,
     }
-
-
-def baseParcel_clean(d: dict[str, Any]) -> dict[str, Any]:
-    return dict(d)

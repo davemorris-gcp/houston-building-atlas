@@ -170,12 +170,47 @@ function extractBalancedTagJson_(text, prefix) {
 
 function stripTaggedJsonSpanServer_(text, prefix) {
   var s = String(text || '');
-  var idx = s.indexOf(prefix);
-  if (idx === -1) return s.trim();
-  var endBracket = s.indexOf(']', idx);
-  var prefixPart = s.slice(0, idx).trim();
-  var suffixPart = endBracket !== -1 ? s.slice(endBracket + 1).trim() : '';
-  return (prefixPart + (prefixPart && suffixPart ? ' ' : '') + suffixPart).trim();
+  var upperPrefix = String(prefix || '').toUpperCase();
+  if (!upperPrefix) return s.trim();
+  for (var guard = 0; guard < 32; guard++) {
+    var idx = s.toUpperCase().indexOf(upperPrefix);
+    if (idx === -1) break;
+    var cur = idx + upperPrefix.length;
+    while (cur < s.length && /\s/.test(s.charAt(cur))) cur++;
+    var endBracket = -1;
+    if (s.charAt(cur) === '{') {
+      var depth = 0;
+      var inStr = false;
+      var esc = false;
+      for (var i = cur; i < s.length; i++) {
+        var ch = s.charAt(i);
+        if (inStr) {
+          if (esc) { esc = false; }
+          else if (ch === '\\') { esc = true; }
+          else if (ch === DQUOTE_) { inStr = false; }
+        } else {
+          if (ch === DQUOTE_) { inStr = true; }
+          else if (ch === '{') { depth++; }
+          else if (ch === '}') {
+            depth--;
+            if (depth === 0) {
+              var closePos = i + 1;
+              while (closePos < s.length && /\s/.test(s.charAt(closePos))) closePos++;
+              if (s.charAt(closePos) === ']') endBracket = closePos;
+              break;
+            }
+          }
+        }
+      }
+    } else {
+      endBracket = s.indexOf(']', cur);
+    }
+    var prefixPart = s.slice(0, idx).trim();
+    var suffixPart = endBracket !== -1 ? s.slice(endBracket + 1).trim() : '';
+    s = (prefixPart + (prefixPart && suffixPart ? ' ' : '') + suffixPart).trim();
+    if (endBracket === -1) break;
+  }
+  return s;
 }
 
 function defaultHostEnv_() {
@@ -668,11 +703,15 @@ function readMonitoringRolesMap_(ss) {
     var em = String(r.email || '').trim().toLowerCase();
     if (!em) continue;
     var activeStr = String(r.active === undefined ? 'true' : r.active).trim().toLowerCase();
-    if (activeStr === 'false' || activeStr === '0' || activeStr === 'no') continue;
+    if (activeStr === 'false' || activeStr === '0' || activeStr === 'no') {
+      byEmail[em] = { email: em, active: false };
+      continue;
+    }
     var role = String(r.role || '').trim().toLowerCase();
     if (role !== 'staff' && role !== 'screener') continue;
     byEmail[em] = {
       email: em,
+      active: true,
       role: role,
       assignedAreas: String(r.assigned_areas || '').split(/[;|,]+/).map(function(s) { return s.trim(); }).filter(Boolean),
       displayLabel: String(r.display_label || (role === 'staff' ? 'Preservation Staff' : 'Screener')).trim()
@@ -702,11 +741,14 @@ function resolveUserRoleEntry_(ss, email) {
   var normEmail = String(email || '').trim().toLowerCase();
   if (!normEmail) return null;
   var rolesMap = readMonitoringRolesMap_(ss);
-  if (rolesMap[normEmail]) return rolesMap[normEmail];
+  if (Object.prototype.hasOwnProperty.call(rolesMap, normEmail)) {
+    return rolesMap[normEmail].active === false ? null : rolesMap[normEmail];
+  }
   var editors = collectSheetEditorEmails_(ss);
   if (editors.indexOf(normEmail) !== -1) {
     return {
       email: normEmail,
+      active: true,
       role: 'staff',
       assignedAreas: [],
       displayLabel: 'Preservation Staff'
@@ -906,7 +948,28 @@ function computeContributingServer_(parcel, areasMap) {
   return (yr >= 1836 && yr <= maxCutoff) ? 'contributing' : 'non_contributing';
 }
 
-function computeAttentionServer_(parcel, areasMap) {
+function toChicagoYmdServer_(msOrIso) {
+  if (typeof msOrIso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(msOrIso.trim())) {
+    return msOrIso.trim();
+  }
+  var d = (typeof msOrIso === 'number' && isFinite(msOrIso)) ? new Date(msOrIso) : (msOrIso ? new Date(msOrIso) : new Date());
+  if (!d || isNaN(d.getTime())) return '';
+  try {
+    if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+      var fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      var out = fmt.format(d);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(out)) return out;
+    }
+  } catch (_ie) {}
+  return d.toISOString().slice(0, 10);
+}
+
+function computeAttentionServer_(parcel, areasMap, asOfYmd, nextHearingYmd) {
   var attOv = String(parcel.attention_override || '').trim().toLowerCase();
   if (attOv === 'act' || attOv === 'watch' || attOv === 'record') return attOv;
   var adv = String(parcel.advocacy_status || '').trim().toLowerCase();
@@ -917,13 +980,20 @@ function computeAttentionServer_(parcel, areasMap) {
   var st = Math.floor(Number(parcel.threat_stage) || 0);
   var hasActive = (st >= 1 && st <= 5);
   var activeSt = hasActive ? st : 0;
+  var hasUrgentHearing = false;
+  if (st !== 6 && asOfYmd && nextHearingYmd && /^\d{4}-\d{2}-\d{2}$/.test(asOfYmd) && /^\d{4}-\d{2}-\d{2}$/.test(nextHearingYmd)) {
+    var deltaDays = Math.round((Date.parse(nextHearingYmd + 'T00:00:00Z') - Date.parse(asOfYmd + 'T00:00:00Z')) / 86400000);
+    if (deltaDays >= 0 && deltaDays <= 14) hasUrgentHearing = true;
+  }
+  var hasActiveThreat = hasActive || hasUrgentHearing;
+
   var effSig = String(parcel.significance_level || '').trim().toLowerCase() ||
                String(parcel.recommended_significance || '').trim().toLowerCase() ||
                (String(parcel.review_status || '').trim().toLowerCase() === 'needs_research' ? 'needs_research' : '');
   var prot = String(parcel.protection_level || '').trim().toLowerCase() || classifyProtectionServer_(parcel.designation_summary || '');
 
   if (effSig === 'high' || effSig === 'moderate' || effSig === 'needs_research') {
-    if (hasActive) {
+    if (hasActiveThreat) {
       if (prot === 'binding' && activeSt <= 3) return 'watch';
       return 'act';
     }
@@ -1260,6 +1330,20 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
       }
     }
   }
+  // Preserve existing Col W polygon and architectural fields when updating a standing Approved row without replacement values
+  if (targetRow > 0 && !isExplicitVacant) {
+    var exRow = vals[targetRow - 1] || [];
+    if (payload.geometry_geojson === undefined || geomGeoJsonStr === '') {
+      geomGeoJsonStr = stripLeadingSheetTick_(exRow[22] || '');
+    }
+    if (!primaryName) colsAtoR[14] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[14] || ''));
+    if (!altNames) colsAtoR[15] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[15] || ''));
+    if (!payload.bld_style) colsAtoR[16] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[16] || ''));
+    if (!payload.architect) colsAtoR[17] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[17] || ''));
+    if (!payload.address && exRow[2]) colsAtoR[2] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[2]));
+    if (!payload.historic_district && exRow[5]) colsAtoR[5] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[5]));
+    if (!payload.contributing && exRow[6]) colsAtoR[6] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[6]));
+  }
   var writeRowIdx = targetRow > 0 ? targetRow : (lastRow + 1);
   writePendingRowPreservingFormulas_(sheet, writeRowIdx, colsAtoR, geomGeoJsonStr);
   invalidateCacheKey_(env, 'APPROVED_EDITS_CSV_V1');
@@ -1381,34 +1465,931 @@ function createDriveBackupSnapshot_(env, ss) {
   return { ok: true, target: 'in_place_sheets_only', createdAt: nowIso };
 }
 
+/* ---------- Modular HTTP & RPC Action Handlers ---------- */
+
+function handleDoGetRequest_(env, e) {
+  // Always evict retired public plat_sync cache key so stale cached rows never survive cutover
+  invalidateCacheKey_(env, 'PLAT_SYNC_CSV_V1');
+  var feed = (e && e.parameter && e.parameter.feed) ? String(e.parameter.feed).trim().toLowerCase() : '';
+  if (feed && feed !== 'approved_edits') {
+    return createJsonResponse_(env, {
+      ok: false,
+      authorized: false,
+      error: 'Retired endpoint: internal monitoring state requires authenticated POST pull_monitoring_state.'
+    });
+  }
+  var ss = env.spreadsheetApp.getActiveSpreadsheet();
+  var cache = getScriptCacheSafe_(env);
+  if (cache) {
+    var cachedApp = cache.get('APPROVED_EDITS_CSV_V1');
+    if (cachedApp) return createTextResponse_(env, cachedApp, 'CSV');
+  }
+  var sheet = ss.getSheetByName('Approved_Edits');
+  var csv = sheetToCsvText_(sheet);
+  if (cache && csv && csv.length <= 95000) {
+    try { cache.put('APPROVED_EDITS_CSV_V1', csv, 180); } catch (_e2) {}
+  }
+  return createTextResponse_(env, csv, 'CSV');
+}
+
+function handlePipelineDriveBackupAction_(env, payload) {
+  var ssBackup = env.spreadsheetApp.getActiveSpreadsheet();
+  var bAuth = resolveMonitoringAuth_(env, ssBackup, payload);
+  if (!bAuth.authorized || !bAuth.allowedActions.pipeline_create_drive_backup) {
+    return createJsonResponse_(env, { ok: false, authorized: false, error: bAuth.error || 'Unauthorized backup request.' });
+  }
+  return createJsonResponse_(env, createDriveBackupSnapshot_(env, ssBackup));
+}
+
+function handleVerifyAdminAction_(ctx) {
+  var vAuth = ctx.auth;
+  return createJsonResponse_(ctx.env, {
+    ok: true,
+    authorized: true,
+    email: vAuth.email,
+    role: vAuth.role,
+    displayLabel: vAuth.displayLabel,
+    assignedAreas: vAuth.assignedAreas,
+    googleClientId: vAuth.googleClientId || '',
+    supportsRoamingSync: true,
+    supportsPhase1Monitoring: true,
+    userState: readUserRoamingState_(ctx.env, ctx.ss, vAuth.email)
+  });
+}
+
+function handleGetUserStateAction_(ctx) {
+  var gAuth = ctx.auth;
+  return createJsonResponse_(ctx.env, {
+    ok: true,
+    authorized: true,
+    role: gAuth.role,
+    supportsRoamingSync: true,
+    email: gAuth.email,
+    userState: readUserRoamingState_(ctx.env, ctx.ss, gAuth.email)
+  });
+}
+
+function handlePutUserStateAction_(ctx) {
+  var pAuth = ctx.auth;
+  var savedState = writeUserRoamingState_(ctx.env, ctx.ss, pAuth.email, ctx.payload.user_state || {});
+  return createJsonResponse_(ctx.env, {
+    ok: true,
+    authorized: true,
+    role: pAuth.role,
+    supportsRoamingSync: true,
+    email: pAuth.email,
+    userState: savedState
+  });
+}
+
+function handlePullMonitoringStateAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var pullAuth = ctx.auth;
+  var areas = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
+  var parcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
+  var decisions = readTableObjects_(ss, TABLE_REGISTRY_.Decisions);
+  var events = readTableObjects_(ss, TABLE_REGISTRY_.Events);
+  var rawDossiers = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
+  var parsedDossiers = [];
+  for (var di = 0; di < rawDossiers.length; di++) {
+    var dr = rawDossiers[di];
+    var dObj = null;
+    if (dr.dossier_json) {
+      try { dObj = JSON.parse(dr.dossier_json); } catch (_de) { dObj = null; }
+    }
+    parsedDossiers.push(dObj || dr);
+  }
+  var respBody = {
+    ok: true,
+    authorized: true,
+    role: pullAuth.role,
+    email: pullAuth.email,
+    assignedAreas: pullAuth.assignedAreas,
+    areas: areas,
+    parcels: parcels,
+    decisions: decisions,
+    events: events,
+    watchlistDossiers: parsedDossiers
+  };
+  if (pullAuth.actorType === 'staff') {
+    var staffSs = openStaffOnlyWorkbookSafe_(env);
+    respBody.staffOnly = {
+      parcelStrategy: staffSs ? readTableObjects_(staffSs, TABLE_REGISTRY_.Staff_Parcel_Strategy) : [],
+      watchedEntities: staffSs ? readTableObjects_(staffSs, TABLE_REGISTRY_.Watched_People_And_Firms) : []
+    };
+    respBody.pendingModerationCount = countPendingModerationItems_(ss);
+  } else if (pullAuth.actorType === 'pipeline') {
+    // Pipeline receives watched entity names ONLY for automated sweep matching, never strategy/contact notes!
+    var pipeStaffSs = openStaffOnlyWorkbookSafe_(env);
+    var rawWatched = pipeStaffSs ? readTableObjects_(pipeStaffSs, TABLE_REGISTRY_.Watched_People_And_Firms) : [];
+    respBody.watchedEntitiesForMatching = rawWatched.map(function(w) {
+      return {
+        entity_id: w.entity_id,
+        entity_name: w.entity_name,
+        normalized_key: w.normalized_key,
+        entity_role: w.entity_role,
+        active: w.active
+      };
+    });
+  }
+  return createJsonResponse_(env, respBody);
+}
+
+function handleUpsertParcelDecisionAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var payload = ctx.payload;
+  var decAuth = ctx.auth;
+  var patch = payload.patch || payload.decision || {};
+  for (var sc in STAFF_ONLY_DECISION_COLS_) {
+    if (Object.prototype.hasOwnProperty.call(STAFF_ONLY_DECISION_COLS_, sc) &&
+        patch[sc] !== undefined && decAuth.actorType !== 'staff') {
+      return createJsonResponse_(env, {
+        ok: false,
+        authorized: false,
+        forbiddenField: sc,
+        error: 'Screener role cannot modify staff-only field: ' + sc
+      });
+    }
+  }
+  var parcelId = String(patch.parcel_id || payload.parcel_id || '').trim();
+  if (!parcelId) {
+    return createJsonResponse_(env, { ok: false, error: 'Missing parcel_id for decision upsert.' });
+  }
+  var areasList = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
+  var areasMap = {};
+  for (var ai = 0; ai < areasList.length; ai++) areasMap[areasList[ai].area_id] = areasList[ai];
+
+  var existingParcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
+  var existingDecisions = readTableObjects_(ss, TABLE_REGISTRY_.Decisions);
+  var curParcel = null;
+  var curDec = null;
+  for (var pi = 0; pi < existingParcels.length; pi++) {
+    if (existingParcels[pi].parcel_id === parcelId) { curParcel = existingParcels[pi]; break; }
+  }
+  var decId = 'DEC:' + parcelId;
+  for (var dci = 0; dci < existingDecisions.length; dci++) {
+    if (existingDecisions[dci].decision_id === decId || existingDecisions[dci].parcel_id === parcelId) {
+      curDec = existingDecisions[dci];
+      break;
+    }
+  }
+
+  var expUpd = String(payload.expected_updated_at || '').trim();
+  if (expUpd && curDec && curDec.decided_at && expUpd !== String(curDec.decided_at).trim()) {
+    return createJsonResponse_(env, {
+      ok: false,
+      conflict: true,
+      error: 'Parcel decision was updated by another session; reload latest state before saving.',
+      currentParcel: curParcel,
+      currentDecision: curDec
+    });
+  }
+
+  var nowIso = new Date().toISOString();
+  var baseP = curParcel || { parcel_id: parcelId, added_at: nowIso };
+  var baseD = curDec || { decision_id: decId, parcel_id: parcelId };
+  var actorLabel = decAuth.displayLabel || (decAuth.actorType === 'staff' ? 'Preservation Staff' : 'Screener');
+  var normBasis = Array.isArray(patch.significance_basis)
+    ? patch.significance_basis.join('; ')
+    : (patch.significance_basis !== undefined ? patch.significance_basis : (baseD.significance_basis || baseP.significance_basis || ''));
+
+  var nextDec = {
+    decision_id: decId,
+    parcel_id: parcelId,
+    hcad_num: patch.hcad_num !== undefined ? patch.hcad_num : (baseD.hcad_num || baseP.hcad_num || ''),
+    latest_app_no: patch.latest_app_no !== undefined ? patch.latest_app_no : (baseD.latest_app_no || ''),
+    latest_cycle_key: patch.latest_cycle_key !== undefined ? patch.latest_cycle_key : (baseD.latest_cycle_key || ''),
+    actor_role: decAuth.actorType,
+    review_status: patch.review_status !== undefined ? patch.review_status : (baseD.review_status || baseP.review_status || 'not_reviewed'),
+    recommended_significance: patch.recommended_significance !== undefined ? patch.recommended_significance : (baseD.recommended_significance || baseP.recommended_significance || ''),
+    significance_level: (decAuth.actorType === 'staff' && patch.significance_level !== undefined) ? patch.significance_level : (baseD.significance_level || baseP.significance_level || ''),
+    significance_basis: normBasis,
+    contributing_override: (decAuth.actorType === 'staff' && patch.contributing_override !== undefined) ? patch.contributing_override : (baseD.contributing_override || baseP.contributing_override || ''),
+    integrity: patch.integrity !== undefined ? patch.integrity : (baseD.integrity || baseP.integrity || ''),
+    standing_status: patch.standing_status !== undefined ? patch.standing_status : (baseD.standing_status || ''),
+    advocacy_status: (decAuth.actorType === 'staff' && patch.advocacy_status !== undefined) ? patch.advocacy_status : (baseD.advocacy_status || baseP.advocacy_status || 'monitoring'),
+    outcome: (decAuth.actorType === 'staff' && patch.outcome !== undefined) ? patch.outcome : (baseD.outcome || baseP.outcome || ''),
+    attention_override: (decAuth.actorType === 'staff' && patch.attention_override !== undefined) ? patch.attention_override : (baseD.attention_override || baseP.attention_override || ''),
+    screening_notes: patch.screening_notes !== undefined ? patch.screening_notes : (baseD.screening_notes || ''),
+    story_check_json: typeof patch.story_check_json === 'object' && patch.story_check_json !== null ? JSON.stringify(patch.story_check_json) : (patch.story_check_json !== undefined ? patch.story_check_json : (baseD.story_check_json || '')),
+    atlas_writeback_summary: (decAuth.actorType === 'staff' && patch.atlas_writeback_summary !== undefined) ? patch.atlas_writeback_summary : (baseD.atlas_writeback_summary || ''),
+    decided_by: actorLabel,
+    decided_at: nowIso,
+    history_json: ''
+  };
+
+  var histList = [];
+  if (baseD.history_json) {
+    try {
+      var ph = JSON.parse(baseD.history_json);
+      if (Array.isArray(ph)) histList = ph;
+      else if (ph && Array.isArray(ph.entries)) histList = ph.entries;
+    } catch (_he) {}
+  }
+  histList.push({
+    at: nowIso,
+    role: decAuth.actorType,
+    by: actorLabel,
+    review_status: nextDec.review_status,
+    recommended_significance: nextDec.recommended_significance,
+    significance_level: nextDec.significance_level,
+    advocacy_status: nextDec.advocacy_status,
+    outcome: nextDec.outcome,
+    note: String(nextDec.screening_notes || '').slice(0, 280)
+  });
+  nextDec.history_json = compactHistoryJsonServer_(histList, 48000);
+
+  var nextParcel = {};
+  for (var bk in baseP) { if (Object.prototype.hasOwnProperty.call(baseP, bk)) nextParcel[bk] = baseP[bk]; }
+  var metaCols = [
+    'hcad_num', 'campus_group_id', 'related_hcads', 'primary_address', 'perimeter_addresses',
+    'building_name', 'year_built', 'hcad_year_built', 'subdivision_name', 'area_ids',
+    'owner_of_record', 'land_use_class', 'protection_level', 'designation_summary',
+    'threat_stage', 'signal_flags', 'watch_property_id'
+  ];
+  for (var mi = 0; mi < metaCols.length; mi++) {
+    var mc = metaCols[mi];
+    if (patch[mc] !== undefined) nextParcel[mc] = patch[mc];
+  }
+  nextParcel.parcel_id = parcelId;
+  nextParcel.review_status = nextDec.review_status;
+  nextParcel.recommended_significance = nextDec.recommended_significance;
+  nextParcel.significance_level = nextDec.significance_level;
+  nextParcel.significance_basis = nextDec.significance_basis;
+  nextParcel.contributing_override = nextDec.contributing_override;
+  nextParcel.integrity = nextDec.integrity;
+  nextParcel.advocacy_status = nextDec.advocacy_status;
+  nextParcel.outcome = nextDec.outcome;
+  nextParcel.attention_override = nextDec.attention_override;
+  var rawProt = String(nextParcel.protection_level || '').trim().toLowerCase();
+  nextParcel.protection_level = (rawProt === 'binding' || rawProt === 'limited' || rawProt === 'none')
+    ? rawProt
+    : classifyProtectionServer_(nextParcel.designation_summary || '');
+  if (String(nextParcel.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(nextParcel.outcome || '').toLowerCase()]) {
+    nextParcel.threat_stage = 6;
+  }
+  var asOfYmd = String(payload.as_of_date_cst || toChicagoYmdServer_(env.nowMs ? env.nowMs() : null)).trim();
+  var nextHearingYmd = String(patch.next_hearing_date_cst || payload.next_hearing_date_cst || '').trim();
+  nextParcel.contributing_status = computeContributingServer_(nextParcel, areasMap);
+  nextParcel.attention_level = computeAttentionServer_(nextParcel, areasMap, asOfYmd, nextHearingYmd);
+  nextParcel.added_at = baseP.added_at || nowIso;
+  nextParcel.updated_by = actorLabel;
+  nextParcel.updated_at = nowIso;
+
+  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, [nextParcel]);
+  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, [nextDec]);
+
+  return createJsonResponse_(env, {
+    ok: true,
+    authorized: true,
+    role: decAuth.role,
+    parcel: nextParcel,
+    decision: nextDec
+  });
+}
+
+function handleBootstrapPhase1VaultsAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var payload = ctx.payload;
+  var coreKeys = ['Areas', 'Parcels', 'Decisions', 'Events', 'Watchlist_Dossiers', '_Monitoring_Roles'];
+  for (var ck = 0; ck < coreKeys.length; ck++) {
+    ensureTableSheet_(ss, TABLE_REGISTRY_[coreKeys[ck]]);
+  }
+  var bootProps = getScriptPropsSafe_(env);
+  var staffVaultId = String(payload.staff_only_sheet_id || '').trim() || getPropString_(env, 'STAFF_ONLY_SHEET_ID');
+  var staffSsBoot = null;
+  if (staffVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
+    try { staffSsBoot = env.spreadsheetApp.openById(staffVaultId); } catch (_eso) { staffSsBoot = null; }
+  }
+  if (!staffSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
+    staffSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Staff_Only');
+    staffVaultId = staffSsBoot.getId();
+  }
+  if (staffSsBoot) {
+    ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Staff_Parcel_Strategy);
+    ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Watched_People_And_Firms);
+    var defS1 = staffSsBoot.getSheetByName('Sheet1');
+    if (defS1 && typeof staffSsBoot.deleteSheet === 'function' && staffSsBoot.getSheets().length > 1) {
+      try { staffSsBoot.deleteSheet(defS1); } catch (_eds1) {}
+    }
+    if (bootProps && staffVaultId) bootProps.setProperty('STAFF_ONLY_SHEET_ID', staffVaultId);
+  }
+
+  var backupVaultId = String(payload.backup_vault_sheet_id || '').trim() || getPropString_(env, 'BACKUP_VAULT_SHEET_ID');
+  var backupSsBoot = null;
+  if (backupVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
+    try { backupSsBoot = env.spreadsheetApp.openById(backupVaultId); } catch (_ebo) { backupSsBoot = null; }
+  }
+  if (!backupSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
+    backupSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Backups_Vault');
+    backupVaultId = backupSsBoot.getId();
+  }
+  if (backupSsBoot) {
+    var bSnapSheet = backupSsBoot.getSheetByName('Backup_Snapshots') || backupSsBoot.insertSheet('Backup_Snapshots');
+    var bVals = bSnapSheet.getDataRange().getValues();
+    if (!bVals.length || String(bVals[0][0] || '') !== 'snapshot_id') {
+      bSnapSheet.getRange(1, 1, 1, 8).setValues([['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'byte_length', 'chunk_count', 'summary_json', 'chunk_1']]);
+    }
+    var defB1 = backupSsBoot.getSheetByName('Sheet1');
+    if (defB1 && typeof backupSsBoot.deleteSheet === 'function' && backupSsBoot.getSheets().length > 1) {
+      try { backupSsBoot.deleteSheet(defB1); } catch (_edb1) {}
+    }
+    if (bootProps && backupVaultId) bootProps.setProperty('BACKUP_VAULT_SHEET_ID', backupVaultId);
+  }
+
+  if (bootProps) {
+    if (payload.pipeline_sync_token) bootProps.setProperty('PIPELINE_SYNC_TOKEN', String(payload.pipeline_sync_token).trim());
+    if (payload.screener_sync_passkey) bootProps.setProperty('SCREENER_SYNC_PASSKEY', String(payload.screener_sync_passkey).trim());
+    if (payload.staff_sync_passkey) bootProps.setProperty('STAFF_SYNC_PASSKEY', String(payload.staff_sync_passkey).trim());
+    if (payload.google_oauth_client_id !== undefined) bootProps.setProperty('GOOGLE_OAUTH_CLIENT_ID', String(payload.google_oauth_client_id).trim());
+  }
+  if (Array.isArray(payload.roles) && payload.roles.length) {
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_._Monitoring_Roles, payload.roles);
+  }
+  return createJsonResponse_(env, {
+    ok: true,
+    authorized: true,
+    staffOnlySheetId: staffVaultId,
+    backupVaultSheetId: backupVaultId,
+    pipelineTokenConfigured: Boolean(getPropString_(env, 'PIPELINE_SYNC_TOKEN')),
+    screenerPasskeyConfigured: Boolean(getPropString_(env, 'SCREENER_SYNC_PASSKEY'))
+  });
+}
+
+function handleUpsertWatchlistDossierAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var payload = ctx.payload;
+  var wlAuth = ctx.auth;
+  var rawDossier = payload.dossier || {};
+  var dObj = {};
+  for (var dk in rawDossier) {
+    if (Object.prototype.hasOwnProperty.call(rawDossier, dk)) dObj[dk] = rawDossier[dk];
+  }
+  var wid = String(dObj.id || payload.watch_property_id || payload.watch_id || '').trim();
+  if (!wid) {
+    return createJsonResponse_(env, { ok: false, error: 'Missing watchlist dossier id.' });
+  }
+  var exDossiers = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
+  var exWlRow = null;
+  for (var wi = 0; wi < exDossiers.length; wi++) {
+    if (exDossiers[wi].watch_property_id === wid) { exWlRow = exDossiers[wi]; break; }
+  }
+  var expWlUpd = String(payload.expected_updated_at || '').trim();
+  if (expWlUpd && exWlRow && exWlRow.updated_at && expWlUpd !== String(exWlRow.updated_at).trim()) {
+    return createJsonResponse_(env, {
+      ok: false,
+      conflict: true,
+      error: 'Watchlist dossier was updated in another session; reload before saving.',
+      currentUpdatedAt: exWlRow.updated_at
+    });
+  }
+  if (wlAuth.actorType === 'screener') {
+    if (!exWlRow) {
+      return createJsonResponse_(env, { ok: false, authorized: false, error: 'Only Staff can create or promote new Watchlist dossiers.' });
+    }
+    var prevDoc = {};
+    try { prevDoc = JSON.parse(exWlRow.dossier_json || '{}'); } catch (_pe) { prevDoc = {}; }
+    if (dObj.removedFromWatchlist !== undefined && Boolean(dObj.removedFromWatchlist) !== Boolean(prevDoc.removedFromWatchlist)) {
+      return createJsonResponse_(env, {
+        ok: false,
+        authorized: false,
+        forbiddenField: 'removedFromWatchlist',
+        error: 'Screener role cannot modify staff-only Watchlist field: removedFromWatchlist'
+      });
+    }
+    var lockedKeys = [
+      'significanceLevel', 'significance_level', 'advocacyStatus', 'advocacy_status',
+      'outcome', 'attentionOverride', 'attention_override', 'contributingOverride',
+      'tier', 'trackerStatus', 'removalReason'
+    ];
+    for (var lk = 0; lk < lockedKeys.length; lk++) {
+      var fk = lockedKeys[lk];
+      var prevBaseline = '';
+      if (fk === 'advocacyStatus' || fk === 'advocacy_status') {
+        prevBaseline = String(prevDoc[fk] !== undefined ? prevDoc[fk] : (prevDoc.advocacyStatus || prevDoc.advocacy_status || exWlRow.advocacy_status || '')).trim();
+      } else if (fk === 'outcome') {
+        prevBaseline = String(prevDoc.outcome !== undefined ? prevDoc.outcome : (exWlRow.outcome || '')).trim();
+      } else {
+        prevBaseline = String(prevDoc[fk] !== undefined ? prevDoc[fk] : '').trim();
+      }
+      if (dObj[fk] !== undefined && String(dObj[fk]).trim() !== prevBaseline) {
+        return createJsonResponse_(env, {
+          ok: false,
+          authorized: false,
+          forbiddenField: fk,
+          error: 'Screener role cannot modify staff-only Watchlist field: ' + fk
+        });
+      }
+      if (prevDoc[fk] !== undefined) dObj[fk] = prevDoc[fk];
+      else delete dObj[fk];
+    }
+    if (prevDoc.removedFromWatchlist !== undefined) dObj.removedFromWatchlist = prevDoc.removedFromWatchlist;
+    else delete dObj.removedFromWatchlist;
+  }
+  var dJson = compactWatchlistDossierServer_(dObj, 48000);
+  if (dJson.length > 48000) {
+    return createJsonResponse_(env, { ok: false, error: 'Watchlist dossier exceeds 48,000-character cell safety limit.' });
+  }
+  var nowWlIso = new Date().toISOString();
+  var wlRow = {
+    watch_property_id: wid,
+    parcel_id: String(dObj.parcelId || dObj.parcel_id || dObj.hcadAccount || wid).split(/[;|,]/)[0].trim(),
+    hcad_num: String(dObj.hcadAccount || dObj.hcad_num || '').split(/[;|,]/)[0].trim(),
+    primary_address: String(dObj.address || ''),
+    property_name: String(dObj.propertyName || dObj.address || wid),
+    attention_level: wlAuth.actorType === 'screener' && exWlRow ? String(exWlRow.attention_level || dObj.attentionLevel || 'watch') : String(dObj.attentionLevel || 'watch'),
+    advocacy_status: wlAuth.actorType === 'screener' && exWlRow ? String(exWlRow.advocacy_status || 'monitoring') : String(dObj.advocacyStatus || 'monitoring'),
+    outcome: wlAuth.actorType === 'screener' && exWlRow ? String(exWlRow.outcome || '') : String(dObj.outcome || ''),
+    dossier_json: dJson,
+    updated_by: wlAuth.displayLabel || (wlAuth.actorType === 'screener' ? 'Screener' : 'Preservation Staff'),
+    updated_at: dObj.updatedAt || nowWlIso
+  };
+  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Watchlist_Dossiers, [wlRow]);
+  return createJsonResponse_(env, { ok: true, authorized: true, watch_property_id: wid, updated_at: wlRow.updated_at });
+}
+
+function handleUpsertStaffOnlyAction_(ctx) {
+  var env = ctx.env;
+  var payload = ctx.payload;
+  var staffVault = openStaffOnlyWorkbookSafe_(env);
+  if (!staffVault) {
+    return createJsonResponse_(env, { ok: false, error: 'Staff-Only workbook is not configured in ScriptProperties (STAFF_ONLY_SHEET_ID).' });
+  }
+  var nowStIso = new Date().toISOString();
+  var stratList = Array.isArray(payload.parcelStrategy)
+    ? payload.parcelStrategy
+    : (payload.strategy ? [payload.strategy] : (payload.target === 'parcel_strategy' && payload.record ? [payload.record] : []));
+  var entList = Array.isArray(payload.watchedEntities)
+    ? payload.watchedEntities
+    : (payload.watchedEntity ? [payload.watchedEntity] : (payload.target === 'watched_entity' && payload.record ? [payload.record] : []));
+  for (var si = 0; si < stratList.length; si++) {
+    stratList[si].updated_by = 'Preservation Staff';
+    stratList[si].updated_at = nowStIso;
+  }
+  for (var ei = 0; ei < entList.length; ei++) {
+    entList[ei].updated_by = 'Preservation Staff';
+    entList[ei].updated_at = nowStIso;
+  }
+  var sRes = stratList.length ? upsertTableObjectsBatch_(staffVault, TABLE_REGISTRY_.Staff_Parcel_Strategy, stratList) : { inserted: 0, updated: 0 };
+  var eRes = entList.length ? upsertTableObjectsBatch_(staffVault, TABLE_REGISTRY_.Watched_People_And_Firms, entList) : { inserted: 0, updated: 0 };
+  return createJsonResponse_(env, { ok: true, authorized: true, strategyResult: sRes, entityResult: eRes });
+}
+
+function handlePipelinePushSweepResultsAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var payload = ctx.payload;
+  var pushAuth = ctx.auth;
+  var isFullSeed = (pushAuth.actorType === 'staff' && payload.allowFullMigrationSeed === true);
+  if (Array.isArray(payload.areas) && payload.areas.length) {
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Areas, payload.areas);
+  }
+  var areasNow = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
+  var aMap = {};
+  for (var am = 0; am < areasNow.length; am++) aMap[areasNow[am].area_id] = areasNow[am];
+  var sweepAsOfYmd = toChicagoYmdServer_(env.nowMs ? env.nowMs() : null);
+
+  if (Array.isArray(payload.parcels) && payload.parcels.length) {
+    var curParcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
+    var curById = {};
+    for (var cp = 0; cp < curParcels.length; cp++) curById[curParcels[cp].parcel_id] = curParcels[cp];
+    var safeParcels = [];
+    var sweepTs = new Date().toISOString();
+    for (var ip = 0; ip < payload.parcels.length; ip++) {
+      var incP = payload.parcels[ip];
+      if (!incP || !incP.parcel_id) continue;
+      var exP = curById[incP.parcel_id];
+      if (!exP || isFullSeed) {
+        var seeded = {};
+        for (var sk in incP) { if (Object.prototype.hasOwnProperty.call(incP, sk)) seeded[sk] = incP[sk]; }
+        seeded.added_at = seeded.added_at || sweepTs;
+        seeded.updated_at = seeded.updated_at || sweepTs;
+        seeded.contributing_status = computeContributingServer_(seeded, aMap);
+        seeded.attention_level = computeAttentionServer_(seeded, aMap, sweepAsOfYmd, String(incP.next_hearing_date_cst || ''));
+        safeParcels.push(seeded);
+      } else {
+        // Preserve all human decision columns saved concurrently at T1 (T0 < T1 < T2)!
+        var mergedP = {};
+        for (var ek in exP) { if (Object.prototype.hasOwnProperty.call(exP, ek)) mergedP[ek] = exP[ek]; }
+        for (var mk in PIPELINE_MACHINE_PARCEL_COLS_) {
+          if (Object.prototype.hasOwnProperty.call(PIPELINE_MACHINE_PARCEL_COLS_, mk) && incP[mk] !== undefined) {
+            mergedP[mk] = incP[mk];
+          }
+        }
+        if (String(mergedP.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(mergedP.outcome || '').toLowerCase()]) {
+          mergedP.threat_stage = 6;
+        }
+        mergedP.contributing_status = computeContributingServer_(mergedP, aMap);
+        mergedP.attention_level = computeAttentionServer_(mergedP, aMap, sweepAsOfYmd, String(incP.next_hearing_date_cst || ''));
+        mergedP.updated_at = sweepTs;
+        safeParcels.push(mergedP);
+      }
+    }
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, safeParcels);
+  }
+
+  if (isFullSeed && Array.isArray(payload.decisions) && payload.decisions.length) {
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, payload.decisions);
+  }
+
+  if (Array.isArray(payload.events) && payload.events.length) {
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Events, payload.events);
+  }
+
+  if (Array.isArray(payload.watchlistDossiers) && payload.watchlistDossiers.length) {
+    var curWlRows = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
+    var curWlById = {};
+    for (var cw = 0; cw < curWlRows.length; cw++) curWlById[curWlRows[cw].watch_property_id] = curWlRows[cw];
+    var outWlRows = [];
+    for (var iw = 0; iw < payload.watchlistDossiers.length; iw++) {
+      var incW = payload.watchlistDossiers[iw];
+      var wid2 = String(incW.watch_property_id || incW.id || '').trim();
+      if (!wid2) continue;
+      var exWRow = curWlById[wid2];
+      if (!exWRow || isFullSeed) {
+        var fullDoc = incW.dossier_json ? incW : {
+          watch_property_id: wid2,
+          parcel_id: String(incW.parcelId || incW.hcadAccount || wid2).split(/[;|,]/)[0].trim(),
+          hcad_num: String(incW.hcadAccount || '').split(/[;|,]/)[0].trim(),
+          primary_address: String(incW.address || ''),
+          property_name: String(incW.propertyName || incW.address || wid2),
+          attention_level: String(incW.attentionLevel || 'watch'),
+          advocacy_status: String(incW.advocacyStatus || 'monitoring'),
+          outcome: String(incW.outcome || ''),
+          dossier_json: compactWatchlistDossierServer_(incW, 48000),
+          updated_by: 'Automated Pipeline',
+          updated_at: incW.updatedAt || new Date().toISOString()
+        };
+        outWlRows.push(fullDoc);
+      } else {
+        // Merge ONLY automated sweep telemetry & [AUTO-SWEEP] checklist entries onto human dossier!
+        var existingDocObj = null;
+        try { existingDocObj = JSON.parse(exWRow.dossier_json || '{}'); } catch (_we) { existingDocObj = null; }
+        var incomingDocObj = incW.dossier_json ? JSON.parse(incW.dossier_json) : incW;
+        if (existingDocObj && incomingDocObj && Array.isArray(incomingDocObj.checklist)) {
+          existingDocObj.lastAutoSweepAt = incomingDocObj.lastAutoSweepAt || existingDocObj.lastAutoSweepAt || '';
+          existingDocObj.autoSweepSummary = incomingDocObj.autoSweepSummary || existingDocObj.autoSweepSummary || null;
+          var incByChk = {};
+          for (var ic = 0; ic < incomingDocObj.checklist.length; ic++) {
+            var ir = incomingDocObj.checklist[ic];
+            if (ir && ir.id) incByChk[ir.id] = ir;
+          }
+          var exList = Array.isArray(existingDocObj.checklist) ? existingDocObj.checklist : [];
+          for (var ec = 0; ec < exList.length; ec++) {
+            var er = exList[ec];
+            var matchInc = er && er.id ? incByChk[er.id] : null;
+            if (!matchInc) continue;
+            er.lastAutoSweepAt = matchInc.lastAutoSweepAt || er.lastAutoSweepAt || '';
+            if (!er.humanStatusEdited && matchInc.status) er.status = matchInc.status;
+            var humanChecks = (Array.isArray(er.checks) ? er.checks : []).filter(function(c) {
+              return String((c && c.source) || '').indexOf('[AUTO-SWEEP]') === -1 && String((c && c.result) || '').indexOf('[AUTO-SWEEP]') === -1;
+            });
+            var autoChecks = (Array.isArray(matchInc.checks) ? matchInc.checks : []).filter(function(c) {
+              return String((c && c.source) || '').indexOf('[AUTO-SWEEP]') !== -1 || String((c && c.result) || '').indexOf('[AUTO-SWEEP]') !== -1;
+            });
+            er.checks = autoChecks.concat(humanChecks);
+          }
+          var mergedJsonStr = compactWatchlistDossierServer_(existingDocObj, 48000);
+          if (mergedJsonStr.length <= 48000) {
+            exWRow.dossier_json = mergedJsonStr;
+            outWlRows.push(exWRow);
+          }
+        }
+      }
+    }
+    if (outWlRows.length) upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Watchlist_Dossiers, outWlRows);
+  }
+
+  if (isFullSeed && Array.isArray(payload.roles) && payload.roles.length) {
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_._Monitoring_Roles, payload.roles);
+  }
+
+  return createJsonResponse_(env, { ok: true, authorized: true, actorType: pushAuth.actorType });
+}
+
+function handleListPendingModerationAction_(ctx) {
+  var queueItems = listPendingModerationItems_(ctx.ss, Number(ctx.payload.limit) || 200);
+  return createJsonResponse_(ctx.env, { ok: true, authorized: true, count: queueItems.length, items: queueItems });
+}
+
+function handleModerateSubmissionAction_(ctx) {
+  var env = ctx.env;
+  var ss = ctx.ss;
+  var payload = ctx.payload;
+  var modAuth = ctx.auth;
+  var sourceTab = String(payload.sourceTab || 'Pending_Submissions').trim();
+  var rowNum = Math.floor(Number(payload.rowNumber) || 0);
+  var decision = String(payload.decision || '').trim();
+  var allowedDecisions = { 'Approved': true, 'Needs Info': true, 'On Hold': true, 'Duplicate': true, 'Rejected': true, 'Resolved': true, 'Dismissed': true };
+  if (!allowedDecisions[decision] || rowNum < 2) {
+    return createJsonResponse_(env, { ok: false, error: 'Invalid moderation decision or rowNumber.' });
+  }
+  var staffLabel = modAuth.displayLabel || 'Preservation Staff';
+
+  if (sourceTab === 'Field_Surveys') {
+    var fsSheet = ss.getSheetByName('Field_Surveys');
+    if (!fsSheet) return createJsonResponse_(env, { ok: false, error: 'Field_Surveys tab not found.' });
+    var fsRow = fsSheet.getRange(rowNum, 1, 1, 18).getValues()[0];
+    var fsSurveyId = stripLeadingSheetTick_(fsRow[0]).trim();
+    if (payload.survey_id && fsSurveyId !== String(payload.survey_id).trim()) {
+      return createJsonResponse_(env, { ok: false, conflict: true, error: 'Field_Surveys row shifted; refresh queue and retry.' });
+    }
+    if (decision === 'Approved') {
+      fsSheet.getRange(rowNum, 3, 1, 1).setValues([['Promoted to Override']]);
+      var promoted = upsertApprovedPendingRow_(ss, env, {
+        hcad_num: payload.hcad_num || stripLeadingSheetTick_(fsRow[3]),
+        address: payload.address || stripLeadingSheetTick_(fsRow[4]),
+        historic_district: payload.historic_district || stripLeadingSheetTick_(fsRow[5]),
+        contributing: payload.contributing || stripLeadingSheetTick_(fsRow[8]),
+        original_hcad_year: payload.original_hcad_year || stripLeadingSheetTick_(fsRow[12]),
+        suggested_year_built: payload.suggested_year_built !== undefined ? payload.suggested_year_built : stripLeadingSheetTick_(fsRow[13]),
+        suppress_only: payload.suppress_only === true,
+        source_type: 'Preservation Houston Field Survey',
+        source_citation: payload.source_citation || ('[Promoted Survey ' + fsSurveyId + '] ' + stripLeadingSheetTick_(fsRow[15])),
+        source_url: payload.source_url || stripLeadingSheetTick_(fsRow[14]),
+        submitter_name: stripLeadingSheetTick_(fsRow[16]) || staffLabel,
+        building_name: payload.building_name || '',
+        bld_style: payload.bld_style || '',
+        architect: payload.architect || '',
+        moderation_note: payload.moderation_note || ('Promoted from Field_Surveys ' + fsSurveyId)
+      }, staffLabel);
+      if (!promoted.ok) return createJsonResponse_(env, promoted);
+      return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: 'Promoted to Override', promotedOverride: promoted });
+    }
+    var mappedSurveySt = decision === 'Rejected' ? 'Dismissed' : (decision === 'Needs Info' ? 'Needs Follow-Up' : decision);
+    fsSheet.getRange(rowNum, 3, 1, 1).setValues([[mappedSurveySt]]);
+    return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: mappedSurveySt, rowNumber: rowNum });
+  }
+
+  var pendSheet = ss.getSheetByName('Pending_Submissions');
+  if (!pendSheet) return createJsonResponse_(env, { ok: false, error: 'Pending_Submissions tab not found.' });
+  var pRow = pendSheet.getRange(rowNum, 1, 1, 23).getValues()[0];
+  var existingHcad = stripLeadingSheetTick_(pRow[1]).trim();
+  if (payload.expected_hcad_num) {
+    var expHcad = stripLeadingSheetTick_(payload.expected_hcad_num).trim();
+    var normEx = /^\d{10,12}$/.test(existingHcad) ? ('000' + existingHcad).slice(-13) : existingHcad;
+    var normExp = /^\d{10,12}$/.test(expHcad) ? ('000' + expHcad).slice(-13) : expHcad;
+    if (normEx !== normExp) {
+      return createJsonResponse_(env, { ok: false, conflict: true, error: 'Pending_Submissions row shifted; refresh queue and retry.' });
+    }
+  }
+  var srcTypeRow = String(payload.source_type || stripLeadingSheetTick_(pRow[7]) || '').trim();
+  var isDisputeFlag = /(?:PHOTO_MISATTRIBUTION_FLAG|CLAIM_DISPUTE_FLAG|NARRATIVE_ERROR_FLAG)$/i.test(srcTypeRow);
+  var nextYrRaw = payload.suggested_year_built !== undefined ? String(payload.suggested_year_built).trim() : stripLeadingSheetTick_(pRow[3]).trim();
+  var hasExplicitPromoteYr = nextYrRaw !== '' && isFinite(Number(nextYrRaw)) && Number(nextYrRaw) >= 1836;
+  var effectiveStatus = (decision === 'Approved' && isDisputeFlag && !hasExplicitPromoteYr && payload.suppress_only !== true) ? 'Resolved' : decision;
+
+  var isVacMod = payload.suppress_only === true || nextYrRaw === '0';
+  var nextCite = payload.source_citation !== undefined ? String(payload.source_citation) : stripLeadingSheetTick_(pRow[8]);
+  var nextGeomW = payload.geometry_geojson !== undefined ? String(payload.geometry_geojson) : stripLeadingSheetTick_(pRow[22] || '');
+  if (isVacMod) {
+    nextGeomW = '';
+    nextCite = stripTaggedJsonSpanServer_(nextCite, '[GEOMETRY_GEOJSON:');
+  }
+  var targetHcad = stripLeadingSheetTick_(
+    (payload.hcad_num !== undefined && String(payload.hcad_num).trim() !== '') ? payload.hcad_num : existingHcad
+  ).trim();
+  if (/^\d{10,12}$/.test(targetHcad)) {
+    while (targetHcad.length < 13) targetHcad = '0' + targetHcad;
+  }
+  var hcadParts = targetHcad.split('#');
+  if (hcadParts.length === 2 && /^\d{10,12}$/.test(hcadParts[0])) {
+    while (hcadParts[0].length < 13) hcadParts[0] = '0' + hcadParts[0];
+    targetHcad = hcadParts[0] + '#' + hcadParts[1];
+  }
+  var updatedColsAtoR = [
+    effectiveStatus,
+    /^\d{13}$/.test(targetHcad) ? (SQUOTE_ + targetHcad) : sanitizeSheetFormulaPrefix_(targetHcad),
+    sanitizeSheetFormulaPrefix_(payload.address !== undefined ? payload.address : stripLeadingSheetTick_(pRow[2])),
+    isVacMod ? 0 : (hasExplicitPromoteYr ? Math.round(Number(nextYrRaw)) : (isDisputeFlag ? '' : stripLeadingSheetTick_(pRow[3]))),
+    stripLeadingSheetTick_(pRow[4]),
+    sanitizeSheetFormulaPrefix_(payload.historic_district !== undefined ? payload.historic_district : stripLeadingSheetTick_(pRow[5])),
+    sanitizeSheetFormulaPrefix_(payload.contributing !== undefined ? payload.contributing : stripLeadingSheetTick_(pRow[6])),
+    sanitizeSheetFormulaPrefix_(srcTypeRow),
+    sanitizeSheetFormulaPrefix_(nextCite),
+    sanitizeSheetFormulaPrefix_(payload.source_url !== undefined ? payload.source_url : stripLeadingSheetTick_(pRow[9])),
+    sanitizeSheetFormulaPrefix_(staffLabel),
+    sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(pRow[11])),
+    stripLeadingSheetTick_(pRow[12]) || new Date().toISOString().slice(0, 10),
+    sanitizeSheetFormulaPrefix_(payload.moderation_note || stripLeadingSheetTick_(pRow[13]) || ('Moderated via In-App Queue: ' + effectiveStatus)),
+    sanitizeSheetFormulaPrefix_(payload.building_name !== undefined ? payload.building_name : stripLeadingSheetTick_(pRow[14])),
+    sanitizeSheetFormulaPrefix_(payload.alt_names !== undefined ? payload.alt_names : stripLeadingSheetTick_(pRow[15])),
+    sanitizeSheetFormulaPrefix_(payload.bld_style !== undefined ? payload.bld_style : stripLeadingSheetTick_(pRow[16])),
+    sanitizeSheetFormulaPrefix_(payload.architect !== undefined ? payload.architect : stripLeadingSheetTick_(pRow[17]))
+  ];
+  writePendingRowPreservingFormulas_(pendSheet, rowNum, updatedColsAtoR, nextGeomW);
+  invalidateCacheKey_(env, 'APPROVED_EDITS_CSV_V1');
+  return createJsonResponse_(env, { ok: true, sourceTab: 'Pending_Submissions', status: effectiveStatus, rowNumber: rowNum });
+}
+
+function handleAdminApproveAction_(ctx) {
+  var writeRes = upsertApprovedPendingRow_(ctx.ss, ctx.env, ctx.payload, ctx.auth.displayLabel || 'Preservation Staff');
+  if (!writeRes.ok) return createJsonResponse_(ctx.env, writeRes);
+  return createJsonResponse_(ctx.env, {
+    ok: true,
+    authorized: true,
+    status: writeRes.status,
+    upserted: writeRes.upserted,
+    rowNumber: writeRes.rowNumber
+  });
+}
+
+function handleFieldSurveyIntake_(env, ss, payload) {
+  var surveySheet = ss.getSheetByName('Field_Surveys') || ss.insertSheet('Field_Surveys');
+  var envObj = extractBalancedTagJson_(payload.source_citation || '', '[FIELD_SURVEY_JSON:') || {};
+  var surveyId = String(payload.survey_id || envObj.survey_id || '').trim();
+  if (!surveyId) {
+    surveyId = 'SURV_' + new Date().getTime() + '_' + Math.floor(Math.random() * 100000);
+  }
+  var rawSurveyHcad = String(payload.hcad_num || envObj.hcad_num || '')
+    .replace(/[\r\n\t]+/g, ' ')
+    .trim()
+    .replace(/^'+/, '')
+    .replace(/^[=+\-@]+/, '');
+  var surveyAt = String(payload.surveyed_at || envObj.surveyed_at || payload.submitted_at || new Date().toISOString().slice(0, 19).replace('T', ' ')).trim();
+  var atlasYrRaw = payload.atlas_year_built !== undefined ? payload.atlas_year_built : (envObj.atlas_year_built !== undefined ? envObj.atlas_year_built : payload.hcad_year_built);
+  var atlasYrVal = (atlasYrRaw !== undefined && atlasYrRaw !== null && String(atlasYrRaw).trim() !== '' && Number(atlasYrRaw) > 0) ? Math.round(Number(atlasYrRaw)) : '';
+  var safeSurveyId = sanitizeSheetFormulaPrefix_(surveyId);
+  var surveyRow = [
+    safeSurveyId,
+    sanitizeSheetFormulaPrefix_(surveyAt),
+    'Unreviewed',
+    rawSurveyHcad ? (SQUOTE_ + rawSurveyHcad) : '',
+    sanitizeSheetFormulaPrefix_(payload.address || envObj.address || ''),
+    sanitizeSheetFormulaPrefix_(payload.district_or_corridor || envObj.district_or_corridor || payload.historic_district || ''),
+    sanitizeSheetFormulaPrefix_(payload.integrity_grade || envObj.integrity_grade || ''),
+    sanitizeSheetFormulaPrefix_(payload.condition_rating || envObj.condition_rating || ''),
+    sanitizeSheetFormulaPrefix_(payload.suggested_contributing || envObj.suggested_contributing || ''),
+    sanitizeSheetFormulaPrefix_(payload.windows_status || envObj.windows_status || ''),
+    sanitizeSheetFormulaPrefix_(payload.cladding_material || envObj.cladding_material || ''),
+    sanitizeSheetFormulaPrefix_(payload.porch_integrity || envObj.porch_integrity || ''),
+    atlasYrVal,
+    sanitizeSheetFormulaPrefix_(payload.observed_year_or_demo_note || envObj.observed_year_or_demo_note || ''),
+    sanitizeSheetFormulaPrefix_(payload.photo_url || envObj.photo_url || ''),
+    sanitizeSheetFormulaPrefix_(payload.field_notes || envObj.field_notes || ''),
+    sanitizeSheetFormulaPrefix_(payload.surveyor_name || envObj.surveyor_name || payload.submitter_name || ''),
+    sanitizeSheetFormulaPrefix_(payload.gps_lat_lng_acc || envObj.gps_lat_lng_acc || '')
+  ];
+  var allowedReviewStatuses = {
+    'Unreviewed': true, 'Verified': true, 'Promoted to Override': true,
+    'Needs Follow-Up': true, 'Duplicate': true, 'Archived': true, 'Dismissed': true
+  };
+  var colA = surveySheet.getRange('A:A').getValues();
+  var targetSurveyRow = 0;
+  var lastSurveyRow = 1;
+  for (var sr = 1; sr < colA.length; sr++) {
+    var existingId = stripLeadingSheetTick_(colA[sr][0]).trim();
+    if (existingId !== '') {
+      lastSurveyRow = sr + 1;
+      if (existingId === safeSurveyId || existingId === surveyId) {
+        targetSurveyRow = sr + 1;
+        break;
+      }
+    }
+  }
+  var writeSurveyRow = targetSurveyRow > 0 ? targetSurveyRow : (lastSurveyRow + 1);
+  if (targetSurveyRow > 0) {
+    var revCell = surveySheet.getRange(targetSurveyRow, 3);
+    var existingReview = (typeof revCell.getFormula === 'function' && revCell.getFormula()) ? '' : String((typeof revCell.getDisplayValue === 'function' ? revCell.getDisplayValue() : revCell.getValue()) || '').trim();
+    if (existingReview && existingReview !== 'Unreviewed' && allowedReviewStatuses[existingReview] === true) {
+      surveyRow[2] = existingReview;
+    }
+  }
+  surveySheet.getRange(writeSurveyRow, 1, 1, surveyRow.length).setValues([surveyRow]);
+  return createJsonResponse_(env, {
+    ok: true,
+    status: surveyRow[2],
+    routed_to: 'Field_Surveys',
+    survey_id: safeSurveyId,
+    upserted: targetSurveyRow > 0
+  });
+}
+
+function handlePublicCommunitySubmission_(env, ss, payload, rawSourceType) {
+  var rawGeomValPub = payload.geometry_geojson;
+  var geomPubStr = '';
+  if (rawGeomValPub && typeof rawGeomValPub === 'object') geomPubStr = JSON.stringify(rawGeomValPub);
+  else if (typeof rawGeomValPub === 'string' && rawGeomValPub.trim() !== '') geomPubStr = rawGeomValPub.trim();
+  if (geomPubStr.length > 49000) {
+    return createJsonResponse_(env, { ok: false, error: 'geometry_geojson exceeds Google Sheets 49,000-character limit.' });
+  }
+  var pubSheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
+  var rawBldPub = String(payload.building_name || '').trim();
+  var pubParts = rawBldPub ? rawBldPub.split(/[;|]/).map(function(s) { return s.trim(); }).filter(Boolean) : [];
+  var pubPrimary = pubParts.length > 0 ? pubParts[0] : '';
+  var pubAlt = pubParts.length > 1 ? pubParts.slice(1).join('; ') : String(payload.alt_names || '').trim();
+  var isNonYrPub = /(?:_FLAG|FIELD_SURVEY_OBSERVATION)$/i.test(rawSourceType);
+  var rawSugPub = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && String(payload.suggested_year_built).trim() !== ''
+    ? String(payload.suggested_year_built).trim()
+    : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
+  var parsedPubYr = (rawSugPub !== '' && isFinite(Number(rawSugPub))) ? Math.round(Number(rawSugPub)) : NaN;
+  var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= 1836 && parsedPubYr <= 2035;
+  var hasPubCustomGeom = Boolean(geomPubStr) || String(payload.source_citation || '').indexOf('[GEOMETRY_GEOJSON:') !== -1;
+  var isVacPub = !isNonYrPub && isVacantSuppressPayload_(
+    payload,
+    rawSourceType,
+    rawSugPub,
+    parsedPubYr,
+    validPubYr,
+    hasPubCustomGeom,
+    false
+  );
+  var pubSheetYr = isNonYrPub ? '' : (isVacPub ? 0 : (validPubYr ? parsedPubYr : ''));
+  var rawPubHcad = stripLeadingSheetTick_(payload.hcad_num || '').trim();
+  var pubColsAtoR = [
+    'Pending',
+    /^\d{13}$/.test(rawPubHcad) ? (SQUOTE_ + rawPubHcad) : sanitizeSheetFormulaPrefix_(rawPubHcad),
+    sanitizeSheetFormulaPrefix_(payload.address || ''),
+    pubSheetYr,
+    Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '',
+    sanitizeSheetFormulaPrefix_(payload.historic_district || ''),
+    sanitizeSheetFormulaPrefix_(payload.contributing || ''),
+    sanitizeSheetFormulaPrefix_(rawSourceType),
+    sanitizeSheetFormulaPrefix_(payload.source_citation || ''),
+    sanitizeSheetFormulaPrefix_(payload.source_url || ''),
+    '',
+    sanitizeSheetFormulaPrefix_(payload.submitter_name || payload.submitted_by || 'Community Member'),
+    new Date().toISOString().slice(0, 10),
+    'Community submission via Houston Building Atlas',
+    sanitizeSheetFormulaPrefix_(pubPrimary),
+    sanitizeSheetFormulaPrefix_(pubAlt),
+    sanitizeSheetFormulaPrefix_(payload.bld_style || ''),
+    sanitizeSheetFormulaPrefix_(payload.architect || '')
+  ];
+  var colBPub = pubSheet.getRange('B:B').getValues();
+  var lastPubRow = 1;
+  for (var pr = colBPub.length - 1; pr >= 0; pr--) {
+    if (stripLeadingSheetTick_(colBPub[pr][0]).trim() !== '') {
+      lastPubRow = pr + 1;
+      break;
+    }
+  }
+  writePendingRowPreservingFormulas_(pubSheet, lastPubRow + 1, pubColsAtoR, geomPubStr);
+  return createJsonResponse_(env, { ok: true, status: 'Pending', authorized: false });
+}
+
+var POST_ACTION_HANDLERS_ = {
+  verify_admin: { cap: 'verify_admin', omitOkOnDeny: true, run: handleVerifyAdminAction_ },
+  get_user_state: { cap: 'get_user_state', run: handleGetUserStateAction_ },
+  put_user_state: { cap: 'put_user_state', run: handlePutUserStateAction_ },
+  pull_monitoring_state: { cap: 'pull_monitoring_state', run: handlePullMonitoringStateAction_ },
+  pipeline_pull_monitoring: { cap: 'pipeline_pull_monitoring', run: handlePullMonitoringStateAction_ },
+  upsert_parcel_decision: { cap: 'upsert_parcel_decision', run: handleUpsertParcelDecisionAction_ },
+  bootstrap_phase1_vaults: {
+    cap: 'bootstrap_phase1_vaults',
+    staffOnly: true,
+    denyMsg: 'Phase 1 vault provisioning requires verified Staff authorization.',
+    run: handleBootstrapPhase1VaultsAction_
+  },
+  upsert_watchlist_dossier: { cap: 'upsert_watchlist_dossier', run: handleUpsertWatchlistDossierAction_ },
+  upsert_staff_only: {
+    cap: 'upsert_staff_only',
+    staffOnly: true,
+    denyMsg: 'Staff-Only vault access requires verified Staff authorization.',
+    run: handleUpsertStaffOnlyAction_
+  },
+  pipeline_push_sweep_results: {
+    cap: 'pipeline_push_sweep_results',
+    denyMsg: 'Unauthorized sweep push.',
+    run: handlePipelinePushSweepResultsAction_
+  },
+  list_pending_submissions: {
+    cap: 'list_pending_submissions',
+    staffOnly: true,
+    denyMsg: 'Moderation queue requires Staff authorization.',
+    run: handleListPendingModerationAction_
+  },
+  list_pending_moderation: {
+    cap: 'list_pending_moderation',
+    staffOnly: true,
+    denyMsg: 'Moderation queue requires Staff authorization.',
+    run: handleListPendingModerationAction_
+  },
+  moderate_submission: {
+    cap: 'moderate_submission',
+    staffOnly: true,
+    denyMsg: 'Moderation actions require Staff authorization.',
+    run: handleModerateSubmissionAction_
+  },
+  admin_approve: {
+    cap: 'admin_approve',
+    staffOnly: true,
+    denyMsg: 'Staff authorization required to publish Approved_Edits overrides.',
+    run: handleAdminApproveAction_
+  }
+};
+
 /* ---------- Main Controller Factory ---------- */
 
 function createAppsScriptController_(customEnv) {
   var env = customEnv || defaultHostEnv_();
 
   function handleDoGet(e) {
-    // Always evict retired public plat_sync cache key so stale cached rows never survive cutover
-    invalidateCacheKey_(env, 'PLAT_SYNC_CSV_V1');
-    var feed = (e && e.parameter && e.parameter.feed) ? String(e.parameter.feed).trim().toLowerCase() : '';
-    if (feed && feed !== 'approved_edits') {
-      return createJsonResponse_(env, {
-        ok: false,
-        authorized: false,
-        error: 'Retired endpoint: internal monitoring state requires authenticated POST pull_monitoring_state.'
-      });
-    }
-    var ss = env.spreadsheetApp.getActiveSpreadsheet();
-    var cache = getScriptCacheSafe_(env);
-    if (cache) {
-      var cachedApp = cache.get('APPROVED_EDITS_CSV_V1');
-      if (cachedApp) return createTextResponse_(env, cachedApp, 'CSV');
-    }
-    var sheet = ss.getSheetByName('Approved_Edits');
-    var csv = sheetToCsvText_(sheet);
-    if (cache && csv && csv.length <= 95000) {
-      try { cache.put('APPROVED_EDITS_CSV_V1', csv, 180); } catch (_e2) {}
-    }
-    return createTextResponse_(env, csv, 'CSV');
+    return handleDoGetRequest_(env, e);
   }
 
   function handleDoPost(e) {
@@ -1422,12 +2403,7 @@ function createAppsScriptController_(customEnv) {
 
     // Decoupled Drive backup runs outside the 25s sheet mutation lock so slow Drive I/O never blocks human saves
     if (action === 'pipeline_create_drive_backup') {
-      var ssBackup = env.spreadsheetApp.getActiveSpreadsheet();
-      var bAuth = resolveMonitoringAuth_(env, ssBackup, payload);
-      if (!bAuth.authorized || !bAuth.allowedActions.pipeline_create_drive_backup) {
-        return createJsonResponse_(env, { ok: false, authorized: false, error: bAuth.error || 'Unauthorized backup request.' });
-      }
-      return createJsonResponse_(env, createDriveBackupSnapshot_(env, ssBackup));
+      return handlePipelineDriveBackupAction_(env, payload);
     }
 
     var lock = (env.lockService && typeof env.lockService.getScriptLock === 'function') ? env.lockService.getScriptLock() : null;
@@ -1436,781 +2412,29 @@ function createAppsScriptController_(customEnv) {
     }
     try {
       var ss = env.spreadsheetApp.getActiveSpreadsheet();
-
-      if (action === 'verify_admin') {
-        var vAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!vAuth.authorized || !vAuth.allowedActions.verify_admin) {
-          return createJsonResponse_(env, { authorized: false, error: vAuth.error || 'Access denied.' });
+      var spec = Object.prototype.hasOwnProperty.call(POST_ACTION_HANDLERS_, action) ? POST_ACTION_HANDLERS_[action] : null;
+      if (spec) {
+        var auth = resolveMonitoringAuth_(env, ss, payload);
+        var capOk = Boolean(auth.authorized && auth.allowedActions && auth.allowedActions[spec.cap]);
+        if (!capOk || (spec.staffOnly && auth.actorType !== 'staff')) {
+          var errText = spec.staffOnly && (!auth.authorized || auth.actorType !== 'staff')
+            ? (spec.denyMsg || auth.error || 'Access denied.')
+            : (auth.error || spec.denyMsg || 'Access denied.');
+          return createJsonResponse_(
+            env,
+            spec.omitOkOnDeny
+              ? { authorized: false, error: errText }
+              : { ok: false, authorized: false, error: errText }
+          );
         }
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          email: vAuth.email,
-          role: vAuth.role,
-          displayLabel: vAuth.displayLabel,
-          assignedAreas: vAuth.assignedAreas,
-          googleClientId: vAuth.googleClientId || '',
-          supportsRoamingSync: true,
-          supportsPhase1Monitoring: true,
-          userState: readUserRoamingState_(env, ss, vAuth.email)
-        });
-      }
-
-      if (action === 'get_user_state') {
-        var gAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!gAuth.authorized || !gAuth.allowedActions.get_user_state) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: gAuth.error || 'Access denied.' });
-        }
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          role: gAuth.role,
-          supportsRoamingSync: true,
-          email: gAuth.email,
-          userState: readUserRoamingState_(env, ss, gAuth.email)
-        });
-      }
-
-      if (action === 'put_user_state') {
-        var pAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!pAuth.authorized || !pAuth.allowedActions.put_user_state) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: pAuth.error || 'Access denied.' });
-        }
-        var savedState = writeUserRoamingState_(env, ss, pAuth.email, payload.user_state || {});
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          role: pAuth.role,
-          supportsRoamingSync: true,
-          email: pAuth.email,
-          userState: savedState
-        });
-      }
-
-      if (action === 'pull_monitoring_state' || action === 'pipeline_pull_monitoring') {
-        var pullAuth = resolveMonitoringAuth_(env, ss, payload);
-        var reqCap = action === 'pipeline_pull_monitoring' ? 'pipeline_pull_monitoring' : 'pull_monitoring_state';
-        if (!pullAuth.authorized || !pullAuth.allowedActions[reqCap]) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: pullAuth.error || 'Access denied.' });
-        }
-        var areas = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
-        var parcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
-        var decisions = readTableObjects_(ss, TABLE_REGISTRY_.Decisions);
-        var events = readTableObjects_(ss, TABLE_REGISTRY_.Events);
-        var rawDossiers = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
-        var parsedDossiers = [];
-        for (var di = 0; di < rawDossiers.length; di++) {
-          var dr = rawDossiers[di];
-          var dObj = null;
-          if (dr.dossier_json) {
-            try { dObj = JSON.parse(dr.dossier_json); } catch (_de) { dObj = null; }
-          }
-          parsedDossiers.push(dObj || dr);
-        }
-        var respBody = {
-          ok: true,
-          authorized: true,
-          role: pullAuth.role,
-          email: pullAuth.email,
-          assignedAreas: pullAuth.assignedAreas,
-          areas: areas,
-          parcels: parcels,
-          decisions: decisions,
-          events: events,
-          watchlistDossiers: parsedDossiers
-        };
-        if (pullAuth.actorType === 'staff') {
-          var staffSs = openStaffOnlyWorkbookSafe_(env);
-          respBody.staffOnly = {
-            parcelStrategy: staffSs ? readTableObjects_(staffSs, TABLE_REGISTRY_.Staff_Parcel_Strategy) : [],
-            watchedEntities: staffSs ? readTableObjects_(staffSs, TABLE_REGISTRY_.Watched_People_And_Firms) : []
-          };
-          respBody.pendingModerationCount = countPendingModerationItems_(ss);
-        } else if (pullAuth.actorType === 'pipeline') {
-          // Pipeline receives watched entity names ONLY for automated sweep matching, never strategy/contact notes!
-          var pipeStaffSs = openStaffOnlyWorkbookSafe_(env);
-          var rawWatched = pipeStaffSs ? readTableObjects_(pipeStaffSs, TABLE_REGISTRY_.Watched_People_And_Firms) : [];
-          respBody.watchedEntitiesForMatching = rawWatched.map(function(w) {
-            return {
-              entity_id: w.entity_id,
-              entity_name: w.entity_name,
-              normalized_key: w.normalized_key,
-              entity_role: w.entity_role,
-              active: w.active
-            };
-          });
-        }
-        return createJsonResponse_(env, respBody);
-      }
-
-      if (action === 'upsert_parcel_decision') {
-        var decAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!decAuth.authorized || !decAuth.allowedActions.upsert_parcel_decision) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: decAuth.error || 'Access denied.' });
-        }
-        var patch = payload.patch || payload.decision || {};
-        for (var sc in STAFF_ONLY_DECISION_COLS_) {
-          if (Object.prototype.hasOwnProperty.call(STAFF_ONLY_DECISION_COLS_, sc) &&
-              patch[sc] !== undefined && decAuth.actorType !== 'staff') {
-            return createJsonResponse_(env, {
-              ok: false,
-              authorized: false,
-              forbiddenField: sc,
-              error: 'Screener role cannot modify staff-only field: ' + sc
-            });
-          }
-        }
-        var parcelId = String(patch.parcel_id || payload.parcel_id || '').trim();
-        if (!parcelId) {
-          return createJsonResponse_(env, { ok: false, error: 'Missing parcel_id for decision upsert.' });
-        }
-        var areasList = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
-        var areasMap = {};
-        for (var ai = 0; ai < areasList.length; ai++) areasMap[areasList[ai].area_id] = areasList[ai];
-
-        var existingParcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
-        var existingDecisions = readTableObjects_(ss, TABLE_REGISTRY_.Decisions);
-        var curParcel = null;
-        var curDec = null;
-        for (var pi = 0; pi < existingParcels.length; pi++) {
-          if (existingParcels[pi].parcel_id === parcelId) { curParcel = existingParcels[pi]; break; }
-        }
-        var decId = 'DEC:' + parcelId;
-        for (var dci = 0; dci < existingDecisions.length; dci++) {
-          if (existingDecisions[dci].decision_id === decId || existingDecisions[dci].parcel_id === parcelId) {
-            curDec = existingDecisions[dci];
-            break;
-          }
-        }
-
-        var expUpd = String(payload.expected_updated_at || '').trim();
-        if (expUpd && curDec && curDec.decided_at && expUpd !== String(curDec.decided_at).trim()) {
-          return createJsonResponse_(env, {
-            ok: false,
-            conflict: true,
-            error: 'Parcel decision was updated by another session; reload latest state before saving.',
-            currentParcel: curParcel,
-            currentDecision: curDec
-          });
-        }
-
-        var nowIso = new Date().toISOString();
-        var baseP = curParcel || { parcel_id: parcelId, added_at: nowIso };
-        var baseD = curDec || { decision_id: decId, parcel_id: parcelId };
-        var actorLabel = decAuth.displayLabel || (decAuth.actorType === 'staff' ? 'Preservation Staff' : 'Screener');
-
-        var nextDec = {
-          decision_id: decId,
-          parcel_id: parcelId,
-          hcad_num: patch.hcad_num !== undefined ? patch.hcad_num : (baseD.hcad_num || baseP.hcad_num || ''),
-          latest_app_no: patch.latest_app_no !== undefined ? patch.latest_app_no : (baseD.latest_app_no || ''),
-          latest_cycle_key: patch.latest_cycle_key !== undefined ? patch.latest_cycle_key : (baseD.latest_cycle_key || ''),
-          actor_role: decAuth.actorType,
-          review_status: patch.review_status !== undefined ? patch.review_status : (baseD.review_status || baseP.review_status || 'not_reviewed'),
-          recommended_significance: patch.recommended_significance !== undefined ? patch.recommended_significance : (baseD.recommended_significance || baseP.recommended_significance || ''),
-          significance_level: (decAuth.actorType === 'staff' && patch.significance_level !== undefined) ? patch.significance_level : (baseD.significance_level || baseP.significance_level || ''),
-          significance_basis: patch.significance_basis !== undefined ? patch.significance_basis : (baseD.significance_basis || baseP.significance_basis || ''),
-          contributing_override: (decAuth.actorType === 'staff' && patch.contributing_override !== undefined) ? patch.contributing_override : (baseD.contributing_override || baseP.contributing_override || ''),
-          integrity: patch.integrity !== undefined ? patch.integrity : (baseD.integrity || baseP.integrity || ''),
-          standing_status: patch.standing_status !== undefined ? patch.standing_status : (baseD.standing_status || ''),
-          advocacy_status: (decAuth.actorType === 'staff' && patch.advocacy_status !== undefined) ? patch.advocacy_status : (baseD.advocacy_status || baseP.advocacy_status || 'monitoring'),
-          outcome: (decAuth.actorType === 'staff' && patch.outcome !== undefined) ? patch.outcome : (baseD.outcome || baseP.outcome || ''),
-          attention_override: (decAuth.actorType === 'staff' && patch.attention_override !== undefined) ? patch.attention_override : (baseD.attention_override || baseP.attention_override || ''),
-          screening_notes: patch.screening_notes !== undefined ? patch.screening_notes : (baseD.screening_notes || ''),
-          story_check_json: typeof patch.story_check_json === 'object' && patch.story_check_json !== null ? JSON.stringify(patch.story_check_json) : (patch.story_check_json !== undefined ? patch.story_check_json : (baseD.story_check_json || '')),
-          atlas_writeback_summary: (decAuth.actorType === 'staff' && patch.atlas_writeback_summary !== undefined) ? patch.atlas_writeback_summary : (baseD.atlas_writeback_summary || ''),
-          decided_by: actorLabel,
-          decided_at: nowIso,
-          history_json: ''
-        };
-
-        var histList = [];
-        if (baseD.history_json) {
-          try {
-            var ph = JSON.parse(baseD.history_json);
-            if (Array.isArray(ph)) histList = ph;
-            else if (ph && Array.isArray(ph.entries)) histList = ph.entries;
-          } catch (_he) {}
-        }
-        histList.push({
-          at: nowIso,
-          role: decAuth.actorType,
-          by: actorLabel,
-          review_status: nextDec.review_status,
-          recommended_significance: nextDec.recommended_significance,
-          significance_level: nextDec.significance_level,
-          advocacy_status: nextDec.advocacy_status,
-          outcome: nextDec.outcome,
-          note: String(nextDec.screening_notes || '').slice(0, 280)
-        });
-        nextDec.history_json = compactHistoryJsonServer_(histList, 48000);
-
-        var nextParcel = {};
-        for (var bk in baseP) { if (Object.prototype.hasOwnProperty.call(baseP, bk)) nextParcel[bk] = baseP[bk]; }
-        var metaCols = ['hcad_num', 'campus_group_id', 'related_hcads', 'primary_address', 'perimeter_addresses', 'building_name', 'year_built', 'hcad_year_built', 'subdivision_name', 'area_ids', 'owner_of_record', 'land_use_class', 'designation_summary', 'threat_stage', 'signal_flags', 'watch_property_id'];
-        for (var mi = 0; mi < metaCols.length; mi++) {
-          var mc = metaCols[mi];
-          if (patch[mc] !== undefined) nextParcel[mc] = patch[mc];
-        }
-        nextParcel.parcel_id = parcelId;
-        nextParcel.review_status = nextDec.review_status;
-        nextParcel.recommended_significance = nextDec.recommended_significance;
-        nextParcel.significance_level = nextDec.significance_level;
-        nextParcel.significance_basis = nextDec.significance_basis;
-        nextParcel.contributing_override = nextDec.contributing_override;
-        nextParcel.integrity = nextDec.integrity;
-        nextParcel.advocacy_status = nextDec.advocacy_status;
-        nextParcel.outcome = nextDec.outcome;
-        nextParcel.attention_override = nextDec.attention_override;
-        nextParcel.protection_level = classifyProtectionServer_(nextParcel.designation_summary || '');
-        if (String(nextParcel.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(nextParcel.outcome || '').toLowerCase()]) {
-          nextParcel.threat_stage = 6;
-        }
-        nextParcel.contributing_status = computeContributingServer_(nextParcel, areasMap);
-        nextParcel.attention_level = computeAttentionServer_(nextParcel, areasMap);
-        nextParcel.added_at = baseP.added_at || nowIso;
-        nextParcel.updated_by = actorLabel;
-        nextParcel.updated_at = nowIso;
-
-        upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, [nextParcel]);
-        upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, [nextDec]);
-
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          role: decAuth.role,
-          parcel: nextParcel,
-          decision: nextDec
-        });
-      }
-
-      if (action === 'bootstrap_phase1_vaults') {
-        var bootAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!bootAuth.authorized || bootAuth.actorType !== 'staff' || !bootAuth.allowedActions.bootstrap_phase1_vaults) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: 'Phase 1 vault provisioning requires verified Staff authorization.' });
-        }
-        var coreKeys = ['Areas', 'Parcels', 'Decisions', 'Events', 'Watchlist_Dossiers', '_Monitoring_Roles'];
-        for (var ck = 0; ck < coreKeys.length; ck++) {
-          ensureTableSheet_(ss, TABLE_REGISTRY_[coreKeys[ck]]);
-        }
-        var bootProps = getScriptPropsSafe_(env);
-        var staffVaultId = String(payload.staff_only_sheet_id || '').trim() || getPropString_(env, 'STAFF_ONLY_SHEET_ID');
-        var staffSsBoot = null;
-        if (staffVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
-          try { staffSsBoot = env.spreadsheetApp.openById(staffVaultId); } catch (_eso) { staffSsBoot = null; }
-        }
-        if (!staffSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
-          staffSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Staff_Only');
-          staffVaultId = staffSsBoot.getId();
-        }
-        if (staffSsBoot) {
-          ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Staff_Parcel_Strategy);
-          ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Watched_People_And_Firms);
-          var defS1 = staffSsBoot.getSheetByName('Sheet1');
-          if (defS1 && typeof staffSsBoot.deleteSheet === 'function' && staffSsBoot.getSheets().length > 1) {
-            try { staffSsBoot.deleteSheet(defS1); } catch (_eds1) {}
-          }
-          if (bootProps && staffVaultId) bootProps.setProperty('STAFF_ONLY_SHEET_ID', staffVaultId);
-        }
-
-        var backupVaultId = String(payload.backup_vault_sheet_id || '').trim() || getPropString_(env, 'BACKUP_VAULT_SHEET_ID');
-        var backupSsBoot = null;
-        if (backupVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
-          try { backupSsBoot = env.spreadsheetApp.openById(backupVaultId); } catch (_ebo) { backupSsBoot = null; }
-        }
-        if (!backupSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
-          backupSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Backups_Vault');
-          backupVaultId = backupSsBoot.getId();
-        }
-        if (backupSsBoot) {
-          var bSnapSheet = backupSsBoot.getSheetByName('Backup_Snapshots') || backupSsBoot.insertSheet('Backup_Snapshots');
-          var bVals = bSnapSheet.getDataRange().getValues();
-          if (!bVals.length || String(bVals[0][0] || '') !== 'snapshot_id') {
-            bSnapSheet.getRange(1, 1, 1, 8).setValues([['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'byte_length', 'chunk_count', 'summary_json', 'chunk_1']]);
-          }
-          var defB1 = backupSsBoot.getSheetByName('Sheet1');
-          if (defB1 && typeof backupSsBoot.deleteSheet === 'function' && backupSsBoot.getSheets().length > 1) {
-            try { backupSsBoot.deleteSheet(defB1); } catch (_edb1) {}
-          }
-          if (bootProps && backupVaultId) bootProps.setProperty('BACKUP_VAULT_SHEET_ID', backupVaultId);
-        }
-
-        if (bootProps) {
-          if (payload.pipeline_sync_token) bootProps.setProperty('PIPELINE_SYNC_TOKEN', String(payload.pipeline_sync_token).trim());
-          if (payload.screener_sync_passkey) bootProps.setProperty('SCREENER_SYNC_PASSKEY', String(payload.screener_sync_passkey).trim());
-          if (payload.staff_sync_passkey) bootProps.setProperty('STAFF_SYNC_PASSKEY', String(payload.staff_sync_passkey).trim());
-          if (payload.google_oauth_client_id !== undefined) bootProps.setProperty('GOOGLE_OAUTH_CLIENT_ID', String(payload.google_oauth_client_id).trim());
-        }
-        if (Array.isArray(payload.roles) && payload.roles.length) {
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_._Monitoring_Roles, payload.roles);
-        }
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          staffOnlySheetId: staffVaultId,
-          backupVaultSheetId: backupVaultId,
-          pipelineTokenConfigured: Boolean(getPropString_(env, 'PIPELINE_SYNC_TOKEN')),
-          screenerPasskeyConfigured: Boolean(getPropString_(env, 'SCREENER_SYNC_PASSKEY'))
-        });
-      }
-
-      if (action === 'upsert_watchlist_dossier') {
-        var wlAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!wlAuth.authorized || !wlAuth.allowedActions.upsert_watchlist_dossier) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: wlAuth.error || 'Access denied.' });
-        }
-        var dObj = payload.dossier || {};
-        var wid = String(dObj.id || payload.watch_property_id || payload.watch_id || '').trim();
-        if (!wid) {
-          return createJsonResponse_(env, { ok: false, error: 'Missing watchlist dossier id.' });
-        }
-        if (wlAuth.actorType === 'screener') {
-          var exDossiers = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
-          var existsOnWl = false;
-          for (var wi = 0; wi < exDossiers.length; wi++) {
-            if (exDossiers[wi].watch_property_id === wid) { existsOnWl = true; break; }
-          }
-          if (!existsOnWl) {
-            return createJsonResponse_(env, { ok: false, authorized: false, error: 'Only Staff can create or promote new Watchlist dossiers.' });
-          }
-        }
-        var dJson = compactWatchlistDossierServer_(dObj, 48000);
-        if (dJson.length > 48000) {
-          return createJsonResponse_(env, { ok: false, error: 'Watchlist dossier exceeds 48,000-character cell safety limit.' });
-        }
-        var nowWlIso = new Date().toISOString();
-        var wlRow = {
-          watch_property_id: wid,
-          parcel_id: String(dObj.parcelId || dObj.parcel_id || dObj.hcadAccount || wid).split(/[;|,]/)[0].trim(),
-          hcad_num: String(dObj.hcadAccount || dObj.hcad_num || '').split(/[;|,]/)[0].trim(),
-          primary_address: String(dObj.address || ''),
-          property_name: String(dObj.propertyName || dObj.address || wid),
-          attention_level: String(dObj.attentionLevel || 'watch'),
-          advocacy_status: String(dObj.advocacyStatus || 'monitoring'),
-          outcome: String(dObj.outcome || ''),
-          dossier_json: dJson,
-          updated_by: wlAuth.displayLabel || 'Preservation Staff',
-          updated_at: dObj.updatedAt || nowWlIso
-        };
-        upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Watchlist_Dossiers, [wlRow]);
-        return createJsonResponse_(env, { ok: true, authorized: true, watch_property_id: wid, updated_at: wlRow.updated_at });
-      }
-
-      if (action === 'upsert_staff_only') {
-        var stAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!stAuth.authorized || stAuth.actorType !== 'staff' || !stAuth.allowedActions.upsert_staff_only) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: 'Staff-Only vault access requires verified Staff authorization.' });
-        }
-        var staffVault = openStaffOnlyWorkbookSafe_(env);
-        if (!staffVault) {
-          return createJsonResponse_(env, { ok: false, error: 'Staff-Only workbook is not configured in ScriptProperties (STAFF_ONLY_SHEET_ID).' });
-        }
-        var nowStIso = new Date().toISOString();
-        var stratList = Array.isArray(payload.parcelStrategy)
-          ? payload.parcelStrategy
-          : (payload.strategy ? [payload.strategy] : (payload.target === 'parcel_strategy' && payload.record ? [payload.record] : []));
-        var entList = Array.isArray(payload.watchedEntities)
-          ? payload.watchedEntities
-          : (payload.watchedEntity ? [payload.watchedEntity] : (payload.target === 'watched_entity' && payload.record ? [payload.record] : []));
-        for (var si = 0; si < stratList.length; si++) {
-          stratList[si].updated_by = 'Preservation Staff';
-          stratList[si].updated_at = nowStIso;
-        }
-        for (var ei = 0; ei < entList.length; ei++) {
-          entList[ei].updated_by = 'Preservation Staff';
-          entList[ei].updated_at = nowStIso;
-        }
-        var sRes = stratList.length ? upsertTableObjectsBatch_(staffVault, TABLE_REGISTRY_.Staff_Parcel_Strategy, stratList) : { inserted: 0, updated: 0 };
-        var eRes = entList.length ? upsertTableObjectsBatch_(staffVault, TABLE_REGISTRY_.Watched_People_And_Firms, entList) : { inserted: 0, updated: 0 };
-        return createJsonResponse_(env, { ok: true, authorized: true, strategyResult: sRes, entityResult: eRes });
-      }
-
-      if (action === 'pipeline_push_sweep_results') {
-        var pushAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!pushAuth.authorized || !pushAuth.allowedActions.pipeline_push_sweep_results) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: pushAuth.error || 'Unauthorized sweep push.' });
-        }
-        var isFullSeed = (pushAuth.actorType === 'staff' && payload.allowFullMigrationSeed === true);
-        if (Array.isArray(payload.areas) && payload.areas.length) {
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Areas, payload.areas);
-        }
-        var areasNow = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
-        var aMap = {};
-        for (var am = 0; am < areasNow.length; am++) aMap[areasNow[am].area_id] = areasNow[am];
-
-        if (Array.isArray(payload.parcels) && payload.parcels.length) {
-          var curParcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
-          var curById = {};
-          for (var cp = 0; cp < curParcels.length; cp++) curById[curParcels[cp].parcel_id] = curParcels[cp];
-          var safeParcels = [];
-          var sweepTs = new Date().toISOString();
-          for (var ip = 0; ip < payload.parcels.length; ip++) {
-            var incP = payload.parcels[ip];
-            if (!incP || !incP.parcel_id) continue;
-            var exP = curById[incP.parcel_id];
-            if (!exP || isFullSeed) {
-              var seeded = {};
-              for (var sk in incP) { if (Object.prototype.hasOwnProperty.call(incP, sk)) seeded[sk] = incP[sk]; }
-              seeded.added_at = seeded.added_at || sweepTs;
-              seeded.updated_at = seeded.updated_at || sweepTs;
-              seeded.contributing_status = computeContributingServer_(seeded, aMap);
-              seeded.attention_level = computeAttentionServer_(seeded, aMap);
-              safeParcels.push(seeded);
-            } else {
-              // Preserve all human decision columns saved concurrently at T1 (T0 < T1 < T2)!
-              var mergedP = {};
-              for (var ek in exP) { if (Object.prototype.hasOwnProperty.call(exP, ek)) mergedP[ek] = exP[ek]; }
-              for (var mk in PIPELINE_MACHINE_PARCEL_COLS_) {
-                if (Object.prototype.hasOwnProperty.call(PIPELINE_MACHINE_PARCEL_COLS_, mk) && incP[mk] !== undefined) {
-                  mergedP[mk] = incP[mk];
-                }
-              }
-              if (String(mergedP.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(mergedP.outcome || '').toLowerCase()]) {
-                mergedP.threat_stage = 6;
-              }
-              mergedP.contributing_status = computeContributingServer_(mergedP, aMap);
-              mergedP.attention_level = computeAttentionServer_(mergedP, aMap);
-              mergedP.updated_at = sweepTs;
-              safeParcels.push(mergedP);
-            }
-          }
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, safeParcels);
-        }
-
-        if (isFullSeed && Array.isArray(payload.decisions) && payload.decisions.length) {
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, payload.decisions);
-        }
-
-        if (Array.isArray(payload.events) && payload.events.length) {
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Events, payload.events);
-        }
-
-        if (Array.isArray(payload.watchlistDossiers) && payload.watchlistDossiers.length) {
-          var curWlRows = readTableObjects_(ss, TABLE_REGISTRY_.Watchlist_Dossiers);
-          var curWlById = {};
-          for (var cw = 0; cw < curWlRows.length; cw++) curWlById[curWlRows[cw].watch_property_id] = curWlRows[cw];
-          var outWlRows = [];
-          for (var iw = 0; iw < payload.watchlistDossiers.length; iw++) {
-            var incW = payload.watchlistDossiers[iw];
-            var wid2 = String(incW.watch_property_id || incW.id || '').trim();
-            if (!wid2) continue;
-            var exWRow = curWlById[wid2];
-            if (!exWRow || isFullSeed) {
-              var fullDoc = incW.dossier_json ? incW : {
-                watch_property_id: wid2,
-                parcel_id: String(incW.parcelId || incW.hcadAccount || wid2).split(/[;|,]/)[0].trim(),
-                hcad_num: String(incW.hcadAccount || '').split(/[;|,]/)[0].trim(),
-                primary_address: String(incW.address || ''),
-                property_name: String(incW.propertyName || incW.address || wid2),
-                attention_level: String(incW.attentionLevel || 'watch'),
-                advocacy_status: String(incW.advocacyStatus || 'monitoring'),
-                outcome: String(incW.outcome || ''),
-                dossier_json: compactWatchlistDossierServer_(incW, 48000),
-                updated_by: 'Automated Pipeline',
-                updated_at: incW.updatedAt || new Date().toISOString()
-              };
-              outWlRows.push(fullDoc);
-            } else {
-              // Merge ONLY automated sweep telemetry & [AUTO-SWEEP] checklist entries onto human dossier!
-              var existingDocObj = null;
-              try { existingDocObj = JSON.parse(exWRow.dossier_json || '{}'); } catch (_we) { existingDocObj = null; }
-              var incomingDocObj = incW.dossier_json ? JSON.parse(incW.dossier_json) : incW;
-              if (existingDocObj && incomingDocObj && Array.isArray(incomingDocObj.checklist)) {
-                existingDocObj.lastAutoSweepAt = incomingDocObj.lastAutoSweepAt || existingDocObj.lastAutoSweepAt || '';
-                existingDocObj.autoSweepSummary = incomingDocObj.autoSweepSummary || existingDocObj.autoSweepSummary || null;
-                var incByChk = {};
-                for (var ic = 0; ic < incomingDocObj.checklist.length; ic++) {
-                  var ir = incomingDocObj.checklist[ic];
-                  if (ir && ir.id) incByChk[ir.id] = ir;
-                }
-                var exList = Array.isArray(existingDocObj.checklist) ? existingDocObj.checklist : [];
-                for (var ec = 0; ec < exList.length; ec++) {
-                  var er = exList[ec];
-                  var matchInc = er && er.id ? incByChk[er.id] : null;
-                  if (!matchInc) continue;
-                  er.lastAutoSweepAt = matchInc.lastAutoSweepAt || er.lastAutoSweepAt || '';
-                  if (!er.humanStatusEdited && matchInc.status) er.status = matchInc.status;
-                  var humanChecks = (Array.isArray(er.checks) ? er.checks : []).filter(function(c) {
-                    return String((c && c.source) || '').indexOf('[AUTO-SWEEP]') === -1 && String((c && c.result) || '').indexOf('[AUTO-SWEEP]') === -1;
-                  });
-                  var autoChecks = (Array.isArray(matchInc.checks) ? matchInc.checks : []).filter(function(c) {
-                    return String((c && c.source) || '').indexOf('[AUTO-SWEEP]') !== -1 || String((c && c.result) || '').indexOf('[AUTO-SWEEP]') !== -1;
-                  });
-                  er.checks = autoChecks.concat(humanChecks);
-                }
-                var mergedJsonStr = compactWatchlistDossierServer_(existingDocObj, 48000);
-                if (mergedJsonStr.length <= 48000) {
-                  exWRow.dossier_json = mergedJsonStr;
-                  outWlRows.push(exWRow);
-                }
-              }
-            }
-          }
-          if (outWlRows.length) upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Watchlist_Dossiers, outWlRows);
-        }
-
-        if (isFullSeed && Array.isArray(payload.roles) && payload.roles.length) {
-          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_._Monitoring_Roles, payload.roles);
-        }
-
-        return createJsonResponse_(env, { ok: true, authorized: true, actorType: pushAuth.actorType });
-      }
-
-      if (action === 'list_pending_submissions' || action === 'list_pending_moderation') {
-        var lpAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!lpAuth.authorized || lpAuth.actorType !== 'staff' || !(lpAuth.allowedActions.list_pending_submissions || lpAuth.allowedActions.list_pending_moderation)) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: 'Moderation queue requires Staff authorization.' });
-        }
-        var queueItems = listPendingModerationItems_(ss, Number(payload.limit) || 200);
-        return createJsonResponse_(env, { ok: true, authorized: true, count: queueItems.length, items: queueItems });
-      }
-
-      if (action === 'moderate_submission') {
-        var modAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!modAuth.authorized || modAuth.actorType !== 'staff' || !modAuth.allowedActions.moderate_submission) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: 'Moderation actions require Staff authorization.' });
-        }
-        var sourceTab = String(payload.sourceTab || 'Pending_Submissions').trim();
-        var rowNum = Math.floor(Number(payload.rowNumber) || 0);
-        var decision = String(payload.decision || '').trim();
-        var allowedDecisions = { 'Approved': true, 'Needs Info': true, 'On Hold': true, 'Duplicate': true, 'Rejected': true, 'Resolved': true, 'Dismissed': true };
-        if (!allowedDecisions[decision] || rowNum < 2) {
-          return createJsonResponse_(env, { ok: false, error: 'Invalid moderation decision or rowNumber.' });
-        }
-        var staffLabel = modAuth.displayLabel || 'Preservation Staff';
-
-        if (sourceTab === 'Field_Surveys') {
-          var fsSheet = ss.getSheetByName('Field_Surveys');
-          if (!fsSheet) return createJsonResponse_(env, { ok: false, error: 'Field_Surveys tab not found.' });
-          var fsRow = fsSheet.getRange(rowNum, 1, 1, 18).getValues()[0];
-          var fsSurveyId = stripLeadingSheetTick_(fsRow[0]).trim();
-          if (payload.survey_id && fsSurveyId !== String(payload.survey_id).trim()) {
-            return createJsonResponse_(env, { ok: false, conflict: true, error: 'Field_Surveys row shifted; refresh queue and retry.' });
-          }
-          if (decision === 'Approved') {
-            fsSheet.getRange(rowNum, 3, 1, 1).setValues([['Promoted to Override']]);
-            var promoted = upsertApprovedPendingRow_(ss, env, {
-              hcad_num: payload.hcad_num || stripLeadingSheetTick_(fsRow[3]),
-              address: payload.address || stripLeadingSheetTick_(fsRow[4]),
-              historic_district: payload.historic_district || stripLeadingSheetTick_(fsRow[5]),
-              contributing: payload.contributing || stripLeadingSheetTick_(fsRow[8]),
-              original_hcad_year: payload.original_hcad_year || stripLeadingSheetTick_(fsRow[12]),
-              suggested_year_built: payload.suggested_year_built !== undefined ? payload.suggested_year_built : stripLeadingSheetTick_(fsRow[13]),
-              suppress_only: payload.suppress_only === true,
-              source_type: 'Preservation Houston Field Survey',
-              source_citation: payload.source_citation || ('[Promoted Survey ' + fsSurveyId + '] ' + stripLeadingSheetTick_(fsRow[15])),
-              source_url: payload.source_url || stripLeadingSheetTick_(fsRow[14]),
-              submitter_name: stripLeadingSheetTick_(fsRow[16]) || staffLabel,
-              building_name: payload.building_name || '',
-              bld_style: payload.bld_style || '',
-              architect: payload.architect || '',
-              moderation_note: payload.moderation_note || ('Promoted from Field_Surveys ' + fsSurveyId)
-            }, staffLabel);
-            if (!promoted.ok) return createJsonResponse_(env, promoted);
-            return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: 'Promoted to Override', promotedOverride: promoted });
-          }
-          var mappedSurveySt = decision === 'Rejected' ? 'Dismissed' : (decision === 'Needs Info' ? 'Needs Follow-Up' : decision);
-          fsSheet.getRange(rowNum, 3, 1, 1).setValues([[mappedSurveySt]]);
-          return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: mappedSurveySt, rowNumber: rowNum });
-        }
-
-        var pendSheet = ss.getSheetByName('Pending_Submissions');
-        if (!pendSheet) return createJsonResponse_(env, { ok: false, error: 'Pending_Submissions tab not found.' });
-        var pRow = pendSheet.getRange(rowNum, 1, 1, 23).getValues()[0];
-        var existingHcad = stripLeadingSheetTick_(pRow[1]).trim();
-        if (payload.expected_hcad_num && existingHcad !== stripLeadingSheetTick_(payload.expected_hcad_num).trim()) {
-          return createJsonResponse_(env, { ok: false, conflict: true, error: 'Pending_Submissions row shifted; refresh queue and retry.' });
-        }
-        var srcTypeRow = String(payload.source_type || stripLeadingSheetTick_(pRow[7]) || '').trim();
-        var isDisputeFlag = /(?:PHOTO_MISATTRIBUTION_FLAG|CLAIM_DISPUTE_FLAG|NARRATIVE_ERROR_FLAG)$/i.test(srcTypeRow);
-        var nextYrRaw = payload.suggested_year_built !== undefined ? String(payload.suggested_year_built).trim() : stripLeadingSheetTick_(pRow[3]).trim();
-        var hasExplicitPromoteYr = nextYrRaw !== '' && isFinite(Number(nextYrRaw)) && Number(nextYrRaw) >= 1836;
-        var effectiveStatus = (decision === 'Approved' && isDisputeFlag && !hasExplicitPromoteYr && payload.suppress_only !== true) ? 'Resolved' : decision;
-
-        var isVacMod = payload.suppress_only === true || nextYrRaw === '0';
-        var nextCite = payload.source_citation !== undefined ? String(payload.source_citation) : stripLeadingSheetTick_(pRow[8]);
-        var nextGeomW = payload.geometry_geojson !== undefined ? String(payload.geometry_geojson) : stripLeadingSheetTick_(pRow[22] || '');
-        if (isVacMod) {
-          nextGeomW = '';
-          nextCite = stripTaggedJsonSpanServer_(nextCite, '[GEOMETRY_GEOJSON:');
-        }
-        var updatedColsAtoR = [
-          effectiveStatus,
-          /^\d{13}$/.test(existingHcad) ? (SQUOTE_ + existingHcad) : sanitizeSheetFormulaPrefix_(payload.hcad_num || existingHcad),
-          sanitizeSheetFormulaPrefix_(payload.address !== undefined ? payload.address : stripLeadingSheetTick_(pRow[2])),
-          isVacMod ? 0 : (hasExplicitPromoteYr ? Math.round(Number(nextYrRaw)) : (isDisputeFlag ? '' : stripLeadingSheetTick_(pRow[3]))),
-          stripLeadingSheetTick_(pRow[4]),
-          sanitizeSheetFormulaPrefix_(payload.historic_district !== undefined ? payload.historic_district : stripLeadingSheetTick_(pRow[5])),
-          sanitizeSheetFormulaPrefix_(payload.contributing !== undefined ? payload.contributing : stripLeadingSheetTick_(pRow[6])),
-          sanitizeSheetFormulaPrefix_(srcTypeRow),
-          sanitizeSheetFormulaPrefix_(nextCite),
-          sanitizeSheetFormulaPrefix_(payload.source_url !== undefined ? payload.source_url : stripLeadingSheetTick_(pRow[9])),
-          sanitizeSheetFormulaPrefix_(staffLabel),
-          sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(pRow[11])),
-          stripLeadingSheetTick_(pRow[12]) || new Date().toISOString().slice(0, 10),
-          sanitizeSheetFormulaPrefix_(payload.moderation_note || stripLeadingSheetTick_(pRow[13]) || ('Moderated via In-App Queue: ' + effectiveStatus)),
-          sanitizeSheetFormulaPrefix_(payload.building_name !== undefined ? payload.building_name : stripLeadingSheetTick_(pRow[14])),
-          sanitizeSheetFormulaPrefix_(payload.alt_names !== undefined ? payload.alt_names : stripLeadingSheetTick_(pRow[15])),
-          sanitizeSheetFormulaPrefix_(payload.bld_style !== undefined ? payload.bld_style : stripLeadingSheetTick_(pRow[16])),
-          sanitizeSheetFormulaPrefix_(payload.architect !== undefined ? payload.architect : stripLeadingSheetTick_(pRow[17]))
-        ];
-        writePendingRowPreservingFormulas_(pendSheet, rowNum, updatedColsAtoR, nextGeomW);
-        invalidateCacheKey_(env, 'APPROVED_EDITS_CSV_V1');
-        return createJsonResponse_(env, { ok: true, sourceTab: 'Pending_Submissions', status: effectiveStatus, rowNumber: rowNum });
+        return spec.run({ env: env, ss: ss, payload: payload, auth: auth, action: action });
       }
 
       var rawSourceType = String(payload.source_type || 'Houston City Directory').trim();
-
-      // Walk-the-Block Field Survey intake (unauthenticated/offline-tolerant community & volunteer survey intake)
       if (action === 'field_survey' || rawSourceType.toUpperCase() === 'FIELD_SURVEY_OBSERVATION') {
-        var surveySheet = ss.getSheetByName('Field_Surveys') || ss.insertSheet('Field_Surveys');
-        var envObj = extractBalancedTagJson_(payload.source_citation || '', '[FIELD_SURVEY_JSON:') || {};
-        var surveyId = String(payload.survey_id || envObj.survey_id || '').trim();
-        if (!surveyId) {
-          surveyId = 'SURV_' + new Date().getTime() + '_' + Math.floor(Math.random() * 100000);
-        }
-        var rawSurveyHcad = String(payload.hcad_num || envObj.hcad_num || '')
-          .replace(/[\r\n\t]+/g, ' ')
-          .trim()
-          .replace(/^'+/, '')
-          .replace(/^[=+\-@]+/, '');
-        var surveyAt = String(payload.surveyed_at || envObj.surveyed_at || payload.submitted_at || new Date().toISOString().slice(0, 19).replace('T', ' ')).trim();
-        var atlasYrRaw = payload.atlas_year_built !== undefined ? payload.atlas_year_built : (envObj.atlas_year_built !== undefined ? envObj.atlas_year_built : payload.hcad_year_built);
-        var atlasYrVal = (atlasYrRaw !== undefined && atlasYrRaw !== null && String(atlasYrRaw).trim() !== '' && Number(atlasYrRaw) > 0) ? Math.round(Number(atlasYrRaw)) : '';
-        var safeSurveyId = sanitizeSheetFormulaPrefix_(surveyId);
-        var surveyRow = [
-          safeSurveyId,
-          sanitizeSheetFormulaPrefix_(surveyAt),
-          'Unreviewed',
-          rawSurveyHcad ? (SQUOTE_ + rawSurveyHcad) : '',
-          sanitizeSheetFormulaPrefix_(payload.address || envObj.address || ''),
-          sanitizeSheetFormulaPrefix_(payload.district_or_corridor || envObj.district_or_corridor || payload.historic_district || ''),
-          sanitizeSheetFormulaPrefix_(payload.integrity_grade || envObj.integrity_grade || ''),
-          sanitizeSheetFormulaPrefix_(payload.condition_rating || envObj.condition_rating || ''),
-          sanitizeSheetFormulaPrefix_(payload.suggested_contributing || envObj.suggested_contributing || ''),
-          sanitizeSheetFormulaPrefix_(payload.windows_status || envObj.windows_status || ''),
-          sanitizeSheetFormulaPrefix_(payload.cladding_material || envObj.cladding_material || ''),
-          sanitizeSheetFormulaPrefix_(payload.porch_integrity || envObj.porch_integrity || ''),
-          atlasYrVal,
-          sanitizeSheetFormulaPrefix_(payload.observed_year_or_demo_note || envObj.observed_year_or_demo_note || ''),
-          sanitizeSheetFormulaPrefix_(payload.photo_url || envObj.photo_url || ''),
-          sanitizeSheetFormulaPrefix_(payload.field_notes || envObj.field_notes || ''),
-          sanitizeSheetFormulaPrefix_(payload.surveyor_name || envObj.surveyor_name || payload.submitter_name || ''),
-          sanitizeSheetFormulaPrefix_(payload.gps_lat_lng_acc || envObj.gps_lat_lng_acc || '')
-        ];
-        var allowedReviewStatuses = {
-          'Unreviewed': true, 'Verified': true, 'Promoted to Override': true,
-          'Needs Follow-Up': true, 'Duplicate': true, 'Archived': true, 'Dismissed': true
-        };
-        var colA = surveySheet.getRange('A:A').getValues();
-        var targetSurveyRow = 0;
-        var lastSurveyRow = 1;
-        for (var sr = 1; sr < colA.length; sr++) {
-          var existingId = stripLeadingSheetTick_(colA[sr][0]).trim();
-          if (existingId !== '') {
-            lastSurveyRow = sr + 1;
-            if (existingId === safeSurveyId || existingId === surveyId) {
-              targetSurveyRow = sr + 1;
-              break;
-            }
-          }
-        }
-        var writeSurveyRow = targetSurveyRow > 0 ? targetSurveyRow : (lastSurveyRow + 1);
-        if (targetSurveyRow > 0) {
-          var revCell = surveySheet.getRange(targetSurveyRow, 3);
-          var existingReview = (typeof revCell.getFormula === 'function' && revCell.getFormula()) ? '' : String((typeof revCell.getDisplayValue === 'function' ? revCell.getDisplayValue() : revCell.getValue()) || '').trim();
-          if (existingReview && existingReview !== 'Unreviewed' && allowedReviewStatuses[existingReview] === true) {
-            surveyRow[2] = existingReview;
-          }
-        }
-        surveySheet.getRange(writeSurveyRow, 1, 1, surveyRow.length).setValues([surveyRow]);
-        return createJsonResponse_(env, {
-          ok: true,
-          status: surveyRow[2],
-          routed_to: 'Field_Surveys',
-          survey_id: safeSurveyId,
-          upserted: targetSurveyRow > 0
-        });
+        return handleFieldSurveyIntake_(env, ss, payload);
       }
-
-      // Direct Staff `admin_approve` (1-click Approved_Edits writeback & Staff Polygon Editor)
-      if (action === 'admin_approve') {
-        var admAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!admAuth.authorized || admAuth.actorType !== 'staff' || !admAuth.allowedActions.admin_approve) {
-          return createJsonResponse_(env, { ok: false, authorized: false, error: admAuth.error || 'Staff authorization required to publish Approved_Edits overrides.' });
-        }
-        var writeRes = upsertApprovedPendingRow_(ss, env, payload, admAuth.displayLabel || 'Preservation Staff');
-        if (!writeRes.ok) return createJsonResponse_(env, writeRes);
-        return createJsonResponse_(env, {
-          ok: true,
-          authorized: true,
-          status: writeRes.status,
-          upserted: writeRes.upserted,
-          rowNumber: writeRes.rowNumber
-        });
-      }
-
-      // Public Community Suggestion Intake -> Pending_Submissions (`status = Pending`, split-range safe)
-      var rawGeomValPub = payload.geometry_geojson;
-      var geomPubStr = '';
-      if (rawGeomValPub && typeof rawGeomValPub === 'object') geomPubStr = JSON.stringify(rawGeomValPub);
-      else if (typeof rawGeomValPub === 'string' && rawGeomValPub.trim() !== '') geomPubStr = rawGeomValPub.trim();
-      if (geomPubStr.length > 49000) {
-        return createJsonResponse_(env, { ok: false, error: 'geometry_geojson exceeds Google Sheets 49,000-character limit.' });
-      }
-      var pubSheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
-      var rawBldPub = String(payload.building_name || '').trim();
-      var pubParts = rawBldPub ? rawBldPub.split(/[;|]/).map(function(s) { return s.trim(); }).filter(Boolean) : [];
-      var pubPrimary = pubParts.length > 0 ? pubParts[0] : '';
-      var pubAlt = pubParts.length > 1 ? pubParts.slice(1).join('; ') : String(payload.alt_names || '').trim();
-      var isNonYrPub = /(?:_FLAG|FIELD_SURVEY_OBSERVATION)$/i.test(rawSourceType);
-      var rawSugPub = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && String(payload.suggested_year_built).trim() !== ''
-        ? String(payload.suggested_year_built).trim()
-        : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
-      var parsedPubYr = (rawSugPub !== '' && isFinite(Number(rawSugPub))) ? Math.round(Number(rawSugPub)) : NaN;
-      var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= 1836 && parsedPubYr <= 2035;
-      var hasPubCustomGeom = Boolean(geomPubStr) || String(payload.source_citation || '').indexOf('[GEOMETRY_GEOJSON:') !== -1;
-      var isVacPub = !isNonYrPub && isVacantSuppressPayload_(
-        payload,
-        rawSourceType,
-        rawSugPub,
-        parsedPubYr,
-        validPubYr,
-        hasPubCustomGeom,
-        false
-      );
-      var pubSheetYr = isNonYrPub ? '' : (isVacPub ? 0 : (validPubYr ? parsedPubYr : ''));
-      var rawPubHcad = stripLeadingSheetTick_(payload.hcad_num || '').trim();
-      var pubColsAtoR = [
-        'Pending',
-        /^\d{13}$/.test(rawPubHcad) ? (SQUOTE_ + rawPubHcad) : sanitizeSheetFormulaPrefix_(rawPubHcad),
-        sanitizeSheetFormulaPrefix_(payload.address || ''),
-        pubSheetYr,
-        Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '',
-        sanitizeSheetFormulaPrefix_(payload.historic_district || ''),
-        sanitizeSheetFormulaPrefix_(payload.contributing || ''),
-        sanitizeSheetFormulaPrefix_(rawSourceType),
-        sanitizeSheetFormulaPrefix_(payload.source_citation || ''),
-        sanitizeSheetFormulaPrefix_(payload.source_url || ''),
-        '',
-        sanitizeSheetFormulaPrefix_(payload.submitter_name || payload.submitted_by || 'Community Member'),
-        new Date().toISOString().slice(0, 10),
-        'Community submission via Houston Building Atlas',
-        sanitizeSheetFormulaPrefix_(pubPrimary),
-        sanitizeSheetFormulaPrefix_(pubAlt),
-        sanitizeSheetFormulaPrefix_(payload.bld_style || ''),
-        sanitizeSheetFormulaPrefix_(payload.architect || '')
-      ];
-      var colBPub = pubSheet.getRange('B:B').getValues();
-      var lastPubRow = 1;
-      for (var pr = colBPub.length - 1; pr >= 0; pr--) {
-        if (stripLeadingSheetTick_(colBPub[pr][0]).trim() !== '') {
-          lastPubRow = pr + 1;
-          break;
-        }
-      }
-      writePendingRowPreservingFormulas_(pubSheet, lastPubRow + 1, pubColsAtoR, geomPubStr);
-      return createJsonResponse_(env, { ok: true, status: 'Pending', authorized: false });
+      return handlePublicCommunitySubmission_(env, ss, payload, rawSourceType);
     } finally {
       if (lock && typeof lock.releaseLock === 'function') {
         lock.releaseLock();
@@ -2239,6 +2463,11 @@ function doPost(e) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     TABLE_REGISTRY: TABLE_REGISTRY_,
+    PIPELINE_MACHINE_PARCEL_COLS: PIPELINE_MACHINE_PARCEL_COLS_,
+    STAFF_ONLY_DECISION_COLS: STAFF_ONLY_DECISION_COLS_,
+    TERMINAL_OUTCOMES: TERMINAL_OUTCOMES_,
+    POST_ACTION_HANDLERS: POST_ACTION_HANDLERS_,
+    computeAttentionServer_: computeAttentionServer_,
     createAppsScriptController: createAppsScriptController_,
     mergeUserRoamingStateServer_: mergeUserRoamingStateServer_,
     doGet: doGet,

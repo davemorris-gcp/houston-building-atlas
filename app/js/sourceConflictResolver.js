@@ -8,16 +8,14 @@
  */
 
 import {
+  MONITORING_SCHEMA_CONTRACT,
   normalizeHcad13,
   sanitizeMonitoringText,
+  stripEmbeddedGeometryTag,
 } from "./parcelMonitoringModel.js?v=20261113c";
 
-const GEOMETRY_TAG_SPAN_RE = /\[GEOMETRY_GEOJSON:\s*\{[\s\S]*?\}\s*\]/gi;
-
 export function stripEmbeddedGeometryTagClient(rawCitation = "") {
-  return sanitizeMonitoringText(String(rawCitation || "").replace(GEOMETRY_TAG_SPAN_RE, " "))
-    .replace(/\s+/g, " ")
-    .trim();
+  return stripEmbeddedGeometryTag(rawCitation);
 }
 
 function validHistoricYearOrZero(val) {
@@ -27,7 +25,10 @@ function validHistoricYearOrZero(val) {
   const m = s.match(/^(\d{4})/);
   if (!m) return null;
   const yr = Number(m[1]);
-  return yr >= 1836 && yr <= 2035 ? yr : null;
+  return yr >= MONITORING_SCHEMA_CONTRACT.minStandingYear &&
+    yr <= MONITORING_SCHEMA_CONTRACT.maxStandingYear
+    ? yr
+    : null;
 }
 
 /**
@@ -112,7 +113,9 @@ export function detectParcelSourceConflicts({
     outcome === "lost_before_review" ||
     Boolean(platItem?.atlas?.confirmedVacant);
   const overrideStillStanding = Boolean(
-    curatedOverride && !curatedOverride.suppress_only && Number(curatedOverride.year_built) >= 1836
+    curatedOverride &&
+      !curatedOverride.suppress_only &&
+      Number(curatedOverride.year_built) >= MONITORING_SCHEMA_CONTRACT.minStandingYear
   );
   const unrecordedDemolition =
     parcelMarkedDemolished && (!curatedOverride || !curatedOverride.suppress_only);
@@ -169,7 +172,7 @@ export function detectParcelSourceConflicts({
   const needsYearSync = Boolean(
     cleanHcad &&
       resolvedYr &&
-      resolvedYr >= 1836 &&
+      resolvedYr >= MONITORING_SCHEMA_CONTRACT.minStandingYear &&
       (!curatedOverride || Number(curatedOverride.year_built) !== resolvedYr)
   );
 
@@ -217,9 +220,9 @@ export function buildApprovedOverrideWritebackPayload({
   const parsedYr = validHistoricYearOrZero(chosenYearBuilt);
   const suppressVacant = Boolean(isDemolishedVacant || parsedYr === 0);
 
-  if (!suppressVacant && (!parsedYr || parsedYr < 1836)) {
+  if (!suppressVacant && (!parsedYr || parsedYr < MONITORING_SCHEMA_CONTRACT.minStandingYear)) {
     throw new Error(
-      "Enter a verified construction year (1836-2035) or select Demolished / Vacant Lot before publishing to the Public Atlas."
+      `Enter a verified construction year (${MONITORING_SCHEMA_CONTRACT.minStandingYear}-${MONITORING_SCHEMA_CONTRACT.maxStandingYear}) or select Demolished / Vacant Lot before publishing to the Public Atlas.`
     );
   }
 

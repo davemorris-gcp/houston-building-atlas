@@ -25,57 +25,17 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 try:
-    from .parcel_monitoring_model import sanitize_monitoring_text
+    from .parcel_monitoring_model import (
+        compute_public_plat_suggested_tier,
+        sanitize_monitoring_text,
+    )
 except ImportError:
     if str(REPO_ROOT / "pipeline") not in sys.path:
         sys.path.insert(0, str(REPO_ROOT / "pipeline"))
-    from atlas_pipeline.parcel_monitoring_model import sanitize_monitoring_text
-
-OLDER_RING_SUPER_NEIGHBORHOODS_PUBLIC = frozenset(
-    {
-        "ACRES HOME",
-        "CENTRAL NORTHWEST",
-        "DENVER HARBOR / PORT HOUSTON",
-        "DOWNTOWN",
-        "EAST END",
-        "EAST HOUSTON",
-        "EAST LITTLE YORK / HOMESTEAD",
-        "EASTEX - JENSEN AREA",
-        "FOURTH WARD",
-        "GREATER EASTWOOD",
-        "GREATER FIFTH WARD",
-        "GREATER HEIGHTS",
-        "GREATER OST / SOUTH UNION",
-        "GREATER THIRD WARD",
-        "GREATER UPTOWN",
-        "GULFGATE RIVERVIEW / PINE VALLEY",
-        "INDEPENDENCE HEIGHTS",
-        "KASHMERE GARDENS",
-        "LAWNDALE / WAYSIDE",
-        "MACGREGOR",
-        "MAGNOLIA PARK",
-        "MEMORIAL",
-        "MIDTOWN",
-        "MUSEUM PARK",
-        "NEAR NORTHSIDE",
-        "NEARTOWN - MONTROSE",
-        "NORTHSIDE/NORTHLINE",
-        "NORTHSIDE VILLAGE",
-        "PARK PLACE",
-        "PECAN PARK",
-        "SECOND WARD",
-        "SETTEGAST",
-        "SOUTH ACRES / CRESTMONT PARK",
-        "SOUTH PARK",
-        "SPRING BRANCH CENTRAL",
-        "SPRING BRANCH EAST",
-        "SPRING BRANCH WEST",
-        "SUNNYSIDE",
-        "TRINITY / HOUSTON GARDENS",
-        "UNIVERSITY PLACE",
-        "WASHINGTON AVENUE COALITION / MEMORIAL PARK",
-    }
-)
+    from atlas_pipeline.parcel_monitoring_model import (
+        compute_public_plat_suggested_tier,
+        sanitize_monitoring_text,
+    )
 
 _PRIVATE_PLAT_ITEM_KEYS = frozenset(
     {
@@ -106,34 +66,13 @@ def _compute_public_only_suggested_tier(item: dict[str, Any], atlas_obj: dict[st
     desigs = [d for d in (atlas_obj.get("designations") or []) if d]
     confirmed_vacant = bool(atlas_obj.get("confirmedVacant")) and oldest_yr == 0 and not desigs
     c_meta = item.get("_c") if isinstance(item.get("_c"), dict) else {}
-    flag_set = set(c_meta.get("flags") or ())
-    norm_sn = str(item.get("superN") or "").strip().upper()
-
-    if confirmed_vacant:
-        return "3"
-    if desigs:
-        return "1"
-    if "dpv" in flag_set:
-        return (
-            "1"
-            if ((1836 <= oldest_yr <= 1976) or (norm_sn in OLDER_RING_SUPER_NEIGHBORHOODS_PUBLIC))
-            else "2"
-        )
-    if 1836 <= oldest_yr <= 1965 and (
-        "hearing" in flag_set
-        or "variance" in flag_set
-        or "split" in flag_set
-        or "use" in flag_set
-        or oldest_yr <= 1935
-    ):
-        return (
-            "1"
-            if ("hearing" in flag_set or "variance" in flag_set or oldest_yr <= 1935)
-            else "2"
-        )
-    if 1836 <= oldest_yr <= 1976:
-        return "2"
-    return ""
+    return compute_public_plat_suggested_tier(
+        oldest_yr=oldest_yr,
+        designations=desigs,
+        flags=c_meta.get("flags") or (),
+        super_n=str(item.get("superN") or ""),
+        is_confirmed_vacant=confirmed_vacant,
+    )
 
 
 def _sanitize_single_plat_item(raw_item: dict[str, Any]) -> dict[str, Any]:
@@ -399,16 +338,24 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
         plat = json.loads(plat_path.read_text(encoding="utf-8"))
         if plat.get("reviews"):
             errors.append("plat_agenda_monitor.json leaked top-level reviews!")
+        item_groups: list[tuple[str, list[Any]]] = [("top-level", plat.get("items") or [])]
         for ck, cyc in (plat.get("cycles") or {}).items():
             if isinstance(cyc, dict) and cyc.get("reviews"):
                 errors.append(f"plat_agenda_monitor.json cycle {ck} leaked reviews!")
-            for it in (cyc or {}).get("items") or []:
+            item_groups.append((f"cycle {ck}", (cyc or {}).get("items") or []))
+        for scope_lbl, item_list in item_groups:
+            for it in item_list:
                 if isinstance(it, dict):
                     for pk in _PRIVATE_PLAT_ITEM_KEYS:
                         if pk in it or (isinstance(it.get("atlas"), dict) and pk in it["atlas"]):
                             errors.append(
-                                f"plat_agenda_monitor.json item {it.get('app')} leaked private key {pk}!"
+                                f"plat_agenda_monitor.json {scope_lbl} item {it.get('app')} leaked private key {pk}!"
                             )
+                    c_meta = it.get("_c") if isinstance(it.get("_c"), dict) else {}
+                    if "dev" in (c_meta.get("flags") or []) or c_meta.get("overriddenFromOut"):
+                        errors.append(
+                            f"plat_agenda_monitor.json {scope_lbl} item {it.get('app')} leaked private _c flags/override!"
+                        )
 
     act_path = data_dir / "monitor_activity_log.json"
     if act_path.exists():
@@ -422,6 +369,11 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
                 errors.append(
                     f"monitor_activity_log.json leaked private stream '{ev.get('stream')}' event {ev.get('id')}!"
                 )
+            for priv_ev_key in ("watchPropertyId", "reviewer", "staffOnly"):
+                if ev.get(priv_ev_key):
+                    errors.append(
+                        f"monitor_activity_log.json event {ev.get('id')} leaked private field '{priv_ev_key}'!"
+                    )
 
     bkp_path = repo_root / "pipeline" / "backups" / "workspace_cloud_backup.json"
     if bkp_path.exists():
@@ -431,20 +383,33 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
                 errors.append(
                     f"workspace_cloud_backup.json leaked private section '{forbidden_sec}'!"
                 )
+        for ov_k in (bkp.get("approvedOverrides") or {}).keys():
+            if str(ov_k).startswith(("PLAT_REV:", "WATCH_PROP:")):
+                errors.append(
+                    f"workspace_cloud_backup.json approvedOverrides leaked monitoring key '{ov_k}'!"
+                )
 
-    for llm_rel in ("app/llms.txt", "app/llms-full.txt"):
-        lp = repo_root / llm_rel
+    text_scan_paths: list[Path] = [repo_root / "app" / "llms.txt", repo_root / "app" / "llms-full.txt"]
+    ai_comp_dir = repo_root / "app" / "public" / "ai-companion"
+    if ai_comp_dir.exists():
+        for cand_p in sorted(ai_comp_dir.rglob("*")):
+            if cand_p.is_file() and cand_p.suffix in (".md", ".txt", ".py", ".mjs", ".json"):
+                text_scan_paths.append(cand_p)
+
+    for lp in text_scan_paths:
         if lp.exists():
+            rel_lbl = str(lp.relative_to(repo_root))
             txt = lp.read_text(encoding="utf-8")
             if "## Section 1: Active Endangered Property Watchlist" in txt:
-                errors.append(f"{llm_rel} still contains private Watchlist Section 1 table!")
-            if "plat-monitor.html#tab=watchlist&watch=" in txt:
-                errors.append(f"{llm_rel} leaked private Watchlist dossier deep links!")
+                errors.append(f"{rel_lbl} still contains private Watchlist Section 1 table!")
+            if re.search(r"plat-monitor\.html#tab=watchlist&watch=[A-Za-z0-9]", txt):
+                errors.append(f"{rel_lbl} leaked private Watchlist dossier deep links!")
             if "\u2014" in txt or "\u2013" in txt:
-                errors.append(f"{llm_rel} contains forbidden typographic dashes!")
-            for em_m in _EMAIL_PATTERN.findall(txt):
-                if em_m.lower() not in _ALLOWED_PUBLIC_ARCHIVE_EMAILS:
-                    errors.append(f"{llm_rel} leaked non-public email token: {em_m}")
+                errors.append(f"{rel_lbl} contains forbidden typographic dashes!")
+            if lp.suffix in (".md", ".txt"):
+                for em_m in _EMAIL_PATTERN.findall(txt):
+                    if em_m.lower() not in _ALLOWED_PUBLIC_ARCHIVE_EMAILS:
+                        errors.append(f"{rel_lbl} leaked non-public email token: {em_m}")
 
     for check_p in (wl_path, plat_path, act_path, bkp_path):
         if check_p.exists():

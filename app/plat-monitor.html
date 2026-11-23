@@ -698,6 +698,7 @@ import {
 
 import {
   buildCampusParcelIndex,
+  compactWatchlistDossierJson,
   deriveLegacyTierFromParcel,
   mergeParcelAndDecisionConcurrent,
   migrateLegacyTierToParcelFields,
@@ -7100,8 +7101,10 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
     building_name: currentAssessment.parcel.building_name,
     year_built: currentAssessment.parcel.year_built,
     subdivision_name: currentAssessment.parcel.subdivision_name,
+    protection_level: currentAssessment.parcel.protection_level,
     designation_summary: currentAssessment.parcel.designation_summary,
     threat_stage: currentAssessment.parcel.threat_stage,
+    next_hearing_date_cst: platItem?.pcDateIso || "",
     latest_app_no: platItem?.app || linkedWp?.appNo || "",
     latest_cycle_key: platItem?._cycleKey || linkedWp?.sourceCycleKey || "",
     ...patch,
@@ -7213,10 +7216,12 @@ function queueCloudSyncPlatReview(cycleKey, appNo){
     related_hcads: parseRelatedHcads([r.hcad || "", it.hcad || ""]).join("; ") || assessment.parcel.related_hcads,
     primary_address: r.address || it.atlas?.primaryAddress || assessment.parcel.primary_address,
     year_built: Number(r.yearBuilt || it.atlas?.earliestYearBuilt || 0) || assessment.parcel.year_built,
+    protection_level: assessment.parcel.protection_level,
     designation_summary:
       r.designation && r.designation !== DESIGNATIONS[0]
         ? r.designation
         : assessment.parcel.designation_summary,
+    next_hearing_date_cst: it.pcDateIso || "",
     latest_app_no: appNo,
     latest_cycle_key: cycleKey,
     screening_notes: [r.why || "", r.sources ? `Sources: ${r.sources}` : "", r.followup ? `Follow-up: ${r.followup}` : ""]
@@ -7244,8 +7249,33 @@ function queueCloudSyncWatchProperty(prop){
   cloudSyncTimers[timerKey] = setTimeout(async () => {
     delete cloudSyncTimers[timerKey];
     const reviewerId = ($("#reviewer")?.value || sess.email || "").trim();
-    const serialized = serializeWatchPropertyForSync(prop, reviewerId, prop.updatedAt || new Date().toISOString());
-    if (!serialized) return;
+    const rawSerialized = serializeWatchPropertyForSync(prop, reviewerId, prop.updatedAt || new Date().toISOString());
+    if (!rawSerialized) return;
+    const prevCloudRow = cloudWatchlistById.get(prop.id) || null;
+    if (sess.role === "screener" && prevCloudRow) {
+      for (const staffKey of [
+        "significanceLevel",
+        "significance_level",
+        "advocacyStatus",
+        "advocacy_status",
+        "outcome",
+        "attentionOverride",
+        "attention_override",
+        "contributingOverride",
+        "tier",
+        "trackerStatus",
+        "removedFromWatchlist",
+        "removalReason",
+      ]) {
+        if (prevCloudRow[staffKey] !== undefined) rawSerialized[staffKey] = prevCloudRow[staffKey];
+        else delete rawSerialized[staffKey];
+      }
+    }
+    const compactedJson = compactWatchlistDossierJson(rawSerialized);
+    let serialized = rawSerialized;
+    try {
+      serialized = JSON.parse(compactedJson);
+    } catch (_ce) {}
     const hcadIds = parseRelatedHcads(serialized.hcadAccount || "");
     const parcelId = resolveCanonicalParcelId(
       {
@@ -7268,12 +7298,20 @@ function queueCloudSyncWatchProperty(prop){
           primary_address: serialized.address || "",
           property_name: serialized.propertyName || "",
           tracker_status: serialized.trackerStatus || "",
+          expected_updated_at: prevCloudRow?.updatedAt || "",
           dossier: serialized,
         },
         onTokenExpired: handleTokenExpiredPrompt,
         retryFn: sendWatchRpc,
       });
-    await sendWatchRpc();
+    const resp = await sendWatchRpc();
+    if (resp && resp.ok && resp.updated_at) {
+      cloudWatchlistById.set(serialized.id, { ...serialized, updatedAt: resp.updated_at });
+      persistMonitoringSnapshotToRoleCache();
+    } else if (resp && resp.conflict) {
+      toast("Watchlist dossier was updated in another session; pulling latest cloud state.");
+      pullAuthenticatedMonitoringState();
+    }
   }, 750);
 }
 

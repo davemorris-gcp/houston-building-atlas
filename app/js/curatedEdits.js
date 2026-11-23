@@ -23,6 +23,9 @@ import {
   signOutMonitoringSession,
   verifyAndSignInMonitoring,
 } from "./monitoringAuthClient.js?v=20261113c";
+import { stripEmbeddedGeometryTag } from "./parcelMonitoringModel.js?v=20261113c";
+
+export { stripEmbeddedGeometryTag };
 
 const LS_SHEET_CSV_URL_KEY = "ph_atlas_sheet_csv_url";
 const LS_WEBHOOK_URL_KEY = "ph_atlas_submission_webhook_url";
@@ -626,10 +629,6 @@ export function extractEmbeddedGeometryJson(sourceCitation) {
     if (res.ok) return res.geometry;
   }
   return null;
-}
-
-export function stripEmbeddedGeometryTag(sourceCitation) {
-  return stripTaggedJsonSpansJs(String(sourceCitation || ""), GEOMETRY_TAG_PREFIX);
 }
 
 export function encodeCitationWithGeometry(sourceCitation, geometryOrRing) {
