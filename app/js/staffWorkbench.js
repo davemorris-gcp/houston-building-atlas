@@ -2233,7 +2233,11 @@ function escHtml(val) {
 }
 
 function isAdminUnlockedSession(session) {
-  return Boolean(session && (session.authorized || session.unlocked));
+  return Boolean(
+    session &&
+      (session.authorized || session.unlocked) &&
+      String(session.role || "staff").toLowerCase() !== "screener"
+  );
 }
 
 function getSafeBrowserStorage() {

@@ -60,7 +60,7 @@ export {
 
 export const ACTIVITY_RETENTION_DAYS = 90;
 export const MAX_STORED_READ_EVENT_IDS = 500;
-export const MONITOR_MODES = ["agenda", "watchlist", "activity"];
+export const MONITOR_MODES = ["agenda", "watchlist", "activity", "moderation"];
 
 export const ACTIVITY_STREAM_META = {
   watchlist: { label: "Watchlist Sweeps", shortLabel: "Watchlist" },
@@ -295,6 +295,9 @@ function normalizeModeToken(raw) {
   }
   if (tok === "agenda" || tok === "plats" || tok === "plat") {
     return "agenda";
+  }
+  if (tok === "moderation" || tok === "queue" || tok === "community") {
+    return "moderation";
   }
   return "";
 }

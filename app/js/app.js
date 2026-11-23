@@ -178,6 +178,14 @@ import {
   buildSelfContainedAiPrompt,
   SAMPLE_AI_RESEARCH_PROMPTS,
 } from "./aiCompanion.js?v=20261113c";
+import { DEFAULT_SHEET_WEBHOOK_URL } from "./userRoamingState.js?v=20261113c";
+import {
+  canAccessStaffOnly,
+  ensureCleanUnauthenticatedStorageOnBoot,
+  loadCachedMonitoringState,
+  mountGoogleSignInButton,
+  subscribeCrossTabAuthChanges,
+} from "./monitoringAuthClient.js?v=20261113c";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -5306,43 +5314,89 @@ export class HoustonAtlasApp {
     const btnLockAdminSession = document.getElementById("btn-lock-admin-session");
     const btnAdminApproveDirect = document.getElementById("btn-admin-approve-direct");
 
+    ensureCleanUnauthenticatedStorageOnBoot();
+    const btnOpenModerationQueue = document.getElementById("btn-open-moderation-queue");
+    const googleSignInSlot = document.getElementById("admin-google-signin-slot");
+
     const syncAdminUiState = () => {
       const session = getAdminSession();
       const isUnlocked = Boolean(session && session.authorized);
+      const isStaff = canAccessStaffOnly(session);
+      const roleLabel = isUnlocked
+        ? session.role === "screener"
+          ? "Screener"
+          : "Staff"
+        : "";
       const adminSheetDetails = document.getElementById("admin-sheet-details");
       const feedbackText = document.getElementById("admin-auth-feedback-text");
 
       if (btnToggleAdminAuth) {
         btnToggleAdminAuth.innerHTML = isUnlocked
-          ? `&#128275; Admin: ${session.email}`
+          ? `&#128275; ${roleLabel}: ${escapeHtml(session.email)}`
           : `&#128274; Staff Admin`;
         btnToggleAdminAuth.classList.toggle("active", isUnlocked);
       }
       if (btnTopbarAdmin) {
         btnTopbarAdmin.innerHTML = isUnlocked
-          ? `&#128275; Admin: ${session.email}`
+          ? `&#128275; ${roleLabel}: ${escapeHtml(session.email)}`
           : `&#128274; Staff Admin`;
         btnTopbarAdmin.classList.toggle("active", isUnlocked);
       }
       if (btnAdminApproveDirect) {
-        btnAdminApproveDirect.classList.toggle("hidden", !isUnlocked);
+        btnAdminApproveDirect.classList.toggle("hidden", !isStaff);
+      }
+      if (btnOpenModerationQueue) {
+        btnOpenModerationQueue.classList.toggle("hidden", !isStaff);
       }
       if (btnExportPendingCsv) {
-        btnExportPendingCsv.classList.toggle("hidden", !isUnlocked);
+        btnExportPendingCsv.classList.toggle("hidden", !isStaff);
       }
       if (adminSheetDetails) {
-        adminSheetDetails.classList.toggle("hidden", !isUnlocked);
+        adminSheetDetails.classList.toggle("hidden", !isStaff);
       }
       if (btnLockAdminSession) {
         btnLockAdminSession.classList.toggle("hidden", !isUnlocked);
       }
       if (feedbackText && isUnlocked) {
-        feedbackText.textContent = `✓ Unlocked (${session.email})`;
+        feedbackText.textContent = `✓ Signed in (${roleLabel}: ${session.email})`;
       }
-      this._staffWorkbench?.onAdminAuthChanged?.(isUnlocked);
+      if (googleSignInSlot) {
+        if (isUnlocked) {
+          googleSignInSlot.classList.add("hidden");
+        } else {
+          mountGoogleSignInButton(googleSignInSlot, {
+            onCredential: async (jwtCredential) => {
+              const webhookUrl =
+                document.getElementById("admin-webhook-url")?.value ||
+                this.mapController?.sheetSyncStatus?.webhookUrl ||
+                DEFAULT_SHEET_WEBHOOK_URL;
+              if (feedbackText) feedbackText.textContent = "Verifying Google account...";
+              const res = await authenticateAdminSession({
+                googleIdToken: jwtCredential,
+                webhookUrl,
+              });
+              if (!res.ok) {
+                if (feedbackText) feedbackText.textContent = `✕ ${res.error}`;
+                return;
+              }
+              this._watchlistPayloadCache = null;
+              this._watchlistPayloadPromise = null;
+              syncAdminUiState();
+            },
+          }).then((m) => {
+            googleSignInSlot.classList.toggle("hidden", !m?.mounted);
+          });
+        }
+      }
+      this._staffWorkbench?.onAdminAuthChanged?.(isStaff);
     };
 
     syncAdminUiState();
+    subscribeCrossTabAuthChanges(() => {
+      this._watchlistPayloadCache = null;
+      this._watchlistPayloadPromise = null;
+      syncAdminUiState();
+    });
 
     if (btnTopbarAdmin && corrModal && adminAuthPanel) {
       btnTopbarAdmin.addEventListener("click", () => {
@@ -5389,9 +5443,9 @@ export class HoustonAtlasApp {
         const webhookUrl =
           document.getElementById("admin-webhook-url")?.value ||
           this.mapController?.sheetSyncStatus?.webhookUrl ||
-          "";
+          DEFAULT_SHEET_WEBHOOK_URL;
 
-        if (feedbackText) feedbackText.textContent = "Verifying Sheet Editor access...";
+        if (feedbackText) feedbackText.textContent = "Verifying account access...";
         const isJwt = passkeyVal.split(".").length === 3 && passkeyVal.length > 80;
         const res = await authenticateAdminSession({
           googleIdToken: isJwt ? passkeyVal : "",
@@ -5404,6 +5458,8 @@ export class HoustonAtlasApp {
           if (feedbackText) feedbackText.textContent = `✕ ${res.error}`;
           return;
         }
+        this._watchlistPayloadCache = null;
+        this._watchlistPayloadPromise = null;
         syncAdminUiState();
       };
 
@@ -5425,8 +5481,10 @@ export class HoustonAtlasApp {
     if (btnLockAdminSession) {
       btnLockAdminSession.addEventListener("click", () => {
         clearAdminSession();
+        this._watchlistPayloadCache = null;
+        this._watchlistPayloadPromise = null;
         const feedbackText = document.getElementById("admin-auth-feedback-text");
-        if (feedbackText) feedbackText.textContent = "Admin Mode locked.";
+        if (feedbackText) feedbackText.textContent = "Signed out.";
         syncAdminUiState();
       });
     }
@@ -22694,16 +22752,46 @@ export class HoustonAtlasApp {
   }
 
   async _ensureWatchlistPayload() {
-    if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
-    if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261113c")
-      .then((res) => (res && res.ok ? res.json() : null))
-      .catch(() => null)
-      .then((data) => {
-        this._watchlistPayloadCache = data;
-        return data;
-      });
-    return this._watchlistPayloadPromise;
+    const sess = getAdminSession();
+    const hydrateFromRoleCache = (basePayload) => {
+      if (!sess || !sess.authorized) {
+        return basePayload || { watchedProperties: [] };
+      }
+      const cached = loadCachedMonitoringState(sess.email, sess.role);
+      if (cached && Array.isArray(cached.watchlistDossiers) && cached.watchlistDossiers.length > 0) {
+        const parsedProps = [];
+        for (const row of cached.watchlistDossiers) {
+          if (!row) continue;
+          if (typeof row.dossier_json === "string" && row.dossier_json.trim()) {
+            try {
+              parsedProps.push(JSON.parse(row.dossier_json));
+              continue;
+            } catch (_e) {}
+          }
+          if (row.id || row.address || row.propertyName) {
+            parsedProps.push(row);
+          }
+        }
+        return {
+          ...(basePayload || {}),
+          watchedProperties: parsedProps,
+        };
+      }
+      return basePayload || { watchedProperties: [] };
+    };
+
+    if (this._watchlistPayloadCache) return hydrateFromRoleCache(this._watchlistPayloadCache);
+    if (!this._watchlistPayloadPromise) {
+      this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261113c")
+        .then((res) => (res && res.ok ? res.json() : null))
+        .catch(() => null)
+        .then((data) => {
+          this._watchlistPayloadCache = data;
+          return data;
+        });
+    }
+    const base = await this._watchlistPayloadPromise;
+    return hydrateFromRoleCache(base);
   }
 
   _findOverlayFeatureForBoundary(layerKey, boundaryId, boundaryName = "") {

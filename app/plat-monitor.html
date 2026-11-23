@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="atlas-google-client-id" content="">
 <title>Plat &amp; Property Monitor · Preservation Houston &amp; Houston Building Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -306,6 +307,45 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
 .toast .toast-act-btn{background:#fff;color:var(--ink);border:0;border-radius:4px;padding:3px 9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .toast .toast-act-btn:hover{background:#E2E8F0}
 
+/* Phase 1 Parcel Significance, Attention Level, Source Conflict & Staff Vault Cards */
+.att-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+.att-badge.compact{font-size:11px;padding:1px 6px}
+.att-badge.att-act{background:var(--t1);color:#fff}
+.att-badge.att-watch{background:var(--t2);color:#fff}
+.att-badge.att-record{background:var(--t3-soft);color:var(--t3);border:1px solid #B8D0E8}
+.parcel-sig-card{background:#FFFFFF;border:1px solid #B8D0E8;border-left:4px solid var(--survey);border-radius:6px;padding:13px 15px;margin:0 0 14px}
+.parcel-sig-card .psc-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.parcel-sig-card .psc-explain{font-size:13px;font-weight:600;color:var(--ink)}
+.parcel-sig-card .psc-public-note{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;background:#F8FAFC;border:1px solid var(--line-soft);border-radius:5px;font-size:12.5px;color:var(--muted)}
+.parcel-sig-card .psc-screener-rec-banner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 11px;background:#EEF6FF;border:1px solid #93C5FD;border-radius:5px;margin-bottom:10px;font-size:12.5px;color:#1E3A8A}
+.parcel-sig-card .psc-recheck-banner{padding:8px 11px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:5px;margin-bottom:10px;font-size:12.5px;color:#92400E}
+.psc-sig-btns{display:flex;flex-wrap:wrap;gap:6px}
+.psc-sig-btn{border:1px solid var(--line);background:#fff;border-radius:4px;padding:5px 11px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink)}
+.psc-sig-btn:hover{border-color:var(--survey)}
+.psc-sig-btn.on.sig-high{background:var(--t1-soft);border-color:var(--t1);color:var(--t1)}
+.psc-sig-btn.on.sig-moderate{background:var(--t2-soft);border-color:var(--t2);color:var(--t2)}
+.psc-sig-btn.on.sig-needs_research{background:var(--survey-soft);border-color:var(--survey);color:var(--survey)}
+.psc-sig-btn.on.sig-not_significant{background:var(--t4-soft);border-color:var(--t4);color:var(--t4)}
+.psc-basis-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.psc-basis-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--line);border-radius:12px;font-size:12px;font-weight:500;cursor:pointer;background:#fff}
+.psc-basis-chip.on{background:var(--survey-soft);border-color:var(--survey);color:var(--survey);font-weight:600}
+.psc-basis-chip input{margin:0}
+.psc-story-drawer{border:1px solid var(--line-soft);border-radius:5px;padding:7px 10px;background:#F8FAFC}
+.psc-story-drawer summary{cursor:pointer;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.psc-story-grid{display:grid;gap:7px;margin-top:8px}
+.psc-story-row{display:grid;grid-template-columns:minmax(200px,245px) 1fr;gap:8px;align-items:center}
+.psc-story-chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;cursor:pointer}
+.psc-story-row input[type="text"]{padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff;width:100%;min-width:0}
+.conflict-card{background:#FFFFFF;border:1px solid var(--line);border-radius:6px;padding:11px 14px;margin:0 0 14px}
+.conflict-card.has-conflict{border-color:#F59E0B;border-left:4px solid #D97706;background:#FFFDF7}
+.cc-diff-list{display:grid;gap:6px;margin-top:8px}
+.cc-diff-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.cc-diff-lbl{font-weight:700;min-width:155px;color:var(--ink)}
+.cc-diff-pills{display:flex;gap:5px;flex-wrap:wrap}
+.staff-strategy-card{background:#FFFDF5;border:1px solid #FDE68A;border-left:4px solid #D97706;border-radius:6px;padding:12px 14px;margin:0 0 14px}
+.staff-strategy-card .ssc-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.staff-strategy-card .ssc-entities-bar{padding-top:8px;border-top:1px solid #FDE68A}
+
 @media screen and (max-width:900px){
   html,body{overflow-x:hidden;max-width:100vw}
   header.top{padding:max(10px,env(safe-area-inset-top,0px)) 14px 12px;gap:10px}
@@ -313,7 +353,7 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
   .mode-switch{display:flex;flex-wrap:wrap;width:100%}
   .mode-btn{flex:1 1 180px;justify-content:space-between;min-height:36px;white-space:normal;text-align:left;min-width:0}
   header.top .cycle{margin-left:0;width:100%;min-width:0}
-  #agendaHeaderControls,#watchlistHeaderControls,#activityHeaderControls{max-width:100%;min-width:0}
+  #agendaHeaderControls,#watchlistHeaderControls,#activityHeaderControls,#moderationHeaderControls{max-width:100%;min-width:0}
   .hdr-meta-badge{white-space:normal;max-width:100%;line-height:1.35}
   .btn{max-width:100%;white-space:normal;text-align:left;min-height:34px}
   header.top select.dark-sel,header.top input{max-width:100%;min-width:0}
@@ -326,7 +366,7 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
   .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh;max-height:48dvh}
   .detail{padding:16px 14px calc(48px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
   .funnel{flex-wrap:wrap}.stage{flex:1 1 45%;padding:10px 12px}.stage::after{display:none}
-  .grid2,.snowball-grid,.facts,.plat-gis-box{grid-template-columns:minmax(0,1fr)}
+  .grid2,.grid3,.psc-story-row,.snowball-grid,.facts,.plat-gis-box{grid-template-columns:minmax(0,1fr)}
   .facts .fact{grid-column:1 / -1 !important;min-width:0}
   .wl-card{padding:14px 12px;min-width:0;max-width:100%;overflow-x:hidden}
   .links a,.links button,.links span.dis{max-width:100%;white-space:normal;word-break:break-word}
@@ -358,6 +398,9 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
     <button class="mode-btn" id="modeActivityBtn" role="tab" aria-selected="false" data-mode="activity" title="Morning briefing &amp; 90-day daily change ledger across Watchlist sweeps, Planning Commission agendas, staff edits, demolition/asbestos permits, and HAHC filings">
       What's New &amp; Daily Log <span class="pill" id="modeActivityCount">0</span>
     </button>
+    <button class="mode-btn hidden" id="modeModerationBtn" role="tab" aria-selected="false" data-mode="moderation" title="Review and publish community date/photo/footprint suggestions and Walk-the-Block field surveys in-app (Staff only)">
+      Community Queue <span class="pill" id="modeModerationCount">0</span>
+    </button>
   </div>
 
   <div class="cycle" id="cycleBar">
@@ -388,6 +431,11 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
       <span id="activitySweepHealthBadge" class="hdr-meta-badge" title="Automated daily 7:00 AM CT 8-agency sweep status across Comptroller, HCAD, TABC, COH Plats, TDLR TABS, 311, Sold Permits, and DSHS Asbestos"></span>
       <button class="btn dark" id="markCaughtUpBtn" type="button" title="Save your browser read watermark so Since Last Visit only shows future changes">✓ Mark Caught Up</button>
       <button class="btn dark" id="copyActivityBriefingBtn" type="button" title="Copy formatted plain-text summary of visible What's New &amp; Daily Log updates">📋 Copy Briefing</button>
+    </span>
+
+    <span id="moderationHeaderControls" class="hidden" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="moderationQueueBadge" class="hdr-meta-badge">Pending_Submissions &amp; Field_Surveys</span>
+      <button class="btn dark" id="modRefreshQueueBtn" type="button" title="Reload pending community submissions and Walk-the-Block field surveys">↻ Refresh Queue</button>
     </span>
 
     <button class="btn dark" id="staffAuthBtn" type="button" title="Preservation Houston Staff Admin Sign-In (Google Sheet Editor Verification &amp; Live Cloud Sync)">🔒 Staff Sign-In</button>
@@ -503,6 +551,12 @@ button.read-toggle-btn:hover{background:#EAF2FA;color:var(--survey);border-color
       </select>
     </div>
   </div>
+  <div class="toolbar hidden" id="moderationToolbar">
+    <div class="tabs" role="tablist" id="modCategoryTabs" aria-label="Community queue categories"></div>
+    <div class="filters">
+      <input type="search" id="modSearchInput" placeholder="Filter address, HCAD, submitter, district..." aria-label="Filter moderation queue" style="width:245px">
+    </div>
+  </div>
   <main>
     <div class="list" id="list" aria-label="Items list"></div>
     <div class="detail" id="detail"></div>
@@ -582,7 +636,6 @@ import {
   graduateWatchlistPropertyToLost,
   sortWatchedProperties,
   parseCsvRfc4180,
-  parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
 } from "./js/watchlistSyncHelpers.js?v=20261113c";
@@ -619,7 +672,6 @@ import {
 
 import {
   DEFAULT_SHEET_WEBHOOK_URL,
-  DEFAULT_SHEET_PUBLISHED_CSV_URL,
   normalizeStaffEmail,
   createEmptyRoamingState,
   deriveWatermarkInputsFromRoamingState,
@@ -643,6 +695,67 @@ import {
   renderSpatialContextThumbnailHtml,
 } from "./js/spatialContextThumbnails.js?v=20261113c";
 
+import {
+  buildCampusParcelIndex,
+  deriveLegacyTierFromParcel,
+  mergeParcelAndDecisionConcurrent,
+  migrateLegacyTierToParcelFields,
+  normalizeHcad13,
+  normalizeParcelRecord,
+  parseDelimitedList,
+  parseRelatedHcads,
+  resolveCanonicalParcelId,
+  sanitizeMonitoringText,
+  toChicagoCalendarDate,
+} from "./js/parcelMonitoringModel.js?v=20261113c";
+
+import {
+  LS_ADMIN_SESSION_KEY,
+  callMonitoringRpc,
+  canAccessStaffOnly,
+  ensureCleanUnauthenticatedStorageOnBoot,
+  getActiveMonitoringRole,
+  getPendingAuthRetryCount,
+  loadCachedMonitoringState,
+  mountGoogleSignInButton,
+  pullCloudMonitoringState,
+  purgePrivateMonitoringStorage,
+  readActiveMonitoringSession,
+  replayPendingAuthRetries,
+  saveCachedMonitoringState,
+  signOutMonitoringSession,
+  subscribeCrossTabAuthChanges,
+  verifyAndSignInMonitoring,
+} from "./js/monitoringAuthClient.js?v=20261113c";
+
+import {
+  buildApprovedOverrideWritebackPayload,
+  detectParcelSourceConflicts,
+} from "./js/sourceConflictResolver.js?v=20261113c";
+
+import {
+  MODERATION_CATEGORIES,
+  buildModerationDecisionPayload,
+  classifyModerationQueueItem,
+  filterModerationQueueItems,
+} from "./js/communityModerationQueue.js?v=20261113c";
+
+import {
+  STORY_CHECK_STEPS,
+  parseStoryCheckJson,
+  renderAttentionBadgeHtml,
+  renderModerationQueueDetailHtml,
+  renderModerationQueueListHtml,
+  renderParcelSignificanceCardHtml,
+  renderSignedOutWatchlistGateHtml,
+  renderSourceConflictWritebackCardHtml,
+  renderStaffOnlyStrategyCardHtml,
+  resolveEffectiveParcelAssessment,
+  serializeStoryCheck,
+} from "./js/monitoringWorkbenchUi.js?v=20261113c";
+
+import { submitAdminApprovedOverride } from "./js/curatedEdits.js?v=20261113c";
+
 ensureSpatialContextThumbnailsInitialized();
 
 /* ---------- Storage ---------- */
@@ -651,14 +764,11 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(_e){ return false; } },
   keys(){ try{ return Object.keys(localStorage); }catch(_e){ return []; } }
 };
-const PREFIX = "phpam:cycle:";
-const WL_KEY = "phpam:watchlist:v2";
 const LAST_MODE_KEY = "phpam:lastMode";
 const CAUGHT_UP_AT_KEY = "phpam:caughtUpAt";
 const READ_IDS_KEY = "phpam:readEventIds";
 const ACT_STREAM_KEY = "phpam:actStream";
 const ACT_GROUP_KEY = "phpam:actGroupBy";
-const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
 
 /* ---------- Helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -832,11 +942,11 @@ const FLAG_INFO = {
 };
 
 const GROUPS = [
-  ["check", "To check", "Items requiring preservation review after Pass 1 screening"],
-  ["t1", "Tier 1", "High-priority escalation items (confirm tier to sync onto the Property Watchlist)"],
-  ["t2", "Tier 2", "Watch-priority items (confirm tier to sync onto the Property Watchlist)"],
-  ["t3", "Tier 3", "Lower-priority monitoring items (modest/altered historic structures or neighborhood context; can be logged in Plat Review or tracked at low priority on the Watchlist)"],
-  ["t4", "Tier 4", "Irrelevant, vacant, non-historic, or already demolished items (dismissed from active monitoring; distinct from automated Pass 1 Screened out)"],
+  ["check", "Needs Screening", "Items requiring preservation review after Pass 1 screening"],
+  ["t1", "Act (Tier 1)", "High-priority escalation items (significant or needs-research parcels under active threat)"],
+  ["t2", "Watch (Tier 2)", "Active watch items (significant parcels without immediate threat or binding HAHC review)"],
+  ["t3", "Record (Tier 3)", "Recording-only items (neighborhood survey context or modest/altered structures)"],
+  ["t4", "Closed / N/A (Tier 4)", "Closed outcomes (Lost historic demolitions separated from Not Relevant vacant/non-historic parcels)"],
   ["designated", "Designated", "Items inside a City of Houston Historic District (regulated by HAHC Certificate of Appropriateness)"],
   ["etj", "ETJ", "Extraterritorial Jurisdiction outside Houston city limits"],
   ["out", "Screened out", "Automatically filtered in Pass 1 (street dedications, general plans, utilities, or first-time plats with zero preservation risk signals). Click any item to view reasoning or override."],
@@ -850,48 +960,170 @@ const DESIGNATIONS = [
 ];
 const TIERS = [
   ["","Not set","t0"],
-  ["1","1 - Escalate","t1"],
+  ["1","1 - Act / Escalate","t1"],
   ["2","2 - Watch","t2"],
-  ["3","3 - Low Priority","t3"],
-  ["4","4 - Irrelevant / Demolished","t4"]
+  ["3","3 - Record Only","t3"],
+  ["4","4 - Closed / N/A","t4"]
 ];
 
 /* ---------- State ---------- */
+ensureCleanUnauthenticatedStorageOnBoot();
 let S = null;
+let rawPublicPlatPayload = null;
 let staticWatchlistById = new Map();
 let cloudWatchlistById = new Map();
 let localWatchlistById = new Map();
+let monitoringAreasById = new Map();
+let monitoringParcelsById = new Map();
+let monitoringDecisionsByParcelId = new Map();
+let monitoringEvents = [];
+let campusParcelIndex = buildCampusParcelIndex([]);
+let staffStrategyByParcelId = new Map();
+let staffWatchedEntities = [];
+let moderationQueueItems = [];
+let pendingModerationCount = 0;
+
+function parseWatchRowDossier(row){
+  if (!row || typeof row !== "object") return null;
+  let parsed = null;
+  if (typeof row.dossier_json === "string" && row.dossier_json.trim()) {
+    try { parsed = JSON.parse(row.dossier_json); } catch (_e) {}
+  }
+  const base = parsed && typeof parsed === "object" ? { ...parsed } : { ...row };
+  if (row.watch_id && !base.id) base.id = row.watch_id;
+  if (row.parcel_id && !base.parcelId) base.parcelId = row.parcel_id;
+  if (row.hcad_num && !base.hcadAccount) base.hcadAccount = row.hcad_num;
+  if (row.primary_address && !base.address) base.address = row.primary_address;
+  if (row.property_name && !base.propertyName) base.propertyName = row.property_name;
+  if (row.tracker_status && !base.trackerStatus) base.trackerStatus = row.tracker_status;
+  if (row.updated_at && (!base.updatedAt || row.updated_at > base.updatedAt)) base.updatedAt = row.updated_at;
+  if (row.updated_by && !base.updatedBy) base.updatedBy = row.updated_by;
+  return base;
+}
+
+function hydratePhase1MapsFromPayload(payload, activeRole = "public"){
+  if (!payload || typeof payload !== "object") return { appliedWatch: 0, appliedDecisions: 0 };
+  if (Array.isArray(payload.areas)) {
+    monitoringAreasById.clear();
+    for (const a of payload.areas) {
+      if (a && a.area_id) monitoringAreasById.set(String(a.area_id), a);
+    }
+  }
+  if (Array.isArray(payload.parcels)) {
+    monitoringParcelsById.clear();
+    for (const rawP of payload.parcels) {
+      if (!rawP) continue;
+      const normP = normalizeParcelRecord(rawP, { areasById: monitoringAreasById });
+      if (normP.parcel_id) monitoringParcelsById.set(normP.parcel_id, normP);
+    }
+    campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
+  }
+  let appliedDecisions = 0;
+  if (Array.isArray(payload.decisions)) {
+    for (const dec of payload.decisions) {
+      if (dec && dec.parcel_id) {
+        monitoringDecisionsByParcelId.set(String(dec.parcel_id), dec);
+        appliedDecisions++;
+      }
+    }
+  }
+  if (Array.isArray(payload.events)) {
+    monitoringEvents = payload.events.slice();
+  }
+  if (activeRole === "staff" && payload.staffOnly && typeof payload.staffOnly === "object") {
+    staffStrategyByParcelId.clear();
+    for (const st of payload.staffOnly.parcelStrategy || []) {
+      if (st && st.parcel_id) staffStrategyByParcelId.set(String(st.parcel_id), st);
+    }
+    staffWatchedEntities = Array.isArray(payload.staffOnly.watchedEntities)
+      ? payload.staffOnly.watchedEntities.slice()
+      : [];
+    if (payload.pendingModerationCount !== undefined) {
+      pendingModerationCount = Number(payload.pendingModerationCount) || 0;
+    }
+  } else if (activeRole !== "staff") {
+    staffStrategyByParcelId.clear();
+    staffWatchedEntities = [];
+    moderationQueueItems = [];
+    pendingModerationCount = 0;
+  }
+
+  let appliedWatch = 0;
+  if (Array.isArray(payload.watchlistDossiers)) {
+    for (const rawRow of payload.watchlistDossiers) {
+      const candidate = parseWatchRowDossier(rawRow);
+      if (!candidate || isLegacyUnconfirmedPlatSeed(candidate)) continue;
+      const normCloud = normalizeWatchProperty(candidate);
+      if (!normCloud) continue;
+      const prevCloud = cloudWatchlistById.get(normCloud.id);
+      const prevMs = Date.parse(prevCloud?.updatedAt || "") || 0;
+      const nextMs = Date.parse(normCloud.updatedAt || "") || 0;
+      if (!prevCloud || nextMs >= prevMs) {
+        cloudWatchlistById.set(normCloud.id, normCloud);
+        if (isRemovedWatchlistTombstone(normCloud)) {
+          staticWatchlistById.delete(normCloud.id);
+        }
+        appliedWatch++;
+      }
+    }
+  }
+  return { appliedWatch, appliedDecisions };
+}
+
+function persistMonitoringSnapshotToRoleCache(){
+  const sess = readActiveMonitoringSession();
+  if (!sess || !sess.authorized) return false;
+  const serializedWatch = [
+    ...(WL?.watchedProperties || []),
+    ...Object.values(WL?.removedTombstones || {}),
+  ].map(wp => ({
+    watch_id: wp.id,
+    parcel_id: wp.parcelId || "",
+    hcad_num: (parseHcadAccountList(wp.hcadAccount || "").hcadIds[0]) || "",
+    primary_address: wp.address || "",
+    property_name: wp.propertyName || "",
+    tracker_status: wp.trackerStatus || "",
+    dossier_json: JSON.stringify(wp),
+    updated_by: wp.updatedBy || sess.email || "",
+    updated_at: wp.updatedAt || "",
+  }));
+  return saveCachedMonitoringState(sess.email, sess.role, {
+    areas: Array.from(monitoringAreasById.values()),
+    parcels: Array.from(monitoringParcelsById.values()),
+    decisions: Array.from(monitoringDecisionsByParcelId.values()),
+    events: monitoringEvents,
+    watchlistDossiers: serializedWatch,
+    ...(sess.role === "staff"
+      ? {
+          staffOnly: {
+            parcelStrategy: Array.from(staffStrategyByParcelId.values()),
+            watchedEntities: staffWatchedEntities,
+          },
+          pendingModerationCount,
+        }
+      : {}),
+  });
+}
 
 function loadInitialLocalWatchlist(){
-  const raw = store.get(WL_KEY);
-  const removedTombstones = {};
-  if (raw?.removedTombstones && typeof raw.removedTombstones === "object") {
-    for (const [id, tb] of Object.entries(raw.removedTombstones)) {
-      const normTb = normalizeWatchProperty(tb);
-      if (normTb) {
-        removedTombstones[id] = normTb;
-        localWatchlistById.set(id, normTb);
-      }
+  const bootSess = readActiveMonitoringSession();
+  if (bootSess && bootSess.authorized) {
+    const cached = loadCachedMonitoringState(bootSess.email, bootSess.role);
+    if (cached) {
+      hydratePhase1MapsFromPayload(cached, bootSess.role);
     }
   }
+  const removedTombstones = {};
   const activeProps = [];
-  if (Array.isArray(raw?.watchedProperties)) {
-    for (const rawP of raw.watchedProperties) {
-      if (isLegacyUnconfirmedPlatSeed(rawP)) continue;
-      const p = normalizeWatchProperty(rawP);
-      if (!p) continue;
-      localWatchlistById.set(p.id, p);
-      if (isRemovedWatchlistTombstone(p)) {
-        removedTombstones[p.id] = p;
-      } else {
-        activeProps.push(p);
-      }
-    }
+  for (const [id, p] of cloudWatchlistById.entries()) {
+    localWatchlistById.set(id, p);
+    if (isRemovedWatchlistTombstone(p)) removedTombstones[id] = p;
+    else activeProps.push(p);
   }
   return {
-    lastAutoSweepAt: raw?.lastAutoSweepAt || "",
-    autoSweepSchedule: raw?.autoSweepSchedule || "Daily at 7:00 AM CT",
-    lastSweepHealth: raw?.lastSweepHealth || null,
+    lastAutoSweepAt: "",
+    autoSweepSchedule: "Daily at 7:00 AM CT",
+    lastSweepHealth: null,
     watchedProperties: sortWatchedProperties(activeProps),
     removedTombstones,
   };
@@ -905,7 +1137,7 @@ let flashRowClearTimer = null;
 let curatedBuildingPhotosByBldId = new Map();
 let curatedBuildingPhotosByHcad = new Map();
 let curatedBuildingPhotosByAddr = new Map();
-let history = store.get("phpam:history") || [];
+let history = [];
 let roamingState = loadLocalUserRoamingState({ email: getStaffSession()?.email || "" });
 let roamingSyncStatus = getStaffSession() ? "synced" : "signed_out"; // "signed_out" | "syncing" | "synced" | "offline"
 let lastRoamingCloudSyncAt = "";
@@ -944,6 +1176,9 @@ let view = {
   actShowHistorical: false,
   actQ: "",
   actExpandedQuietRanges: [],
+  modCategory: "all",
+  modQ: "",
+  selectedModQueueId: "",
   caughtUpAt: _initialWmInputs.caughtUpAt || (typeof store.get(CAUGHT_UP_AT_KEY) === "string" ? store.get(CAUGHT_UP_AT_KEY) : ""),
   readEventIds: _initialWmInputs.readEventIds,
   unreadEventIds: _initialWmInputs.unreadEventIds,
@@ -1254,8 +1489,6 @@ function startMultiCycle(platPayload){
   for (const ck of order) {
     const src = rawCycles[ck];
     if (!src) continue;
-    const saved = store.get(PREFIX + ck);
-    if (saved?.reviewer && !store.get("phpam:reviewer")) reviewer = saved.reviewer;
     const items = (src.items || []).map(it => ({
       ...it,
       pcDateIso: it.pcDateIso || excelSerialToIso(it.pcDate) || ck,
@@ -1263,17 +1496,9 @@ function startMultiCycle(platPayload){
       _cycleKey: ck,
       _occKey: buildOccurrenceKey(ck, it.app),
     }));
-    const itemByApp = new Map(items.map(it => [it.app, it]));
     const mergedReviews = {};
     for (const [app, rObj] of Object.entries(src.reviews || {})) {
       mergedReviews[app] = { ...rObj };
-    }
-    for (const [app, savedRev] of Object.entries(saved?.reviews || {})) {
-      mergedReviews[app] = mergePlatReviewOverlay(
-        mergedReviews[app] || {},
-        savedRev,
-        itemByApp.get(app) || null
-      );
     }
     cycles[ck] = {
       cycleKey: ck,
@@ -1292,16 +1517,6 @@ function startMultiCycle(platPayload){
   }
 
   const validOrder = order.filter(k => Boolean(cycles[k]));
-  // Prune stale phpam:cycle:* localStorage keys outside active multi-cycle index (e.g. 2026-10-16)
-  if (Array.isArray(platPayload?.cycleOrder) && validOrder.length > 0) {
-    const activeSet = new Set(validOrder);
-    for (const k of store.keys()) {
-      if (k.startsWith(PREFIX) && !activeSet.has(k.slice(PREFIX.length))) {
-        try { localStorage.removeItem(k); } catch (_e) {}
-      }
-    }
-  }
-
   const defaultKey = platPayload?.cycleKey && cycles[platPayload.cycleKey] ? platPayload.cycleKey : validOrder[0];
   S = {
     cycles,
@@ -1323,7 +1538,6 @@ function startCycle(items, fileName, presetReviews = {}, extraMeta = {}){
     ? { pcDate: extraMeta.pcDate || (extraMeta.cycleKey + "T00:00:00.000Z"), key: extraMeta.cycleKey }
     : cycleKeyFor(items);
   if (S && S.cycles) {
-    const saved = store.get(PREFIX + key);
     const mappedItems = items.map(it => ({
       ...it,
       pcDateIso: it.pcDateIso || excelSerialToIso(it.pcDate) || key,
@@ -1331,11 +1545,7 @@ function startCycle(items, fileName, presetReviews = {}, extraMeta = {}){
       _cycleKey: key,
       _occKey: buildOccurrenceKey(key, it.app),
     }));
-    const itemByApp = new Map(mappedItems.map(it => [it.app, it]));
     const mergedReviews = { ...(presetReviews || {}) };
-    for (const [app, sr] of Object.entries(saved?.reviews || {})) {
-      mergedReviews[app] = mergePlatReviewOverlay(mergedReviews[app] || {}, sr, itemByApp.get(app) || null);
-    }
     S.cycles[key] = {
       cycleKey: key,
       meetingDate: key,
@@ -1456,8 +1666,52 @@ function propagateEditedReviewFieldsAcrossCycles(sourceItem, fieldKeys = [], { s
   return touched;
 }
 
+function hydrateCycleReviewsFromParcelDecisions(){
+  if (!S || !S.cycles || !monitoringParcelsById.size) return;
+  for (const ck of S.cycleOrder || []) {
+    const cyc = S.cycles[ck];
+    if (!cyc || !Array.isArray(cyc.items)) continue;
+    for (const it of cyc.items) {
+      const curRev = cyc.reviews[it.app] || {};
+      const assessment = resolveEffectiveParcelAssessment({
+        platItem: it,
+        review: curRev,
+        watchProp: findLinkedWatchProp(it, curRev),
+        parcelsById: monitoringParcelsById,
+        decisionsByParcelId: monitoringDecisionsByParcelId,
+        campusIndex: campusParcelIndex,
+        areasById: monitoringAreasById,
+      });
+      it._parcelAssessment = assessment;
+      const hasCloudDecision = monitoringDecisionsByParcelId.has(assessment.parcelId);
+      if (hasCloudDecision || monitoringParcelsById.has(assessment.parcelId)) {
+        const nextRev = { ...curRev, parcelId: assessment.parcelId };
+        if (assessment.derivedTier && !curRev.tier) {
+          nextRev.tier = assessment.derivedTier;
+          nextRev.tierConfirmed =
+            assessment.parcel.review_status === "assessed" && Boolean(assessment.parcel.significance_level);
+        }
+        if (assessment.screeningNotes && !curRev.why) {
+          nextRev.why = assessment.screeningNotes;
+        }
+        if (assessment.parcel.primary_address && !curRev.address) {
+          nextRev.address = assessment.parcel.primary_address;
+        }
+        if (assessment.parcel.year_built && !curRev.yearBuilt) {
+          nextRev.yearBuilt = String(assessment.parcel.year_built);
+        }
+        if (assessment.parcel.hcad_num && !curRev.hcad) {
+          nextRev.hcad = assessment.parcel.related_hcads || assessment.parcel.hcad_num;
+        }
+        cyc.reviews[it.app] = nextRev;
+      }
+    }
+  }
+}
+
 function prepareAllCycles(){
   if (!S) return;
+  hydrateCycleReviewsFromParcelDecisions();
   linkCrossCycleHistory(S.cycles, S.cycleOrder);
 
   for (const ck of S.cycleOrder) {
@@ -1474,6 +1728,15 @@ function prepareAllCycles(){
         "";
       const r = cyc.reviews[it.app] || {};
       it._c = classifyPlatItem(it, r);
+      it._parcelAssessment = resolveEffectiveParcelAssessment({
+        platItem: it,
+        review: r,
+        watchProp: findLinkedWatchProp(it, r),
+        parcelsById: monitoringParcelsById,
+        decisionsByParcelId: monitoringDecisionsByParcelId,
+        campusIndex: campusParcelIndex,
+        areasById: monitoringAreasById,
+      });
     });
   }
 
@@ -1481,6 +1744,7 @@ function prepareAllCycles(){
     cycles: S.cycles,
     cycleOrder: S.cycleOrder,
     watchedProperties: WL.watchedProperties || [],
+    watchedEntities: canAccessStaffOnly(getStaffSession()) ? staffWatchedEntities : [],
     isTombstoneFn: isRemovedWatchlistTombstone,
   });
   S.watchedDeveloperMap = watchedDevMap;
@@ -1572,27 +1836,12 @@ const stripPrivate = it => {
 
 function persistCycle(cycleKey){
   if (!S || !S.cycles[cycleKey]) return false;
-  const cyc = S.cycles[cycleKey];
-  const ok = store.set(PREFIX + cycleKey, {
-    cycleKey: cyc.cycleKey,
-    pcDate: cyc.pcDate,
-    fileName: cyc.fileName,
-    loadedAt: S.loadedAt,
-    items: cyc.items.map(stripPrivate),
-    reviews: cyc.reviews,
-    reviewer: S.reviewer,
-  });
-  store.set("phpam:last", S.cycleKey);
-  return ok;
+  return persistMonitoringSnapshotToRoleCache();
 }
 
 function persistAllCycles(){
   if (!S) return false;
-  let ok = true;
-  for (const ck of S.cycleOrder) {
-    ok = persistCycle(ck) && ok;
-  }
-  return ok;
+  return persistMonitoringSnapshotToRoleCache();
 }
 
 function rebuildReconciledWatchlist(){
@@ -1645,7 +1894,7 @@ function rebuildReconciledWatchlist(){
   }
   WL.watchedProperties = sortWatchedProperties(deduped);
   WL.removedTombstones = tombstones;
-  store.set(WL_KEY, WL);
+  persistMonitoringSnapshotToRoleCache();
   markActivityDirty();
 }
 
@@ -1653,13 +1902,14 @@ function persistWatchlistPropertyEdit(prop){
   if (!prop) return;
   const norm = normalizeWatchProperty(prop);
   localWatchlistById.set(norm.id, norm);
+  cloudWatchlistById.set(norm.id, norm);
   if (!WL.removedTombstones || typeof WL.removedTombstones !== "object") {
     WL.removedTombstones = {};
   }
   if (isRemovedWatchlistTombstone(norm)) {
     WL.removedTombstones[norm.id] = norm;
     WL.watchedProperties = (WL.watchedProperties || []).filter(p => p.id !== norm.id);
-    store.set(WL_KEY, WL);
+    persistMonitoringSnapshotToRoleCache();
     markActivityDirty();
     return norm;
   }
@@ -1668,12 +1918,16 @@ function persistWatchlistPropertyEdit(prop){
   if (idx >= 0) WL.watchedProperties[idx] = norm;
   else WL.watchedProperties.push(norm);
   WL.watchedProperties = sortWatchedProperties(WL.watchedProperties);
-  store.set(WL_KEY, WL);
+  persistMonitoringSnapshotToRoleCache();
   markActivityDirty();
   return norm;
 }
 
-function tierOf(it){ return revFor(it).tier || ""; }
+function tierOf(it){
+  const explicit = revFor(it).tier || "";
+  if (explicit) return explicit;
+  return it?._parcelAssessment?.derivedTier || "";
+}
 function isResearched(it){
   const r = revFor(it);
   return !!(r && (r.tier || r.address || r.yearBuilt || r.why || r.sources || r.followup || (r.designation && r.designation !== DESIGNATIONS[0])));
@@ -2007,7 +2261,7 @@ function commitRoamingStateMutation(nextState, { syncCloud = true } = {}){
 }
 
 function persistModeChoice(nextMode){
-  if (nextMode === "agenda" || nextMode === "watchlist" || nextMode === "activity") {
+  if (nextMode === "agenda" || nextMode === "watchlist" || nextMode === "activity" || nextMode === "moderation") {
     store.set(LAST_MODE_KEY, nextMode);
     commitRoamingStateMutation(applyRoamingPrefUpdate(roamingState, "lastMode", nextMode));
   }
@@ -2188,6 +2442,8 @@ function activeWatchlistCount(){
 function updateModeButtons(precomputedActCtx = null){
   const actCtx = precomputedActCtx || getActivityViewContext();
   const items = getActiveItems();
+  const sess = getStaffSession();
+  const isStaff = canAccessStaffOnly(sess);
   $("#modeAgendaCount").textContent = items.length;
   $("#modeWatchlistCount").textContent = activeWatchlistCount();
   const actCountEl = $("#modeActivityCount");
@@ -2195,12 +2451,22 @@ function updateModeButtons(precomputedActCtx = null){
     actCountEl.textContent = actCtx.watermarkState.unreadCount;
     actCountEl.classList.toggle("alert-pill", actCtx.watermarkState.unreadAdverseCount > 0);
   }
+  const modBtn = $("#modeModerationBtn");
+  const modCountEl = $("#modeModerationCount");
+  if (modBtn) {
+    modBtn.classList.toggle("hidden", !isStaff);
+    modBtn.setAttribute("aria-selected", String(view.mode === "moderation"));
+  }
+  if (modCountEl) {
+    modCountEl.textContent = isStaff ? pendingModerationCount : 0;
+  }
   $("#modeAgendaBtn").setAttribute("aria-selected", String(view.mode === "agenda"));
   $("#modeWatchlistBtn").setAttribute("aria-selected", String(view.mode === "watchlist"));
   $("#modeActivityBtn")?.setAttribute("aria-selected", String(view.mode === "activity"));
   $("#agendaHeaderControls").classList.toggle("hidden", view.mode !== "agenda");
   $("#watchlistHeaderControls").classList.toggle("hidden", view.mode !== "watchlist");
   $("#activityHeaderControls")?.classList.toggle("hidden", view.mode !== "activity");
+  $("#moderationHeaderControls")?.classList.toggle("hidden", view.mode !== "moderation" || !isStaff);
 }
 
 function buildDemoStageHtml(){
@@ -2696,6 +2962,53 @@ function renderActivityBriefing(actCtx){
   $("#detail").innerHTML = banners.join("") + sectionsHtml;
 }
 
+function renderModerationMode(){
+  const sess = getStaffSession();
+  if (!canAccessStaffOnly(sess)) {
+    $("#funnel").innerHTML = `<div class="stage"><div class="n">0</div><div class="l">Staff sign-in required for Community Moderation Queue</div></div>`;
+    $("#list").innerHTML = `<div class="list-empty">Sign in with a Preservation Staff account to review community submissions.</div>`;
+    $("#detail").innerHTML = `<div class="wl-card" style="max-width:580px;margin:18px auto;padding:20px 22px"><h3 style="margin:0 0 8px">🔒 Preservation Staff Access Required</h3><p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">The Community Moderation Queue updates <code>Pending_Submissions</code>, <code>Field_Surveys</code>, and live <code>Approved_Edits</code> overrides and is restricted to Preservation Staff accounts.</p><button type="button" class="btn primary" data-open-staff-auth="1">🔒 Sign In as Staff</button></div>`;
+    return;
+  }
+
+  const allClassified = moderationQueueItems.map(it =>
+    it && it.queueId && it.category ? it : classifyModerationQueueItem(it)
+  );
+  const filteredMod = filterModerationQueueItems(allClassified, {
+    category: view.modCategory || "all",
+    query: view.modQ || "",
+  });
+  const byCatCnt = {};
+  for (const cat of MODERATION_CATEGORIES) {
+    byCatCnt[cat.id] =
+      cat.id === "all"
+        ? allClassified.length
+        : allClassified.filter(x => x.category === cat.id).length;
+  }
+
+  $("#funnel").innerHTML = `
+    <div class="stage"><div class="n">${allClassified.length}</div><div class="l">pending community items</div></div>
+    <div class="stage auto"><div class="n">${byCatCnt.archival_edit || 0}</div><div class="l">archival date / architect edits</div></div>
+    <div class="stage t2"><div class="n">${byCatCnt.field_survey || 0}</div><div class="l">Walk-the-Block surveys</div></div>
+    <div class="stage t1"><div class="n">${(byCatCnt.footprint_vacant || 0) + (byCatCnt.dispute_flag || 0)}</div><div class="l">footprints, demolitions &amp; flags</div></div>
+    ${buildDemoStageHtml()}`;
+
+  const modTabsEl = $("#modCategoryTabs");
+  if (modTabsEl) {
+    modTabsEl.innerHTML = MODERATION_CATEGORIES.map(
+      cat =>
+        `<button type="button" class="tab" role="tab" data-mod-cat="${esc(cat.id)}" aria-selected="${String((view.modCategory || "all") === cat.id)}">${esc(cat.label)}<span class="c">${byCatCnt[cat.id] || 0}</span></button>`
+    ).join("");
+  }
+
+  if (!view.selectedModQueueId || !filteredMod.some(x => x.queueId === view.selectedModQueueId)) {
+    view.selectedModQueueId = filteredMod[0]?.queueId || "";
+  }
+  const activeModItem = filteredMod.find(x => x.queueId === view.selectedModQueueId) || null;
+  $("#list").innerHTML = renderModerationQueueListHtml(filteredMod, view.selectedModQueueId);
+  $("#detail").innerHTML = renderModerationQueueDetailHtml(activeModItem);
+}
+
 function render(){
   const actCtx = getActivityViewContext();
   populateHeaderAndFilterControls();
@@ -2703,11 +3016,22 @@ function render(){
   const c = counts();
   const items = getActiveItems();
 
+  if (view.mode === "moderation") {
+    $("#agendaToolbar").classList.add("hidden");
+    $("#watchlistToolbar").classList.add("hidden");
+    $("#activityToolbar")?.classList.add("hidden");
+    $("#moderationToolbar")?.classList.remove("hidden");
+    renderDemoBenchmarksDrawer();
+    renderModerationMode();
+    return;
+  }
+
   if (view.mode === "activity") {
     ensureLazyHahcTrackerLoaded();
     $("#agendaToolbar").classList.add("hidden");
     $("#watchlistToolbar").classList.add("hidden");
     $("#activityToolbar")?.classList.remove("hidden");
+    $("#moderationToolbar")?.classList.add("hidden");
     renderActivityFunnel(actCtx);
     renderDemoBenchmarksDrawer();
     renderActivityToolbar(actCtx);
@@ -2720,6 +3044,7 @@ function render(){
     $("#agendaToolbar").classList.add("hidden");
     $("#watchlistToolbar").classList.remove("hidden");
     $("#activityToolbar")?.classList.add("hidden");
+    $("#moderationToolbar")?.classList.add("hidden");
     renderWatchlistFunnel();
     renderDemoBenchmarksDrawer();
     renderWatchlistSidebar(actCtx);
@@ -2730,6 +3055,7 @@ function render(){
   $("#agendaToolbar").classList.remove("hidden");
   $("#watchlistToolbar").classList.add("hidden");
   $("#activityToolbar")?.classList.add("hidden");
+  $("#moderationToolbar")?.classList.add("hidden");
   renderAgendaFunnel(items, c);
   renderDemoBenchmarksDrawer();
   $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
@@ -2742,10 +3068,10 @@ function renderAgendaFunnel(items, c){
   const filingOnlyCount = items.length - onAgendaCount;
   $("#funnel").innerHTML = `
     <div class="stage"><div class="n">${items.length}</div><div class="l">${filingOnlyCount > 0 ? `in cycle (${onAgendaCount} on agenda · ${filingOnlyCount} filing only)` : `on agenda (incl. ${c.dpv} DPV)`}</div></div>
-    <div class="stage"><div class="n">${items.filter(i => i._c.group === "check").length}</div><div class="l">to check after screening</div></div>
-    <div class="stage auto"><div class="n">${c.researched}</div><div class="l">pre-enriched &amp; researched</div></div>
-    <div class="stage t1"><div class="n">${c.t1}</div><div class="l">Tier 1 · escalate</div></div>
-    <div class="stage t2"><div class="n">${c.t2}</div><div class="l">Tier 2 · watch</div></div>
+    <div class="stage"><div class="n">${items.filter(i => i._c.group === "check").length}</div><div class="l">needs screening</div></div>
+    <div class="stage auto"><div class="n">${c.researched}</div><div class="l">pre-enriched &amp; assessed</div></div>
+    <div class="stage t1"><div class="n">${c.t1}</div><div class="l">Act (Tier 1)</div></div>
+    <div class="stage t2"><div class="n">${c.t2}</div><div class="l">Watch (Tier 2)</div></div>
     ${buildDemoStageHtml()}`;
 }
 
@@ -2848,10 +3174,15 @@ function renderList(precomputedActCtx = null){
     );
     const appLabel = mergedApps.join(" · ");
 
+    const attBadge = it._parcelAssessment && (t || it._parcelAssessment.parcel.significance_level || it._parcelAssessment.parcel.recommended_significance)
+      ? renderAttentionBadgeHtml(it._parcelAssessment.attentionLevel, { compact: true })
+      : "";
+
     return `<button class="row" data-occ="${esc(it._occKey)}" data-app="${esc(it.app)}" aria-current="${it._occKey === view.selected}">
       <div class="top">
         <span class="nm">${esc(mainTitle)}</span>
         ${unreadChip}
+        ${attBadge}
         ${t ? `<span class="tierbadge t${esc(t)}">Tier ${esc(t)}${r.tierConfirmed ? " ✓" : ""}</span>` : (isResearched(it) ? '<span class="app">enriched</span>' : "")}
         <span class="app">${esc(appLabel)}</span>
       </div>
@@ -3163,8 +3494,44 @@ function renderDetail(){
     </div>
   ` : "";
 
-  const currentTier = r.tier || "";
+  const currentTier = tierOf(it);
   const effectiveThreat = r.threatCategory || it.threatCategory || "";
+  const activeRole = getActiveMonitoringRole();
+  const parcelAssessment = resolveEffectiveParcelAssessment({
+    platItem: it,
+    review: r,
+    watchProp: linkedWatch,
+    parcelsById: monitoringParcelsById,
+    decisionsByParcelId: monitoringDecisionsByParcelId,
+    campusIndex: campusParcelIndex,
+    areasById: monitoringAreasById,
+  });
+  it._parcelAssessment = parcelAssessment;
+  const primaryHcad13 = normalizeHcad13(
+    parcelAssessment.parcel.hcad_num || r.hcad || it.hcad || ""
+  );
+  const curOv = primaryHcad13 && atlasLookupSnapshot?.curatedOverrides
+    ? atlasLookupSnapshot.curatedOverrides[primaryHcad13] || null
+    : null;
+  const locMeta = primaryHcad13 && atlasLookupSnapshot?.localHcadMap
+    ? atlasLookupSnapshot.localHcadMap.get(primaryHcad13) || null
+    : null;
+  const conflictReport = detectParcelSourceConflicts({
+    hcadNum: primaryHcad13,
+    platItem: it,
+    review: r,
+    parcelRecord: parcelAssessment.parcel,
+    atlasParcelMeta: locMeta ? { oldestYearBuilt: (locMeta.allYears || []).slice().sort((a, b) => a - b)[0] || 0 } : null,
+    curatedOverride: curOv,
+  });
+  const candidateEntitiesForWatch = [
+    it.developer,
+    it.applicant,
+    it.org,
+    at.owner,
+    linkedWatch?.ownerOfRecord,
+    linkedWatch?.buyerRelatedEntities,
+  ].filter(Boolean);
 
   $("#detail").innerHTML = `
     <h2>${esc(r.address || at.primaryAddress || it.name)}</h2>
@@ -3177,6 +3544,28 @@ function renderDetail(){
     ${agendaPresenceBanner}
     ${materialChangeBanner}
     ${screenOutBanner}
+    ${renderParcelSignificanceCardHtml({
+      assessment: parcelAssessment,
+      role: activeRole,
+      materialChanges: matChanges,
+      contextMode: "agenda",
+    })}
+    ${renderSourceConflictWritebackCardHtml({
+      conflictReport,
+      role: activeRole,
+      defaultAddress: r.address || at.primaryAddress || "",
+      defaultBuildingName: linkedWatch?.propertyName || it.name || "",
+      defaultArchitect: linkedWatch?.architect || "",
+      defaultDistrict: it.hd || "",
+      defaultYearBuilt: r.yearBuilt || at.earliestYearBuilt || "",
+    })}
+    ${renderStaffOnlyStrategyCardHtml({
+      parcelId: parcelAssessment.parcelId,
+      strategyRecord: staffStrategyByParcelId.get(parcelAssessment.parcelId) || null,
+      candidateEntities: candidateEntitiesForWatch,
+      watchedEntities: staffWatchedEntities,
+      role: activeRole,
+    })}
     ${priorHistoryHtml}
     ${renderPlatPolygonSvgPreview(it, r)}
     ${hasAtlasInfo ? `
@@ -3856,7 +4245,9 @@ function renderWatchlistFunnel(){
 function renderWatchlistSidebar(precomputedActCtx = null){
   const list = getFilteredWatchedProperties();
   if (!list.length) {
-    $("#list").innerHTML = '<div class="list-empty">No watched properties match the current filters.</div>';
+    $("#list").innerHTML = getStaffSession()
+      ? '<div class="list-empty">No watched properties match the current filters.</div>'
+      : '<div class="list-empty">Sign in as Staff or Screener to load Preservation Houston Watchlist dossiers.</div>';
     return;
   }
   getSelectedWatchProp();
@@ -4480,7 +4871,9 @@ function renderWatchlistDetail(precomputedActCtx = null){
 
   const p = getSelectedWatchProp();
   if (!p) {
-    $("#detail").innerHTML = '<p class="list-empty">Select a watched property on the left.</p>';
+    $("#detail").innerHTML = getStaffSession()
+      ? '<p class="list-empty">Select a watched property on the left, or click + Add Property to Watchlist.</p>'
+      : renderSignedOutWatchlistGateHtml();
     return;
   }
   const unreadIdx = (precomputedActCtx || getActivityViewContext()).unreadIndex;
@@ -4659,9 +5052,63 @@ function renderWatchlistDetail(precomputedActCtx = null){
     </div>
 
     <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
-      <span>${staffSess ? `☁️ <b>Cloud Sync Active (${esc(staffSess.email)})</b>: Dossier edits, snowball terms, photos, checklist logs, and your What's New read/unread progress sync automatically across your browsers.` : `🔒 <b>Read-Only Mode</b>: Sign in once on this browser to edit property details, log checklist findings, and sync your progress across computers.`}</span>
+      <span>${staffSess ? `☁️ <b>Cloud Sync Active (${esc(staffSess.role === "screener" ? "Screener" : "Staff")}: ${esc(staffSess.email)})</b>: Dossier edits, snowball terms, photos, checklist logs, and your What's New read/unread progress sync automatically across your browsers.` : `🔒 <b>Read-Only Mode</b>: Sign in once on this browser to edit property details, log checklist findings, and sync your progress across computers.`}</span>
       ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<button type="button" class="btn sm" data-open-staff-auth="1" style="padding:2px 8px;font-size:11.5px;border-color:#9ccbb5;color:#175e3c;background:#fff">Account &amp; Sync</button>`}
     </div>
+
+    ${(() => {
+      const wlRole = getActiveMonitoringRole();
+      const wlAssessment = resolveEffectiveParcelAssessment({
+        watchProp: p,
+        parcelsById: monitoringParcelsById,
+        decisionsByParcelId: monitoringDecisionsByParcelId,
+        campusIndex: campusParcelIndex,
+        areasById: monitoringAreasById,
+      });
+      const wlCurOv = wlPaddedHcad && atlasLookupSnapshot?.curatedOverrides
+        ? atlasLookupSnapshot.curatedOverrides[wlPaddedHcad] || null
+        : null;
+      const wlLocMeta = wlPaddedHcad && atlasLookupSnapshot?.localHcadMap
+        ? atlasLookupSnapshot.localHcadMap.get(wlPaddedHcad) || null
+        : null;
+      const wlConflict = detectParcelSourceConflicts({
+        hcadNum: wlPaddedHcad,
+        parcelRecord: wlAssessment.parcel,
+        atlasParcelMeta: wlLocMeta ? { oldestYearBuilt: (wlLocMeta.allYears || []).slice().sort((a, b) => a - b)[0] || 0 } : null,
+        curatedOverride: wlCurOv,
+      });
+      const wlEntities = [
+        p.ownerOfRecord,
+        p.buyerRelatedEntities,
+        p.developer,
+        p.broker,
+        p.designFirm,
+        ...((p.searchTerms && p.searchTerms.entities) || []),
+      ].filter(Boolean);
+      return (
+        renderParcelSignificanceCardHtml({
+          assessment: wlAssessment,
+          role: wlRole,
+          contextMode: "watchlist",
+        }) +
+        renderSourceConflictWritebackCardHtml({
+          conflictReport: wlConflict,
+          role: wlRole,
+          defaultAddress: p.address || "",
+          defaultBuildingName: p.propertyName || "",
+          defaultArchitect: p.architect || "",
+          defaultDistrict: p.historicDistrict || "",
+          defaultYearBuilt: p.yearBuilt || "",
+        }) +
+        renderStaffOnlyStrategyCardHtml({
+          parcelId: wlAssessment.parcelId,
+          strategyRecord: staffStrategyByParcelId.get(wlAssessment.parcelId) || null,
+          candidateEntities: wlEntities,
+          watchedEntities: staffWatchedEntities,
+          role: wlRole,
+        })
+      );
+    })()}
 
     <div class="wl-card">
       <h3>
@@ -5540,7 +5987,6 @@ async function loadHistory(files){
     seen.add(k);
     return true;
   });
-  store.set("phpam:history", history);
   if (S) {
     prepareAllCycles();
     render();
@@ -6128,21 +6574,49 @@ function showEmail(){
   $("#emt").focus();
 }
 
-/* ---------- Google Sheet Staff Admin Auth & Live Ownership-Partitioned Cloud Sync ---------- */
+/* ---------- Google Workspace RBAC Auth, Parcel RPCs & Live Cloud Sync ---------- */
 const SHEET_WEBHOOK_URL = DEFAULT_SHEET_WEBHOOK_URL;
-const SHEET_PUBLISHED_CSV_URL = DEFAULT_SHEET_PUBLISHED_CSV_URL;
 const cloudSyncTimers = {};
 let endpointSupportsRoamingSync = null; // null = unknown, true = confirmed, false = legacy/stub
 
 function getStaffSession(){
-  try {
-    const raw = sessionStorage.getItem(LS_ADMIN_SESSION_KEY) || localStorage.getItem(LS_ADMIN_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return (parsed && parsed.authorized) ? parsed : null;
-  } catch (_e) {
-    return null;
+  return readActiveMonitoringSession();
+}
+
+function wipeInMemoryPrivateStateOnSignOut(){
+  for (const k of Object.keys(cloudSyncTimers)) {
+    clearTimeout(cloudSyncTimers[k]);
+    delete cloudSyncTimers[k];
   }
+  monitoringAreasById.clear();
+  monitoringParcelsById.clear();
+  monitoringDecisionsByParcelId.clear();
+  monitoringEvents = [];
+  campusParcelIndex = buildCampusParcelIndex([]);
+  staffStrategyByParcelId.clear();
+  staffWatchedEntities = [];
+  moderationQueueItems = [];
+  pendingModerationCount = 0;
+  cloudWatchlistById.clear();
+  localWatchlistById.clear();
+  WL.watchedProperties = [];
+  WL.removedTombstones = {};
+  if (view.mode === "moderation") {
+    view.mode = "agenda";
+  }
+  if (rawPublicPlatPayload) {
+    startMultiCycle(JSON.parse(JSON.stringify(rawPublicPlatPayload)));
+  } else if (S) {
+    prepareAllCycles();
+  }
+}
+
+function handleTokenExpiredPrompt({ action = "" } = {}){
+  const retryCount = getPendingAuthRetryCount();
+  toast(
+    `Your 1-hour Google Sign-In token expired${action ? ` during ${action}` : ""}. Sign in again to save${retryCount ? ` (${retryCount} pending edit${retryCount === 1 ? "" : "s"} preserved)` : ""}.`
+  );
+  openStaffAuthModal({ isExpiredReauth: true });
 }
 
 function updateStaffAuthButtonUI(){
@@ -6152,25 +6626,27 @@ function updateStaffAuthButtonUI(){
   const menuSheetLink = $("#exportMenuSheetLink");
   const loadSheetLink = $("#loadMenuSheetLink");
   const sess = getStaffSession();
+  const isStaff = canAccessStaffOnly(sess);
   if (guideBtn) guideBtn.classList.toggle("hidden", !sess);
   if (menuGuideLink) menuGuideLink.classList.toggle("hidden", !sess);
-  if (menuSheetLink) menuSheetLink.classList.toggle("hidden", !sess);
-  if (loadSheetLink) loadSheetLink.classList.toggle("hidden", !sess);
+  if (menuSheetLink) menuSheetLink.classList.toggle("hidden", !isStaff);
+  if (loadSheetLink) loadSheetLink.classList.toggle("hidden", !isStaff);
   if (!btn) return;
   if (sess) {
     const shortUser = esc((sess.email || "").split("@")[0]);
+    const roleTag = sess.role === "screener" ? "Screener" : "Staff";
     if (roamingSyncStatus === "syncing") {
-      btn.innerHTML = `&#8635; Syncing: ${shortUser}`;
+      btn.innerHTML = `&#8635; Syncing (${roleTag}): ${shortUser}`;
       btn.style.background = "#1E4E8C";
       btn.style.borderColor = "#60A5FA";
       btn.style.color = "#FFFFFF";
     } else if (roamingSyncStatus === "offline") {
-      btn.innerHTML = `&#9889; Offline Queue: ${shortUser}`;
+      btn.innerHTML = `&#9889; Offline Queue (${roleTag}): ${shortUser}`;
       btn.style.background = "#92400E";
       btn.style.borderColor = "#FBBF24";
       btn.style.color = "#FFFFFF";
     } else {
-      btn.innerHTML = `&#9729; Synced: ${shortUser}`;
+      btn.innerHTML = `&#9729; ${roleTag}: ${shortUser}`;
       btn.style.background = "#1F6B43";
       btn.style.borderColor = "#40916C";
       btn.style.color = "#FFFFFF";
@@ -6262,15 +6738,90 @@ async function syncRoamingUserProfile({ includeAnonState = false, allowModeUpdat
 
 function requireStaffAuth(actionDesc){
   if (getStaffSession()) return true;
-  toast("Sign in with your staff account to " + (actionDesc || "edit and sync changes across browsers") + ".");
+  toast("Sign in with your Staff or Screener account to " + (actionDesc || "edit and sync changes across browsers") + ".");
   openStaffAuthModal();
   return false;
 }
 
-function openStaffAuthModal(){
+async function pullModerationQueue(){
+  const sess = getStaffSession();
+  if (!canAccessStaffOnly(sess)) {
+    moderationQueueItems = [];
+    pendingModerationCount = 0;
+    return [];
+  }
+  const resp = await callMonitoringRpc({
+    webhookUrl: SHEET_WEBHOOK_URL,
+    action: "list_pending_moderation",
+    session: sess,
+    onTokenExpired: handleTokenExpiredPrompt,
+  });
+  if (resp && resp.ok && Array.isArray(resp.items)) {
+    moderationQueueItems = resp.items.map(classifyModerationQueueItem);
+    pendingModerationCount = moderationQueueItems.length;
+    persistMonitoringSnapshotToRoleCache();
+    updateModeButtons();
+    if (view.mode === "moderation") renderModerationMode();
+  }
+  return moderationQueueItems;
+}
+
+async function pullAuthenticatedMonitoringState(){
+  const sess = getStaffSession();
+  if (!sess || !sess.authorized) return false;
+  try {
+    const resp = await pullCloudMonitoringState({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      session: sess,
+      onTokenExpired: handleTokenExpiredPrompt,
+    });
+    if (!resp || !resp.ok) return false;
+    const { appliedWatch, appliedDecisions } = hydratePhase1MapsFromPayload(
+      resp,
+      resp.role || sess.role
+    );
+    if (canAccessStaffOnly(sess) && (view.mode === "moderation" || pendingModerationCount > 0)) {
+      pullModerationQueue().catch(() => {});
+    }
+    if (appliedWatch > 0 || cloudWatchlistById.size > 0) {
+      rebuildReconciledWatchlist();
+      if (S) reconcileWatchlistTiersOntoCycles({ persist: true, syncCloud: false });
+    }
+    if (S) {
+      prepareAllCycles();
+      persistAllCycles();
+    }
+    if (appliedWatch > 0 || appliedDecisions > 0 || monitoringParcelsById.size > 0) {
+      const activeEl = document.activeElement;
+      const isEditingInDetail = Boolean(
+        (view.mode === "watchlist" || view.mode === "agenda") &&
+        activeEl &&
+        $("#detail")?.contains(activeEl) &&
+        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+      );
+      if (isEditingInDetail && view.mode === "watchlist") {
+        captureWatchlistDraftInputs();
+        const actCtx = getActivityViewContext();
+        populateHeaderAndFilterControls();
+        updateModeButtons(actCtx);
+        renderWatchlistFunnel();
+        renderWatchlistSidebar(actCtx);
+      } else if (!isEditingInDetail) {
+        render();
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn("Could not pull authenticated monitoring state:", err);
+    return false;
+  }
+}
+
+function openStaffAuthModal({ isExpiredReauth = false } = {}){
   const existingModal = document.querySelector(".modal-back");
   if (existingModal) existingModal.remove();
   const sess = getStaffSession();
+  const pendingRetries = getPendingAuthRetryCount();
   const back = document.createElement("div");
   back.className = "modal-back";
   const caughtUpSummary = view.caughtUpAt
@@ -6279,15 +6830,22 @@ function openStaffAuthModal(){
   const lastSyncSummary = lastRoamingCloudSyncAt
     ? new Date(lastRoamingCloudSyncAt).toLocaleTimeString()
     : "Active";
+  const roleDisplay = sess ? (sess.role === "screener" ? "Screener" : "Preservation Staff") : "";
+
   back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:570px">
-    <h3>&#9729; Staff Account &amp; Cross-Browser Cloud Sync</h3>
+    <h3>&#9729; Staff &amp; Screener Account · Cross-Browser Cloud Sync</h3>
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px 0;line-height:1.5">
-      Sign in once on each browser (office desktop, home laptop, or tablet) using your authorized Preservation Houston Google Account. Your <strong>What's New read/unread progress</strong>, <strong>15-Point Watchlist dossiers</strong>, <strong>Plat reviews</strong>, and <strong>view preferences</strong> follow your account automatically.
+      Sign in once on each browser using <strong>1-Click Google Sign-In</strong> or your authorized email and Sync Passkey. Your <strong>Once-Per-Parcel Significance</strong>, <strong>15-Point Watchlist dossiers</strong>, and <strong>What's New read/unread progress</strong> sync privately through Google Workspace.
     </p>
+    ${isExpiredReauth || pendingRetries > 0 ? `
+      <div style="padding:9px 12px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;margin-bottom:10px;font-size:12.5px;color:#92400E">
+        <b>Session Re-Verification Needed:</b> Re-verify below to automatically save ${pendingRetries || "your"} pending edit${pendingRetries === 1 ? "" : "s"}.
+      </div>
+    ` : ""}
     ${sess ? `
       <div style="padding:11px 13px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:6px;margin-bottom:12px;font-size:13px;color:#1F6B43">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <div><strong>&#10003; Signed In:</strong> ${esc(sess.email)}</div>
+          <div><strong>&#10003; Signed In (${esc(roleDisplay)}):</strong> ${esc(sess.email)}</div>
           <button class="btn sm" id="saSyncNowBtn" type="button" style="background:#fff;color:#1F6B43;border-color:#95D5B2">&#8635; Sync Now</button>
         </div>
         <div style="font-size:12px;margin-top:5px;color:#14532D;line-height:1.4">
@@ -6295,28 +6853,31 @@ function openStaffAuthModal(){
         </div>
       </div>
     ` : ""}
+    <div id="saGoogleSignInSlot" class="hidden" style="margin-bottom:10px"></div>
     <form id="staffAuthForm" autocomplete="on" style="margin:0">
       <div class="grid2">
         <div class="field">
-          <label for="sa-email">Staff Google Account Email</label>
+          <label for="sa-email">Google Account Email</label>
           <input id="sa-email" name="username" autocomplete="username" type="email" placeholder="advocate@example.org" value="${esc(sess ? sess.email : "")}">
         </div>
         <div class="field">
-          <label for="sa-passkey">Staff Sync Passkey</label>
-          <input id="sa-passkey" name="password" autocomplete="current-password" type="password" placeholder="Enter Staff Sync Passkey" value="${esc(sess ? sess.adminPasskey : "")}">
+          <label for="sa-passkey">Sync Passkey (Staff or Screener)</label>
+          <input id="sa-passkey" name="password" autocomplete="current-password" type="password" placeholder="Enter Sync Passkey" value="${esc(sess ? sess.adminPasskey : "")}">
         </div>
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4">
         Tip: Allow your browser or password manager to save this sign-in once so switching between office and home browsers is effortless.
       </div>
       <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--t1)"></div>
+      ${canAccessStaffOnly(sess) ? `
       <details style="margin-top:8px;font-size:12px;color:var(--muted)">
-        <summary style="cursor:pointer;font-weight:600">Advanced &amp; Reference Links (Optional)</summary>
+        <summary style="cursor:pointer;font-weight:600">Advanced &amp; Reference Links (Staff Only)</summary>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)">
-          <a class="btn sm" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=1383259584" target="_blank" rel="noopener">Community Moderation Sheet &#8599;</a>
+          <button class="btn sm" type="button" id="saOpenModQueueBtn">&#9989; In-App Community Queue (${pendingModerationCount})</button>
+          <a class="btn sm" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=1383259584" target="_blank" rel="noopener">Raw Google Sheet &#8599;</a>
           <a class="btn sm" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Monitoring Guide (Google Doc &#8599;)</a>
         </div>
-      </details>
+      </details>` : ""}
       <div class="actions" style="justify-content:space-between;flex-wrap:wrap;margin-top:14px">
         <div>
           ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--t1);border-color:#E5B4B0">Sign Out on This Browser</button>` : ""}
@@ -6330,111 +6891,268 @@ function openStaffAuthModal(){
   </div>`;
   document.body.appendChild(back);
   back.addEventListener("click", e => { if (e.target === back || e.target.id === "saCancel") back.remove(); });
+
+  const completeSignInFlow = async (res) => {
+    roamingSyncStatus = "synced";
+    lastRoamingCloudSyncAt = new Date().toISOString();
+    if (res.switchedAccountOrRole) {
+      wipeInMemoryPrivateStateOnSignOut();
+    }
+    if (res.roamingHydration && res.roamingHydration.supportsRoamingSync) {
+      endpointSupportsRoamingSync = true;
+      if (res.switchedAccountOrRole) {
+        if ($("#reviewer")) $("#reviewer").value = "Preservation Houston";
+        if (S) S.reviewer = "Preservation Houston";
+      }
+      applyRoamingStateToView(res.roamingHydration.state, {
+        allowModeUpdate: true,
+        resetMissingPrefs: res.switchedAccountOrRole,
+      });
+    }
+    updateModeButtons();
+    updateStaffAuthButtonUI();
+    markActivityDirty();
+    render();
+    back.remove();
+    toast(`Signed in as ${res.session.email} (${res.session.role === "screener" ? "Screener" : "Staff"}).`);
+    await pullAuthenticatedMonitoringState();
+    if (getPendingAuthRetryCount() > 0) {
+      await replayPendingAuthRetries();
+      toast("Saved pending edits after session re-verification.");
+    }
+  };
+
+  const gsiSlot = $("#saGoogleSignInSlot");
+  if (gsiSlot) {
+    mountGoogleSignInButton(gsiSlot, {
+      onCredential: async (jwtCredential) => {
+        const msgEl = $("#sa-msg");
+        if (msgEl) {
+          msgEl.style.color = "var(--muted)";
+          msgEl.textContent = "Verifying Google account...";
+        }
+        const res = await verifyAndSignInMonitoring({
+          webhookUrl: SHEET_WEBHOOK_URL,
+          googleIdToken: jwtCredential,
+        });
+        if (!res.ok) {
+          if (msgEl) {
+            msgEl.style.color = "var(--t1)";
+            msgEl.textContent = res.error;
+          }
+          return;
+        }
+        await completeSignInFlow(res);
+      },
+    }).then((m) => {
+      gsiSlot.classList.toggle("hidden", !m?.mounted);
+    });
+  }
+
+  $("#saOpenModQueueBtn")?.addEventListener("click", () => {
+    back.remove();
+    view.mode = "moderation";
+    view.userSwitchedMode = true;
+    persistModeChoice("moderation");
+    pullModerationQueue();
+    render();
+  });
+
   $("#saSyncNowBtn")?.addEventListener("click", async () => {
     const syncBtn = $("#saSyncNowBtn");
     if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = "Syncing..."; }
-    await Promise.all([syncRoamingUserProfile({ includeAnonState: false }), pullCloudSheetSync()]);
+    await Promise.all([syncRoamingUserProfile({ includeAnonState: false }), pullAuthenticatedMonitoringState()]);
     back.remove();
-    toast("Synced your read/unread progress, Watchlist, and Plat reviews with the cloud.");
+    toast("Synced your read/unread progress, parcel assessments, and Watchlist with Google Workspace.");
   });
+
   $("#saLock")?.addEventListener("click", () => {
-    if (cloudSyncTimers["roaming:user"]) {
-      clearTimeout(cloudSyncTimers["roaming:user"]);
-      delete cloudSyncTimers["roaming:user"];
-    }
-    sessionStorage.removeItem(LS_ADMIN_SESSION_KEY);
-    localStorage.removeItem(LS_ADMIN_SESSION_KEY);
+    signOutMonitoringSession();
     endpointSupportsRoamingSync = null;
-    clearLegacyMirrorOnSignOut();
+    wipeInMemoryPrivateStateOnSignOut();
     roamingState = loadLocalUserRoamingState({ email: "" });
     applyRoamingStateToView(roamingState, { resetMissingPrefs: true });
     markActivityDirty();
     updateStaffAuthButtonUI();
     render();
     back.remove();
-    toast("Signed out on this browser.");
+    toast("Signed out and cleared private monitoring cache on this browser.");
   });
+
   $("#staffAuthForm")?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const email = ($("#sa-email").value || "").trim();
     const passkey = ($("#sa-passkey").value || "").trim();
     const msgEl = $("#sa-msg");
     if (!email || !passkey) {
-      msgEl.textContent = "Please enter both your Staff Google Account Email and the Staff Sync Passkey.";
+      msgEl.textContent = "Please enter both your Google Account Email and Sync Passkey.";
       return;
     }
     const btn = $("#saVerify");
     btn.disabled = true;
     btn.textContent = "Signing in & syncing...";
     msgEl.style.color = "var(--muted)";
-    msgEl.textContent = "Verifying staff editor access and loading your cloud profile...";
-    try {
-      const res = await fetch(SHEET_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "verify_admin",
-          admin_email: email,
-          admin_passkey: passkey,
-        }),
-      });
-      const data = await res.json();
-      if (!data || !data.authorized) {
-        msgEl.style.color = "var(--t1)";
-        msgEl.textContent = (data && data.error) || "Access denied: Google account is not listed as an Editor on the Moderation Sheet or passkey is invalid.";
-        btn.disabled = false;
-        btn.textContent = "Sign In & Enable Sync";
-        return;
-      }
-      const resolvedEmail = normalizeStaffEmail(data.email || email) || email;
-      const prevEmail = normalizeStaffEmail(getStaffSession()?.email || "");
-      const switchedAccount = Boolean(prevEmail && prevEmail !== resolvedEmail);
-      const newSession = {
-        authorized: true,
-        verifiedByWebhook: true,
-        email: resolvedEmail,
-        adminPasskey: passkey,
-        unlockedAt: new Date().toISOString(),
-      };
-      sessionStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
-      localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
-      roamingSyncStatus = "synced";
-      lastRoamingCloudSyncAt = new Date().toISOString();
-
-      const hydrated = hydrateRoamingStateFromVerifyResponse({
-        verifyData: data,
-        email: resolvedEmail,
-      });
-      if (hydrated.supportsRoamingSync) {
-        endpointSupportsRoamingSync = true;
-        if (switchedAccount) {
-          if ($("#reviewer")) $("#reviewer").value = "Preservation Houston";
-          if (S) S.reviewer = "Preservation Houston";
-        }
-        applyRoamingStateToView(hydrated.state, {
-          allowModeUpdate: true,
-          resetMissingPrefs: switchedAccount,
-        });
-        if (hydrated.needsPush) {
-          queueCloudSyncUserRoamingState(900);
-        }
-      } else {
-        endpointSupportsRoamingSync = false;
-      }
-
-      updateModeButtons();
-      updateStaffAuthButtonUI();
-      markActivityDirty();
-      render();
-      back.remove();
-      toast("Signed in as " + newSession.email + ". Cross-browser sync is active.");
-    } catch (err) {
+    msgEl.textContent = "Verifying account access and loading your cloud profile...";
+    const isJwt = passkey.split(".").length === 3 && passkey.length > 80;
+    const res = await verifyAndSignInMonitoring({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      googleIdToken: isJwt ? passkey : "",
+      email,
+      passkey: isJwt ? "" : passkey,
+    });
+    if (!res.ok) {
       msgEl.style.color = "var(--t1)";
-      msgEl.textContent = "Could not reach cloud verification service: " + (err.message || err);
+      msgEl.textContent = res.error;
       btn.disabled = false;
       btn.textContent = "Sign In & Enable Sync";
+      return;
     }
+    await completeSignInFlow(res);
   });
+}
+
+function queueCloudSyncParcelDecision(parcelId, patchPayload = {}, expectedUpdatedAt = ""){
+  const sess = getStaffSession();
+  if (!sess || !sess.authorized || !parcelId) return;
+  const timerKey = `parcel:${parcelId}`;
+  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
+  cloudSyncTimers[timerKey] = setTimeout(async () => {
+    delete cloudSyncTimers[timerKey];
+    const sendRpc = () =>
+      callMonitoringRpc({
+        webhookUrl: SHEET_WEBHOOK_URL,
+        action: "upsert_parcel_decision",
+        body: {
+          parcel_id: parcelId,
+          expected_updated_at: expectedUpdatedAt,
+          patch: patchPayload,
+        },
+        onTokenExpired: handleTokenExpiredPrompt,
+        retryFn: sendRpc,
+      });
+    const resp = await sendRpc();
+    if (resp && resp.ok) {
+      if (resp.parcel) {
+        monitoringParcelsById.set(resp.parcel.parcel_id, normalizeParcelRecord(resp.parcel, { areasById: monitoringAreasById }));
+        campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
+      }
+      if (resp.decision && resp.decision.parcel_id) {
+        monitoringDecisionsByParcelId.set(resp.decision.parcel_id, resp.decision);
+      }
+      persistMonitoringSnapshotToRoleCache();
+      const noteEl = $("#savedNote");
+      if (noteEl) noteEl.textContent = "☁️ Synced parcel decision to Google Workspace · " + new Date().toLocaleTimeString();
+    } else if (resp && resp.conflict) {
+      toast("Another reviewer updated this parcel concurrently; pulling latest cloud state.");
+      pullAuthenticatedMonitoringState();
+    }
+  }, 650);
+}
+
+function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = null, reRender = true } = {}){
+  const sess = getStaffSession();
+  if (!sess || !sess.authorized) {
+    requireStaffAuth("updating parcel significance");
+    return null;
+  }
+  const r = platItem ? revFor(platItem, true) : null;
+  const linkedWp = watchProp || (platItem ? findLinkedWatchProp(platItem, r) : null);
+  const currentAssessment = resolveEffectiveParcelAssessment({
+    platItem,
+    review: r,
+    watchProp: linkedWp,
+    parcelsById: monitoringParcelsById,
+    decisionsByParcelId: monitoringDecisionsByParcelId,
+    campusIndex: campusParcelIndex,
+    areasById: monitoringAreasById,
+  });
+  const actorLabel = ($("#reviewer")?.value || S?.reviewer || sess.email || "Preservation Staff").trim();
+  const fullPatch = {
+    parcel_id: currentAssessment.parcelId,
+    hcad_num: currentAssessment.parcel.hcad_num,
+    related_hcads: currentAssessment.parcel.related_hcads,
+    primary_address: currentAssessment.parcel.primary_address,
+    building_name: currentAssessment.parcel.building_name,
+    year_built: currentAssessment.parcel.year_built,
+    subdivision_name: currentAssessment.parcel.subdivision_name,
+    designation_summary: currentAssessment.parcel.designation_summary,
+    threat_stage: currentAssessment.parcel.threat_stage,
+    latest_app_no: platItem?.app || linkedWp?.appNo || "",
+    latest_cycle_key: platItem?._cycleKey || linkedWp?.sourceCycleKey || "",
+    ...patch,
+  };
+
+  const merged = mergeParcelAndDecisionConcurrent({
+    existingParcel: monitoringParcelsById.get(currentAssessment.parcelId) || currentAssessment.parcel,
+    existingDecision: monitoringDecisionsByParcelId.get(currentAssessment.parcelId) || currentAssessment.decision,
+    patch: fullPatch,
+    actorRole: sess.role === "screener" ? "screener" : "staff",
+    actorLabel,
+    nowIso: new Date().toISOString(),
+    areasById: monitoringAreasById,
+  });
+  if (!merged.ok) {
+    toast(merged.error || "Could not apply parcel decision.");
+    return null;
+  }
+
+  const prevDecidedAt = currentAssessment.decidedAt || "";
+  monitoringParcelsById.set(merged.parcel.parcel_id, merged.parcel);
+  monitoringDecisionsByParcelId.set(merged.parcel.parcel_id, merged.decision);
+  campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
+
+  const nextDerivedTier = deriveLegacyTierFromParcel(merged.parcel);
+  if (platItem && r) {
+    r.parcelId = merged.parcel.parcel_id;
+    if (nextDerivedTier) {
+      r.tier = nextDerivedTier;
+      r.tierConfirmed =
+        merged.parcel.review_status === "assessed" && Boolean(merged.parcel.significance_level);
+    }
+    if (patch.screening_notes !== undefined) {
+      r.why = patch.screening_notes;
+    }
+    r.updated = merged.decision.decided_at;
+    propagateEditedReviewFieldsAcrossCycles(platItem, ["tier", "why"], { syncCloud: false });
+  }
+
+  if (linkedWp) {
+    linkedWp.parcelId = merged.parcel.parcel_id;
+    linkedWp.reviewStatus = merged.parcel.review_status;
+    linkedWp.significanceLevel = merged.parcel.significance_level;
+    linkedWp.protectionLevel = merged.parcel.protection_level;
+    linkedWp.threatStage = merged.parcel.threat_stage;
+    linkedWp.advocacyStatus = merged.parcel.advocacy_status;
+    linkedWp.outcome = merged.parcel.outcome;
+    linkedWp.attentionLevel = merged.parcel.attention_level;
+    if (nextDerivedTier) linkedWp.tier = nextDerivedTier;
+    if (merged.parcel.outcome === "lost" || merged.parcel.outcome === "lost_before_review") {
+      linkedWp.trackerStatus = "Lost";
+    } else if (merged.parcel.outcome === "saved") {
+      linkedWp.trackerStatus = "Saved";
+    } else if (merged.parcel.outcome === "not_relevant") {
+      linkedWp.trackerStatus = "Archived (Tier 4)";
+    }
+    linkedWp.updatedAt = merged.decision.decided_at;
+    linkedWp.updatedBy = actorLabel;
+    const savedWp = persistWatchlistPropertyEdit(linkedWp);
+    queueCloudSyncWatchProperty(savedWp);
+  }
+
+  if (S) {
+    prepareAllCycles();
+    persistAllCycles();
+  } else {
+    persistMonitoringSnapshotToRoleCache();
+  }
+
+  queueCloudSyncParcelDecision(merged.parcel.parcel_id, fullPatch, prevDecidedAt);
+  if (reRender) {
+    const sc = $("#detail")?.scrollTop || 0;
+    render();
+    if ($("#detail")) $("#detail").scrollTop = sc;
+  }
+  return merged;
 }
 
 function queueCloudSyncPlatReview(cycleKey, appNo){
@@ -6442,49 +7160,55 @@ function queueCloudSyncPlatReview(cycleKey, appNo){
   if (!sess || !S || !cycleKey || !appNo) return;
   const cyc = S.cycles[cycleKey];
   if (!cyc) return;
-  const timerKey = `plat:${cycleKey}:${appNo}`;
-  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
-  cloudSyncTimers[timerKey] = setTimeout(async () => {
-    delete cloudSyncTimers[timerKey];
-    const r = cyc.reviews[appNo];
-    const it = cyc.items.find(i => i.app === appNo) || {};
-    if (!r) return;
-    const payload = {
-      action: "admin_approve",
-      admin_email: sess.email,
-      admin_passkey: sess.adminPasskey,
-      google_id_token: sess.googleIdToken || "",
-      hcad_num: `PLAT_REV:${cycleKey}:${appNo}`,
-      address: `${it.name || appNo} (${r.address || it.atlas?.primaryAddress || ""})`,
-      suggested_year_built: Number(r.yearBuilt) || 0,
-      hcad_year_built: Number(it.atlas?.earliestYearBuilt) || 0,
-      historic_district: r.designation || "",
-      contributing: r.tier ? `Tier ${r.tier}` : "Unreviewed",
-      source_type: "PLAT_MONITOR_REVIEW",
-      source_citation: JSON.stringify({
-        cycleKey,
-        appNo,
-        review: r,
-        reviewer: S.reviewer || sess.email,
-        updatedAt: r.updated || new Date().toISOString(),
-      }),
-      source_url: it.pdf || it.noticePdf || "",
-      submitter_name: S.reviewer || sess.email,
-    };
-    try {
-      const res = await fetch(SHEET_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const noteEl = $("#savedNote");
-        if (noteEl) noteEl.textContent = "☁️ Synced to Google Sheet · " + new Date().toLocaleTimeString();
-      }
-    } catch (err) {
-      console.warn("Cloud sync warning for plat review:", err);
+  const r = cyc.reviews[appNo];
+  const it = cyc.items.find(i => i.app === appNo) || null;
+  if (!r || !it) return;
+  const assessment = resolveEffectiveParcelAssessment({
+    platItem: it,
+    review: r,
+    watchProp: findLinkedWatchProp(it, r),
+    parcelsById: monitoringParcelsById,
+    decisionsByParcelId: monitoringDecisionsByParcelId,
+    campusIndex: campusParcelIndex,
+    areasById: monitoringAreasById,
+  });
+  const migrated = migrateLegacyTierToParcelFields(
+    {
+      tier: r.tier || "",
+      why: r.why || "",
+      followup: r.followup || "",
+      designation: r.designation || "",
+      yearBuilt: r.yearBuilt || it.atlas?.earliestYearBuilt || "",
+    },
+    { isWatchlist: false, defaultThreatStage: 3 }
+  );
+  const patch = {
+    parcel_id: assessment.parcelId,
+    hcad_num: parseRelatedHcads([r.hcad || "", it.hcad || ""])[0] || assessment.parcel.hcad_num,
+    related_hcads: parseRelatedHcads([r.hcad || "", it.hcad || ""]).join("; ") || assessment.parcel.related_hcads,
+    primary_address: r.address || it.atlas?.primaryAddress || assessment.parcel.primary_address,
+    year_built: Number(r.yearBuilt || it.atlas?.earliestYearBuilt || 0) || assessment.parcel.year_built,
+    designation_summary:
+      r.designation && r.designation !== DESIGNATIONS[0]
+        ? r.designation
+        : assessment.parcel.designation_summary,
+    latest_app_no: appNo,
+    latest_cycle_key: cycleKey,
+    screening_notes: [r.why || "", r.sources ? `Sources: ${r.sources}` : "", r.followup ? `Follow-up: ${r.followup}` : ""]
+      .filter(Boolean)
+      .join(" | "),
+  };
+  if (r.tier) {
+    patch.review_status = migrated.review_status;
+    if (sess.role === "screener") {
+      patch.recommended_significance = migrated.significance_level;
+    } else {
+      patch.significance_level = migrated.significance_level;
+      patch.advocacy_status = migrated.advocacy_status;
+      patch.outcome = migrated.outcome;
     }
-  }, 850);
+  }
+  queueCloudSyncParcelDecision(assessment.parcelId, patch, assessment.decidedAt || "");
 }
 
 function queueCloudSyncWatchProperty(prop){
@@ -6497,135 +7221,35 @@ function queueCloudSyncWatchProperty(prop){
     const reviewerId = ($("#reviewer")?.value || sess.email || "").trim();
     const serialized = serializeWatchPropertyForSync(prop, reviewerId, prop.updatedAt || new Date().toISOString());
     if (!serialized) return;
-    const citationJson = stringifyWatchPropertyForSheetCell(serialized);
-    const payload = {
-      action: "admin_approve",
-      admin_email: sess.email,
-      admin_passkey: sess.adminPasskey,
-      google_id_token: sess.googleIdToken || "",
-      hcad_num: `WATCH_PROP:${serialized.id}`,
-      address: `${serialized.address || ""} (${serialized.propertyName || ""})`,
-      suggested_year_built: Number(String(serialized.yearBuilt || "").slice(0, 4)) || 0,
-      hcad_year_built: 0,
-      historic_district: serialized.designation || "",
-      contributing: `Tier ${serialized.tier || "1"}`,
-      source_type: "PROPERTY_WATCHLIST_UPDATE",
-      source_citation: citationJson,
-      source_url: (serialized.driveLinks && serialized.driveLinks[0]?.url) || "",
-      submitter_name: reviewerId,
-    };
-    try {
-      await fetch(SHEET_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
+    const hcadIds = parseRelatedHcads(serialized.hcadAccount || "");
+    const parcelId = resolveCanonicalParcelId(
+      {
+        parcelId: serialized.parcelId || "",
+        hcadIds,
+        appNo: serialized.appNo || "",
+        address: serialized.address || "",
+        name: serialized.propertyName || "",
+      },
+      campusParcelIndex
+    );
+    const sendWatchRpc = () =>
+      callMonitoringRpc({
+        webhookUrl: SHEET_WEBHOOK_URL,
+        action: "upsert_watchlist_dossier",
+        body: {
+          watch_id: serialized.id,
+          parcel_id: parcelId,
+          hcad_num: hcadIds[0] || "",
+          primary_address: serialized.address || "",
+          property_name: serialized.propertyName || "",
+          tracker_status: serialized.trackerStatus || "",
+          dossier: serialized,
+        },
+        onTokenExpired: handleTokenExpiredPrompt,
+        retryFn: sendWatchRpc,
       });
-    } catch (err) {
-      console.warn("Cloud sync warning for watched property:", err);
-    }
-  }, 850);
-}
-
-async function pullCloudSheetSync(){
-  try {
-    let platReviews = [];
-    let watchProperties = [];
-    try {
-      const r = await fetch(`${SHEET_WEBHOOK_URL}?feed=plat_sync`, { cache: "no-store" });
-      if (r.ok) {
-        const csvText = await r.text();
-        if (csvText) {
-          const parsed = parseCloudSheetSyncRows(csvText);
-          platReviews = parsed.platReviews;
-          watchProperties = parsed.watchProperties;
-        }
-      }
-    } catch (_e) {}
-    if (!platReviews.length && !watchProperties.length) {
-      try {
-        const r2 = await fetch(SHEET_PUBLISHED_CSV_URL, { cache: "no-store" });
-        if (r2.ok) {
-          const csvText2 = await r2.text();
-          if (csvText2) {
-            const parsed2 = parseCloudSheetSyncRows(csvText2);
-            platReviews = parsed2.platReviews;
-            watchProperties = parsed2.watchProperties;
-          }
-        }
-      } catch (_e2) {}
-    }
-    if (!platReviews.length && !watchProperties.length) return;
-
-    let appliedPlat = 0;
-    let appliedWatch = 0;
-
-    if (S) {
-      for (const pr of platReviews) {
-        const targetCycle =
-          pr.cycleKey && S.cycles[pr.cycleKey]
-            ? pr.cycleKey
-            : S.cycleOrder.find(ck => S.cycles[ck]?.items?.some(it => it.app === pr.appNo));
-        if (targetCycle && S.cycles[targetCycle]) {
-          const curRev = S.cycles[targetCycle].reviews[pr.appNo] || {};
-          const curMs = Date.parse(curRev.updated || "") || 0;
-          if (pr.updatedMs >= curMs) {
-            const itRef = S.cycles[targetCycle].items.find(i => i.app === pr.appNo) || null;
-            S.cycles[targetCycle].reviews[pr.appNo] = mergePlatReviewOverlay(curRev, pr.review, {
-              sourceAppNo: pr.appNo,
-              item: itRef,
-            });
-            appliedPlat++;
-          }
-        }
-      }
-    }
-
-    for (const wp of watchProperties) {
-      if (isLegacyUnconfirmedPlatSeed(wp.rawProp)) continue;
-      const normCloud = normalizeWatchProperty(wp.rawProp);
-      if (!normCloud) continue;
-      const prevCloud = cloudWatchlistById.get(normCloud.id);
-      const prevMs = Date.parse(prevCloud?.updatedAt || "") || 0;
-      const nextMs = wp.updatedMs || Date.parse(normCloud.updatedAt || "") || 0;
-      if (!prevCloud || nextMs >= prevMs) {
-        cloudWatchlistById.set(normCloud.id, normCloud);
-        if (isRemovedWatchlistTombstone(normCloud)) {
-          staticWatchlistById.delete(normCloud.id);
-        }
-        appliedWatch++;
-      }
-    }
-
-    if (appliedWatch > 0) {
-      rebuildReconciledWatchlist();
-      if (S) reconcileWatchlistTiersOntoCycles({ persist: true, syncCloud: false });
-    }
-    if ((appliedPlat > 0 || appliedWatch > 0) && S) {
-      prepareAllCycles();
-      persistAllCycles();
-    }
-    if (appliedPlat > 0 || appliedWatch > 0) {
-      const activeEl = document.activeElement;
-      const isEditingInDetail = Boolean(
-        view.mode === "watchlist" &&
-        activeEl &&
-        $("#detail")?.contains(activeEl) &&
-        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
-      );
-      if (isEditingInDetail) {
-        captureWatchlistDraftInputs();
-        const actCtx = getActivityViewContext();
-        populateHeaderAndFilterControls();
-        updateModeButtons(actCtx);
-        renderWatchlistFunnel();
-        renderWatchlistSidebar(actCtx);
-      } else {
-        render();
-      }
-    }
-  } catch (err) {
-    console.warn("Could not pull live Google Sheet sync:", err);
-  }
+    await sendWatchRpc();
+  }, 750);
 }
 
 /* ---------- Deep-Linking & Live Pre-Enriched Atlas Loader ---------- */
@@ -6762,8 +7386,7 @@ async function loadLiveAtlasCycle(forceReload){
         const norm = normalizeWatchProperty(rawP);
         if (norm) staticWatchlistById.set(norm.id, norm);
       }
-      // Purge stale unconfirmed legacy plat-* entries from localStorage on every live boot (DF-1)
-      let prunedLocal = false;
+      // Purge stale unconfirmed legacy plat-* entries from in-memory map on every live boot (DF-1)
       for (const [id, locP] of Array.from(localWatchlistById.entries())) {
         if (isRemovedWatchlistTombstone(locP)) continue;
         if (
@@ -6771,22 +7394,9 @@ async function loadLiveAtlasCycle(forceReload){
           (id.startsWith("plat-") && !staticWatchlistById.has(id) && !cloudWatchlistById.has(id) && !locP.tierConfirmed && !hasHumanDossierContributions(locP))
         ) {
           localWatchlistById.delete(id);
-          prunedLocal = true;
         }
       }
       rebuildReconciledWatchlist();
-      if (prunedLocal) {
-        store.set(WL_KEY, {
-          app: "Plat & Property Monitor Watchlist",
-          version: 2,
-          savedAt: new Date().toISOString(),
-          lastAutoSweepAt: WL.lastAutoSweepAt || "",
-          autoSweepSchedule: WL.autoSweepSchedule || "Daily at 7:00 AM CT",
-          lastSweepHealth: WL.lastSweepHealth || null,
-          watchedProperties: WL.watchedProperties,
-          removedTombstones: WL.removedTombstones || {},
-        });
-      }
       if (!forceReload) {
         await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved });
       }
@@ -6798,6 +7408,7 @@ async function loadLiveAtlasCycle(forceReload){
 
     if (platResp.ok) {
       const d = await platResp.json();
+      rawPublicPlatPayload = JSON.parse(JSON.stringify(d));
       startMultiCycle(d);
       if (!forceReload) {
         const params = new URLSearchParams(window.location.search);
@@ -6836,9 +7447,12 @@ async function loadLiveAtlasCycle(forceReload){
     }
 
     await Promise.all([
-      pullCloudSheetSync(),
+      pullAuthenticatedMonitoringState(),
       syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false }),
     ]);
+    if (view.mode === "moderation" && canAccessStaffOnly(getStaffSession())) {
+      await pullModerationQueue();
+    }
     if (!forceReload && (await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved }))) {
       render();
     }
@@ -7939,6 +8553,294 @@ document.addEventListener("click", async e => {
     return;
   }
 
+  // Phase 1 Parcel Significance, Source Conflict Writeback, Staff-Only Vault & Moderation Queue Actions
+  const pubModeBtn = e.target.closest("[data-switch-public-mode]");
+  if (pubModeBtn) {
+    view.mode = pubModeBtn.dataset.switchPublicMode || "agenda";
+    view.userSwitchedMode = true;
+    persistModeChoice(view.mode);
+    render();
+    return;
+  }
+
+  const confSigBtn = e.target.closest("[data-parcel-conf-sig]");
+  if (confSigBtn) {
+    if (!requireStaffAuth("confirming parcel significance")) return;
+    const val = confSigBtn.dataset.parcelConfSig;
+    const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+    const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+    const patch =
+      val === "needs_research"
+        ? { review_status: "needs_research", significance_level: "" }
+        : { review_status: "assessed", significance_level: val };
+    applyParcelAssessmentPatch(patch, { platItem: activeIt, watchProp: activeWp });
+    toast(`Confirmed parcel significance: ${val.replace(/_/g, " ")}.`);
+    return;
+  }
+
+  const recSigBtn = e.target.closest("[data-parcel-rec-sig]");
+  if (recSigBtn) {
+    if (!requireStaffAuth("recommending parcel significance")) return;
+    const val = recSigBtn.dataset.parcelRecSig;
+    const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+    const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+    const patch =
+      val === "needs_research"
+        ? { review_status: "needs_research", recommended_significance: "" }
+        : { review_status: "assessed", recommended_significance: val };
+    applyParcelAssessmentPatch(patch, { platItem: activeIt, watchProp: activeWp });
+    toast(`Saved Screener recommendation: ${val.replace(/_/g, " ")}.`);
+    return;
+  }
+
+  const approveRecBtn = e.target.closest("#approveScreenerSigBtn");
+  if (approveRecBtn) {
+    if (!canAccessStaffOnly(getStaffSession())) return;
+    const val = approveRecBtn.dataset.approveRecSig || "";
+    const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+    const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+    applyParcelAssessmentPatch(
+      { review_status: "assessed", significance_level: val },
+      { platItem: activeIt, watchProp: activeWp }
+    );
+    toast(`Confirmed Screener recommendation (${val.replace(/_/g, " ")}).`);
+    return;
+  }
+
+  const pickConflictBtn = e.target.closest("[data-pick-conflict-field]");
+  if (pickConflictBtn) {
+    const fKey = pickConflictBtn.dataset.pickConflictField;
+    const fVal = pickConflictBtn.dataset.pickConflictVal || "";
+    if (fKey === "year_built") {
+      if (fVal === "0") {
+        if ($("#wb-suppress-vacant")) $("#wb-suppress-vacant").checked = true;
+        if ($("#wb-year")) $("#wb-year").value = "";
+      } else {
+        if ($("#wb-suppress-vacant")) $("#wb-suppress-vacant").checked = false;
+        if ($("#wb-year")) $("#wb-year").value = fVal;
+      }
+    }
+    toast(`Selected ${fVal === "0" ? "Demolished / Vacant (0)" : fVal} for Public Atlas writeback.`);
+    return;
+  }
+
+  if (e.target.closest("#publishApprovedOverrideBtn")) {
+    const sess = getStaffSession();
+    if (!canAccessStaffOnly(sess)) {
+      toast("Preservation Staff account required to publish directly to Approved_Edits.");
+      return;
+    }
+    try {
+      const hcadNum = ($("#wb-hcad")?.value || "").trim();
+      const chosenYr = ($("#wb-year")?.value || "").trim();
+      const bldName = ($("#wb-name")?.value || "").trim();
+      const arch = ($("#wb-arch")?.value || "").trim();
+      const cite = ($("#wb-cite")?.value || "").trim();
+      const isVacant = Boolean($("#wb-suppress-vacant")?.checked);
+      const existingOv = hcadNum && atlasLookupSnapshot?.curatedOverrides
+        ? atlasLookupSnapshot.curatedOverrides[hcadNum] || null
+        : null;
+      const wbPayload = buildApprovedOverrideWritebackPayload({
+        hcadNum,
+        primaryAddress: ($("#wb-addr")?.value || "").trim(),
+        buildingName: bldName,
+        chosenYearBuilt: chosenYr,
+        historicDistrict: ($("#wb-dist")?.value || "").trim(),
+        architect: arch,
+        isDemolishedVacant: isVacant,
+        sourceCitation: cite || "Verified during Preservation Monitoring review.",
+        existingOverride: existingOv,
+      });
+      const btnEl = $("#publishApprovedOverrideBtn");
+      if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Publishing..."; }
+      const res = await submitAdminApprovedOverride(wbPayload, SHEET_WEBHOOK_URL);
+      if (atlasLookupSnapshot?.curatedOverrides && res?.override) {
+        atlasLookupSnapshot.curatedOverrides[res.overrideKey] = res.override;
+      }
+      const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+      const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+      applyParcelAssessmentPatch(
+        {
+          atlas_writeback_summary: isVacant
+            ? `Published Vacant/Demolished suppression on ${hcadNum}`
+            : `Published Year ${wbPayload.suggested_year_built} on ${hcadNum}`,
+        },
+        { platItem: activeIt, watchProp: activeWp }
+      );
+      toast(`Published verified override for HCAD ${hcadNum} to Approved_Edits.`);
+    } catch (err) {
+      toast(err?.message || "Could not publish override to Approved_Edits.");
+      const btnEl = $("#publishApprovedOverrideBtn");
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = "✓ Publish to Public Atlas (Approved_Edits)"; }
+    }
+    return;
+  }
+
+  const saveStrategyBtn = e.target.closest("#saveStaffStrategyBtn");
+  if (saveStrategyBtn) {
+    const sess = getStaffSession();
+    if (!canAccessStaffOnly(sess)) return;
+    const pid = saveStrategyBtn.dataset.parcelId || "";
+    const stratNotes = ($("#so-strategy-notes")?.value || "").trim();
+    const outLog = ($("#so-outreach-log")?.value || "").trim();
+    const contacts = ($("#so-contacts")?.value || "").trim();
+    const nextRec = {
+      parcel_id: pid,
+      private_strategy_notes: stratNotes,
+      owner_outreach_log: outLog,
+      sensitive_contacts: contacts,
+      internal_sensitivity: "staff_confidential",
+      updated_by: sess.email || "Preservation Staff",
+      updated_at: new Date().toISOString(),
+    };
+    staffStrategyByParcelId.set(pid, nextRec);
+    persistMonitoringSnapshotToRoleCache();
+    const resp = await callMonitoringRpc({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      action: "upsert_staff_only",
+      body: { target: "parcel_strategy", record: nextRec },
+      onTokenExpired: handleTokenExpiredPrompt,
+    });
+    toast(resp?.ok ? "Saved Staff-Only strategy notes." : (resp?.error || "Saved locally; sync pending."));
+    return;
+  }
+
+  const watchEntToggle = e.target.closest("[data-watch-entity-toggle]");
+  if (watchEntToggle || e.target.closest("#addCustomWatchedEntityBtn")) {
+    const sess = getStaffSession();
+    if (!canAccessStaffOnly(sess)) return;
+    const rawName = watchEntToggle
+      ? watchEntToggle.dataset.watchEntityToggle
+      : ($("#so-custom-entity-input")?.value || "").trim();
+    const cleanName = sanitizeMonitoringText(rawName);
+    if (!cleanName) return;
+    const existingIdx = staffWatchedEntities.findIndex(
+      w => sanitizeMonitoringText(w.entity_name || "").toUpperCase() === cleanName.toUpperCase()
+    );
+    const entityRec = existingIdx >= 0
+      ? {
+          ...staffWatchedEntities[existingIdx],
+          active: staffWatchedEntities[existingIdx].active === false ? true : false,
+          updated_by: sess.email || "Preservation Staff",
+          updated_at: new Date().toISOString(),
+        }
+      : {
+          entity_id: `ENT:${cleanName.toUpperCase().replace(/[^A-Z0-9]+/g, "_").slice(0, 48)}`,
+          entity_name: cleanName,
+          normalized_key: normalizeDeveloperEntityKey(cleanName),
+          role_type: "developer_or_firm",
+          active: true,
+          updated_by: sess.email || "Preservation Staff",
+          updated_at: new Date().toISOString(),
+        };
+    if (existingIdx >= 0) staffWatchedEntities[existingIdx] = entityRec;
+    else staffWatchedEntities.push(entityRec);
+    if (S) prepareAllCycles();
+    persistMonitoringSnapshotToRoleCache();
+    render();
+    await callMonitoringRpc({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      action: "upsert_staff_only",
+      body: { target: "watched_entity", record: entityRec },
+      onTokenExpired: handleTokenExpiredPrompt,
+    });
+    toast(entityRec.active ? `Now watching future filings by "${cleanName}".` : `Paused watch on "${cleanName}".`);
+    return;
+  }
+
+  const rmWatchEntBtn = e.target.closest("[data-remove-watched-entity]");
+  if (rmWatchEntBtn) {
+    const sess = getStaffSession();
+    if (!canAccessStaffOnly(sess)) return;
+    const targetIdOrName = rmWatchEntBtn.dataset.removeWatchedEntity || "";
+    const idx = staffWatchedEntities.findIndex(
+      w => (w.entity_id || w.entity_name) === targetIdOrName
+    );
+    if (idx >= 0) {
+      const updated = { ...staffWatchedEntities[idx], active: false, updated_at: new Date().toISOString() };
+      staffWatchedEntities[idx] = updated;
+      if (S) prepareAllCycles();
+      persistMonitoringSnapshotToRoleCache();
+      render();
+      await callMonitoringRpc({
+        webhookUrl: SHEET_WEBHOOK_URL,
+        action: "upsert_staff_only",
+        body: { target: "watched_entity", record: updated },
+        onTokenExpired: handleTokenExpiredPrompt,
+      });
+      toast(`Removed "${updated.entity_name}" from active watched entities.`);
+    }
+    return;
+  }
+
+  if (e.target.closest("#modRefreshQueueBtn")) {
+    await pullModerationQueue();
+    toast("Refreshed Community Moderation Queue.");
+    return;
+  }
+
+  const modCatBtn = e.target.closest("[data-mod-cat]");
+  if (modCatBtn) {
+    view.modCategory = modCatBtn.dataset.modCat || "all";
+    renderModerationMode();
+    return;
+  }
+
+  const modRowBtn = e.target.closest(".row[data-mod-queue-id]");
+  if (modRowBtn) {
+    view.selectedModQueueId = modRowBtn.dataset.modQueueId || "";
+    renderModerationMode();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+
+  const modDecBtn = e.target.closest("[data-mod-decision]");
+  if (modDecBtn) {
+    const sess = getStaffSession();
+    if (!canAccessStaffOnly(sess)) return;
+    const rawDecision = modDecBtn.dataset.modDecision || "";
+    const item = moderationQueueItems.find(x => x.queueId === view.selectedModQueueId);
+    if (!item) return;
+    const inlineEdits = {
+      hcad_num: ($("#mq-hcad")?.value || "").trim(),
+      address: ($("#mq-address")?.value || "").trim(),
+      suggested_year_built: ($("#mq-year")?.value || "").trim(),
+      building_name: ($("#mq-name")?.value || "").trim(),
+      historic_district: ($("#mq-district")?.value || "").trim(),
+      contributing: ($("#mq-contributing")?.value || "").trim(),
+      bld_style: ($("#mq-style")?.value || "").trim(),
+      architect: ($("#mq-arch")?.value || "").trim(),
+      source_citation: ($("#mq-citation")?.value || "").trim(),
+      source_url: ($("#mq-url")?.value || "").trim(),
+      moderation_note: ($("#mq-note")?.value || "").trim(),
+      suppress_only: Boolean($("#mq-suppress-vacant")?.checked),
+    };
+    const modPayload = buildModerationDecisionPayload(item, rawDecision, inlineEdits);
+    modDecBtn.disabled = true;
+    const resp = await callMonitoringRpc({
+      webhookUrl: SHEET_WEBHOOK_URL,
+      action: "moderate_submission",
+      body: modPayload,
+      session: sess,
+      onTokenExpired: handleTokenExpiredPrompt,
+    });
+    if (resp && resp.ok) {
+      moderationQueueItems = moderationQueueItems.filter(x => x.queueId !== item.queueId);
+      pendingModerationCount = moderationQueueItems.length;
+      persistMonitoringSnapshotToRoleCache();
+      updateModeButtons();
+      renderModerationMode();
+      toast(`Marked submission as ${modPayload.decision}.`);
+    } else if (resp && resp.conflict) {
+      toast("Queue rows changed in Google Sheets; reloading queue.");
+      await pullModerationQueue();
+    } else {
+      modDecBtn.disabled = false;
+      toast(resp?.error || "Could not submit moderation decision.");
+    }
+    return;
+  }
+
   // Mode Switch, Group Tabs, Sidebar Rows, Menus
   const modeBtn = e.target.closest(".mode-btn");
   if (modeBtn) {
@@ -7947,6 +8849,9 @@ document.addEventListener("click", async e => {
     view.userSwitchedMode = true;
     persistModeChoice(view.mode);
     clearBootDeepLinkUrlParams();
+    if (view.mode === "moderation" && canAccessStaffOnly(getStaffSession())) {
+      pullModerationQueue();
+    }
     render();
     return;
   }
@@ -8115,6 +9020,35 @@ $("#detail").addEventListener("input", e => {
     captureWatchlistDraftInputs();
     return;
   }
+  if (el.id === "parcelScreeningNotesInput" || el.dataset?.storyNote) {
+    if (!requireStaffAuth("editing parcel screening notes")) {
+      render();
+      return;
+    }
+    const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+    const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+    if (el.id === "parcelScreeningNotesInput") {
+      applyParcelAssessmentPatch(
+        { screening_notes: el.value },
+        { platItem: activeIt, watchProp: activeWp, reRender: false }
+      );
+    } else if (el.dataset.storyNote) {
+      const nextStory = {};
+      for (const st of STORY_CHECK_STEPS) {
+        const chkEl = document.querySelector(`[data-story-check="${st.key}"]`);
+        const noteEl = document.querySelector(`[data-story-note="${st.key}"]`);
+        nextStory[st.key] = {
+          checked: Boolean(chkEl?.checked || noteEl?.value.trim()),
+          note: noteEl?.value || "",
+        };
+      }
+      applyParcelAssessmentPatch(
+        { story_check_json: serializeStoryCheck(nextStory) },
+        { platItem: activeIt, watchProp: activeWp, reRender: false }
+      );
+    }
+    return;
+  }
   if (view.mode === "watchlist") {
     if (el.id === "wlNotesInput") {
       if (!requireStaffAuth("editing watchlist notes")) {
@@ -8181,6 +9115,47 @@ $("#detail").addEventListener("input", e => {
 $("#detail").addEventListener("change", e => {
   const el = e.target;
   if (!el || view.mode === "activity") return;
+  if (el.dataset?.parcelBasis || el.dataset?.parcelField || el.dataset?.storyCheck) {
+    if (!requireStaffAuth("updating parcel assessment")) {
+      render();
+      return;
+    }
+    const activeIt = view.mode === "agenda" ? findItemBySelection(view.selected) : null;
+    const activeWp = view.mode === "watchlist" ? getSelectedWatchProp() : null;
+    if (el.dataset.parcelBasis) {
+      const checkedBases = Array.from(document.querySelectorAll("[data-parcel-basis]:checked"))
+        .map(inp => inp.dataset.parcelBasis)
+        .filter(Boolean);
+      applyParcelAssessmentPatch(
+        { significance_basis: checkedBases.join("; ") },
+        { platItem: activeIt, watchProp: activeWp }
+      );
+      return;
+    }
+    if (el.dataset.parcelField) {
+      applyParcelAssessmentPatch(
+        { [el.dataset.parcelField]: el.value },
+        { platItem: activeIt, watchProp: activeWp }
+      );
+      return;
+    }
+    if (el.dataset.storyCheck) {
+      const nextStory = {};
+      for (const st of STORY_CHECK_STEPS) {
+        const chkEl = document.querySelector(`[data-story-check="${st.key}"]`);
+        const noteEl = document.querySelector(`[data-story-note="${st.key}"]`);
+        nextStory[st.key] = {
+          checked: Boolean(chkEl?.checked),
+          note: noteEl?.value || "",
+        };
+      }
+      applyParcelAssessmentPatch(
+        { story_check_json: serializeStoryCheck(nextStory) },
+        { platItem: activeIt, watchProp: activeWp }
+      );
+      return;
+    }
+  }
   if (view.mode === "watchlist" && (el.id === "we-tier" || el.id === "we-status")) {
     const tierSel = $("#we-tier");
     const stSel = $("#we-status");
@@ -8467,6 +9442,11 @@ $("#actGroupBySelect")?.addEventListener("change", e => {
   }
 });
 
+$("#modSearchInput")?.addEventListener("input", e => {
+  view.modQ = e.target.value;
+  if (view.mode === "moderation") renderModerationMode();
+});
+
 $("#reviewer").addEventListener("input", e => {
   if (S) {
     S.reviewer = e.target.value;
@@ -8536,13 +9516,39 @@ document.addEventListener("drop", async e => {
   if (grpSel && view.actGroupBy) grpSel.value = view.actGroupBy;
   updateModeButtons();
   loadLiveAtlasCycle(false);
+
+  subscribeCrossTabAuthChanges(({ session, signedOut }) => {
+    if (signedOut || !session) {
+      wipeInMemoryPrivateStateOnSignOut();
+      roamingState = loadLocalUserRoamingState({ email: "" });
+      applyRoamingStateToView(roamingState, { resetMissingPrefs: true });
+      markActivityDirty();
+      updateStaffAuthButtonUI();
+      render();
+      return;
+    }
+    const cached = loadCachedMonitoringState(session.email, session.role);
+    if (cached) hydratePhase1MapsFromPayload(cached, session.role);
+    else if (session.role !== "staff") {
+      staffStrategyByParcelId.clear();
+      staffWatchedEntities = [];
+      moderationQueueItems = [];
+      pendingModerationCount = 0;
+    }
+    rebuildReconciledWatchlist();
+    if (S) prepareAllCycles();
+    updateStaffAuthButtonUI();
+    render();
+    pullAuthenticatedMonitoringState();
+  });
+
   let lastFocusSync = Date.now();
   const syncOnFocus = () => {
     if (document.visibilityState === "hidden") return;
     if (Object.keys(cloudSyncTimers).some(k => cloudSyncTimers[k])) return;
     if (Date.now() - lastFocusSync < 12000) return;
     lastFocusSync = Date.now();
-    pullCloudSheetSync();
+    pullAuthenticatedMonitoringState();
     syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false });
   };
   window.addEventListener("focus", syncOnFocus);
@@ -8551,7 +9557,7 @@ document.addEventListener("drop", async e => {
     roamingSyncStatus = getStaffSession() ? "synced" : "signed_out";
     updateStaffAuthButtonUI();
     syncRoamingUserProfile({ includeAnonState: false, allowModeUpdate: false });
-    pullCloudSheetSync();
+    pullAuthenticatedMonitoringState();
   });
   window.addEventListener("offline", () => {
     if (getStaffSession()) {

@@ -17,6 +17,12 @@ import {
   hydrateRoamingStateFromVerifyResponse,
   pushCloudUserRoamingState,
 } from "./userRoamingState.js?v=20261113c";
+import {
+  LS_ADMIN_SESSION_KEY,
+  readActiveMonitoringSession,
+  signOutMonitoringSession,
+  verifyAndSignInMonitoring,
+} from "./monitoringAuthClient.js?v=20261113c";
 
 const LS_SHEET_CSV_URL_KEY = "ph_atlas_sheet_csv_url";
 const LS_WEBHOOK_URL_KEY = "ph_atlas_submission_webhook_url";
@@ -2429,23 +2435,11 @@ export function formatSuggestionsAsCsv(records) {
   return lines.join("\n");
 }
 
-const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
-
 /**
- * Return the active Preservation Houston Admin session if unlocked in this browser.
+ * Return the active Preservation Houston Staff / Screener session if unlocked in this browser.
  */
 export function getAdminSession() {
-  try {
-    const raw =
-      (typeof sessionStorage !== "undefined" && sessionStorage.getItem(LS_ADMIN_SESSION_KEY)) ||
-      (typeof localStorage !== "undefined" && localStorage.getItem(LS_ADMIN_SESSION_KEY));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.authorized) return parsed;
-    return null;
-  } catch (_e) {
-    return null;
-  }
+  return readActiveMonitoringSession();
 }
 
 const ADMIN_SIGNOUT_LISTENERS_SYM = Symbol.for("ph.atlas.adminSignOutListeners");
@@ -2461,16 +2455,10 @@ export function onAdminSessionCleared(listener) {
 }
 
 /**
- * Clear the active Admin session (lock Admin Mode).
+ * Clear the active Staff / Screener session and purge all private monitoring caches.
  */
 export function clearAdminSession() {
-  if (typeof sessionStorage !== "undefined") {
-    sessionStorage.removeItem(LS_ADMIN_SESSION_KEY);
-  }
-  if (typeof localStorage !== "undefined") {
-    localStorage.removeItem(LS_ADMIN_SESSION_KEY);
-    clearLegacyMirrorOnSignOut();
-  }
+  signOutMonitoringSession();
   for (const fn of _adminSignOutListeners) {
     try {
       fn();
@@ -2479,11 +2467,9 @@ export function clearAdminSession() {
 }
 
 /**
- * Authenticate a Preservation Houston Administrator against the Google Sheet's
- * bound Apps Script (`action: "verify_admin"`), which checks either:
- *   1. A Google-signed OAuth/ID token whose email is in `Spreadsheet.getEditors()` / `getOwner()`, or
- *   2. The private Sheet Editor Passkey stored inside cell B6 of `Instructions_&_Apps_Script`
- *      (accessible only to Google accounts with Editor access on the Restricted Sheet).
+ * Authenticate a Preservation Houston Staff or Screener account against the Google Sheet's
+ * bound Apps Script (`action: "verify_admin"`), supporting 1-click Google Sign-In (`google_id_token`)
+ * or authorized email + role-scoped Sync Passkey.
  */
 export async function authenticateAdminSession({
   googleIdToken = "",
@@ -2500,76 +2486,16 @@ export async function authenticateAdminSession({
       error: "Please enter both your Sheet Editor Google Account Email and the Sheet Editor Passkey.",
     };
   }
-
-  const targetUrl = String(webhookUrl || "").trim();
-  let verifiedByWebhook = false;
-  let resolvedEmail = email || "Preservation Houston Sheet Editor";
-
-  let verifyResponseData = null;
-  if (targetUrl) {
-    try {
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "verify_admin",
-          google_id_token: token,
-          admin_passkey: passkey,
-          admin_email: email,
-        }),
-      });
-      if (!res.ok) {
-        return { ok: false, error: `Verification webhook HTTP ${res.status}` };
-      }
-      const data = await res.json();
-      if (!data.authorized) {
-        return {
-          ok: false,
-          error:
-            data.error ||
-            "Access denied: Google account is not listed as an Editor on the Curated Overrides Google Sheet.",
-        };
-      }
-      verifiedByWebhook = true;
-      resolvedEmail = data.email || resolvedEmail;
-      verifyResponseData = data;
-    } catch (err) {
-      return {
-        ok: false,
-        error: `Could not reach Google Sheet verification service: ${err.message || err}`,
-      };
-    }
-  }
-
-  const session = {
-    authorized: true,
-    verifiedByWebhook,
-    email: resolvedEmail,
+  const res = await verifyAndSignInMonitoring({
+    webhookUrl: String(webhookUrl || "").trim(),
     googleIdToken: token,
-    adminPasskey: passkey,
-    unlockedAt: new Date().toISOString(),
-  };
-
-  if (typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(session));
+    email,
+    passkey,
+  });
+  if (!res.ok) {
+    return { ok: false, error: res.error };
   }
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(session));
-  }
-  if (verifiedByWebhook && verifyResponseData && typeof localStorage !== "undefined") {
-    const hydrated = hydrateRoamingStateFromVerifyResponse({
-      verifyData: verifyResponseData,
-      email: resolvedEmail,
-    });
-    if (hydrated.supportsRoamingSync && hydrated.needsPush && targetUrl) {
-      pushCloudUserRoamingState({
-        webhookUrl: targetUrl,
-        session,
-        state: hydrated.state,
-      }).catch(() => {});
-    }
-  }
-  return { ok: true, session };
+  return { ok: true, session: res.session };
 }
 
 /**
@@ -2581,6 +2507,9 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
   const session = getAdminSession();
   if (!session || !session.authorized) {
     throw new Error("Admin session required to publish approved overrides.");
+  }
+  if (session.role === "screener") {
+    throw new Error("Preservation Staff role required to publish directly to Approved_Edits.");
   }
 
   const norm = normalizeCorrectionSubmission(payload);
@@ -2611,7 +2540,11 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
     permit_info: norm.suggestedPermitInfo,
     footprint_issue: norm.effectiveFootprintIssue,
     footprint_notes: norm.effectiveFootprintNotes,
-    ...(norm.geometryGeojsonString ? { geometry_geojson: norm.geometryGeojsonString } : {}),
+    ...(norm.isDemolishedVacant
+      ? { geometry_geojson: "" }
+      : norm.geometryGeojsonString
+      ? { geometry_geojson: norm.geometryGeojsonString }
+      : {}),
     ...(explicitReplace !== null ? { replace_parcel_shards: explicitReplace } : {}),
     source_type: norm.effectiveSourceType,
     source_citation: norm.encodedSourceCitation,

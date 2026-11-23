@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="atlas-google-client-id" content="" />
   <title>Preservation Houston | The Houston Building Atlas</title>
   <link rel="icon" type="image/png" sizes="128x128" href="public/assets/ph-favicon-128.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="public/assets/ph-favicon.png" />
@@ -2409,37 +2410,49 @@
           <!-- Staff Admin Authentication Gate (Hidden until Staff Admin button clicked) -->
           <div class="admin-auth-box hidden" id="admin-auth-panel">
             <div class="admin-auth-header">
-              <strong>&#128272; Preservation Houston Staff Admin Verification</strong>
+              <strong>&#128272; Preservation Houston Staff &amp; Screener Sign-In</strong>
               <span class="admin-auth-sub">
-                Restricted to Google Accounts with <strong>Editor</strong> access on the Preservation Houston Curated Overrides Google Sheet.
+                Sign in with an authorized Google Account or role-scoped Sync Passkey (Staff or Screener).
               </span>
             </div>
+            <div id="admin-google-signin-slot" class="hidden" style="margin-top:8px;"></div>
             <div class="form-row-2col" style="margin-top:8px;">
               <div class="form-field">
-                <label for="admin-auth-email">Google Account Email (Sheet Editor)</label>
+                <label for="admin-auth-email">Google Account Email</label>
                 <input
                   type="email"
                   id="admin-auth-email"
                   class="form-input"
+                  autocomplete="username"
                   placeholder="name@preservationhouston.org"
                 />
               </div>
               <div class="form-field">
-                <label for="admin-auth-passkey">Sheet Editor Passkey (from Sheet Tab 3, Cell B6)</label>
+                <label for="admin-auth-passkey">Sync Passkey (or Google Token)</label>
                 <input
                   type="password"
                   id="admin-auth-passkey"
                   class="form-input mono"
-                  placeholder="Enter Sheet Editor Passkey or Google Token"
+                  autocomplete="current-password"
+                  placeholder="Enter Staff or Screener Passkey"
                 />
               </div>
             </div>
-            <div class="admin-sheet-actions" style="margin-top:8px;">
+            <div class="admin-sheet-actions" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
               <button type="button" class="action-pill active" id="btn-verify-admin-unlock">
-                Verify Sheet Editor &amp; Unlock Admin Mode
+                Verify &amp; Sign In
               </button>
+              <a
+                href="plat-monitor.html?mode=moderation"
+                class="action-pill hidden"
+                id="btn-open-moderation-queue"
+                style="text-decoration:none;"
+                title="Review community correction suggestions and Walk-the-Block field surveys in-app"
+              >
+                &#9989; Community Moderation Queue
+              </a>
               <button type="button" class="action-pill hidden" id="btn-lock-admin-session">
-                Lock Admin Mode
+                Sign Out
               </button>
               <span class="mono" id="admin-auth-feedback-text"></span>
             </div>
