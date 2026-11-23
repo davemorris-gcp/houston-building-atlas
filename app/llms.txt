@@ -26,7 +26,7 @@
    - **Standard City Landmark (`LM` outside a Historic District):** Carries only a 90-day demolition waiting period waiver (`Sec. 33-250`) unless upgraded to Protected Landmark.
    - **City of Houston Heritage District (e.g., Freedmen's Town Heritage District):** Applies ONLY to infrastructure in the public right-of-way and city-owned land; it does NOT protect private residential or commercial buildings from demolition.
    - **National Register of Historic Places (`NRHP`) & Recorded Texas Historic Landmark (`RTHL`):** Federal/state recognitions that do not block private-owner demolition using private funds unless paired with a local City Protected Landmark designation.
-3. **Always Cross-Check *Lost Houston* (`623` Demolished Sites) & the Active Property Watchlist (`34` Sites):** Before stating that a historic Houston building is still standing, check `overlays.json` (`lost_houston`), `property_watchlist.json`, and `active_permit_alerts.json`. For example, the `1894` John Henry Kirby Mansion at `2000 Smith St` (HCAD `0152300000001`, remodeled in `1928` by architect James Ruskin Bailey) was demolished Oct 30 - Nov 2, 2026 and graduated to Lost Houston (`lost_kirby_mansion_1894`).
+3. **Always Cross-Check *Lost Houston* (`623` Demolished Sites) & Active Public Permit / Plat Filings:** Before stating that a historic Houston building is still standing, check `overlays.json` (`lost_houston`), `active_permit_alerts.json`, and `plat_agenda_monitor.json`. For example, the `1894` John Henry Kirby Mansion at `2000 Smith St` (HCAD `0152300000001`, remodeled in `1928` by architect James Ruskin Bailey) was demolished Oct 30 - Nov 2, 2026 and graduated to Lost Houston (`lost_kirby_mansion_1894`).
 4. **Decode HCAD Appraiser Shorthand & 2-Stage COH Demolition Permits into Plain English:**
    - In COH demolition permits, distinguish **Stage 1 Sewer Disconnect** (`Type 12` or `4P` Plumbing Permit, `BLD DEMO/SEWER DISC`) from **Stage 2 Building Demolition** (`Type SD` or `4D`, `BLD DEMO`) sharing the same 8-digit project number.
    - In HCAD permits/notes, decode `NC` (New Construction), `CDU` (Condition/Desirability/Utility grade: `EX` Excellent, `VG` Very Good, `GD` Good, `AV` Average, `FR` Fair, `PR` Poor, `UN` Unsound), `REMOD` (Remodel), `ADDN` (Addition), and `GARAGE ONLY` / `GARAGE APT ONLY` (partial accessory work).
@@ -51,7 +51,7 @@
 - **Open Neighborhood, Historic District, or Council District (`A-K`) Scorecard:** `https://davemorris-gcp.github.io/houston-building-atlas/#scorecard=historic_districts:hist_dist_old_sixth_ward` or `https://davemorris-gcp.github.io/houston-building-atlas/#scorecard=council_districts:council_dist_coh_all`
 - **Open Chapter 42 SMLS / SMBL Block-Face Calculator:** `https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0202370000031&ch42=0202370000031`
 - **Open AI Research Companion Modal:** `https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=1`
-- **Open Plat & Property Monitor Watchlist Dossier:** `https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=prop-kirby-mansion`
+- **Open Public Planning Commission Plat & Variance Monitor:** `https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html`
 
 ## Primary Public Data & Archive URL Templates
 
@@ -70,7 +70,7 @@
 
 - [Summary Statistics (`stats_summary.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/stats_summary.json): Countywide dated building counts and year bounds.
 - [Active Demolition & Asbestos Alerts (`active_permit_alerts.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/active_permit_alerts.json): Live 2-stage COH demolition permits and TX DSHS 10-day asbestos notifications.
-- [15-Point Property Watchlist (`property_watchlist.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/property_watchlist.json): Curated endangered historic properties and multi-agency check logs.
+- [Planning Commission Plat & Variance Monitor (`plat_agenda_monitor.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/plat_agenda_monitor.json): Public Planning Commission agenda and PlatTracker GIS filings cross-referenced against dated historic parcels.
 - [Architect & Style Portfolio Metadata (`portfolio-metadata.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/portfolio-metadata.json): Biographies, eras, and primary sources for Houston architects, builders, and styles.
 - [TARO 2.0 & HPL Archival Finding-Aid Index (`archival_index.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/archival_index.json): 595 parcel-linked architectural drawings, photos, and box/folder citations across 65 collections.
 - [COH Historic District Parcel Surveys (`hpo_district_surveys.json`)](https://davemorris-gcp.github.io/houston-building-atlas/public/data/hpo_district_surveys.json): All 23 COH Historic District survey inventories (6,169 rows), Design Guidelines PDFs, and official maps.

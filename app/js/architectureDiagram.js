@@ -345,10 +345,10 @@ export const ARCHITECTURE_NODES = Object.freeze([
   {
     id: "moderation_sheet_loop",
     zone: "3. GitHub Platform, Runtime Tile Servers & 2-Way Moderation",
-    title: "Moderated Google Sheet & Apps Script Webhook",
+    title: "Google Workspace RBAC Vaults & Apps Script Hub",
     subtitle:
-      "14-Tab Workbook (`Pending_Submissions`, `Field_Surveys`, `Approved_Edits`) · Dev Schema & `doPost` Push",
-    badge: "2-WAY MODERATION",
+      "Normalized Phase 1 Parcel/Watchlist Tables · Isolated `Staff_Only` Vault · In-App Moderation & `Approved_Edits`",
+    badge: "RBAC + 2-WAY SYNC",
     color: "#f59e0b",
     flowModes: ["all", "dev_cicd", "two_way_contribute"],
     x: 545,
@@ -357,13 +357,17 @@ export const ARCHITECTURE_NODES = Object.freeze([
     h: 165,
     details: {
       summary:
-        "Unified 14-tab Google Sheet & Apps Script moderation hub whose tab structure, validation rules, and webhook code are deployed from the Developer Computer, receiving browser & LLM contributions and syncing approved edits back to GitHub.",
+        "Role-isolated Google Workspace backend (`Code.cjs`) enforcing `Staff` vs. `Screener` vs. `Pipeline` RBAC across normalized parcel/dossier tables, a physically separate `Atlas_Monitoring_Staff_Only` workbook, rolling `Atlas_Monitoring_Backups_Vault` snapshots, in-app `mode=moderation` queue, and public `Approved_Edits` overrides.",
       components: [
-        "Developer Schema & Code Push: Developer Computer pushes 14-tab workbook schemas, formula validation rules, and Apps Script `doPost`/`doGet` webhook logic",
-        "Google Apps Script Webhook (`DEFAULT_SUBMISSION_WEBHOOK_URL`) routing browser & CLI/LLM submissions into `Pending_Submissions` and `Field_Surveys` tabs",
-        "Approved rows publish via live CSV (`Approved_Edits`) and sync via `sync_curated_overrides.py` into `app/public/data/curated_overrides.json` on GitHub",
+        "Normalized Monitoring Tables (`Areas`, `Parcels`, `Decisions`, `Events`, `Watchlist_Dossiers`, `_Monitoring_Roles`) + physically isolated `Atlas_Monitoring_Staff_Only` workbook (`Staff_Parcel_Strategy`, `Watched_People_And_Firms`)",
+        "In-App Community Moderation Queue (`plat-monitor.html?mode=moderation`) unifying `Pending_Submissions` and `Field_Surveys` with split-range `S:V` `ARRAYFORMULA` protection",
+        "Public/Private Boundary (`PublicBundleGate`): only `Approved_Edits` syncs into public GitHub (`curated_overrides.json`), while private dossiers & `Staff_Only` snapshots stay strictly in Google Workspace",
       ],
-      codePaths: ["app/js/curatedEdits.js", "pipeline/atlas_pipeline/sync_curated_overrides.py"],
+      codePaths: [
+        "pipeline/atlas_pipeline/apps_script/Code.cjs",
+        "app/js/monitoringAuthClient.js",
+        "pipeline/atlas_pipeline/public_bundle_gate.py",
+      ],
     },
   },
 
@@ -371,10 +375,10 @@ export const ARCHITECTURE_NODES = Object.freeze([
   {
     id: "user_ph_monitoring",
     zone: "4. End-User Personas & Local/Cloud AI Companions",
-    title: "Preservation Staff (City & County Monitoring)",
+    title: "Preservation Staff & Screeners (Parcel Monitoring)",
     subtitle:
-      "Monitors Biweekly COH Planning Commission Plats, 15-Point Watchlist & Demolition / Asbestos Alerts",
-    badge: "STAFF · MONITORING",
+      "Once-per-Parcel Significance, Threat Stage 0..6, 10-Min Story Check, `Staff_Only` Strategy & 15-Pt Watchlist",
+    badge: "STAFF & SCREENERS",
     color: "#fb7185",
     flowModes: ["all", "live_runtime"],
     x: 1068,
@@ -383,13 +387,17 @@ export const ARCHITECTURE_NODES = Object.freeze([
     h: 145,
     details: {
       summary:
-        "Preservation Staff and advocates tracking biweekly City of Houston Planning Commission subdivision agendas, demolition permits, and endangered landmarks.",
+        "Preservation Staff and assigned Screeners evaluating once-per-parcel Significance, Protection, Threat Stage (0..6), and calculated `Act / Watch / Record` attention across biweekly Planning Commission plats, countywide permits, and 15-Point Watchlist dossiers.",
       components: [
-        "Biweekly Plat & Property Monitor (`plat-monitor.html`) with 15-Point Watchlist (`34` tracked properties)",
-        "90-Day Multi-Agency Demolition Activity Log (COH Stage 1/2 Demo Permits + TX DSHS 10-Day Asbestos Filings)",
-        "Chapter 42 SMLS / SMBL block-face eligibility calculator for neighborhood opt-in protection",
+        "4-Mode Monitor (`plat-monitor.html`: `Agenda`, `Watchlist`, `What's New`, and Staff `Community Moderation`) with 1-click Google Sign-In & cross-device roaming sync",
+        "Side-by-Side Source Conflict Resolver & 1-click `Approved_Edits` writeback (`sourceConflictResolver.js`) plus 4-step 10-Minute Story Check",
+        "Chapter 42 SMLS / SMBL block-face eligibility calculator and Street-Block + `610 Loop` spatial context thumbnails",
       ],
-      codePaths: ["app/plat-monitor.html", "app/public/data/property_watchlist.json"],
+      codePaths: [
+        "app/plat-monitor.html",
+        "app/js/parcelMonitoringModel.js",
+        "app/js/sourceConflictResolver.js",
+      ],
     },
   },
   {

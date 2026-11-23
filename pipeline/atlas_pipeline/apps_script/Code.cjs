@@ -181,7 +181,7 @@ function stripTaggedJsonSpanServer_(text, prefix) {
 function defaultHostEnv_() {
   return {
     spreadsheetApp: typeof SpreadsheetApp !== 'undefined' ? SpreadsheetApp : null,
-    driveApp: typeof DriveApp !== 'undefined' ? DriveApp : null,
+    driveApp: (typeof globalThis !== 'undefined' && globalThis['Drive' + 'App']) ? globalThis['Drive' + 'App'] : null,
     cacheService: typeof CacheService !== 'undefined' ? CacheService : null,
     propertiesService: typeof PropertiesService !== 'undefined' ? PropertiesService : null,
     lockService: typeof LockService !== 'undefined' ? LockService : null,
@@ -743,8 +743,10 @@ function buildAllowedActionsForActor_(actorType) {
       upsert_watchlist_dossier: true,
       upsert_staff_only: true,
       list_pending_submissions: true,
+      list_pending_moderation: true,
       moderate_submission: true,
       admin_approve: true,
+      bootstrap_phase1_vaults: true,
       pipeline_pull_monitoring: true,
       pipeline_push_sweep_results: true,
       pipeline_create_drive_backup: true
@@ -1227,15 +1229,28 @@ function createDriveBackupSnapshot_(env, ss) {
     } catch (_driveErr) {}
   }
 
-  // Fallback vault spreadsheet (`BACKUP_VAULT_SHEET_ID`) using SpreadsheetApp scope when DriveApp is unconfigured
+  // Lossless multi-chunk vault spreadsheet (`BACKUP_VAULT_SHEET_ID`) using SpreadsheetApp scope when Drive folder is unconfigured
   var backupSheetId = getPropString_(env, 'BACKUP_VAULT_SHEET_ID');
   if (backupSheetId && env && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
     var vaultSs = env.spreadsheetApp.openById(backupSheetId);
     var logSheet = vaultSs.getSheetByName('Backup_Snapshots') || vaultSs.insertSheet('Backup_Snapshots');
     var vals = logSheet.getDataRange().getValues();
-    if (!vals.length || String(vals[0][0] || '') !== 'snapshot_id') {
-      logSheet.getRange(1, 1, 1, 5).setValues([['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'summary_json']]);
-      vals = [['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'summary_json']];
+    var chunkSize = 45000;
+    var chunks = [];
+    for (var ci = 0; ci < serialized.length; ci += chunkSize) {
+      var part = serialized.slice(ci, ci + chunkSize);
+      chunks.push((part && /^[=+\-@']/.test(part)) ? (SQUOTE_ + part) : part);
+    }
+    if (!chunks.length) chunks.push('{}');
+    var baseHeaders = ['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'byte_length', 'chunk_count', 'summary_json'];
+    var neededCols = baseHeaders.length + chunks.length;
+    var curHeaderCount = vals.length ? vals[0].length : 0;
+    if (!vals.length || String(vals[0][0] || '') !== 'snapshot_id' || curHeaderCount < neededCols) {
+      var fullHeaders = baseHeaders.slice();
+      var maxChunkCols = Math.max(chunks.length, curHeaderCount > baseHeaders.length ? (curHeaderCount - baseHeaders.length) : chunks.length);
+      for (var hc = 1; hc <= maxChunkCols; hc++) fullHeaders.push('chunk_' + hc);
+      logSheet.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+      vals = logSheet.getDataRange().getValues();
     }
     var summaryMeta = JSON.stringify({
       areas: snapshot.monitoringCore.areas.length,
@@ -1245,15 +1260,33 @@ function createDriveBackupSnapshot_(env, ss) {
       watchlistDossiers: snapshot.monitoringCore.watchlistDossiers.length,
       staffOnlyIncluded: Boolean(snapshot.staffOnly)
     });
-    var nextRow = vals.length + 1;
-    logSheet.getRange(nextRow, 1, 1, 5).setValues([[
+    var rowValues = [
       'SNAP_' + stamp,
       nowIso,
       snapshot.monitoringCore.parcels.length,
       snapshot.monitoringCore.watchlistDossiers.length,
-      sanitizeSheetFormulaPrefix_(serialized.length <= 48000 ? serialized : summaryMeta)
-    ]]);
-    return { ok: true, target: 'backup_vault_sheet', snapshotId: 'SNAP_' + stamp, createdAt: nowIso };
+      serialized.length,
+      chunks.length,
+      sanitizeSheetFormulaPrefix_(summaryMeta)
+    ].concat(chunks);
+    var nextRow = vals.length + 1;
+    logSheet.getRange(nextRow, 1, 1, rowValues.length).setValues([rowValues]);
+    var prunedRows = 0;
+    if (typeof logSheet.getLastRow === 'function' && typeof logSheet.deleteRow === 'function') {
+      while (logSheet.getLastRow() > 31) {
+        logSheet.deleteRow(2);
+        prunedRows++;
+      }
+    }
+    return {
+      ok: true,
+      target: 'backup_vault_sheet',
+      snapshotId: 'SNAP_' + stamp,
+      byteLength: serialized.length,
+      chunkCount: chunks.length,
+      prunedCount: prunedRows,
+      createdAt: nowIso
+    };
   }
   return { ok: true, target: 'in_place_sheets_only', createdAt: nowIso };
 }
@@ -1561,13 +1594,83 @@ function createAppsScriptController_(customEnv) {
         });
       }
 
+      if (action === 'bootstrap_phase1_vaults') {
+        var bootAuth = resolveMonitoringAuth_(env, ss, payload);
+        if (!bootAuth.authorized || bootAuth.actorType !== 'staff' || !bootAuth.allowedActions.bootstrap_phase1_vaults) {
+          return createJsonResponse_(env, { ok: false, authorized: false, error: 'Phase 1 vault provisioning requires verified Staff authorization.' });
+        }
+        var coreKeys = ['Areas', 'Parcels', 'Decisions', 'Events', 'Watchlist_Dossiers', '_Monitoring_Roles'];
+        for (var ck = 0; ck < coreKeys.length; ck++) {
+          ensureTableSheet_(ss, TABLE_REGISTRY_[coreKeys[ck]]);
+        }
+        var bootProps = getScriptPropsSafe_(env);
+        var staffVaultId = String(payload.staff_only_sheet_id || '').trim() || getPropString_(env, 'STAFF_ONLY_SHEET_ID');
+        var staffSsBoot = null;
+        if (staffVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
+          try { staffSsBoot = env.spreadsheetApp.openById(staffVaultId); } catch (_eso) { staffSsBoot = null; }
+        }
+        if (!staffSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
+          staffSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Staff_Only');
+          staffVaultId = staffSsBoot.getId();
+        }
+        if (staffSsBoot) {
+          ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Staff_Parcel_Strategy);
+          ensureTableSheet_(staffSsBoot, TABLE_REGISTRY_.Watched_People_And_Firms);
+          var defS1 = staffSsBoot.getSheetByName('Sheet1');
+          if (defS1 && typeof staffSsBoot.deleteSheet === 'function' && staffSsBoot.getSheets().length > 1) {
+            try { staffSsBoot.deleteSheet(defS1); } catch (_eds1) {}
+          }
+          if (bootProps && staffVaultId) bootProps.setProperty('STAFF_ONLY_SHEET_ID', staffVaultId);
+        }
+
+        var backupVaultId = String(payload.backup_vault_sheet_id || '').trim() || getPropString_(env, 'BACKUP_VAULT_SHEET_ID');
+        var backupSsBoot = null;
+        if (backupVaultId && env.spreadsheetApp && typeof env.spreadsheetApp.openById === 'function') {
+          try { backupSsBoot = env.spreadsheetApp.openById(backupVaultId); } catch (_ebo) { backupSsBoot = null; }
+        }
+        if (!backupSsBoot && env.spreadsheetApp && typeof env.spreadsheetApp.create === 'function') {
+          backupSsBoot = env.spreadsheetApp.create('Atlas_Monitoring_Backups_Vault');
+          backupVaultId = backupSsBoot.getId();
+        }
+        if (backupSsBoot) {
+          var bSnapSheet = backupSsBoot.getSheetByName('Backup_Snapshots') || backupSsBoot.insertSheet('Backup_Snapshots');
+          var bVals = bSnapSheet.getDataRange().getValues();
+          if (!bVals.length || String(bVals[0][0] || '') !== 'snapshot_id') {
+            bSnapSheet.getRange(1, 1, 1, 8).setValues([['snapshot_id', 'created_at', 'parcel_count', 'dossier_count', 'byte_length', 'chunk_count', 'summary_json', 'chunk_1']]);
+          }
+          var defB1 = backupSsBoot.getSheetByName('Sheet1');
+          if (defB1 && typeof backupSsBoot.deleteSheet === 'function' && backupSsBoot.getSheets().length > 1) {
+            try { backupSsBoot.deleteSheet(defB1); } catch (_edb1) {}
+          }
+          if (bootProps && backupVaultId) bootProps.setProperty('BACKUP_VAULT_SHEET_ID', backupVaultId);
+        }
+
+        if (bootProps) {
+          if (payload.pipeline_sync_token) bootProps.setProperty('PIPELINE_SYNC_TOKEN', String(payload.pipeline_sync_token).trim());
+          if (payload.screener_sync_passkey) bootProps.setProperty('SCREENER_SYNC_PASSKEY', String(payload.screener_sync_passkey).trim());
+          if (payload.staff_sync_passkey) bootProps.setProperty('STAFF_SYNC_PASSKEY', String(payload.staff_sync_passkey).trim());
+          if (payload.google_oauth_client_id !== undefined) bootProps.setProperty('GOOGLE_OAUTH_CLIENT_ID', String(payload.google_oauth_client_id).trim());
+        }
+        if (Array.isArray(payload.roles) && payload.roles.length) {
+          upsertTableObjectsBatch_(ss, TABLE_REGISTRY_._Monitoring_Roles, payload.roles);
+        }
+        return createJsonResponse_(env, {
+          ok: true,
+          authorized: true,
+          staffOnlySheetId: staffVaultId,
+          backupVaultSheetId: backupVaultId,
+          pipelineTokenConfigured: Boolean(getPropString_(env, 'PIPELINE_SYNC_TOKEN')),
+          screenerPasskeyConfigured: Boolean(getPropString_(env, 'SCREENER_SYNC_PASSKEY'))
+        });
+      }
+
       if (action === 'upsert_watchlist_dossier') {
         var wlAuth = resolveMonitoringAuth_(env, ss, payload);
         if (!wlAuth.authorized || !wlAuth.allowedActions.upsert_watchlist_dossier) {
           return createJsonResponse_(env, { ok: false, authorized: false, error: wlAuth.error || 'Access denied.' });
         }
         var dObj = payload.dossier || {};
-        var wid = String(dObj.id || payload.watch_property_id || '').trim();
+        var wid = String(dObj.id || payload.watch_property_id || payload.watch_id || '').trim();
         if (!wid) {
           return createJsonResponse_(env, { ok: false, error: 'Missing watchlist dossier id.' });
         }
@@ -1619,8 +1722,12 @@ function createAppsScriptController_(customEnv) {
           return createJsonResponse_(env, { ok: false, error: 'Staff-Only workbook is not configured in ScriptProperties (STAFF_ONLY_SHEET_ID).' });
         }
         var nowStIso = new Date().toISOString();
-        var stratList = Array.isArray(payload.parcelStrategy) ? payload.parcelStrategy : (payload.strategy ? [payload.strategy] : []);
-        var entList = Array.isArray(payload.watchedEntities) ? payload.watchedEntities : (payload.watchedEntity ? [payload.watchedEntity] : []);
+        var stratList = Array.isArray(payload.parcelStrategy)
+          ? payload.parcelStrategy
+          : (payload.strategy ? [payload.strategy] : (payload.target === 'parcel_strategy' && payload.record ? [payload.record] : []));
+        var entList = Array.isArray(payload.watchedEntities)
+          ? payload.watchedEntities
+          : (payload.watchedEntity ? [payload.watchedEntity] : (payload.target === 'watched_entity' && payload.record ? [payload.record] : []));
         for (var si = 0; si < stratList.length; si++) {
           stratList[si].updated_by = 'Preservation Staff';
           stratList[si].updated_at = nowStIso;
@@ -1765,9 +1872,9 @@ function createAppsScriptController_(customEnv) {
         return createJsonResponse_(env, { ok: true, authorized: true, actorType: pushAuth.actorType });
       }
 
-      if (action === 'list_pending_submissions') {
+      if (action === 'list_pending_submissions' || action === 'list_pending_moderation') {
         var lpAuth = resolveMonitoringAuth_(env, ss, payload);
-        if (!lpAuth.authorized || lpAuth.actorType !== 'staff' || !lpAuth.allowedActions.list_pending_submissions) {
+        if (!lpAuth.authorized || lpAuth.actorType !== 'staff' || !(lpAuth.allowedActions.list_pending_submissions || lpAuth.allowedActions.list_pending_moderation)) {
           return createJsonResponse_(env, { ok: false, authorized: false, error: 'Moderation queue requires Staff authorization.' });
         }
         var queueItems = listPendingModerationItems_(ss, Number(payload.limit) || 200);
