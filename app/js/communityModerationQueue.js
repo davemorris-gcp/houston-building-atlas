@@ -31,6 +31,17 @@ export const MODERATION_CATEGORIES = Object.freeze([
   { id: "dispute_flag", label: "Photo & Claim Flags" },
 ]);
 
+export function isExplicitDemolishedYearText(rawVal) {
+  const low = sanitizeMonitoringText(rawVal).toLowerCase();
+  if (!low) return false;
+  if (/^(?:0|vacant(?:\s+lot)?|demolished)$/.test(low)) return true;
+  if (/\bdemolished\b/.test(low) && /\b(?:vacant|cleared|empty|lot|gone|slab)\b/.test(low)) {
+    return true;
+  }
+  if (/\b(?:vacant|cleared|empty)\s+lot\b/.test(low)) return true;
+  return false;
+}
+
 export function classifyModerationQueueItem(raw = {}) {
   const sourceTab = sanitizeMonitoringText(raw.sourceTab || "Pending_Submissions");
   const srcType = sanitizeMonitoringText(raw.source_type || "").toUpperCase();
@@ -41,9 +52,8 @@ export function classifyModerationQueueItem(raw = {}) {
   const isDisputeFlag = DISPUTE_FLAG_TYPES.has(srcType);
   const isVacantReport =
     !isDisputeFlag &&
-    (sugYrRaw === "0" ||
-      /\[demolished\s*\/\s*vacant|building\s+demolished/i.test(cite) ||
-      /^vacant|^demolished/i.test(sugYrRaw));
+    (isExplicitDemolishedYearText(sugYrRaw) ||
+      /\[demolished\s*\/\s*vacant|building\s+demolished/i.test(cite));
   const hasCustomGeom =
     Boolean(raw.geometry_geojson) || cite.includes("[GEOMETRY_GEOJSON:");
 
@@ -158,10 +168,10 @@ export function buildModerationDecisionPayload(
   const suppressOnly =
     inlineEdits.suppress_only !== undefined
       ? Boolean(inlineEdits.suppress_only) ||
-        (editedYear === "0" &&
+        (isExplicitDemolishedYearText(editedYear) &&
           inlineEdits.suggested_year_built !== undefined &&
-          item.suggestedYearBuilt !== "0")
-      : item.isVacantReport || editedYear === "0";
+          !isExplicitDemolishedYearText(item.suggestedYearBuilt))
+      : item.isVacantReport || isExplicitDemolishedYearText(editedYear);
 
   // Dispute flags without an explicit replacement year resolve to "Resolved" so blank-year rows never enter Approved_Edits
   const effectiveDecision =
@@ -199,8 +209,14 @@ export function buildModerationDecisionPayload(
     ),
     contributing: sanitizeMonitoringText(inlineEdits.contributing ?? item.contributing),
     original_hcad_year: item.originalHcadYear,
-    suggested_year_built: suppressOnly ? 0 : hasExplicitValidYear ? Number(editedYear) : "",
-    suppress_only: suppressOnly,
+    suggested_year_built: suppressOnly
+      ? 0
+      : hasExplicitValidYear
+      ? Number(editedYear)
+      : editedYear,
+    ...(suppressOnly || inlineEdits.suppress_only !== undefined
+      ? { suppress_only: suppressOnly }
+      : {}),
     bld_style: sanitizeMonitoringText(inlineEdits.bld_style ?? item.bldStyle),
     architect: sanitizeMonitoringText(inlineEdits.architect ?? item.architect),
     source_type: item.sourceType,

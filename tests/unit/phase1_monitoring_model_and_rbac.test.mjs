@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   MONITORING_SCHEMA_CONTRACT,
+  advanceSweepThreatStage,
   buildCampusParcelIndex,
   calendarDaysBetween,
   canonicalizeCampusId,
@@ -2078,10 +2079,47 @@ test("IT-P1-Campus: 12-digit sweep preservation, single-parcel to CAMPUS:<SLUG> 
   });
   assert.equal(promotedCampus.ok, true);
   assert.equal(promotedCampus.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
+  assert.equal("_replacePk" in promotedCampus.parcel, false);
+  assert.equal("_replacePk" in promotedCampus.decision, false);
   assert.equal(Number(promotedCampus.parcel.year_built), 1912, "In-place campus promotion must preserve year_built");
   assert.equal(promotedCampus.parcel.protection_level, "binding", "In-place campus promotion must preserve protection_level");
   assert.equal(promotedCampus.parcel.owner_of_record, "PARISH BOARD");
   assert.equal(JSON.parse(promotedCampus.decision.history_json).entries.length, 2, "History entries must carry forward");
+
+  // Also verify coalesced client promotion where patch.parcel_id is already CAMPUS:<SLUG> and replace_parcel_id holds the source HCAD!
+  const singleBeforeCoalesce = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420020000009",
+    patch: {
+      hcad_num: "0420020000009",
+      primary_address: "1500 ANNEX AVE",
+      year_built: 1920,
+      protection_level: "binding",
+      review_status: "assessed",
+      significance_level: "high",
+      screening_notes: "Initial single parcel",
+    },
+  });
+  assert.equal(singleBeforeCoalesce.ok, true);
+  const coalescedCampus = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "CAMPUS:ANNEX_CAMPUS",
+    expected_updated_at: singleBeforeCoalesce.decision.decided_at,
+    patch: {
+      parcel_id: "CAMPUS:ANNEX_CAMPUS",
+      replace_parcel_id: "0420020000009",
+      campus_group_id: "Annex Campus",
+      hcad_num: "0420020000009",
+      related_hcads: "0420020000009; 0420020000010",
+      screening_notes: "Coalesced campus note",
+    },
+  });
+  assert.equal(coalescedCampus.ok, true);
+  assert.equal(coalescedCampus.parcel.parcel_id, "CAMPUS:ANNEX_CAMPUS");
+  assert.equal(coalescedCampus.parcel.protection_level, "binding");
+  assert.equal(JSON.parse(coalescedCampus.decision.history_json).entries.length, 2);
 
   // Push a sweep on mixed-case CAMPUS:Parish Assemblage AND save a campus Watchlist dossier -> zero duplicate rows!
   assert.equal(
@@ -2157,8 +2195,8 @@ test("IT-P1-Campus: 12-digit sweep preservation, single-parcel to CAMPUS:<SLUG> 
   );
 
   const stateAfter = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
-  assert.equal(stateAfter.parcels.length, 2, "Parcels sheet must hold exactly 1 campus row + 1 12-digit row");
-  assert.equal(stateAfter.decisions.length, 1, "Decisions sheet must hold exactly 1 promoted campus decision row");
+  assert.equal(stateAfter.parcels.length, 3, "Parcels sheet must hold 2 in-place promoted campus rows + 1 12-digit row");
+  assert.equal(stateAfter.decisions.length, 2, "Decisions sheet must hold 2 in-place promoted campus decision rows");
   const campRow = stateAfter.parcels.find((p) => p.parcel_id === "CAMPUS:PARISH_ASSEMBLAGE");
   assert.equal(campRow.protection_level, "binding");
   assert.equal(campRow.owner_of_record, "PARISH BOARD");
@@ -2229,6 +2267,33 @@ test("IT-P1-Reopen: reopening a closed parcel resets threat_stage 6 to 0 across 
   });
   assert.equal(reopenedSrv.parcel.threat_stage, 0);
   assert.equal(reopenedSrv.parcel.attention_level, "act");
+  assert.equal(advanceSweepThreatStage({ outcome: "moved", advocacy_status: "monitoring", threat_stage: 6 }, 3), 6);
+  assert.equal(advanceSweepThreatStage({ outcome: "", advocacy_status: "active_advocacy", threat_stage: 6 }, 3), 3);
+
+  // 3. Full-seed / new-parcel pipeline_push_sweep_results sets CAMPUS campus_group_id and resets reopened stage 6 -> 0
+  assert.equal(
+    h.callPost({
+      action: "pipeline_push_sweep_results",
+      google_id_token: staffJwt,
+      allowFullMigrationSeed: true,
+      parcels: [
+        {
+          parcel_id: "campus:Seeded Campus",
+          significance_level: "high",
+          advocacy_status: "active_advocacy",
+          outcome: "",
+          threat_stage: 6,
+          next_hearing_date_cst: "2026-11-25",
+        },
+      ],
+    }).ok,
+    true
+  );
+  const seededPull = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
+  const seededCamp = seededPull.parcels.find((p) => p.parcel_id === "CAMPUS:SEEDED_CAMPUS");
+  assert.equal(seededCamp.campus_group_id, "CAMPUS:SEEDED_CAMPUS");
+  assert.equal(Number(seededCamp.threat_stage), 0);
+  assert.equal(seededCamp.attention_level, "act");
 });
 
 test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge preserves standing years on N/A/None, suppresses Demolished-vacant while keeping district/HCAD cols, splits aliases, and supersedes duplicates", () => {
@@ -2416,6 +2481,83 @@ test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge pres
   assert.equal(pendSheet.getRange(row914Idx, 6).getValue(), "Norhill");
   assert.equal(pendSheet.getRange(row914Idx, 7).getValue(), "Contributing");
   assert.equal(pendSheet.getRange(row914Idx, 23).getValue(), "");
+
+  // 5. Field_Surveys with observed_year_or_demo_note = "0" (omitting suppress_only) AND UI buildModerationDecisionPayload on "Cleared vacant lot" both trigger vacant suppression!
+  assert.equal(
+    h.callPost({
+      action: "admin_approve",
+      google_id_token: staffJwt,
+      hcad_num: "0621100000090",
+      address: "916 BAYLAND AVE",
+      suggested_year_built: 1925,
+      original_hcad_year: 1931,
+      historic_district: "Norhill",
+      contributing: "Contributing",
+      geometry_geojson: polyGeo,
+      source_citation: "1925 Permit",
+    }).ok,
+    true
+  );
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_ZERO_NOTE",
+    hcad_num: "0621100000090",
+    address: "916 BAYLAND AVE",
+    observed_year_or_demo_note: "0",
+    field_notes: "Slab only",
+  });
+  assert.equal(
+    h.callPost({
+      action: "moderate_submission",
+      google_id_token: staffJwt,
+      sourceTab: "Field_Surveys",
+      rowNumber: h.coreWb.getSheetByName("Field_Surveys").getLastRow(),
+      survey_id: "SURV_ZERO_NOTE",
+      decision: "Approved",
+    }).ok,
+    true
+  );
+  const rowsAfterZero = pendSheet.getDataRange().getValues();
+  const row916Idx = rowsAfterZero.findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000090" && r[0] === "Approved") + 1;
+  assert.equal(pendSheet.getRange(row916Idx, 4).getValue(), 0, "Field_Surveys '0' without suppress_only must suppress year=0");
+  assert.equal(pendSheet.getRange(row916Idx, 23).getValue(), "", "Field_Surveys '0' without suppress_only must clear Col W polygon");
+
+  assert.equal(
+    h.callPost({
+      action: "admin_approve",
+      google_id_token: staffJwt,
+      hcad_num: "0621100000091",
+      address: "918 BAYLAND AVE",
+      suggested_year_built: 1928,
+      original_hcad_year: 1933,
+      historic_district: "Norhill",
+      contributing: "Contributing",
+      geometry_geojson: polyGeo,
+      source_citation: "1928 Permit",
+    }).ok,
+    true
+  );
+  h.callPost({
+    hcad_num: "0621100000091",
+    address: "918 BAYLAND AVE",
+    suggested_year_built: "Cleared vacant lot",
+    source_citation: "Observed cleared grass lot",
+  });
+  const clearedQueueItem = classifyModerationQueueItem(
+    h.callPost({ action: "list_pending_submissions", google_id_token: staffJwt }).items.find((it) => it.address === "918 BAYLAND AVE")
+  );
+  assert.equal(clearedQueueItem.isVacantReport, true);
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(clearedQueueItem, "Approved"),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  const rowsAfterCleared = pendSheet.getDataRange().getValues();
+  const row918Idx = rowsAfterCleared.findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000091" && r[0] === "Approved") + 1;
+  assert.equal(pendSheet.getRange(row918Idx, 4).getValue(), 0, "UI buildModerationDecisionPayload on 'Cleared vacant lot' must suppress year=0");
+  assert.equal(pendSheet.getRange(row918Idx, 23).getValue(), "", "UI buildModerationDecisionPayload on 'Cleared vacant lot' must clear Col W polygon");
 });
 
 test("UT-P1-Tags: server tag scanner preserves trailing citations on malformed tags and strips coordinate-array GeoJSON tags", () => {
@@ -2564,17 +2706,144 @@ test("UT-P1-SyncCoord: createParcelSyncCoordinator coalesces debounced edits, pr
   scheduled.delete(t4Id);
   await t4Fn();
   assert.equal(queuedRetries.length, 2);
+  assert.equal(
+    coord.hasPendingOrInFlight("0420090000088"),
+    true,
+    "Queued expired-token retries must retain pull protection against stale background hydration"
+  );
+
+  // Stale cloud pull while retries are queued must NOT overwrite getServerTimestamp!
+  coord.recordHydratedTimestamp("0420090000088", "2026-11-19T00:00:00.000Z", { fromCloud: true });
+  assert.equal(coord.getServerTimestamp("0420090000088"), "2026-11-23T12:00:02.000Z");
 
   // Token refreshed -> replay both queued retries sequentially
   tokenExpiredMode = false;
   const rA = await queuedRetries[0]();
+  assert.equal(coord.hasPendingOrInFlight("0420090000088"), true, "Still true until second queued retry settles");
   const rB = await queuedRetries[1]();
   assert.equal(rA.ok, true);
   assert.equal(rB.ok, true);
+  assert.equal(coord.hasPendingOrInFlight("0420090000088"), false);
+  assert.equal(successCalls.length, 4, "Both replayed retries must invoke onSuccess");
   assert.equal(rpcLog[rpcLog.length - 2].expectedUpdatedAt, "2026-11-23T12:00:02.000Z");
   assert.equal(
     rpcLog[rpcLog.length - 1].expectedUpdatedAt,
     rA.decision.decided_at,
     "Second replayed retry must dynamically read first retry's server decided_at"
   );
+});
+
+test("UT-P1-SyncCoord-ConflictPromoteSignOut: handles 409 conflict timestamp updates, in-place CAMPUS promotion coalescing, and clearAll cancellation", async () => {
+  const scheduled = new Map();
+  let nextTimerId = 1;
+  const rpcLog = [];
+  const conflicts = [];
+  let rpcResponder = async () => ({ ok: true });
+
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: (fn) => {
+      const id = nextTimerId++;
+      scheduled.set(id, fn);
+      return id;
+    },
+    cancelTimer: (id) => {
+      scheduled.delete(id);
+    },
+    sendDecisionRpc: async (args) => {
+      rpcLog.push(args);
+      return await rpcResponder(args);
+    },
+    onConflict: (resp) => {
+      conflicts.push(resp);
+    },
+  });
+
+  // 1. 409 conflict WITH currentDecision.decided_at updates server timestamp; WITHOUT currentDecision deletes it
+  coord.recordHydratedTimestamp("0420010000001", "2026-11-23T10:00:00.000Z", { fromCloud: true });
+  rpcResponder = async () => ({
+    ok: false,
+    conflict: true,
+    currentDecision: { parcel_id: "0420010000001", decided_at: "2026-11-23T15:00:00.000Z" },
+  });
+  coord.enqueue("0420010000001", { screening_notes: "Stale edit" }, "2026-11-23T10:00:00.000Z");
+  const [c1Id, c1Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(c1Id);
+  await c1Fn();
+  assert.equal(conflicts.length, 1);
+  assert.equal(coord.getServerTimestamp("0420010000001"), "2026-11-23T15:00:00.000Z");
+
+  rpcResponder = async () => ({ ok: false, conflict: true, currentDecision: null });
+  coord.enqueue("0420010000001", { screening_notes: "Deleted row conflict" }, "2026-11-23T15:00:00.000Z");
+  const [c2Id, c2Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(c2Id);
+  await c2Fn();
+  assert.equal(conflicts.length, 2);
+  assert.equal(coord.getServerTimestamp("0420010000001"), "");
+
+  // 2. promoteParcelKey coalesces single-parcel pending edit + CAMPUS promotion + rapid <650ms follow-up edit!
+  coord.recordHydratedTimestamp("0420010000001", "2026-11-23T16:00:00.000Z", { fromCloud: true });
+  coord.enqueue("0420010000001", { significance_level: "high" }, "2026-11-23T16:00:00.000Z");
+  const promotedBaseTs = coord.promoteParcelKey(
+    "0420010000001",
+    "CAMPUS:PARISH_ASSEMBLAGE",
+    "2026-11-23T99:99:99.000Z"
+  );
+  assert.equal(promotedBaseTs, "2026-11-23T16:00:00.000Z");
+  assert.equal(coord.hasPendingOrInFlight("0420010000001"), false);
+  coord.enqueue(
+    "CAMPUS:PARISH_ASSEMBLAGE",
+    {
+      parcel_id: "CAMPUS:PARISH_ASSEMBLAGE",
+      replace_parcel_id: "0420010000001",
+      campus_group_id: "Parish Assemblage",
+    },
+    promotedBaseTs
+  );
+  // Rapid <650ms follow-up edit without replace_parcel_id MUST preserve replace_parcel_id = "0420010000001"!
+  coord.enqueue(
+    "CAMPUS:PARISH_ASSEMBLAGE",
+    {
+      parcel_id: "CAMPUS:PARISH_ASSEMBLAGE",
+      screening_notes: "2-lot assemblage note",
+    },
+    promotedBaseTs
+  );
+  assert.equal(scheduled.size, 1, "Single coalesced debounce timer must remain active");
+  rpcResponder = async ({ parcelId, patch }) => ({
+    ok: true,
+    parcel: { parcel_id: parcelId, ...patch },
+    decision: { parcel_id: parcelId, ...patch, decided_at: "2026-11-23T16:05:00.000Z" },
+  });
+  const [pId, pFn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(pId);
+  await pFn();
+  const lastRpc = rpcLog[rpcLog.length - 1];
+  assert.equal(lastRpc.parcelId, "CAMPUS:PARISH_ASSEMBLAGE");
+  assert.equal(lastRpc.expectedUpdatedAt, "2026-11-23T16:00:00.000Z");
+  assert.equal(lastRpc.patch.replace_parcel_id, "0420010000001");
+  assert.equal(lastRpc.patch.significance_level, "high");
+  assert.equal(lastRpc.patch.screening_notes, "2-lot assemblage note");
+  assert.equal(coord.getServerTimestamp("CAMPUS:PARISH_ASSEMBLAGE"), "2026-11-23T16:05:00.000Z");
+
+  // 3. clearAll() cancels pending timers and invalidates stale queued retries across sign-out
+  let staleRetry = null;
+  rpcResponder = async ({ retryFn }) => {
+    staleRetry = retryFn;
+    return { ok: false, tokenExpired: true, queuedForRetry: true };
+  };
+  coord.enqueue("CAMPUS:PARISH_ASSEMBLAGE", { screening_notes: "Before sign-out" }, "2026-11-23T16:05:00.000Z");
+  const [qId, qFn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(qId);
+  await qFn();
+  assert.equal(coord.hasPendingOrInFlight("CAMPUS:PARISH_ASSEMBLAGE"), true);
+  coord.enqueue("0420090000099", { screening_notes: "Pending timer cancelled" }, "");
+  assert.equal(scheduled.size, 1);
+
+  coord.clearAll();
+  assert.equal(scheduled.size, 0, "clearAll must cancel pending timers");
+  assert.equal(coord.hasPendingOrInFlight("CAMPUS:PARISH_ASSEMBLAGE"), false);
+  assert.equal(coord.getServerTimestamp("CAMPUS:PARISH_ASSEMBLAGE"), "");
+  const cancelRes = await staleRetry();
+  assert.equal(cancelRes.cancelled, true, "Stale queued retry from pre-sign-out generation must short-circuit");
 });

@@ -732,6 +732,20 @@ export function computeThreatStageFromEvents(events = [], parcel = {}) {
   return maxStage;
 }
 
+export function advanceSweepThreatStage(parcel = {}, candidateStage = 0) {
+  const p = parcel && typeof parcel === "object" ? parcel : {};
+  const adv = sanitizeMonitoringText(p.advocacy_status).toLowerCase();
+  const out = sanitizeMonitoringText(p.outcome).toLowerCase();
+  const cand = Math.trunc(Number(candidateStage) || 0);
+  if (adv === "closed" || TERMINAL_OUTCOMES_SET.has(out) || cand === 6) {
+    return 6;
+  }
+  const prev = Math.trunc(Number(p.threat_stage) || 0);
+  const activePrev = prev >= 1 && prev <= 5 ? prev : 0;
+  const activeCand = cand >= 1 && cand <= 5 ? cand : 0;
+  return Math.max(activePrev, activeCand);
+}
+
 /**
  * Deterministic Attention Level (`"act"` | `"watch"` | `"record"`) implementing Section 2.B:
  * - Stage `6` (`Outcome`) is strictly non-active (`1 <= threat_stage <= 5` bounds active threats).

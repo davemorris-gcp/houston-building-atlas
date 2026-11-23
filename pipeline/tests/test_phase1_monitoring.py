@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import sys
 import threading
-import typing
 from typing import Any
 
 import pytest
@@ -1108,7 +1107,18 @@ def test_concurrent_merge_parity_campus_canonicalization_and_reopened_stage_rese
         area_context={"areaIds": ["area:custom"], "ageRuleCutoffYear": 1985},
     )
     assert tomb_custom["outcome"] == "lost"
-    assert "designations" in typing.get_type_hints(pmm.compute_public_plat_suggested_tier)
+    assert (
+        pmm.advance_sweep_threat_stage(
+            {"outcome": "moved", "advocacy_status": "monitoring", "threat_stage": 6}, 3
+        )
+        == 6
+    )
+    assert (
+        pmm.advance_sweep_threat_stage(
+            {"outcome": "", "advocacy_status": "active_advocacy", "threat_stage": 6}, 3
+        )
+        == 3
+    )
 
 
 def test_daily_sweep_campus_assemblage_12digit_hcad_and_reopened_plat_escalation(
@@ -1213,6 +1223,14 @@ def test_daily_sweep_campus_assemblage_12digit_hcad_and_reopened_plat_escalation
                     "atlas": {"primaryAddress": "2010 Lubbock St", "owner": "JONES TRUST"},
                     "_c": {"group": "check", "flags": ["pre1976"]},
                 },
+                {
+                    "app": "2026-7800",
+                    "name": "Moved Structure Lot Replat",
+                    "type": "C2R",
+                    "hcad": "0420090000077",
+                    "atlas": {"primaryAddress": "2014 Lubbock St", "owner": "MOVED HOUSE TRUST"},
+                    "_c": {"group": "check", "flags": ["pre1976"]},
+                },
             ],
             "cycles": {},
         },
@@ -1249,6 +1267,13 @@ def test_daily_sweep_campus_assemblage_12digit_hcad_and_reopened_plat_escalation
                 "outcome": "",
                 "threat_stage": 6,
             },
+            {
+                "parcel_id": "0420090000077",
+                "hcad_num": "0420090000077",
+                "advocacy_status": "monitoring",
+                "outcome": "moved",
+                "threat_stage": 6,
+            },
         ],
     )
     assert len(captured_pushes) == 1
@@ -1264,6 +1289,7 @@ def test_daily_sweep_campus_assemblage_12digit_hcad_and_reopened_plat_escalation
     assert "owner_applicant_mismatch" in pushed_by_id["0420090000055"]["signal_flags"]
     assert "commercial_on_residential" in pushed_by_id["0420090000055"]["signal_flags"]
     assert pushed_by_id["0420090000066"]["threat_stage"] == 3
+    assert pushed_by_id["0420090000077"]["threat_stage"] == 6
 
 
 def test_public_bundle_gate_catches_ai_companion_query_watchlist_links_and_summary_counters(

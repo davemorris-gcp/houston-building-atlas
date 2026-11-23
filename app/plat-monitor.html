@@ -1065,15 +1065,33 @@ function hydratePhase1MapsFromPayload(payload, activeRole = "public", { fromClou
   }
   let appliedDecisions = 0;
   if (Array.isArray(payload.decisions)) {
+    const dirtyDecisions = new Map();
+    for (const [pid, curDec] of monitoringDecisionsByParcelId.entries()) {
+      if (parcelSyncCoordinator.hasPendingOrInFlight(pid)) {
+        dirtyDecisions.set(pid, curDec);
+      }
+    }
+    monitoringDecisionsByParcelId.clear();
     for (const dec of payload.decisions) {
       if (dec && dec.parcel_id) {
-        const decPid = String(dec.parcel_id);
+        const decPid = resolveCanonicalParcelId(
+          {
+            parcelId: dec.parcel_id,
+            hcadIds: [dec.hcad_num || ""],
+            appNo: dec.latest_app_no || "",
+          },
+          campusParcelIndex
+        );
+        if (!decPid) continue;
         parcelSyncCoordinator.recordHydratedTimestamp(decPid, dec.decided_at, { fromCloud });
-        if (!parcelSyncCoordinator.hasPendingOrInFlight(decPid)) {
-          monitoringDecisionsByParcelId.set(decPid, dec);
+        if (!dirtyDecisions.has(decPid)) {
+          monitoringDecisionsByParcelId.set(decPid, { ...dec, parcel_id: decPid });
         }
         appliedDecisions++;
       }
+    }
+    for (const [pid, curDec] of dirtyDecisions.entries()) {
+      monitoringDecisionsByParcelId.set(pid, curDec);
     }
   }
   if (Array.isArray(payload.events)) {
@@ -7108,9 +7126,10 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
     campusIndex: campusParcelIndex,
     areasById: monitoringAreasById,
   });
+  const sourceParcelId = currentAssessment.parcelId;
   const actorLabel = ($("#reviewer")?.value || S?.reviewer || sess.email || "Preservation Staff").trim();
   const fullPatch = {
-    parcel_id: currentAssessment.parcelId,
+    parcel_id: sourceParcelId,
     hcad_num: currentAssessment.parcel.hcad_num,
     related_hcads: currentAssessment.parcel.related_hcads,
     primary_address: currentAssessment.parcel.primary_address,
@@ -7127,8 +7146,8 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
   };
 
   const merged = mergeParcelAndDecisionConcurrent({
-    existingParcel: monitoringParcelsById.get(currentAssessment.parcelId) || currentAssessment.parcel,
-    existingDecision: monitoringDecisionsByParcelId.get(currentAssessment.parcelId) || currentAssessment.decision,
+    existingParcel: monitoringParcelsById.get(sourceParcelId) || currentAssessment.parcel,
+    existingDecision: monitoringDecisionsByParcelId.get(sourceParcelId) || currentAssessment.decision,
     patch: fullPatch,
     actorRole: sess.role === "screener" ? "screener" : "staff",
     actorLabel,
@@ -7139,14 +7158,27 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
     toast(merged.error || "Could not apply parcel decision.");
     return null;
   }
+  fullPatch.parcel_id = merged.parcel.parcel_id;
   if (patch.threat_stage === undefined) {
     fullPatch.threat_stage = merged.parcel.threat_stage;
   }
 
-  const prevDecidedAt = parcelSyncCoordinator.captureBaselineExpectedTs(
-    merged.parcel.parcel_id,
-    currentAssessment.decidedAt || ""
-  );
+  let prevDecidedAt = "";
+  if (sourceParcelId && merged.parcel.parcel_id !== sourceParcelId) {
+    fullPatch.replace_parcel_id = sourceParcelId;
+    monitoringParcelsById.delete(sourceParcelId);
+    monitoringDecisionsByParcelId.delete(sourceParcelId);
+    prevDecidedAt = parcelSyncCoordinator.promoteParcelKey(
+      sourceParcelId,
+      merged.parcel.parcel_id,
+      currentAssessment.decidedAt || ""
+    );
+  } else {
+    prevDecidedAt = parcelSyncCoordinator.captureBaselineExpectedTs(
+      merged.parcel.parcel_id,
+      currentAssessment.decidedAt || ""
+    );
+  }
   monitoringParcelsById.set(merged.parcel.parcel_id, merged.parcel);
   monitoringDecisionsByParcelId.set(merged.parcel.parcel_id, merged.decision);
   campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));

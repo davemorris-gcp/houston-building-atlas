@@ -566,6 +566,22 @@ def compute_threat_stage_from_events(
     return max_stage
 
 
+def advance_sweep_threat_stage(
+    parcel: dict[str, Any] | None = None, candidate_stage: int = 0
+) -> int:
+    """Advance active sweep threat_stage (1..5) while retaining 6 on closed/terminal parcels and resetting stale 6 on reopened parcels."""
+    p = parcel or {}
+    adv = sanitize_monitoring_text(p.get("advocacy_status")).lower()
+    out = sanitize_monitoring_text(p.get("outcome")).lower()
+    cand = _safe_int(candidate_stage)
+    if adv == "closed" or out in _TERMINAL_OUTCOMES_SET or cand == 6:
+        return 6
+    prev = _safe_int(p.get("threat_stage"))
+    active_prev = prev if 1 <= prev <= 5 else 0
+    active_cand = cand if 1 <= cand <= 5 else 0
+    return max(active_prev, active_cand)
+
+
 def compute_attention_level(
     parcel: dict[str, Any],
     *,

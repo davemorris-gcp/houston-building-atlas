@@ -422,10 +422,11 @@ function formatCellForHeader_(colName, rawVal) {
   return clean;
 }
 
-function upsertTableObjectsBatch_(ss, spec, records) {
+function upsertTableObjectsBatch_(ss, spec, records, opts) {
   if (!ss || !spec || !Array.isArray(records) || !records.length) {
     return { inserted: 0, updated: 0 };
   }
+  var replacePkByPk = (opts && opts.replacePkByPk) ? opts.replacePkByPk : {};
   var sheet = ensureTableSheet_(ss, spec);
   if (!sheet) return { inserted: 0, updated: 0 };
   var vals = sheet.getDataRange().getValues();
@@ -469,7 +470,8 @@ function upsertTableObjectsBatch_(ss, spec, records) {
     if (!rec || typeof rec !== 'object') continue;
     var pk = normPkFn(rec[spec.primaryKey], campIdx !== -1 ? rec.campus_group_id : '');
     if (!pk) continue;
-    var fallbackPk = (rec._replacePk && rowByPk[pk] === undefined) ? normPkFn(rec._replacePk, '') : '';
+    var rawReplacePk = replacePkByPk[pk] || '';
+    var fallbackPk = (rawReplacePk && rowByPk[pk] === undefined) ? normPkFn(rawReplacePk, '') : '';
     var existingRowIdx = rowByPk[pk] !== undefined ? rowByPk[pk] : (fallbackPk ? rowByPk[fallbackPk] : undefined);
     if (existingRowIdx !== undefined) {
       var target = grid[existingRowIdx];
@@ -1179,7 +1181,7 @@ function isExplicitDemolishedYearTextServer_(rawVal) {
   if (!low) return false;
   if (/^(?:0|vacant(?:\s+lot)?|demolished)$/.test(low)) return true;
   if (/\bdemolished\b/.test(low) && /\b(?:vacant|cleared|empty|lot|gone|slab)\b/.test(low)) return true;
-  if (/\bvacant\s+lot\b/.test(low)) return true;
+  if (/\b(?:vacant|cleared|empty)\s+lot\b/.test(low)) return true;
   return false;
 }
 
@@ -1211,6 +1213,30 @@ function isVacantSuppressPayload_(payload, rawSourceType, rawSuggestedYear, pars
 
 /* ---------- Split-Range Formula-Safe Pending_Submissions Helpers ---------- */
 
+var MIN_STANDING_YEAR_ = 1836;
+var MAX_STANDING_YEAR_ = 2035;
+var PENDING_COL_ = {
+  STATUS: 0,
+  HCAD: 1,
+  ADDRESS: 2,
+  YEAR_BUILT: 3,
+  ORIG_HCAD_YEAR: 4,
+  DISTRICT: 5,
+  CONTRIBUTING: 6,
+  SOURCE_TYPE: 7,
+  CITATION: 8,
+  SOURCE_URL: 9,
+  MODERATED_BY: 10,
+  SUBMITTED_BY: 11,
+  SUBMITTED_AT: 12,
+  MOD_NOTE: 13,
+  BUILDING_NAME: 14,
+  ALT_NAMES: 15,
+  BLD_STYLE: 16,
+  ARCHITECT: 17,
+  GEOMETRY_W: 22
+};
+
 function writePendingRowPreservingFormulas_(sheet, rowIdx, colsAtoR, colWGeom) {
   var row18 = [];
   for (var i = 0; i < 18; i++) {
@@ -1239,8 +1265,8 @@ function countPendingModerationItems_(ss) {
   if (pSheet && typeof pSheet.getDataRange === 'function') {
     var pVals = pSheet.getDataRange().getValues();
     for (var i = 1; i < pVals.length; i++) {
-      var st = String(pVals[i][0] || '').trim().toLowerCase();
-      var hk = stripLeadingSheetTick_(pVals[i][1]).trim();
+      var st = String(pVals[i][PENDING_COL_.STATUS] || '').trim().toLowerCase();
+      var hk = stripLeadingSheetTick_(pVals[i][PENDING_COL_.HCAD]).trim();
       if (st === 'pending' && hk && hk.indexOf('PLAT_REV:') !== 0 && hk.indexOf('WATCH_PROP:') !== 0) {
         pendingCount++;
       }
@@ -1268,8 +1294,8 @@ function listPendingModerationItems_(ss, limitCount) {
     var pVals = pSheet.getDataRange().getValues();
     for (var r = 1; r < pVals.length && items.length < cap; r++) {
       var row = pVals[r];
-      var st = String(row[0] || '').trim();
-      var hcad = stripLeadingSheetTick_(row[1]).trim();
+      var st = String(row[PENDING_COL_.STATUS] || '').trim();
+      var hcad = stripLeadingSheetTick_(row[PENDING_COL_.HCAD]).trim();
       if (!hcad || hcad.indexOf('PLAT_REV:') === 0 || hcad.indexOf('WATCH_PROP:') === 0) continue;
       if (st.toLowerCase() !== 'pending' && st.toLowerCase() !== 'needs info' && st.toLowerCase() !== 'on hold') continue;
       items.push({
@@ -1278,22 +1304,22 @@ function listPendingModerationItems_(ss, limitCount) {
         rowNumber: r + 1,
         status: st,
         hcad_num: hcad,
-        address: stripLeadingSheetTick_(row[2]),
-        suggested_year_built: stripLeadingSheetTick_(row[3]),
-        original_hcad_year: stripLeadingSheetTick_(row[4]),
-        historic_district: stripLeadingSheetTick_(row[5]),
-        contributing: stripLeadingSheetTick_(row[6]),
-        source_type: stripLeadingSheetTick_(row[7]),
-        source_citation: stripLeadingSheetTick_(row[8]),
-        source_url: stripLeadingSheetTick_(row[9]),
-        submitted_by: stripLeadingSheetTick_(row[11]),
-        submitted_at: stripLeadingSheetTick_(row[12]),
-        notes: stripLeadingSheetTick_(row[13]),
-        building_name: stripLeadingSheetTick_(row[14]),
-        alt_names: stripLeadingSheetTick_(row[15]),
-        bld_style: stripLeadingSheetTick_(row[16]),
-        architect: stripLeadingSheetTick_(row[17]),
-        geometry_geojson: stripLeadingSheetTick_(row[22] || '')
+        address: stripLeadingSheetTick_(row[PENDING_COL_.ADDRESS]),
+        suggested_year_built: stripLeadingSheetTick_(row[PENDING_COL_.YEAR_BUILT]),
+        original_hcad_year: stripLeadingSheetTick_(row[PENDING_COL_.ORIG_HCAD_YEAR]),
+        historic_district: stripLeadingSheetTick_(row[PENDING_COL_.DISTRICT]),
+        contributing: stripLeadingSheetTick_(row[PENDING_COL_.CONTRIBUTING]),
+        source_type: stripLeadingSheetTick_(row[PENDING_COL_.SOURCE_TYPE]),
+        source_citation: stripLeadingSheetTick_(row[PENDING_COL_.CITATION]),
+        source_url: stripLeadingSheetTick_(row[PENDING_COL_.SOURCE_URL]),
+        submitted_by: stripLeadingSheetTick_(row[PENDING_COL_.SUBMITTED_BY]),
+        submitted_at: stripLeadingSheetTick_(row[PENDING_COL_.SUBMITTED_AT]),
+        notes: stripLeadingSheetTick_(row[PENDING_COL_.MOD_NOTE]),
+        building_name: stripLeadingSheetTick_(row[PENDING_COL_.BUILDING_NAME]),
+        alt_names: stripLeadingSheetTick_(row[PENDING_COL_.ALT_NAMES]),
+        bld_style: stripLeadingSheetTick_(row[PENDING_COL_.BLD_STYLE]),
+        architect: stripLeadingSheetTick_(row[PENDING_COL_.ARCHITECT]),
+        geometry_geojson: stripLeadingSheetTick_(row[PENDING_COL_.GEOMETRY_W] || '')
       });
     }
   }
@@ -1357,30 +1383,37 @@ function mergeStandingPendingColumnsServer_(opts) {
   var payload = opts.payload || {};
   var rowVals = opts.rowVals || null;
   var priorRow = opts.priorApprovedRow || null;
-  var srcType = String(payload.source_type || (rowVals ? stripLeadingSheetTick_(rowVals[7]) : '') || opts.defaultSourceType || '').trim();
+  var srcType = String(payload.source_type || (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SOURCE_TYPE]) : '') || opts.defaultSourceType || '').trim();
   var isDisputeFlag = /(?:PHOTO_MISATTRIBUTION_FLAG|CLAIM_DISPUTE_FLAG|NARRATIVE_ERROR_FLAG)$/i.test(srcType);
 
+  // In queue moderation (rowVals !== null), an explicit empty string from #mq-year clears the
+  // submitted year so resolution falls back to priorRow; in direct writeback (rowVals === null),
+  // an empty suggested_year_built falls through to payload.year_built.
+  var hasPayloadSuggestedYr = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null;
+  var trimmedSuggestedYr = hasPayloadSuggestedYr ? String(payload.suggested_year_built).trim() : '';
   var rawSuggestedYear = '';
-  if (payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && (rowVals ? true : String(payload.suggested_year_built).trim() !== '')) {
-    rawSuggestedYear = String(payload.suggested_year_built).trim();
+  if (rowVals && hasPayloadSuggestedYr) {
+    rawSuggestedYear = trimmedSuggestedYr;
+  } else if (!rowVals && trimmedSuggestedYr !== '') {
+    rawSuggestedYear = trimmedSuggestedYr;
   } else if (!rowVals && payload.year_built !== undefined && payload.year_built !== null && String(payload.year_built).trim() !== '') {
     rawSuggestedYear = String(payload.year_built).trim();
   } else if (rowVals) {
-    rawSuggestedYear = stripLeadingSheetTick_(rowVals[3]).trim();
+    rawSuggestedYear = stripLeadingSheetTick_(rowVals[PENDING_COL_.YEAR_BUILT]).trim();
   }
   var parsedYr = (rawSuggestedYear !== '' && isFinite(Number(rawSuggestedYear))) ? Math.round(Number(rawSuggestedYear)) : NaN;
-  var hasStandingYr = isFinite(parsedYr) && parsedYr >= 1836 && parsedYr <= 2035;
+  var hasStandingYr = isFinite(parsedYr) && parsedYr >= MIN_STANDING_YEAR_ && parsedYr <= MAX_STANDING_YEAR_;
   var effectiveStatus = (opts.requestedDecision === 'Approved' && isDisputeFlag && !hasStandingYr && payload.suppress_only !== true)
     ? 'Resolved'
     : opts.requestedDecision;
 
-  var citationStr = payload.source_citation !== undefined ? String(payload.source_citation) : (rowVals ? stripLeadingSheetTick_(rowVals[8]) : '');
+  var citationStr = payload.source_citation !== undefined ? String(payload.source_citation) : (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.CITATION]) : '');
   var incomingGeomStr = '';
   if (payload.geometry_geojson !== undefined && payload.geometry_geojson !== null) {
     if (typeof payload.geometry_geojson === 'object') incomingGeomStr = JSON.stringify(payload.geometry_geojson);
     else incomingGeomStr = String(payload.geometry_geojson).trim();
   } else if (rowVals) {
-    incomingGeomStr = stripLeadingSheetTick_(rowVals[22] || '').trim();
+    incomingGeomStr = stripLeadingSheetTick_(rowVals[PENDING_COL_.GEOMETRY_W] || '').trim();
   }
 
   var isVac = effectiveStatus === 'Approved' && !isDisputeFlag && isVacantSuppressPayload_(
@@ -1406,7 +1439,7 @@ function mergeStandingPendingColumnsServer_(opts) {
       citationStr = ('[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] ' + citationStr).trim();
     }
   } else {
-    geomGeoJsonStr = incomingGeomStr || (effectiveStatus === 'Approved' && priorRow ? stripLeadingSheetTick_(priorRow[22] || '').trim() : '');
+    geomGeoJsonStr = incomingGeomStr || (effectiveStatus === 'Approved' && priorRow ? stripLeadingSheetTick_(priorRow[PENDING_COL_.GEOMETRY_W] || '').trim() : '');
   }
   if (geomGeoJsonStr.length > 49000) {
     return { ok: false, error: 'geometry_geojson exceeds Google Sheets 49,000-character limit.' };
@@ -1414,52 +1447,52 @@ function mergeStandingPendingColumnsServer_(opts) {
 
   var resolvedYrCell = '';
   if (effectiveStatus !== 'Approved') {
-    resolvedYrCell = hasStandingYr ? parsedYr : (rowVals ? stripLeadingSheetTick_(rowVals[3]).trim() : '');
+    resolvedYrCell = hasStandingYr ? parsedYr : (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.YEAR_BUILT]).trim() : '');
   } else if (isDisputeFlag) {
     resolvedYrCell = hasStandingYr ? parsedYr : '';
   } else if (isVac) {
     resolvedYrCell = 0;
   } else if (hasStandingYr) {
     resolvedYrCell = parsedYr;
-  } else if (priorRow && priorRow[3] !== '' && priorRow[3] !== undefined) {
-    var prYrNum = Number(priorRow[3]);
-    resolvedYrCell = (isFinite(prYrNum) && prYrNum >= 1836 && prYrNum <= 2035) ? Math.round(prYrNum) : '';
+  } else if (priorRow && priorRow[PENDING_COL_.YEAR_BUILT] !== '' && priorRow[PENDING_COL_.YEAR_BUILT] !== undefined) {
+    var prYrNum = Number(priorRow[PENDING_COL_.YEAR_BUILT]);
+    resolvedYrCell = (isFinite(prYrNum) && prYrNum >= MIN_STANDING_YEAR_ && prYrNum <= MAX_STANDING_YEAR_) ? Math.round(prYrNum) : '';
   }
 
   var payloadOrigYr = Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '';
-  var rowOrigYr = rowVals ? stripLeadingSheetTick_(rowVals[4]).trim() : '';
-  var priorOrigYr = priorRow ? stripLeadingSheetTick_(priorRow[4]).trim() : '';
+  var rowOrigYr = rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.ORIG_HCAD_YEAR]).trim() : '';
+  var priorOrigYr = priorRow ? stripLeadingSheetTick_(priorRow[PENDING_COL_.ORIG_HCAD_YEAR]).trim() : '';
   var resolvedOrigYr = payloadOrigYr !== ''
     ? payloadOrigYr
     : (rowOrigYr !== '' ? (Number(rowOrigYr) || rowOrigYr) : (priorOrigYr !== '' ? (Number(priorOrigYr) || priorOrigYr) : ''));
 
-  var rawNameCombined = pickStandingCellServer_(payload.building_name, rowVals ? rowVals[14] : '', priorRow ? priorRow[14] : '', isVac);
-  var rawAltCombined = pickStandingCellServer_(payload.alt_names, rowVals ? rowVals[15] : '', priorRow ? priorRow[15] : '', isVac);
+  var rawNameCombined = pickStandingCellServer_(payload.building_name, rowVals ? rowVals[PENDING_COL_.BUILDING_NAME] : '', priorRow ? priorRow[PENDING_COL_.BUILDING_NAME] : '', isVac);
+  var rawAltCombined = pickStandingCellServer_(payload.alt_names, rowVals ? rowVals[PENDING_COL_.ALT_NAMES] : '', priorRow ? priorRow[PENDING_COL_.ALT_NAMES] : '', isVac);
   var splitNames = splitBuildingNamesServer_(rawNameCombined, rawAltCombined);
 
-  var submitterStr = rowVals ? stripLeadingSheetTick_(rowVals[11]) : String(payload.submitter_name || payload.submitted_by || opts.authLabel || '');
-  var dateStr = (rowVals && stripLeadingSheetTick_(rowVals[12])) ? stripLeadingSheetTick_(rowVals[12]) : new Date().toISOString().slice(0, 10);
-  var modNoteStr = String(payload.moderation_note || (rowVals ? stripLeadingSheetTick_(rowVals[13]) : '') || opts.defaultModerationNote || '');
+  var submitterStr = rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_BY]) : String(payload.submitter_name || payload.submitted_by || opts.authLabel || '');
+  var dateStr = (rowVals && stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_AT])) ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_AT]) : new Date().toISOString().slice(0, 10);
+  var modNoteStr = String(payload.moderation_note || (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.MOD_NOTE]) : '') || opts.defaultModerationNote || '');
 
   var colsAtoR = [
     effectiveStatus,
     /^\d{13}$/.test(opts.targetHcad) ? (SQUOTE_ + opts.targetHcad) : sanitizeSheetFormulaPrefix_(opts.targetHcad),
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.address, rowVals ? rowVals[2] : '', priorRow ? priorRow[2] : '', false)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.address, rowVals ? rowVals[PENDING_COL_.ADDRESS] : '', priorRow ? priorRow[PENDING_COL_.ADDRESS] : '', false)),
     resolvedYrCell,
     resolvedOrigYr,
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.historic_district, rowVals ? rowVals[5] : '', priorRow ? priorRow[5] : '', false)),
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.contributing, rowVals ? rowVals[6] : '', priorRow ? priorRow[6] : '', false)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.historic_district, rowVals ? rowVals[PENDING_COL_.DISTRICT] : '', priorRow ? priorRow[PENDING_COL_.DISTRICT] : '', false)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.contributing, rowVals ? rowVals[PENDING_COL_.CONTRIBUTING] : '', priorRow ? priorRow[PENDING_COL_.CONTRIBUTING] : '', false)),
     sanitizeSheetFormulaPrefix_(srcType),
     sanitizeSheetFormulaPrefix_(citationStr),
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.source_url, rowVals ? rowVals[9] : '', priorRow ? priorRow[9] : '', isVac)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.source_url, rowVals ? rowVals[PENDING_COL_.SOURCE_URL] : '', priorRow ? priorRow[PENDING_COL_.SOURCE_URL] : '', isVac)),
     sanitizeSheetFormulaPrefix_(opts.authLabel || ''),
     sanitizeSheetFormulaPrefix_(submitterStr),
     dateStr,
     sanitizeSheetFormulaPrefix_(modNoteStr),
     sanitizeSheetFormulaPrefix_(splitNames.primaryName),
     sanitizeSheetFormulaPrefix_(splitNames.altNames),
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.bld_style, rowVals ? rowVals[16] : '', priorRow ? priorRow[16] : '', isVac)),
-    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.architect, rowVals ? rowVals[17] : '', priorRow ? priorRow[17] : '', isVac))
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.bld_style, rowVals ? rowVals[PENDING_COL_.BLD_STYLE] : '', priorRow ? priorRow[PENDING_COL_.BLD_STYLE] : '', isVac)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.architect, rowVals ? rowVals[PENDING_COL_.ARCHITECT] : '', priorRow ? priorRow[PENDING_COL_.ARCHITECT] : '', isVac))
   ];
   return {
     ok: true,
@@ -1481,8 +1514,8 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
   var lastRow = 1;
   var matchingApprovedRows = [];
   for (var r = 1; r < vals.length; r++) {
-    var rStatus = String(vals[r][0] || '').trim().toLowerCase();
-    var rKey = normalizeHcadKeyServer_(vals[r][1]);
+    var rStatus = String(vals[r][PENDING_COL_.STATUS] || '').trim().toLowerCase();
+    var rKey = normalizeHcadKeyServer_(vals[r][PENDING_COL_.HCAD]);
     if (rKey !== '') {
       lastRow = r + 1;
       if (rKey === cleanKey && rStatus === 'approved') {
@@ -1784,10 +1817,16 @@ function handleUpsertParcelDecisionAction_(ctx) {
       });
     }
   }
-  var rawLookupPid = normalizeParcelIdServer_(patch.parcel_id || payload.parcel_id || '', '');
+  var rawLookupPid = normalizeParcelIdServer_(
+    patch.replace_parcel_id || payload.replace_parcel_id || patch.parcel_id || payload.parcel_id || '',
+    ''
+  );
   var parcelId = normalizeParcelIdServer_(patch.parcel_id || payload.parcel_id || '', patch.campus_group_id || payload.campus_group_id || '');
   if (!parcelId) {
     return createJsonResponse_(env, { ok: false, error: 'Missing parcel_id for decision upsert.' });
+  }
+  if (parcelId.indexOf('CAMPUS:') === 0 && (!rawLookupPid || rawLookupPid === parcelId) && patch.hcad_num) {
+    rawLookupPid = normalizeHcadKeyServer_(String(patch.hcad_num).split(/[;|,]/)[0]);
   }
   var areasList = readTableObjects_(ss, TABLE_REGISTRY_.Areas);
   var areasMap = {};
@@ -1896,11 +1935,13 @@ function handleUpsertParcelDecisionAction_(ctx) {
   if (parcelId.indexOf('CAMPUS:') === 0) {
     nextParcel.campus_group_id = parcelId;
   }
+  var parcelReplaceMap = {};
   if (curParcel && curParcel.parcel_id && curParcel.parcel_id !== parcelId) {
-    nextParcel._replacePk = curParcel.parcel_id;
+    parcelReplaceMap[parcelId] = curParcel.parcel_id;
   }
+  var decisionReplaceMap = {};
   if (curDec && curDec.decision_id && curDec.decision_id !== decId) {
-    nextDec._replacePk = curDec.decision_id;
+    decisionReplaceMap[decId] = curDec.decision_id;
   }
   nextParcel.review_status = nextDec.review_status;
   nextParcel.recommended_significance = nextDec.recommended_significance;
@@ -1928,10 +1969,8 @@ function handleUpsertParcelDecisionAction_(ctx) {
   nextParcel.updated_by = actorLabel;
   nextParcel.updated_at = nowIso;
 
-  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, [nextParcel]);
-  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, [nextDec]);
-  delete nextParcel._replacePk;
-  delete nextDec._replacePk;
+  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, [nextParcel], { replacePkByPk: parcelReplaceMap });
+  upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Decisions, [nextDec], { replacePkByPk: decisionReplaceMap });
 
   return createJsonResponse_(env, {
     ok: true,
@@ -2157,6 +2196,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
       if (normExPid) curById[normExPid] = curParcels[cp];
     }
     var safeParcels = [];
+    var sweepParcelReplaceMap = {};
     var sweepTs = nextMonotonicIsoServer_(env, '');
     for (var ip = 0; ip < payload.parcels.length; ip++) {
       var incP = payload.parcels[ip];
@@ -2167,6 +2207,17 @@ function handlePipelinePushSweepResultsAction_(ctx) {
         var seeded = {};
         for (var sk in incP) { if (Object.prototype.hasOwnProperty.call(incP, sk)) seeded[sk] = incP[sk]; }
         seeded.parcel_id = normIncPid;
+        if (normIncPid.indexOf('CAMPUS:') === 0) {
+          seeded.campus_group_id = normIncPid;
+        }
+        if (exP && exP.parcel_id && exP.parcel_id !== normIncPid) {
+          sweepParcelReplaceMap[normIncPid] = exP.parcel_id;
+        }
+        if (String(seeded.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(seeded.outcome || '').toLowerCase()]) {
+          seeded.threat_stage = 6;
+        } else if (Number(seeded.threat_stage) === 6) {
+          seeded.threat_stage = 0;
+        }
         seeded.added_at = seeded.added_at || sweepTs;
         seeded.updated_at = seeded.updated_at || sweepTs;
         seeded.contributing_status = computeContributingServer_(seeded, aMap);
@@ -2181,7 +2232,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
           mergedP.campus_group_id = normIncPid;
         }
         if (exP.parcel_id && exP.parcel_id !== normIncPid) {
-          mergedP._replacePk = exP.parcel_id;
+          sweepParcelReplaceMap[normIncPid] = exP.parcel_id;
         }
         for (var mk in PIPELINE_MACHINE_PARCEL_COLS_) {
           if (Object.prototype.hasOwnProperty.call(PIPELINE_MACHINE_PARCEL_COLS_, mk) && incP[mk] !== undefined) {
@@ -2210,7 +2261,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
         safeParcels.push(mergedP);
       }
     }
-    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, safeParcels);
+    upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Parcels, safeParcels, { replacePkByPk: sweepParcelReplaceMap });
   }
 
   if (isFullSeed && Array.isArray(payload.decisions) && payload.decisions.length) {
@@ -2328,7 +2379,7 @@ function handleModerateSubmissionAction_(ctx) {
         contributing: payload.contributing || stripLeadingSheetTick_(fsRow[8]),
         original_hcad_year: payload.original_hcad_year || stripLeadingSheetTick_(fsRow[12]),
         suggested_year_built: payload.suggested_year_built !== undefined ? payload.suggested_year_built : stripLeadingSheetTick_(fsRow[13]),
-        suppress_only: payload.suppress_only === true,
+        suppress_only: payload.suppress_only,
         source_type: 'Preservation Houston Field Survey',
         source_citation: payload.source_citation || ('[Promoted Survey ' + fsSurveyId + '] ' + stripLeadingSheetTick_(fsRow[15])),
         source_url: payload.source_url || stripLeadingSheetTick_(fsRow[14]),
