@@ -575,6 +575,7 @@ export function computeAttentionLevel(
   const rawStage = Number(parcel.threat_stage);
   const stage = Number.isFinite(rawStage) ? Math.trunc(rawStage) : 0;
   const hasActiveStage = stage >= 1 && stage <= 5;
+  const activeStage = hasActiveStage ? stage : 0;
 
   let hasUrgentHearing = false;
   if (asOfDateCst && nextHearingDateCst) {
@@ -603,7 +604,7 @@ export function computeAttentionLevel(
 
   if (effSig === "high" || effSig === "moderate" || effSig === "needs_research") {
     if (hasActiveThreat) {
-      if (protection === "binding" && stage <= 3) {
+      if (protection === "binding" && activeStage <= 3) {
         return "watch";
       }
       return "act";
@@ -619,8 +620,8 @@ export function computeAttentionLevel(
   if (
     areaCtx.priorityStatus === "priority" &&
     contributing === "contributing" &&
-    stage >= 3 &&
-    stage <= 5
+    activeStage >= 3 &&
+    activeStage <= 5
   ) {
     return "watch";
   }
@@ -646,7 +647,16 @@ export function explainAttentionLevel(
     return "Record: Placed in Recording Only mode";
   }
   const stage = Math.max(0, Math.min(6, Math.trunc(Number(parcel.threat_stage) || 0)));
+  const activeStage = stage >= 1 && stage <= 5 ? stage : 0;
   const stageLabel = MONITORING_SCHEMA_CONTRACT.enums.threatStages[String(stage)] || "None";
+  let hasUrgentHearing = false;
+  if (asOfDateCst && nextHearingDateCst) {
+    const deltaDays = calendarDaysBetween(asOfDateCst, nextHearingDateCst);
+    hasUrgentHearing =
+      deltaDays !== null &&
+      deltaDays >= 0 &&
+      deltaDays <= MONITORING_SCHEMA_CONTRACT.hearingUrgentWindowDays;
+  }
   const sig =
     sanitizeMonitoringText(parcel.significance_level) ||
     sanitizeMonitoringText(parcel.recommended_significance) ||
@@ -656,21 +666,26 @@ export function explainAttentionLevel(
     classifyProtectionLevel(parcel.designation_summary || "");
 
   if (level === "act") {
-    return `Act: ${sig.replace(/_/g, " ")} significance + Stage ${stage} (${stageLabel})`;
+    if (activeStage === 0 && hasUrgentHearing) {
+      return `Act: ${sig.replace(/_/g, " ")} significance + upcoming hearing (${nextHearingDateCst})`;
+    }
+    return `Act: ${sig.replace(/_/g, " ")} significance + Stage ${activeStage} (${stageLabel})`;
   }
   if (level === "watch") {
     if (
       (sig === "high" || sig === "moderate" || sig === "needs research") &&
       prot === "binding" &&
-      stage >= 1 &&
-      stage <= 3
+      (activeStage >= 1 || hasUrgentHearing) &&
+      activeStage <= 3
     ) {
-      return `Watch: Binding HAHC review moderates Stage ${stage} (${stageLabel})`;
+      return activeStage >= 1
+        ? `Watch: Binding HAHC review moderates Stage ${activeStage} (${stageLabel})`
+        : `Watch: Binding HAHC review moderates upcoming hearing (${nextHearingDateCst})`;
     }
     if (sig === "high" || sig === "moderate" || sig === "needs research") {
       return `Watch: ${sig} significance with no active threat filing yet`;
     }
-    return `Watch: Contributing parcel in Priority Area facing Stage ${stage} (${stageLabel})`;
+    return `Watch: Contributing parcel in Priority Area facing Stage ${activeStage} (${stageLabel})`;
   }
   return `Record: Logged for citywide survey and neighborhood metrics`;
 }
@@ -892,6 +907,65 @@ export function compactHistoryJsonFifo(
     }
     kept = [last];
     serialized = encode(kept, truncatedCount);
+  }
+  return serialized;
+}
+
+/**
+ * Compact a `Watchlist_Dossiers.dossier_json` payload FIFO below Google Sheets' safe `48,000`-char
+ * cell limit while guaranteeing 100% valid JSON (never slicing raw JSON text mid-token).
+ */
+export function compactWatchlistDossierJson(
+  dossierObj = {},
+  maxChars = MONITORING_SCHEMA_CONTRACT.safeSheetCellCharLimit
+) {
+  const clean =
+    dossierObj && typeof dossierObj === "object" && !Array.isArray(dossierObj)
+      ? sanitizePayloadDashes(JSON.parse(JSON.stringify(dossierObj)))
+      : {};
+  let serialized = JSON.stringify(clean);
+  if (serialized.length <= maxChars) return serialized;
+
+  if (clean.photoDataUrl) {
+    clean.photoDataUrl = "";
+    clean.photoDataUrlOmittedInCompactCell = true;
+    serialized = JSON.stringify(clean);
+    if (serialized.length <= maxChars) return serialized;
+  }
+
+  if (Array.isArray(clean.findingsLog) && clean.findingsLog.length > 0) {
+    clean.findingsLog = [];
+    serialized = JSON.stringify(clean);
+    if (serialized.length <= maxChars) return serialized;
+  }
+
+  let droppedChecks = Number(clean.truncatedCheckCount) || 0;
+  while (serialized.length > maxChars && Array.isArray(clean.checklist)) {
+    let targetRow = null;
+    let maxLen = 1;
+    for (const row of clean.checklist) {
+      if (row && Array.isArray(row.checks) && row.checks.length > maxLen) {
+        maxLen = row.checks.length;
+        targetRow = row;
+      }
+    }
+    if (!targetRow) break;
+    targetRow.checks.shift();
+    droppedChecks += 1;
+    clean.truncatedCheckCount = droppedChecks;
+    serialized = JSON.stringify(clean);
+  }
+
+  if (serialized.length > maxChars) {
+    const textKeys = ["notes", "buildingHistory", "phPastActions"];
+    for (const tk of textKeys) {
+      if (serialized.length <= maxChars) break;
+      if (typeof clean[tk] === "string" && clean[tk].length > 200) {
+        const excess = serialized.length - maxChars + 256;
+        clean[tk] = clean[tk].slice(0, Math.max(200, clean[tk].length - excess));
+        serialized = JSON.stringify(clean);
+      }
+    }
   }
   return serialized;
 }

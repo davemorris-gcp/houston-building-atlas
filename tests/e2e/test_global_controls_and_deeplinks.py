@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from conftest import wait_for_atlas_ready as _wait_for_atlas_ready
+from conftest import (
+    seed_phase1_staff_watchlist_session,
+    wait_for_atlas_ready as _wait_for_atlas_ready,
+)
 
 
 def test_cold_boot_preset_and_global_modals(
@@ -163,14 +166,20 @@ def test_plat_monitor_agenda_and_watchlist(
     assert (page.locator("#detail h2").text_content() or "").strip() != ""
     url_harvester.harvest_from_locator(page.locator("#detail"), "plat_monitor:agenda_detail")
 
-    # Switch to 15-Point Multi-Agency Property Watchlist mode
+    # Signed-out public visitor sees calm Watchlist privacy gate with zero leaked rows
     page.click("#modeWatchlistBtn")
-    page.wait_for_selector("#list .row", timeout=10000)
-    row_count = page.locator("#list .row").count()
+    page.wait_for_selector("#watchlistSignedOutGate", state="visible", timeout=5000)
+    assert page.locator("#list .row[data-watch-id]").count() == 0
+
+    # Sign in as Preservation Staff to verify 15-Point Multi-Agency Property Watchlist mode
+    seed_phase1_staff_watchlist_session(page)
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=watchlist", wait_until="domcontentloaded")
+    page.wait_for_selector("#list .row[data-watch-id]", timeout=10000)
+    row_count = page.locator("#list .row[data-watch-id]").count()
     assert row_count >= 3
 
     for idx in range(min(row_count, 5)):
-        page.locator("#list .row").nth(idx).click()
+        page.locator("#list .row[data-watch-id]").nth(idx).click()
         detail_txt = page.locator("#detail").text_content() or ""
         assert "MR.aspx" not in detail_txt, "plat-monitor.html must never link to retired Harris County Clerk MR.aspx"
         url_harvester.harvest_from_locator(page.locator("#detail"), f"plat_monitor:watchlist_{idx}")

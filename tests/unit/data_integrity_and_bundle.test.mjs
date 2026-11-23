@@ -232,22 +232,13 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
 
   const plat = readDataJson("plat_agenda_monitor.json");
   assert.ok(Array.isArray(plat.items), "plat_agenda_monitor.items must be an Array");
+  assert.deepEqual(plat.reviews || {}, {}, "public plat_agenda_monitor.json must not leak top-level reviews");
 
   const watchlist = readDataJson("property_watchlist.json");
-  assert.ok(watchlist.primaryProperty?.hcadAccount, "property_watchlist.primaryProperty.hcadAccount required");
-  assert.ok(Array.isArray(watchlist.watchedProperties) && watchlist.watchedProperties.length >= 1);
-  for (const wp of watchlist.watchedProperties) {
-    assert.notEqual(wp.trackerStatus, "Removed from Watchlist", `Removed tombstone leaked into active property_watchlist.json: ${wp.id}`);
-    assert.notEqual(wp.trackerStatus, "Removed (Tier 3)", `Removed Tier 3 tombstone leaked into active property_watchlist.json: ${wp.id}`);
-    assert.notEqual(wp.trackerStatus, "Removed (Tier 4)", `Removed Tier 4 tombstone leaked into active property_watchlist.json: ${wp.id}`);
-    if (
-      String(wp.id || "").startsWith("plat-") &&
-      wp.trackerStatus !== "Archived (Tier 3)" &&
-      wp.trackerStatus !== "Archived (Tier 4)"
-    ) {
-      assert.equal(wp.tierConfirmed, true, `Unconfirmed plat seed leaked into property_watchlist.json: ${wp.id}`);
-    }
-  }
+  assert.equal(watchlist.schemaVersion, "2.0-public-stub", "public property_watchlist.json must use 2.0-public-stub schema");
+  assert.equal(watchlist.requiresAuth, true, "public property_watchlist.json must declare requiresAuth: true");
+  assert.equal(watchlist.primaryProperty, null, "public property_watchlist.json must not leak primaryProperty");
+  assert.deepEqual(watchlist.watchedProperties, [], "public property_watchlist.json must ship empty watchedProperties stub");
   assert.ok(
     watchlist.lastSweepHealth &&
       typeof watchlist.lastSweepHealth === "object" &&
@@ -264,13 +255,19 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
   assert.ok(Array.isArray(actLog.dailyRuns) && actLog.dailyRuns.length >= 1, "monitor_activity_log.dailyRuns must be non-empty");
   assert.ok(Array.isArray(actLog.events) && actLog.events.length >= 10, "monitor_activity_log.events must be populated");
 
-  const validStreams = new Set(["watchlist", "agenda", "staff", "permits"]);
+  const validPublicStreams = new Set(["agenda", "permits"]);
   const seenEventIds = new Set();
   for (const ev of actLog.events) {
     assert.ok(ev.id && typeof ev.id === "string", "Every activity event requires string id");
     assert.equal(seenEventIds.has(ev.id), false, `Duplicate event id in monitor_activity_log.json: ${ev.id}`);
     seenEventIds.add(ev.id);
-    assert.equal(validStreams.has(ev.stream), true, `Unexpected activity event stream '${ev.stream}' on ${ev.id}`);
+    if (ev.kind !== "watchlist_sweep_degraded") {
+      assert.equal(
+        validPublicStreams.has(ev.stream),
+        true,
+        `Private or unexpected activity event stream '${ev.stream}' leaked in public monitor_activity_log.json on ${ev.id}`
+      );
+    }
     assert.match(String(ev.localDate || ""), /^\d{4}-\d{2}-\d{2}$/, `Invalid localDate on ${ev.id}`);
     assert.notEqual(
       ev.watchPropertyId,

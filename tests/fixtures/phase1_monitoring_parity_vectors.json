@@ -1,0 +1,598 @@
+{
+  "schemaVersion": "1.0",
+  "areasById": {
+    "area:priority:sunnyside": {
+      "area_id": "area:priority:sunnyside",
+      "name": "Sunnyside",
+      "area_type": "neighborhood",
+      "priority_status": "priority",
+      "age_rule_cutoff_year": 1976,
+      "dev_period_start": 1940,
+      "dev_period_end": 1976
+    },
+    "area:priority:third_ward": {
+      "area_id": "area:priority:third_ward",
+      "name": "Third Ward",
+      "area_type": "neighborhood",
+      "priority_status": "priority",
+      "age_rule_cutoff_year": 1976,
+      "dev_period_start": 1890,
+      "dev_period_end": 1965
+    },
+    "area:candidate:boom_subdiv": {
+      "area_id": "area:candidate:boom_subdiv",
+      "name": "Post-Oak Midcentury Section",
+      "area_type": "historic_subdivision",
+      "priority_status": "candidate",
+      "age_rule_cutoff_year": 1976,
+      "dev_period_start": 1968,
+      "dev_period_end": 1982
+    },
+    "area:standard:outer_corridor": {
+      "area_id": "area:standard:outer_corridor",
+      "name": "Westheimer Outer Corridor",
+      "area_type": "corridor",
+      "priority_status": "standard",
+      "age_rule_cutoff_year": 1976,
+      "dev_period_start": "",
+      "dev_period_end": ""
+    }
+  },
+  "attentionVectors": [
+    {
+      "id": "att_high_unprotected_stage3",
+      "parcel": {
+        "parcel_id": "0420090000001",
+        "year_built": 1924,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "active_advocacy",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_high_binding_stage3_downgrades_to_watch",
+      "parcel": {
+        "parcel_id": "0610870390001",
+        "year_built": 1912,
+        "designation_summary": "Houston Heights Historic District East",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "binding",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "2026-11-30",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_high_binding_stage4_emergency_stays_act",
+      "parcel": {
+        "parcel_id": "0610870390002",
+        "year_built": 1910,
+        "designation_summary": "Protected Landmark",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "binding",
+        "threat_stage": 4,
+        "advocacy_status": "active_advocacy",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_high_binding_stage5_demolition_stays_act",
+      "parcel": {
+        "parcel_id": "0610870390003",
+        "year_built": 1908,
+        "designation_summary": "Protected Landmark",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "binding",
+        "threat_stage": 5,
+        "advocacy_status": "active_advocacy",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_high_limited_city_landmark_stage2_is_act",
+      "parcel": {
+        "parcel_id": "0152300000001",
+        "year_built": 1894,
+        "designation_summary": "City Landmark",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "limited",
+        "threat_stage": 2,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_stage6_non_active_never_escalates_to_act",
+      "parcel": {
+        "parcel_id": "0420090000099",
+        "year_built": 1928,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "none",
+        "threat_stage": 6,
+        "advocacy_status": "monitoring",
+        "outcome": "altered"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_stage6_altered_with_urgent_hearing_binding_stays_watch",
+      "parcel": {
+        "parcel_id": "0420090000100",
+        "year_built": 1928,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "binding",
+        "threat_stage": 6,
+        "advocacy_status": "monitoring",
+        "outcome": "altered"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "2026-11-30",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_stage0_urgent_hearing_day14_is_act",
+      "parcel": {
+        "parcel_id": "0420090000010",
+        "year_built": 1930,
+        "review_status": "needs_research",
+        "significance_level": "",
+        "protection_level": "none",
+        "threat_stage": 0,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "2026-12-07",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_stage0_hearing_day15_stays_watch",
+      "parcel": {
+        "parcel_id": "0420090000011",
+        "year_built": 1930,
+        "review_status": "needs_research",
+        "significance_level": "",
+        "protection_level": "none",
+        "threat_stage": 0,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "2026-12-08",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_screener_rec_moderate_active_threat_is_act",
+      "parcel": {
+        "parcel_id": "0420090000012",
+        "year_built": 1935,
+        "review_status": "assessed",
+        "recommended_significance": "moderate",
+        "significance_level": "",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_staff_confirmed_not_sig_overrides_screener_rec_high",
+      "parcel": {
+        "parcel_id": "0420090000013",
+        "year_built": 1995,
+        "review_status": "assessed",
+        "recommended_significance": "high",
+        "significance_level": "not_significant",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_priority_area_contributing_lot_split_not_sig_is_watch",
+      "parcel": {
+        "parcel_id": "0770010000001",
+        "year_built": 1952,
+        "area_ids": "area:priority:sunnyside",
+        "review_status": "assessed",
+        "significance_level": "not_significant",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_priority_area_contributing_recording_only_stays_record",
+      "parcel": {
+        "parcel_id": "0770010000002",
+        "year_built": 1952,
+        "area_ids": "area:priority:sunnyside",
+        "review_status": "assessed",
+        "significance_level": "not_significant",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "recording_only",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_multi_area_extended_cutoff_1980_contributing_watch",
+      "parcel": {
+        "parcel_id": "0770010000003",
+        "year_built": 1980,
+        "area_ids": "area:standard:outer_corridor; area:candidate:boom_subdiv; area:priority:third_ward",
+        "review_status": "not_reviewed",
+        "significance_level": "",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": ""
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_staff_override_beats_closed_status",
+      "parcel": {
+        "parcel_id": "0770010000004",
+        "year_built": 1920,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "none",
+        "threat_stage": 6,
+        "advocacy_status": "closed",
+        "outcome": "saved",
+        "attention_override": "watch"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "watch"
+    },
+    {
+      "id": "att_outcome_lost_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000099",
+        "year_built": 1894,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "threat_stage": 5,
+        "advocacy_status": "active_advocacy",
+        "outcome": "lost"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_lost_before_review_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000100",
+        "year_built": 1922,
+        "review_status": "assessed",
+        "significance_level": "moderate",
+        "threat_stage": 5,
+        "advocacy_status": "monitoring",
+        "outcome": "lost_before_review"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_not_relevant_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000101",
+        "year_built": 2005,
+        "review_status": "assessed",
+        "significance_level": "not_significant",
+        "threat_stage": 3,
+        "advocacy_status": "closed",
+        "outcome": "not_relevant"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_saved_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000102",
+        "year_built": 1915,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "threat_stage": 3,
+        "advocacy_status": "active_advocacy",
+        "outcome": "saved"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_moved_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000103",
+        "year_built": 1905,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": "moved"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_no_longer_threatened_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000104",
+        "year_built": 1929,
+        "review_status": "assessed",
+        "significance_level": "moderate",
+        "threat_stage": 3,
+        "advocacy_status": "monitoring",
+        "outcome": "no_longer_threatened"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    },
+    {
+      "id": "att_outcome_altered_open_stage3_stays_act",
+      "parcel": {
+        "parcel_id": "0152300000105",
+        "year_built": 1929,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "active_advocacy",
+        "outcome": "altered"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "act"
+    },
+    {
+      "id": "att_outcome_altered_closed_returns_record",
+      "parcel": {
+        "parcel_id": "0152300000106",
+        "year_built": 1929,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "closed",
+        "outcome": "altered"
+      },
+      "asOfDateCst": "2026-11-23",
+      "nextHearingDateCst": "",
+      "expectedAttention": "record"
+    }
+  ],
+  "chicagoDateVectors": [
+    {
+      "input": "2026-11-12T03:30:00Z",
+      "expectedChicagoYmd": "2026-11-11"
+    },
+    {
+      "input": "2026-11-12T06:30:00Z",
+      "expectedChicagoYmd": "2026-11-12"
+    },
+    {
+      "input": "2026-07-04T04:15:00Z",
+      "expectedChicagoYmd": "2026-07-03"
+    },
+    {
+      "input": "10/15/2026",
+      "expectedChicagoYmd": "2026-10-15"
+    }
+  ],
+  "historicalBaselineVectors": [
+    {
+      "id": "hist_exactly_180_days_is_active",
+      "filingDate": "2026-05-27",
+      "parcelAddedAt": "2026-01-01",
+      "asOfDateCst": "2026-11-23",
+      "expectedHistorical": false
+    },
+    {
+      "id": "hist_181_days_is_baseline",
+      "filingDate": "2026-05-26",
+      "parcelAddedAt": "2026-01-01",
+      "asOfDateCst": "2026-11-23",
+      "expectedHistorical": true
+    },
+    {
+      "id": "hist_predates_parcel_added_at_is_baseline",
+      "filingDate": "2026-10-01",
+      "parcelAddedAt": "2026-10-15T14:00:00Z",
+      "asOfDateCst": "2026-11-23",
+      "expectedHistorical": true
+    }
+  ],
+  "campusAndSignalVectors": {
+    "parcels": [
+      {
+        "parcel_id": "CAMPUS:TRINITY_CHURCH_BLOCK",
+        "campus_group_id": "CAMPUS:TRINITY_CHURCH_BLOCK",
+        "hcad_num": "0152300000001",
+        "related_hcads": "0152300000001; 0152300000002; 0152300000003",
+        "primary_address": "1015 Holman St",
+        "perimeter_addresses": "3401 Main St; 3410 Travis St"
+      },
+      {
+        "parcel_id": "0621100000014",
+        "hcad_num": "0621100000014",
+        "related_hcads": "0621100000014",
+        "primary_address": "1127 Key St",
+        "perimeter_addresses": ""
+      }
+    ],
+    "lookups": [
+      {
+        "query": { "hcadIds": ["0152300000003"], "address": "3410 Travis St" },
+        "expectedParcelId": "CAMPUS:TRINITY_CHURCH_BLOCK"
+      },
+      {
+        "query": { "hcadIds": [], "address": "3401 MAIN ST." },
+        "expectedParcelId": "CAMPUS:TRINITY_CHURCH_BLOCK"
+      },
+      {
+        "query": { "hcadIds": [], "appNo": "2026-1999", "address": "FM 529 Reserve A" },
+        "expectedParcelId": "UNPARCELED:APP_2026_1999"
+      }
+    ],
+    "signalCases": [
+      {
+        "id": "sig_mismatch_and_commercial_on_res",
+        "ownerOfRecord": "SMITH FAMILY LIVING TRUST",
+        "partyNames": ["Bayou City Townhomes LLC", "Windrose Surveying & Platting"],
+        "landUseClass": "A1 - Residential Single-Family",
+        "eventKinds": ["TABC Pending Liquor Application", "Replat"],
+        "expectedFlags": ["owner_applicant_mismatch", "commercial_on_residential"]
+      },
+      {
+        "id": "sig_surveyor_only_no_false_mismatch",
+        "ownerOfRecord": "ACME HISTORIC HOLDINGS LLC",
+        "partyNames": ["Acme Historic Holdings Inc.", "Benchmark Engineering & Surveying"],
+        "landUseClass": "F1 - Commercial",
+        "eventKinds": ["TABC License"],
+        "expectedFlags": []
+      }
+    ]
+  },
+  "legacyCompatibilityVectors": [
+    {
+      "id": "leg_t1_watchlist_active",
+      "legacy": {
+        "tier": "1",
+        "trackerStatus": "Escalate",
+        "yearBuilt": 1914,
+        "designation": "National Register",
+        "notes": "Intact Prairie foursquare facing replat."
+      },
+      "isWatchlist": true,
+      "atlasKnownHigh": true,
+      "expectedMigrated": {
+        "review_status": "assessed",
+        "significance_level": "high",
+        "protection_level": "limited",
+        "threat_stage": 3,
+        "advocacy_status": "active_advocacy",
+        "outcome": "",
+        "attention_level": "act"
+      },
+      "expectedDerivedTier": "1"
+    },
+    {
+      "id": "leg_t4_historic_demolished_plat",
+      "legacy": {
+        "tier": "4",
+        "trackerStatus": "",
+        "yearBuilt": 1926,
+        "designation": "",
+        "why": "1926 Craftsman bungalow already demolished prior to agenda review."
+      },
+      "isWatchlist": false,
+      "atlasKnownHigh": false,
+      "expectedMigrated": {
+        "review_status": "assessed",
+        "significance_level": "not_significant",
+        "protection_level": "none",
+        "threat_stage": 6,
+        "advocacy_status": "closed",
+        "outcome": "lost_before_review",
+        "attention_level": "record"
+      },
+      "expectedDerivedTier": "4"
+    },
+    {
+      "id": "leg_t4_vacant_post1976_not_relevant",
+      "legacy": {
+        "tier": "4",
+        "trackerStatus": "",
+        "yearBuilt": 1998,
+        "designation": "",
+        "why": "Post-1976 commercial parking lot; irrelevant."
+      },
+      "isWatchlist": false,
+      "atlasKnownHigh": false,
+      "expectedMigrated": {
+        "review_status": "assessed",
+        "significance_level": "not_significant",
+        "protection_level": "none",
+        "threat_stage": 6,
+        "advocacy_status": "closed",
+        "outcome": "not_relevant",
+        "attention_level": "record"
+      },
+      "expectedDerivedTier": "4"
+    },
+    {
+      "id": "leg_removed_tombstone_stays_closed",
+      "legacy": {
+        "tier": "3",
+        "trackerStatus": "Removed (Tier 3)",
+        "removedFromWatchlist": true,
+        "yearBuilt": 1950,
+        "designation": "",
+        "removalReason": "Mismatched parcel"
+      },
+      "isWatchlist": true,
+      "atlasKnownHigh": false,
+      "expectedMigrated": {
+        "review_status": "not_reviewed",
+        "significance_level": "",
+        "protection_level": "none",
+        "threat_stage": 6,
+        "advocacy_status": "closed",
+        "outcome": "not_relevant",
+        "attention_level": "record"
+      },
+      "expectedDerivedTier": "4"
+    }
+  ]
+}

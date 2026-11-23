@@ -92,15 +92,294 @@ SYNTHETIC_OUTER_CORE_PARCELS_GEOJSON: dict[str, Any] = {
 }
 
 
-def _seed_staff_admin_session(page: Any) -> None:
+def _build_default_seeded_watchlist_dossiers() -> dict[str, dict[str, Any]]:
+    return {
+        "prop-kirby-mansion": {
+            "id": "prop-kirby-mansion",
+            "parcelId": "0152300000001",
+            "propertyName": "John Henry Kirby Mansion",
+            "address": "2000 Smith St.",
+            "hcadAccount": "0152300000001",
+            "tier": "1",
+            "tierConfirmed": True,
+            "trackerStatus": "Active / High Priority",
+            "yearBuilt": 1894,
+            "designation": "National Register (individual); City Landmark",
+            "broker": "Commercial Broker Group",
+            "updatedAt": "2026-10-28T12:00:00Z",
+            "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+            "searchTerms": {
+                "entities": ["Smith St C Store LLC", "OB Texas Properties LLC"],
+                "dbas": ["Brake Time"],
+                "officers": ["Omair Bashir"],
+                "legalKeywords": ["417", "SSBB"],
+                "altAddresses": ["530 Pierce St."],
+                "projectNumbers": ["26052089", "26090093"],
+            },
+            "checklist": [
+                {
+                    "id": "chk-01",
+                    "title": "Commercial / Broker Listings",
+                    "status": "In Progress",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-02",
+                    "title": "Site Visit & Photography",
+                    "status": "In Progress",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-03",
+                    "title": "Assumed Names (DBA)",
+                    "status": "To Do",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-04",
+                    "title": "TX Comptroller Tax",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "txc:32102472084",
+                            "result": "[AUTO-SWEEP] TX Comptroller Taxpayer #32102472084 active at 2000 Smith St",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-05",
+                    "title": "HCAD Ownership & Deed",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "hcad:0152300000001",
+                            "result": "[AUTO-SWEEP] HCAD Account 0152300000001 ownership verified",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-06",
+                    "title": "TABC Liquor Licensing",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "tabc:200183169",
+                            "result": "[AUTO-SWEEP] TABC License #200183169 active at 2000 Smith St",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-08",
+                    "title": "Open Records / GovQA",
+                    "status": "To Do",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-10",
+                    "title": "TDLR TABS",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "tabs:TABS20260001",
+                            "result": "[AUTO-SWEEP] TDLR TABS project registered at 2000 Smith St",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-11",
+                    "title": "Council Member Outreach",
+                    "status": "To Do",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-12",
+                    "title": "Media & Coalition",
+                    "status": "To Do",
+                    "checks": [],
+                },
+                {
+                    "id": "chk-13",
+                    "title": "Houston 311 & Dangerous Buildings",
+                    "status": "To Do",
+                    "checks": [],
+                },
+            ],
+        },
+        "prop-112-travis": {
+            "id": "prop-112-travis",
+            "parcelId": "0010160000011",
+            "propertyName": "112 Travis Commercial Block",
+            "address": "112 TRAVIS ST",
+            "hcadAccount": "0010160000011",
+            "tier": "1",
+            "tierConfirmed": True,
+            "trackerStatus": "Active / High Priority",
+            "yearBuilt": 1882,
+            "designation": "Market Square Historic District",
+            "updatedAt": "2026-10-27T12:00:00Z",
+            "checklist": [
+                {
+                    "id": "chk-13",
+                    "title": "Houston 311 & Dangerous Buildings",
+                    "status": "To Do",
+                    "checks": [],
+                }
+            ],
+        },
+    }
+
+
+def _seed_staff_admin_session(page: Any) -> dict[str, Any]:
+    state: dict[str, Any] = {
+        "dossiers": _build_default_seeded_watchlist_dossiers(),
+        "parcels": {},
+        "decisions": {},
+        "strategy": {},
+        "watchedEntities": [],
+        "userStates": {},
+        "rpcLog": [],
+    }
+    session_json = json.dumps(
+        {
+            "authorized": True,
+            "verifiedByWebhook": True,
+            "email": "staff@preservation.example.org",
+            "role": "staff",
+            "displayLabel": "Preservation Staff",
+            "adminPasskey": "test-passkey-2026",
+            "supportsRoamingSync": True,
+            "supportsPhase1Monitoring": True,
+        }
+    )
     page.context.add_init_script(
-        """
-        sessionStorage.setItem('ph_atlas_admin_session', JSON.stringify({
-            authorized: true,
-            email: 'advocate@preservationhouston.org'
-        }));
+        f"""
+        if (!sessionStorage.getItem('ph_atlas_admin_session')) {{
+            sessionStorage.setItem('ph_atlas_admin_session', {json.dumps(session_json)});
+            localStorage.setItem('ph_atlas_admin_session', {json.dumps(session_json)});
+        }}
         """
     )
+
+    def _mock_phase1_webhook(route: Any) -> None:
+        if route.request.method.upper() != "POST":
+            route.fulfill(
+                status=200,
+                content_type="text/csv; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=b"status,hcad_num,address,suggested_year_built\n",
+            )
+            return
+        payload = json.loads(route.request.post_data or "{}")
+        state["rpcLog"].append(payload)
+        action = payload.get("action") or ""
+        email = str(payload.get("admin_email") or "staff@preservation.example.org").lower()
+
+        if action == "verify_admin":
+            resp: dict[str, Any] = {
+                "ok": True,
+                "authorized": True,
+                "email": email,
+                "role": "staff",
+                "displayLabel": "Preservation Staff",
+                "supportsRoamingSync": True,
+                "supportsPhase1Monitoring": True,
+                "userState": state["userStates"].get(email),
+            }
+        elif action == "get_user_state":
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "supportsRoamingSync": True,
+                "email": email,
+                "userState": state["userStates"].get(email),
+            }
+        elif action == "put_user_state":
+            state["userStates"][email] = payload.get("user_state") or {}
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "supportsRoamingSync": True,
+                "email": email,
+                "userState": state["userStates"][email],
+            }
+        elif action == "pull_monitoring_state":
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "email": email,
+                "areas": [],
+                "parcels": list(state["parcels"].values()),
+                "decisions": list(state["decisions"].values()),
+                "events": [],
+                "watchlistDossiers": [
+                    {"watch_property_id": wid, "dossier_json": json.dumps(dobj)}
+                    for wid, dobj in state["dossiers"].items()
+                ],
+                "staffOnly": {
+                    "parcelStrategy": list(state["strategy"].values()),
+                    "watchedEntities": list(state["watchedEntities"]),
+                },
+                "pendingModerationCount": 0,
+            }
+        elif action == "upsert_watchlist_dossier":
+            d_obj = payload.get("dossier") or {}
+            wid = str(d_obj.get("id") or payload.get("watch_property_id") or "")
+            if wid:
+                state["dossiers"][wid] = d_obj
+            resp = {"ok": True, "authorized": True, "watch_property_id": wid}
+        elif action == "upsert_parcel_decision":
+            patch = payload.get("patch") or payload.get("decision") or {}
+            pid = str(patch.get("parcel_id") or payload.get("parcel_id") or "")
+            if pid:
+                merged_p = {**(state["parcels"].get(pid) or {"parcel_id": pid}), **patch}
+                state["parcels"][pid] = merged_p
+                state["decisions"][pid] = {
+                    **(state["decisions"].get(pid) or {"decision_id": f"DEC:{pid}", "parcel_id": pid}),
+                    **patch,
+                    "decided_at": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                }
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "parcel": state["parcels"].get(pid, {}),
+                "decision": state["decisions"].get(pid, {}),
+            }
+        else:
+            resp = {"ok": True, "authorized": True}
+
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=json.dumps(resp).encode("utf-8"),
+        )
+
+    page.route("**/script.google.com/macros/**", _mock_phase1_webhook)
+    return state
 
 
 def _build_synthetic_dondb_csv() -> bytes:
@@ -353,7 +632,7 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
 
     # IT-4: Explicit Confirm Tier & Add to Watchlist workflow + two-way Tier 3 downgrade soft-archive vs hard-remove
     page.select_option("#cycleSelect", "2026-10-15")
-    page.locator("#tabs button, #tabs .tab", has_text="To check").first.click()
+    page.locator('#tabs [data-g="check"]').click()
     page.wait_for_selector("#list .row", timeout=10000)
 
     # Pick an unconfirmed item not currently on the Watchlist (querying live rows by data-occ so
@@ -397,17 +676,8 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.click("#confirmTierWatchBtn")
     assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_count + 1
 
-    # Untouched plat-* dossier downgraded to Tier 3 -> moves out of To check into Tier 3 tab, is removed cleanly from active Watchlist, and does NOT resurrect on cloud sync / reload
+    # Untouched plat-* dossier downgraded to Tier 3 -> moves out of Needs Screening into Tier 3 tab, is removed cleanly from active Watchlist, and does NOT resurrect even when stale cloud row is returned
     target_app = target_occ.split("::", 1)[1] if "::" in target_occ else target_occ
-    stale_cloud_csv = (
-        "timestamp,hcad_num,source_type,source_citation,verified_by,status\n"
-        f'2026-10-20T10:00:00Z,WATCH_PROP:plat-{target_app},PROPERTY_WATCHLIST_UPDATE,'
-        f'"{{\\"id\\":\\"plat-{target_app}\\",\\"appNo\\":\\"{target_app}\\",\\"tier\\":\\"2\\",\\"tierConfirmed\\":true,\\"updatedAt\\":\\"2026-10-20T10:00:00Z\\"}}",PH Staff,approved\n'
-    )
-    page.route(
-        "**/spreadsheets/d/**/pub*",
-        lambda route: route.fulfill(status=200, content_type="text/csv", body=stale_cloud_csv),
-    )
     page.locator('input[name="tier"][value="3"]').click()
     if page.locator("#confirmTier3Btn").count() > 0:
         page.click("#confirmTier3Btn")
@@ -418,7 +688,6 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     page.wait_for_selector("#list .row", timeout=15000)
     assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_count
-    page.unroute("**/spreadsheets/d/**/pub*")
 
     # Switch to Tier 3 tab, re-select target_occ, promote again, add human research, then downgrade to Tier 3 -> soft-archived ("Archived (Tier 3)")
     page.select_option("#cycleSelect", "2026-10-15")
@@ -663,107 +932,80 @@ def test_it9_and_rp6_three_way_cloud_sheet_reconciliation_legacy_hydration_and_d
     guarded_page: Any,
     atlas_base_url: str,
 ) -> None:
-    """Verify 3-way Watchlist reconciliation across static [AUTO-SWEEP] + legacy Plat_&_Watchlist_Sync CSV + ?hcad= deep-link."""
+    """Verify 3-way Watchlist reconciliation across baseline [AUTO-SWEEP] + authenticated pull_monitoring_state dossier + ?hcad= deep-link."""
     page = guarded_page
-    _seed_staff_admin_session(page)
+    mock_state = _seed_staff_admin_session(page)
 
-    # Build a synthetic Plat_&_Watchlist_Sync CSV row using exact pullCloudSheetSync headers:
-    # 1. Uses legacy architectEngineer field (RP-6 -> designFirm hydration) with newer updatedAt
-    # 2. Has manual 'Complete' on chk-01 and an attached Google Drive link
-    # 3. Has older chk-04 snapshot (2026-10-20) -> static [AUTO-SWEEP] on chk-04 must survive
-    # 4. Omits searchTerms (legacy Oct 23 row) -> must NOT wipe static Kirby Mansion snowball terms
-    buf = io.StringIO()
-    writer = csv.writer(buf, lineterminator="\r\n")
-    writer.writerow(
-        [
-            "status",
-            "hcad_num",
-            "year_built",
-            "historic_district",
-            "contributing",
-            "source_type",
-            "source_citation",
-            "verified_by",
-        ]
+    # Seed baseline static/cached Kirby Mansion with [AUTO-SWEEP] findings & snowball terms in role cache,
+    # while cloud pull_monitoring_state returns a newer human edit omitting searchTerms (RP-6)
+    baseline_kirby = mock_state["dossiers"]["prop-kirby-mansion"]
+    page.context.add_init_script(
+        f"""
+        localStorage.setItem(
+            'phpam:auth_cache:staff@preservation.example.org',
+            JSON.stringify({{
+                schemaVersion: '1.0',
+                role: 'staff',
+                cachedAt: '2026-10-28T12:00:00Z',
+                areas: [],
+                parcels: [],
+                decisions: [],
+                events: [],
+                watchlistDossiers: [{{ watch_property_id: 'prop-kirby-mansion', dossier_json: {json.dumps(json.dumps(baseline_kirby))} }}]
+            }})
+        );
+        """
     )
-    writer.writerow(
-        [
-            "approved",
-            "WATCH_PROP:prop-kirby-mansion",
-            "1926",
-            "National Register (individual)",
-            "Tier 1",
-            "PROPERTY_WATCHLIST_UPDATE",
-            json.dumps(
-                {
-                    "id": "prop-kirby-mansion",
-                    "propertyName": "John Henry Kirby Mansion",
-                    "address": "2000 Smith St.",
-                    "hcadAccount": "0152300000001",
-                    "tier": "1",
-                    "architectEngineer": "Legacy Cloud Preservation Engineers",
-                    "driveLinks": [
-                        {
-                            "label": "Kirby Mansion Research Folder",
-                            "url": "https://drive.google.com/drive/folders/1KirbyFolderExample",
-                        }
-                    ],
-                    "driveLinksUpdatedAt": "2099-01-01T00:00:00Z",
-                    "updatedAt": "2099-01-01T00:00:00Z",
-                    "checklist": [
-                        {
-                            "id": "chk-01",
-                            "status": "Complete",
-                            "lastChecked": "2026-10-27",
-                            "updatedAt": "2099-01-01T00:00:00Z",
-                            "checks": [
-                                {
-                                    "date": "2026-10-27",
-                                    "result": "Cloud staff verified commercial listing flyers.",
-                                    "source": "manual",
-                                }
-                            ],
-                        },
-                        {
-                            "id": "chk-05",
-                            "status": "In Progress",
-                            "lastChecked": "2026-10-20",
-                            "updatedAt": "2026-10-20T00:00:00Z",
-                            "checks": [],
-                        },
-                        {
-                            "id": "chk-06",
-                            "status": "In Progress",
-                            "lastChecked": "2026-10-01",
-                            "updatedAt": "2026-10-01T00:00:00Z",
-                            "checks": [],
-                        },
-                    ],
-                }
-            ),
-            "Preservation Advocate",
-        ]
-    )
-    cloud_csv_bytes = buf.getvalue().encode("utf-8")
 
-    def _stub_cloud_sheet(route: Any) -> None:
-        if route.request.method.upper() == "POST":
-            route.fulfill(
-                status=200,
-                content_type="application/json; charset=utf-8",
-                headers={"Access-Control-Allow-Origin": "*"},
-                body=b'{"ok":true}',
-            )
-            return
-        route.fulfill(
-            status=200,
-            content_type="text/csv; charset=utf-8",
-            headers={"Access-Control-Allow-Origin": "*"},
-            body=cloud_csv_bytes,
-        )
-
-    page.route("**/script.google.com/macros/**", _stub_cloud_sheet)
-    page.route("**/docs.google.com/spreadsheets/**", _stub_cloud_sheet)
+    mock_state["dossiers"]["prop-kirby-mansion"] = {
+        "id": "prop-kirby-mansion",
+        "propertyName": "John Henry Kirby Mansion",
+        "address": "2000 Smith St.",
+        "hcadAccount": "0152300000001",
+        "tier": "1",
+        "architectEngineer": "Legacy Cloud Preservation Engineers",
+        "driveLinks": [
+            {
+                "label": "Kirby Mansion Research Folder",
+                "url": "https://drive.google.com/drive/folders/1KirbyFolderExample",
+            }
+        ],
+        "driveLinksUpdatedAt": "2099-01-01T00:00:00Z",
+        "updatedAt": "2099-01-01T00:00:00Z",
+        "checklist": [
+            {
+                "id": "chk-01",
+                "status": "Complete",
+                "lastChecked": "2026-10-27",
+                "updatedAt": "2099-01-01T00:00:00Z",
+                "checks": [
+                    {
+                        "date": "2026-10-27",
+                        "result": "Cloud staff verified commercial listing flyers.",
+                        "source": "manual",
+                    }
+                ],
+            },
+            {
+                "id": "chk-04",
+                "status": "Flagged",
+                "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                "checks": baseline_kirby["checklist"][3]["checks"],
+            },
+            {
+                "id": "chk-05",
+                "status": "Flagged",
+                "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                "checks": baseline_kirby["checklist"][4]["checks"],
+            },
+            {
+                "id": "chk-06",
+                "status": "Flagged",
+                "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                "checks": baseline_kirby["checklist"][5]["checks"],
+            },
+        ],
+    }
 
     # Open via ?hcad=0152300000001&mode=watchlist deep-link
     page.goto(
@@ -980,7 +1222,8 @@ def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_ex
     all_cnt = int(page.locator("#actCntAll").inner_text().strip())
     assert page.locator("#detail .act-card").count() == all_cnt
 
-    for stream_val in ("watchlist", "agenda", "staff", "permits"):
+    # Public visitor sees public streams (agenda, permits) and zero leaked private streams (watchlist, staff)
+    for stream_val in ("agenda", "permits"):
         page.select_option("#actStreamFilter", stream_val)
         cards_cnt = page.locator("#detail .act-card").count()
         assert cards_cnt >= 1
@@ -989,6 +1232,9 @@ def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_ex
             stream_val,
         )
         assert wrong_stream == 0
+    for private_stream in ("watchlist", "staff"):
+        page.select_option("#actStreamFilter", private_stream)
+        assert page.locator("#detail .act-card").count() == 0
     page.select_option("#actStreamFilter", "all")
 
     page.fill("#actSearchInput", "Montrose")
@@ -1109,15 +1355,13 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
 ) -> None:
     """IT-2: Verify unread dots across modes, Open Watchlist Row auto-scroll/flash, Open Plat Item deep jump, Atlas Map hashes, live check badge updates, and Mark Caught Up persistence + post-watermark sync."""
     page = guarded_page
-    _seed_staff_admin_session(page)
+    mock_state = _seed_staff_admin_session(page)
 
     # Seed an explicit baseline watermark just prior to the latest biweekly Plat Agenda cycle and
-    # Watchlist sweep in monitor_activity_log.json so both modes reliably exhibit unread badges
-    # regardless of which day of the 14-day Planning Commission cycle the E2E suite runs.
+    # authenticated Watchlist sweep so both modes reliably exhibit unread badges.
     data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
     act_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
     plat_doc = json.loads((data_dir / "plat_agenda_monitor.json").read_text(encoding="utf-8"))
-    wl_doc = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
     default_cycle = (plat_doc.get("cycleOrder") or [None])[0]
     default_reviews = (
         (plat_doc.get("cycles") or {}).get(default_cycle, {}).get("reviews") or {}
@@ -1134,14 +1378,6 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
         and str((default_reviews.get(it.get("app")) or {}).get("tier") or "") != "4"
         and (not default_cycle or str(it.get("occurrenceKey", "")).startswith(f"{default_cycle}::"))
     }
-    wl_entries = [
-        p
-        for p in ([wl_doc.get("primaryProperty")] + list(wl_doc.get("watchedProperties") or []))
-        if isinstance(p, dict)
-        and p.get("id")
-        and p.get("trackerStatus") not in ("Archived (Tier 3)", "Archived (Tier 4)")
-    ]
-    active_wl_ids = {str(p["id"]) for p in wl_entries}
     agenda_dates = sorted(
         str(e.get("localDate") or e.get("date") or "")[:10]
         for e in act_doc.get("events", [])
@@ -1149,14 +1385,7 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
         and e.get("occKey") in visible_agenda_occs
         and (e.get("localDate") or e.get("date"))
     )
-    watch_dates = sorted(
-        str(e.get("localDate") or e.get("date") or "")[:10]
-        for e in act_doc.get("events", [])
-        if e.get("stream") == "watchlist"
-        and str(e.get("watchPropertyId") or "") in active_wl_ids
-        and (e.get("localDate") or e.get("date"))
-    )
-    earliest_latest_day = min(agenda_dates[-1], watch_dates[-1])
+    earliest_latest_day = min(agenda_dates[-1], "2026-10-28")
     seed_watermark_iso = f"{earliest_latest_day}T00:00:00Z"
     page.context.add_init_script(
         f"""
@@ -1169,7 +1398,7 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
     page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
     page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
     page.wait_for_function(
-        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0 && Number(document.querySelector('#modeWatchlistCount')?.textContent || '0') >= 2",
         timeout=15000,
     )
 
@@ -1300,78 +1529,30 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
     assert page.locator("#modeActivityCount").inner_text().strip() == "0"
     assert page.locator("[data-caught-up-card='1']").count() == 1
 
-    # 7. Inject a post-watermark Google Sheet CSV edit -> surfaces strictly as 1 new unread item
+    # 7. Inject a post-watermark authenticated cloud dossier edit -> surfaces strictly as 1 new unread item
     future_iso = page.evaluate("() => new Date(Date.now() + 120000).toISOString()")
-    buf = io.StringIO()
-    writer = csv.writer(buf, lineterminator="\r\n")
-    writer.writerow(
-        [
-            "status",
-            "hcad_num",
-            "year_built",
-            "historic_district",
-            "contributing",
-            "source_type",
-            "source_citation",
-            "verified_by",
-        ]
-    )
-    writer.writerow(
-        [
-            "approved",
-            "WATCH_PROP:prop-kirby-mansion",
-            "1926",
-            "National Register (individual)",
-            "Tier 1",
-            "PROPERTY_WATCHLIST_UPDATE",
-            json.dumps(
+    updated_kirby = dict(mock_state["dossiers"]["prop-kirby-mansion"])
+    updated_kirby["updatedAt"] = future_iso
+    updated_kirby["checklist"] = [
+        *(
+            [r for r in updated_kirby.get("checklist", []) if r.get("id") != "chk-03"]
+        ),
+        {
+            "id": "chk-03",
+            "status": "Flagged",
+            "lastChecked": future_iso[:10],
+            "updatedAt": future_iso,
+            "checks": [
                 {
-                    "id": "prop-kirby-mansion",
-                    "propertyName": "John Henry Kirby Mansion",
-                    "address": "2000 Smith St.",
-                    "hcadAccount": "0152300000001",
-                    "tier": "1",
-                    "updatedAt": future_iso,
-                    "checklist": [
-                        {
-                            "id": "chk-03",
-                            "status": "Flagged",
-                            "lastChecked": future_iso[:10],
-                            "updatedAt": future_iso,
-                            "checks": [
-                                {
-                                    "date": future_iso[:10],
-                                    "result": "Post-watermark cloud DBA transfer filed.",
-                                    "source": "manual",
-                                    "loggedAt": future_iso,
-                                }
-                            ],
-                        }
-                    ],
+                    "date": future_iso[:10],
+                    "result": "Post-watermark cloud DBA transfer filed.",
+                    "source": "manual",
+                    "loggedAt": future_iso,
                 }
-            ),
-            "Preservation Advocate",
-        ]
-    )
-    post_wm_csv = buf.getvalue().encode("utf-8")
-    page.route(
-        "**/docs.google.com/spreadsheets/**",
-        lambda route: route.fulfill(
-            status=200,
-            content_type="text/csv; charset=utf-8",
-            headers={"Access-Control-Allow-Origin": "*"},
-            body=post_wm_csv,
-        ),
-    )
-    page.route(
-        "**/script.google.com/macros/**",
-        lambda route: route.fulfill(
-            status=200,
-            content_type="text/csv; charset=utf-8",
-            headers={"Access-Control-Allow-Origin": "*"},
-            body=post_wm_csv,
-        ),
-    )
+            ],
+        },
+    ]
+    mock_state["dossiers"]["prop-kirby-mansion"] = updated_kirby
     page.reload(wait_until="domcontentloaded")
     page.wait_for_function(
         "() => document.querySelector('#modeActivityCount')?.textContent?.trim() === '1'",
@@ -1385,20 +1566,70 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
     guarded_page: Any,
     atlas_base_url: str,
 ) -> None:
-    """IT-3: Verify watched HCAD deduplication, unauthenticated staff modal gate, and 1-click Permit/DSHS -> Watchlist promotion with Cloud Sync POST."""
+    """IT-3: Verify signed-out Watchlist privacy, unauthenticated staff modal gate, post-sign-in HCAD deduplication, and 1-click Permit/DSHS -> Watchlist promotion with Cloud RPC POST."""
     page = guarded_page
     sync_posts: list[dict[str, Any]] = []
+    cloud_dossiers = _build_default_seeded_watchlist_dossiers()
 
     def _stub_apps_script(route: Any) -> None:
         if route.request.method.upper() == "POST":
             raw = route.request.post_data or "{}"
             payload = json.loads(raw)
-            if payload.get("action") == "verify_admin":
+            act = payload.get("action")
+            if act == "verify_admin":
                 route.fulfill(
                     status=200,
                     content_type="application/json; charset=utf-8",
                     headers={"Access-Control-Allow-Origin": "*"},
-                    body=json.dumps({"authorized": True, "email": payload.get("admin_email")}),
+                    body=json.dumps(
+                        {
+                            "ok": True,
+                            "authorized": True,
+                            "email": payload.get("admin_email") or "staff@preservation.example.org",
+                            "role": "staff",
+                            "displayLabel": "Preservation Staff",
+                            "supportsRoamingSync": True,
+                            "supportsPhase1Monitoring": True,
+                        }
+                    ),
+                )
+                return
+            if act == "pull_monitoring_state":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps(
+                        {
+                            "ok": True,
+                            "authorized": True,
+                            "role": "staff",
+                            "email": "staff@preservation.example.org",
+                            "areas": [],
+                            "parcels": [],
+                            "decisions": [],
+                            "events": [],
+                            "watchlistDossiers": [
+                                {"watch_property_id": wid, "dossier_json": json.dumps(dobj)}
+                                for wid, dobj in cloud_dossiers.items()
+                            ],
+                            "staffOnly": {"parcelStrategy": [], "watchedEntities": []},
+                            "pendingModerationCount": 0,
+                        }
+                    ),
+                )
+                return
+            if act == "upsert_watchlist_dossier":
+                d_obj = payload.get("dossier") or {}
+                wid = str(d_obj.get("id") or payload.get("watch_property_id") or "")
+                if wid:
+                    cloud_dossiers[wid] = d_obj
+                sync_posts.append(payload)
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps({"ok": True, "authorized": True, "watch_property_id": wid}),
                 )
                 return
             sync_posts.append(payload)
@@ -1406,7 +1637,7 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
                 status=200,
                 content_type="application/json; charset=utf-8",
                 headers={"Access-Control-Allow-Origin": "*"},
-                body=b'{"ok":true}',
+                body=b'{"ok":true,"authorized":true}',
             )
             return
         route.fulfill(
@@ -1427,7 +1658,41 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
     page.click("#activityRangeTabs [data-act-range='all']")
     page.select_option("#actStreamFilter", "permits")
 
-    # 1. Already-watched 2000 Smith St (0152300000001) Stream 4 cards render Open Watchlist Row -> instead of Promote
+    # 1. Before sign-in, private Watchlist membership is NOT exposed to unauthenticated public visitors
+    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == 0
+
+    # 2. Pick an unwatched historic COH demolition/sewer card with an 8-digit project # + historic designation
+    coh_target = page.evaluate(
+        """() => {
+            const cards = Array.from(document.querySelectorAll('#detail .act-card[data-event-id^="permit:coh:"]'));
+            for (const c of cards) {
+                const btn = c.querySelector('[data-act-promote-event]');
+                const m = (c.innerText || '').match(/#(\\d{8})/);
+                if (btn && m && !c.innerText.includes('0152300000001') && (c.innerText.includes('Historic District') || c.innerText.includes('Landmark') || c.innerText.includes('Good Brick'))) {
+                    return { eventId: btn.dataset.actPromoteEvent, projNo: m[1], hcadMatch: ((c.innerText || '').match(/HCAD\\s+(\\d{13})/) || [])[1] || '' };
+                }
+            }
+            return null;
+        }"""
+    )
+    assert coh_target is not None, "Expected at least one unwatched designated COH permit alert card"
+
+    # Signed-out click MUST open staff auth modal without creating a Watchlist entry
+    page.locator(f"#detail button[data-act-promote-event='{coh_target['eventId']}']").click()
+    assert page.locator(".modal-back .modal[role='dialog'] #sa-email").is_visible()
+    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == 0
+
+    # 3. Sign in directly through the staff verification modal -> hydrates cloud Watchlist & deduplicates 2000 Smith St
+    page.fill("#sa-email", "staff@preservation.example.org")
+    page.fill("#sa-passkey", "test-passkey-2026")
+    page.click("#saVerify")
+    page.wait_for_selector(".modal-back", state="detached", timeout=10000)
+    page.wait_for_function(
+        "() => Number(document.querySelector('#modeWatchlistCount')?.textContent || '0') >= 2",
+        timeout=10000,
+    )
+    initial_wl_cnt = int(page.locator("#modeWatchlistCount").inner_text().strip())
+
     smith_dedup = page.evaluate(
         """() => {
             const cards = Array.from(document.querySelectorAll('#detail .act-card')).filter(
@@ -1444,35 +1709,6 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
     assert smith_dedup["allOpenKirby"] is True
     assert smith_dedup["anyPromote"] is False
 
-    # 2. Pick an unwatched historic COH demolition/sewer card with an 8-digit project # + historic designation
-    coh_target = page.evaluate(
-        """() => {
-            const cards = Array.from(document.querySelectorAll('#detail .act-card[data-event-id^="permit:coh:"]'));
-            for (const c of cards) {
-                const btn = c.querySelector('[data-act-promote-event]');
-                const m = (c.innerText || '').match(/#(\\d{8})/);
-                if (btn && m && (c.innerText.includes('Historic District') || c.innerText.includes('Landmark') || c.innerText.includes('Good Brick'))) {
-                    return { eventId: btn.dataset.actPromoteEvent, projNo: m[1], hcadMatch: ((c.innerText || '').match(/HCAD\\s+(\\d{13})/) || [])[1] || '' };
-                }
-            }
-            return null;
-        }"""
-    )
-    assert coh_target is not None, "Expected at least one unwatched designated COH permit alert card"
-
-    initial_wl_cnt = int(page.locator("#modeWatchlistCount").inner_text().strip())
-
-    # Signed-out click MUST open staff auth modal without creating a Watchlist entry
-    page.locator(f"#detail button[data-act-promote-event='{coh_target['eventId']}']").click()
-    assert page.locator(".modal-back .modal[role='dialog'] #sa-email").is_visible()
-    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_cnt
-
-    # 3. Sign in directly through the staff verification modal
-    page.fill("#sa-email", "advocate@preservationhouston.org")
-    page.fill("#sa-passkey", "test-passkey")
-    page.click("#saVerify")
-    page.wait_for_selector(".modal-back", state="detached", timeout=10000)
-
     # 4. Promote the COH historic demolition/sewer alert card
     page.locator(f"#detail button[data-act-promote-event='{coh_target['eventId']}']").click()
     assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_cnt + 1
@@ -1485,16 +1721,19 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
     new_watch_id = open_new_watch_btn.get_attribute("data-act-open-watch")
     assert new_watch_id and new_watch_id.startswith("prop-watch-")
 
-    # Inspect newly promoted Watchlist record (Tier 1, combined designations, chk-14 Flagged w/ loggedAt, 8-digit projectNo)
+    # Inspect newly promoted Watchlist record in role-scoped auth cache (legacy phpam:watchlist:v2 must stay null!)
     open_new_watch_btn.click()
     assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
     dossier_info = page.evaluate(
         """(wid) => {
-            const raw = JSON.parse(localStorage.getItem('phpam:watchlist:v2') || '{}');
-            const p = (raw.watchedProperties || []).find(x => x.id === wid);
+            const legacyRaw = localStorage.getItem('phpam:watchlist:v2');
+            const cacheObj = JSON.parse(localStorage.getItem('phpam:auth_cache:staff@preservation.example.org') || '{}');
+            const row = (cacheObj.watchlistDossiers || []).find(r => (r.watch_property_id || r.watch_id) === wid);
+            const p = row && row.dossier_json ? JSON.parse(row.dossier_json) : row;
             const chk14 = (p?.checklist || []).find(r => r.id === 'chk-14');
             const chk15 = (p?.checklist || []).find(r => r.id === 'chk-15');
             return {
+                legacyIsNull: legacyRaw === null,
                 found: Boolean(p),
                 tier: p?.tier,
                 trackerStatus: p?.trackerStatus,
@@ -1509,6 +1748,7 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
         }""",
         new_watch_id,
     )
+    assert dossier_info["legacyIsNull"] is True
     assert dossier_info["found"] is True
     assert dossier_info["tier"] == "1"
     assert dossier_info["trackerStatus"] == "Active / High Priority"
@@ -1538,8 +1778,9 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
         ).get_attribute("data-act-open-watch")
         dshs_chk15 = page.evaluate(
             """(wid) => {
-                const raw = JSON.parse(localStorage.getItem('phpam:watchlist:v2') || '{}');
-                const p = (raw.watchedProperties || []).find(x => x.id === wid);
+                const cacheObj = JSON.parse(localStorage.getItem('phpam:auth_cache:staff@preservation.example.org') || '{}');
+                const row = (cacheObj.watchlistDossiers || []).find(r => (r.watch_property_id || r.watch_id) === wid);
+                const p = row && row.dossier_json ? JSON.parse(row.dossier_json) : row;
                 const chk15 = (p?.checklist || []).find(r => r.id === 'chk-15');
                 return { status: chk15?.status, loggedAt: chk15?.checks?.[0]?.loggedAt || '' };
             }""",
@@ -1548,17 +1789,15 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
         assert dshs_chk15["status"] == "Flagged"
         assert "T" in dshs_chk15["loggedAt"]
 
-    # Wait for debounced queueCloudSyncWatchProperty POST (~800ms timer) and assert Google Sheet payload
-    page.wait_for_function("() => true")
+    # Wait for debounced queueCloudSyncWatchProperty POST (~800ms timer) and assert Phase 1 upsert_watchlist_dossier payload
     deadline_ms = 5000
     waited = 0
-    while waited < deadline_ms and not sync_posts:
+    while waited < deadline_ms and not any(p.get("action") == "upsert_watchlist_dossier" for p in sync_posts):
         page.wait_for_timeout(150)
         waited += 150
-    assert len(sync_posts) >= 1
-    wl_posts = [p for p in sync_posts if p.get("source_type") == "PROPERTY_WATCHLIST_UPDATE"]
+    wl_posts = [p for p in sync_posts if p.get("action") == "upsert_watchlist_dossier"]
     assert len(wl_posts) >= 1
-    first_synced = json.loads(wl_posts[0]["source_citation"])
+    first_synced = wl_posts[0]["dossier"]
     assert first_synced["id"] == new_watch_id
     assert first_synced["tier"] == "1"
     assert coh_target["projNo"] in first_synced["searchTerms"]["projectNumbers"]
@@ -1600,6 +1839,17 @@ def test_activity_it4_boot_routing_precedence_deeplinks_and_delayed_sheet_race(
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
 
+    # Signed-out ?watch= / ?hcad= routes to Watchlist mode and renders the calm privacy gate
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?watch=prop-kirby-mansion",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_selector("#watchlistSignedOutGate", state="visible", timeout=15000)
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+
+    # Once signed in, ?watch=prop-kirby-mansion and ?hcad=0152300000001 select Kirby Mansion directly
+    _seed_staff_admin_session(page)
     page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
     page.goto(
         f"{atlas_base_url}/plat-monitor.html?watch=prop-kirby-mansion",
@@ -1673,7 +1923,7 @@ def test_activity_rp1_three_mode_cycling_and_detail_listener_isolation(
     page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     page.wait_for_function(
-        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0 && Number(document.querySelector('#modeWatchlistCount')?.textContent || '0') >= 2",
         timeout=15000,
     )
 
@@ -2402,3 +2652,733 @@ def test_cross_computer_roaming_sync_keep_unread_pin_undo_and_signout_isolation(
 
 
 
+
+def _encode_test_jwt(claims: dict[str, Any]) -> str:
+    import base64
+
+    hdr = base64.urlsafe_b64encode(b'{"alg":"RS256","typ":"JWT"}').decode("ascii").rstrip("=")
+    body = base64.urlsafe_b64encode(json.dumps(claims).encode("utf-8")).decode("ascii").rstrip("=")
+    return f"{hdr}.{body}.sig"
+
+
+def test_phase1_it4_public_screener_staff_rbac_cross_tab_signout_account_switch_and_jwt_expiry(
+    browser: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-4: Verify Public vs Screener vs Staff UI isolation, cross-tab storage Sign Out, Staff->Screener cache scrub, legacy localStorage upgrade scrub, and mid-edit JWT expiry recovery."""
+    rpc_calls: list[dict[str, Any]] = []
+    parcels_store: dict[str, dict[str, Any]] = {}
+    decisions_store: dict[str, dict[str, Any]] = {}
+    strategy_store: dict[str, dict[str, Any]] = {}
+    watched_entities_store: list[dict[str, Any]] = []
+    dossiers_store = _build_default_seeded_watchlist_dossiers()
+
+    def _rbac_webhook(route: Any) -> None:
+        if route.request.method.upper() != "POST":
+            route.fulfill(
+                status=200,
+                content_type="text/csv; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=b"status,hcad_num,address,suggested_year_built\n",
+            )
+            return
+        payload = json.loads(route.request.post_data or "{}")
+        rpc_calls.append(payload)
+        action = payload.get("action") or ""
+        email = str(payload.get("admin_email") or "").strip().lower()
+        passkey = str(payload.get("admin_passkey") or "").strip()
+        id_tok = str(payload.get("google_id_token") or "").strip()
+
+        role = ""
+        if id_tok:
+            # Decode test JWT claims
+            import base64
+
+            parts = id_tok.split(".")
+            pad = "=" * ((4 - len(parts[1]) % 4) % 4)
+            claims = json.loads(base64.urlsafe_b64decode(parts[1] + pad).decode("utf-8"))
+            email = str(claims.get("email") or "").lower()
+            role = "screener" if "screener" in email else "staff"
+        elif email == "screener@preservation.example.org" and passkey == "screener-passkey-2026":
+            role = "screener"
+        elif email == "staff@preservation.example.org" and passkey == "staff-passkey-2026":
+            role = "staff"
+
+        if not role:
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=json.dumps({"ok": False, "authorized": False, "error": "Unauthorized"}).encode("utf-8"),
+            )
+            return
+
+        if action == "verify_admin":
+            resp: dict[str, Any] = {
+                "ok": True,
+                "authorized": True,
+                "email": email,
+                "role": role,
+                "displayLabel": "Screener" if role == "screener" else "Preservation Staff",
+                "assignedAreas": ["area:priority:sunnyside"] if role == "screener" else ["all"],
+                "supportsRoamingSync": True,
+                "supportsPhase1Monitoring": True,
+            }
+        elif action == "pull_monitoring_state":
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": role,
+                "email": email,
+                "areas": [
+                    {
+                        "area_id": "area:priority:sunnyside",
+                        "name": "Sunnyside",
+                        "area_type": "neighborhood",
+                        "priority_status": "priority",
+                        "age_rule_cutoff_year": 1976,
+                    }
+                ],
+                "parcels": list(parcels_store.values()),
+                "decisions": list(decisions_store.values()),
+                "events": [],
+                "watchlistDossiers": [
+                    {"watch_property_id": wid, "dossier_json": json.dumps(dobj)}
+                    for wid, dobj in dossiers_store.items()
+                ],
+            }
+            if role == "staff":
+                resp["staffOnly"] = {
+                    "parcelStrategy": list(strategy_store.values()),
+                    "watchedEntities": list(watched_entities_store),
+                }
+                resp["pendingModerationCount"] = 2
+        elif action == "upsert_parcel_decision":
+            patch = payload.get("patch") or payload.get("decision") or {}
+            pid = str(patch.get("parcel_id") or payload.get("parcel_id") or "")
+            base_p = dict(parcels_store.get(pid) or {"parcel_id": pid})
+            base_d = dict(decisions_store.get(pid) or {"decision_id": f"DEC:{pid}", "parcel_id": pid})
+            for k, v in patch.items():
+                base_p[k] = v
+                base_d[k] = v
+            base_d["decided_at"] = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+            parcels_store[pid] = base_p
+            decisions_store[pid] = base_d
+            resp = {"ok": True, "authorized": True, "role": role, "parcel": base_p, "decision": base_d}
+        elif action == "upsert_staff_only":
+            if role != "staff":
+                resp = {"ok": False, "authorized": False, "error": "Staff only"}
+            else:
+                tgt = payload.get("target")
+                rec = payload.get("record") or {}
+                if tgt == "parcel_strategy" and rec.get("parcel_id"):
+                    strategy_store[str(rec["parcel_id"])] = rec
+                elif tgt == "watched_entity" and rec.get("entity_name"):
+                    watched_entities_store.append(rec)
+                resp = {"ok": True, "authorized": True}
+        else:
+            resp = {"ok": True, "authorized": True, "items": []}
+
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=json.dumps(resp).encode("utf-8"),
+        )
+
+    ctx = browser.new_context(viewport=DEFAULT_E2E_VIEWPORT)
+    try:
+        configure_fast_e2e_context(ctx, atlas_base_url)
+        ctx.route("**/script.google.com/macros/**", _rbac_webhook)
+
+        tab1 = ctx.new_page()
+        t1_err, t1_con, t1_http = attach_error_monitors(tab1, atlas_base_url)
+
+        # 1. Seed legacy pre-Phase-1 un-namespaced localStorage keys -> must be scrubbed on unauthenticated boot!
+        tab1.goto(f"{atlas_base_url}/plat-monitor.html", wait_until="domcontentloaded")
+        tab1.wait_for_selector("#app:not(.hidden)", timeout=15000)
+        tab1.evaluate(
+            """() => {
+                localStorage.setItem('phpam:watchlist:v2', '{"secret":"pre_phase1"}');
+                localStorage.setItem('phpam:cycle:2026-10-29', '{"secret":"pre_phase1_cycle"}');
+            }"""
+        )
+        tab1.reload(wait_until="domcontentloaded")
+        tab1.wait_for_selector("#app:not(.hidden)", timeout=15000)
+        assert tab1.evaluate("() => localStorage.getItem('phpam:watchlist:v2')") is None
+        assert tab1.evaluate("() => localStorage.getItem('phpam:cycle:2026-10-29')") is None
+        assert not tab1.locator("#modeModerationBtn").is_visible()
+        assert tab1.locator("#staffOnlyStrategyCard").count() == 0
+
+        # Public Watchlist tab shows calm privacy gate
+        tab1.click("#modeWatchlistBtn")
+        tab1.wait_for_selector("#watchlistSignedOutGate", state="visible", timeout=5000)
+
+        # 2. Sign in as Screener -> sees Watchlist, Story Check, and Recommend Significance; ZERO Staff-Only DOM or Queue!
+        tab1.click("[data-open-staff-auth='1']")
+        tab1.fill("#sa-email", "screener@preservation.example.org")
+        tab1.fill("#sa-passkey", "screener-passkey-2026")
+        tab1.click("#saVerify")
+        tab1.wait_for_selector(".modal-back", state="detached", timeout=10000)
+        tab1.wait_for_selector("#list .row[data-watch-id='prop-kirby-mansion']", timeout=10000)
+
+        assert not tab1.locator("#modeModerationBtn").is_visible()
+        tab1.click("#modeAgendaBtn")
+        tab1.select_option("#cycleSelect", "2026-10-29")
+        tab1.locator("#tabs [data-g='all']").click()
+        tab1.fill("#q", "Amerimex Motors")
+        tab1.locator("#list .row[data-app='2026-1659']").first.click()
+
+        assert tab1.locator("#parcelSignificanceCard").count() == 1
+        assert tab1.locator("#storyCheckDrawer").count() == 1
+        assert tab1.locator("#staffOnlyStrategyCard").count() == 0
+        assert tab1.locator("#approveScreenerSigBtn").count() == 0
+        assert tab1.locator("[data-parcel-conf-sig]").count() == 0
+
+        # Screener records 10-Minute Story Check + Recommend Significance = high
+        tab1.locator("#storyCheckDrawer summary").click()
+        tab1.locator("[data-story-check='city_directories_1866_1926']").check()
+        tab1.locator("[data-parcel-rec-sig='high']").click()
+        tab1.wait_for_function(
+            "() => true",
+            timeout=2000,
+        )
+        waited = 0
+        while waited < 4000 and not any(c.get("action") == "upsert_parcel_decision" for c in rpc_calls):
+            tab1.wait_for_timeout(150)
+            waited += 150
+        screener_dec_calls = [c for c in rpc_calls if c.get("action") == "upsert_parcel_decision"]
+        assert len(screener_dec_calls) >= 1
+        assert screener_dec_calls[-1]["patch"]["recommended_significance"] == "high"
+
+        # 3. Switch to Staff -> sees #approveScreenerSigBtn, #staffOnlyStrategyCard, 1-Click Watch Firm, & #modeModerationBtn!
+        tab1.click("#staffAuthBtn")
+        tab1.click("#saLock")
+        tab1.wait_for_selector(".modal-back", state="detached", timeout=5000)
+
+        tab1.click("#staffAuthBtn")
+        tab1.fill("#sa-email", "staff@preservation.example.org")
+        tab1.fill("#sa-passkey", "staff-passkey-2026")
+        tab1.click("#saVerify")
+        tab1.wait_for_selector(".modal-back", state="detached", timeout=10000)
+
+        assert tab1.locator("#modeModerationBtn").is_visible()
+        tab1.click("#modeAgendaBtn")
+        tab1.select_option("#cycleSelect", "2026-10-29")
+        tab1.locator("#tabs [data-g='all']").click()
+        tab1.fill("#q", "Amerimex Motors")
+        tab1.locator("#list .row[data-app='2026-1659']").first.click()
+
+        assert tab1.locator("#approveScreenerSigBtn").is_visible()
+        tab1.click("#approveScreenerSigBtn")
+
+        assert tab1.locator("#staffOnlyStrategyCard").is_visible()
+        tab1.fill("#so-strategy-notes", "Confidential easement outreach plan")
+        tab1.fill("#so-outreach-log", "Left message with owner representative")
+        tab1.fill("#so-contacts", "counsel@example.org")
+        tab1.click("#saveStaffStrategyBtn")
+
+        tab1.fill("#so-custom-entity-input", "Repeat Teardown Developers LLC")
+        tab1.click("#addCustomWatchedEntityBtn")
+
+        waited = 0
+        while waited < 4000 and sum(1 for c in rpc_calls if c.get("action") == "upsert_staff_only") < 2:
+            tab1.wait_for_timeout(150)
+            waited += 150
+        strat_calls = [
+            c for c in rpc_calls if c.get("action") == "upsert_staff_only" and c.get("target") == "parcel_strategy"
+        ]
+        ent_calls = [
+            c for c in rpc_calls if c.get("action") == "upsert_staff_only" and c.get("target") == "watched_entity"
+        ]
+        assert strat_calls[-1]["record"]["strategy_notes"] == "Confidential easement outreach plan"
+        assert strat_calls[-1]["record"]["contact_notes"] == "counsel@example.org"
+        assert strat_calls[-1]["record"]["owner_relationship_notes"] == "Left message with owner representative"
+        assert ent_calls[-1]["record"]["entity_name"] == "Repeat Teardown Developers LLC"
+        assert ent_calls[-1]["record"]["entity_role"] == "developer"
+
+        # 4. Open sibling Tab 2 while signed in as Staff -> then Sign Out in Tab 1 -> Tab 2 immediately unmounts Staff_Only DOM!
+        tab2 = ctx.new_page()
+        t2_err, t2_con, t2_http = attach_error_monitors(tab2, atlas_base_url)
+        tab2.goto(f"{atlas_base_url}/plat-monitor.html?cycle=2026-10-29&app=2026-1659", wait_until="domcontentloaded")
+        tab2.wait_for_selector("#staffOnlyStrategyCard", state="visible", timeout=15000)
+        assert tab2.locator("#modeModerationBtn").is_visible()
+
+        tab1.click("#staffAuthBtn")
+        tab1.click("#saLock")
+        tab1.wait_for_selector(".modal-back", state="detached", timeout=5000)
+
+        tab2.wait_for_function(
+            "() => document.querySelectorAll('#staffOnlyStrategyCard').length === 0",
+            timeout=10000,
+        )
+        assert not tab2.locator("#modeModerationBtn").is_visible()
+        assert tab2.evaluate("() => localStorage.getItem('phpam:auth_cache:staff@preservation.example.org')") is None
+
+        # 5. Mid-edit 1-hour google_id_token expiry recovery: dirty mutation queues cleanly & replays after 1-click re-auth!
+        now_sec = int(dt.datetime.now(dt.timezone.utc).timestamp())
+        valid_jwt = _encode_test_jwt({"email": "staff@preservation.example.org", "exp": now_sec + 3600})
+        expired_jwt = _encode_test_jwt({"email": "staff@preservation.example.org", "exp": now_sec - 120})
+
+        tab1.evaluate(
+            """(tok) => {
+                const s = JSON.stringify({
+                    authorized: true,
+                    verifiedByWebhook: true,
+                    email: 'staff@preservation.example.org',
+                    role: 'staff',
+                    displayLabel: 'Preservation Staff',
+                    googleIdToken: tok,
+                    supportsRoamingSync: true,
+                    supportsPhase1Monitoring: true
+                });
+                sessionStorage.setItem('ph_atlas_admin_session', s);
+                localStorage.setItem('ph_atlas_admin_session', s);
+            }""",
+            valid_jwt,
+        )
+        tab1.reload(wait_until="domcontentloaded")
+        tab1.wait_for_selector("#app:not(.hidden)", timeout=15000)
+        tab1.select_option("#cycleSelect", "2026-10-29")
+        tab1.locator("#tabs [data-g='all']").click()
+        tab1.fill("#q", "Amerimex Motors")
+        tab1.locator("#list .row[data-app='2026-1659']").first.click()
+
+        # Simulate token expiring after 1 hour while reviewer is mid-edit on #so-strategy-notes
+        tab1.fill("#so-strategy-notes", "Unsaved mid-session strategy edit preserved across token expiry")
+        tab1.evaluate(
+            """(expTok) => {
+                const cur = JSON.parse(localStorage.getItem('ph_atlas_admin_session'));
+                cur.googleIdToken = expTok;
+                sessionStorage.setItem('ph_atlas_admin_session', JSON.stringify(cur));
+                localStorage.setItem('ph_atlas_admin_session', JSON.stringify(cur));
+            }""",
+            expired_jwt,
+        )
+        tab1.click("#saveStaffStrategyBtn")
+        tab1.wait_for_selector(".modal-back .modal[role='dialog']", state="visible", timeout=5000)
+        # Dirty textarea input remains intact underneath re-auth prompt!
+        assert (
+            tab1.locator("#so-strategy-notes").input_value()
+            == "Unsaved mid-session strategy edit preserved across token expiry"
+        )
+        tab1.fill("#sa-email", "staff@preservation.example.org")
+        tab1.fill("#sa-passkey", "staff-passkey-2026")
+        tab1.click("#saVerify")
+        tab1.wait_for_selector(".modal-back", state="detached", timeout=10000)
+        assert (
+            tab1.locator("#so-strategy-notes").input_value()
+            == "Unsaved mid-session strategy edit preserved across token expiry"
+        )
+        waited = 0
+        while waited < 4000 and not any(
+            c.get("action") == "upsert_staff_only"
+            and (c.get("record") or {}).get("strategy_notes")
+            == "Unsaved mid-session strategy edit preserved across token expiry"
+            for c in rpc_calls
+        ):
+            tab1.wait_for_timeout(150)
+            waited += 150
+        assert any(
+            c.get("action") == "upsert_staff_only"
+            and (c.get("record") or {}).get("strategy_notes")
+            == "Unsaved mid-session strategy edit preserved across token expiry"
+            for c in rpc_calls
+        )
+
+        # Also verify public index.html renders cleanly with zero console errors
+        tab1.goto(f"{atlas_base_url}/index.html#layers=permit_watch", wait_until="domcontentloaded")
+        _wait_for_atlas_ready(tab1)
+
+        assert not t1_err and not t1_con and not t1_http
+        assert not t2_err and not t2_con and not t2_http
+    finally:
+        ctx.close()
+
+
+def test_phase1_it5_cross_cycle_parcel_significance_persistence_and_material_delta_recheck(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-5: Verify Once-Per-Parcel Significance + uncapped screening_notes persist across cycles and flag Needs Re-Check on material deltas."""
+    page = guarded_page
+    mock_state = _seed_staff_admin_session(page)
+
+    long_uncapped_note = (
+        "Archival parcel history verified across 1924 Sanborn Vol. 3 and 1926 Houston City Directory: "
+        + ("Intact early brick masonry commercial corner with original steel casements. " * 9)
+    ).strip()
+    assert len(long_uncapped_note) > 650
+
+    mock_state["parcels"]["0420090000088"] = {
+        "parcel_id": "0420090000088",
+        "hcad_num": "0420090000088",
+        "primary_address": "2410 WASHINGTON AVE",
+        "building_name": "Washington Corner Storefront",
+        "year_built": 1924,
+        "review_status": "assessed",
+        "significance_level": "high",
+        "significance_basis": "architecture",
+        "integrity": "good",
+        "protection_level": "none",
+        "threat_stage": 3,
+        "advocacy_status": "active_advocacy",
+        "attention_level": "act",
+    }
+    mock_state["decisions"]["0420090000088"] = {
+        "decision_id": "DEC:0420090000088",
+        "parcel_id": "0420090000088",
+        "hcad_num": "0420090000088",
+        "latest_cycle_key": "2026-10-01",
+        "latest_app_no": "2026-8801",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "significance_basis": "architecture",
+        "integrity": "good",
+        "advocacy_status": "active_advocacy",
+        "screening_notes": long_uncapped_note,
+        "decided_by": "Preservation Staff",
+        "decided_at": "2026-10-01T15:00:00Z",
+    }
+
+    plat_json_path = Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "plat_agenda_monitor.json"
+
+    def _inject_cross_cycle_parcel(route: Any) -> None:
+        doc = json.loads(plat_json_path.read_text(encoding="utf-8"))
+        base_item = {
+            "name": "Washington Corner Replat",
+            "hcad": "0420090000088",
+            "city": "City",
+            "county": "Harris",
+            "prevSub": "Washington Addition",
+            "superN": "Washington Avenue Coalition / Memorial Park",
+            "landUse": "Commercial",
+            "developer": "Cornerstone Holdings LLC",
+            "applicant": "Precision Platting",
+            "onMeetingAgenda": True,
+            "atlas": {
+                "addresses": ["2410 WASHINGTON AVE"],
+                "primaryAddress": "2410 WASHINGTON AVE",
+                "earliestYearBuilt": 1924,
+                "allYearsBuilt": [1924],
+                "parcels": [{"hcad": "0420090000088", "address": "2410 WASHINGTON AVE", "yearBuilt": 1924}],
+                "designations": [],
+            },
+        }
+        # Cycle 1 (2026-10-01): baseline C2 filing
+        doc["cycles"]["2026-10-01"]["items"].insert(
+            0,
+            {
+                **base_item,
+                "app": "2026-8801",
+                "occurrenceKey": "2026-10-01::2026-8801",
+                "type": "C2",
+                "section": "I. Consent",
+                "special": "",
+                "varianceSummary": "",
+                "priorCycles": [],
+                "_c": {"group": "check", "reason": "", "originalReason": "", "overriddenFromOut": False, "flags": ["pre1976"], "score": 4, "code": "C2", "inCity": True},
+            },
+        )
+        # Cycle 2 (2026-10-15): unchanged C2 deferral
+        doc["cycles"]["2026-10-15"]["items"].insert(
+            0,
+            {
+                **base_item,
+                "app": "2026-8801",
+                "occurrenceKey": "2026-10-15::2026-8801",
+                "type": "C2",
+                "section": "I. Consent",
+                "special": "",
+                "varianceSummary": "",
+                "priorCycles": [{"cycleKey": "2026-10-01", "app": "2026-8801", "type": "C2"}],
+                "_c": {"group": "check", "reason": "", "originalReason": "", "overriddenFromOut": False, "flags": ["pre1976", "deferred"], "score": 5, "code": "C2", "inCity": True},
+            },
+        )
+        # Cycle 3 (2026-10-29): material delta -> escalated to C3N Variance + Public Hearing!
+        doc["cycles"]["2026-10-29"]["items"].insert(
+            0,
+            {
+                **base_item,
+                "app": "2026-8899",
+                "occurrenceKey": "2026-10-29::2026-8899",
+                "type": "C3N Replat with Variance",
+                "section": "II. Public Hearings",
+                "special": "Variance requested to reduce building line",
+                "varianceSummary": "Reduced setback variance for teardown redevelopment",
+                "hearingDateIso": "2026-11-05",
+                "reReviewReason": "Material filing change: escalated C2 -> C3N Public Hearing + new setback variance",
+                "priorCycles": [
+                    {"cycleKey": "2026-10-01", "app": "2026-8801", "type": "C2"},
+                    {"cycleKey": "2026-10-15", "app": "2026-8801", "type": "C2"},
+                ],
+                "_c": {"group": "check", "reason": "", "originalReason": "", "overriddenFromOut": False, "flags": ["pre1976", "hearing", "variance"], "score": 8, "code": "C3N", "inCity": True},
+            },
+        )
+        doc["items"] = doc["cycles"]["2026-10-29"]["items"]
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=json.dumps(doc).encode("utf-8"),
+        )
+
+    page.route("**/data/plat_agenda_monitor.json*", _inject_cross_cycle_parcel)
+
+    # 1. Inspect unchanged Cycle 2 (2026-10-15): saved High Significance & full >650-char screening_notes render automatically without Needs Re-Check
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?cycle=2026-10-15&app=2026-8801",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_selector("#parcelSignificanceCard", state="visible", timeout=15000)
+    notes_val_cyc2 = page.locator("#parcelScreeningNotesInput").input_value()
+    assert len(notes_val_cyc2) > 650
+    assert "original steel casements" in notes_val_cyc2
+    assert page.locator("[data-parcel-recheck-banner]").count() == 0
+
+    # 2. Switch to Cycle 3 (2026-10-29) where new C3N variance + hearing arrived: saved High Significance persists AND Needs Re-Check banner surfaces!
+    page.select_option("#cycleSelect", "2026-10-29")
+    page.locator("#tabs [data-g='all']").click()
+    page.locator("#list .row[data-app='2026-8899']").first.click()
+    page.wait_for_selector("#parcelSignificanceCard", state="visible", timeout=10000)
+    assert len(page.locator("#parcelScreeningNotesInput").input_value()) > 650
+    assert page.locator("[data-parcel-recheck-banner]").count() == 1
+    assert "ACT" in page.locator("#parcelSignificanceCard [data-attention-badge]").inner_text().upper()
+
+
+def test_phase1_it6_source_conflict_writeback_and_in_app_community_moderation_queue(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-6: Verify 1-click Source Conflict Writeback (including Lost/Vacant polygon stripping) and In-App Community Queue moderation across Pending_Submissions, _FLAG rows, and Field_Surveys."""
+    page = guarded_page
+    mock_state = _seed_staff_admin_session(page)
+
+    custom_poly_str = json.dumps(
+        {
+            "type": "Polygon",
+            "coordinates": [[[-95.36, 29.75], [-95.359, 29.75], [-95.359, 29.751], [-95.36, 29.751], [-95.36, 29.75]]],
+        }
+    )
+
+    # Seed parcel 0621100000014 as outcome="lost" while curated_overrides.json has standing 1925 + custom polygon
+    mock_state["parcels"]["0621100000014"] = {
+        "parcel_id": "0621100000014",
+        "hcad_num": "0621100000014",
+        "primary_address": "1127 KEY ST",
+        "year_built": 1925,
+        "hcad_year_built": 1930,
+        "subdivision_name": "North Norhill",
+        "review_status": "assessed",
+        "significance_level": "high",
+        "advocacy_status": "closed",
+        "outcome": "lost",
+        "threat_stage": 6,
+    }
+
+    queue_items: list[dict[str, Any]] = [
+        {
+            "queueId": "Pending_Submissions:2:0420090000001",
+            "sourceTab": "Pending_Submissions",
+            "rowNumber": 2,
+            "status": "Pending",
+            "hcad_num": "0420090000001",
+            "address": "2802 WHEELER AVE",
+            "building_name": "Washington Terrace Duplex",
+            "suggested_year_built": "1928",
+            "original_hcad_year": "1940",
+            "historic_district": "Washington Terrace",
+            "contributing": "Contributing",
+            "bld_style": "Brick Duplex",
+            "architect": "Early Builder",
+            "source_type": "Houston City Directory",
+            "source_citation": "1928 Polk Directory listing",
+            "submitted_by": "Community Historian",
+            "submitted_at": "2026-11-20",
+        },
+        {
+            "queueId": "Pending_Submissions:3:0610870390001",
+            "sourceTab": "Pending_Submissions",
+            "rowNumber": 3,
+            "status": "Pending",
+            "hcad_num": "0610870390001",
+            "address": "1502 HEIGHTS BLVD",
+            "suggested_year_built": "",
+            "original_hcad_year": "1914",
+            "historic_district": "Houston Heights East",
+            "source_type": "PHOTO_MISATTRIBUTION_FLAG",
+            "source_citation": "Street-view thumbnail depicts corner lot across alley",
+            "submitted_by": "Block Resident",
+            "submitted_at": "2026-11-21",
+        },
+        {
+            "queueId": "Field_Surveys:2:SURV_WTB_101",
+            "sourceTab": "Field_Surveys",
+            "rowNumber": 2,
+            "survey_id": "SURV_WTB_101",
+            "status": "Unreviewed",
+            "hcad_num": "0770010000001",
+            "address": "4110 REED RD",
+            "historic_district": "Sunnyside",
+            "integrity_grade": "Intact",
+            "condition_rating": "Good",
+            "contributing": "Contributing",
+            "original_hcad_year": "1950",
+            "suggested_year_built": "1949",
+            "source_citation": "Intact hipped-roof Minimal Traditional cottage",
+            "submitted_by": "Survey Volunteer",
+            "submitted_at": "2026-11-22",
+            "source_type": "FIELD_SURVEY_OBSERVATION",
+        },
+    ]
+
+    recorded_writebacks: list[dict[str, Any]] = []
+    recorded_moderations: list[dict[str, Any]] = []
+
+    def _moderation_and_writeback_webhook(route: Any) -> None:
+        if route.request.method.upper() != "POST":
+            route.fulfill(
+                status=200,
+                content_type="text/csv; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=b"status,hcad_num,address,suggested_year_built\n",
+            )
+            return
+        payload = json.loads(route.request.post_data or "{}")
+        act = payload.get("action") or ""
+        if act == "pull_monitoring_state":
+            resp: dict[str, Any] = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "email": "staff@preservation.example.org",
+                "areas": [],
+                "parcels": list(mock_state["parcels"].values()),
+                "decisions": [],
+                "events": [],
+                "watchlistDossiers": [
+                    {
+                        "watch_property_id": "prop-key-lost",
+                        "dossier_json": json.dumps(
+                            {
+                                "id": "prop-key-lost",
+                                "parcelId": "0621100000014",
+                                "propertyName": "1127 Key St Bungalow",
+                                "address": "1127 KEY ST",
+                                "hcadAccount": "0621100000014",
+                                "tier": "1",
+                                "tierConfirmed": True,
+                                "trackerStatus": "Lost",
+                                "yearBuilt": 1925,
+                                "checklist": [],
+                            }
+                        ),
+                    }
+                ],
+                "staffOnly": {"parcelStrategy": [], "watchedEntities": []},
+                "pendingModerationCount": len(queue_items),
+            }
+        elif act in ("list_pending_submissions", "list_pending_moderation"):
+            resp = {"ok": True, "authorized": True, "count": len(queue_items), "items": list(queue_items)}
+        elif act == "moderate_submission":
+            recorded_moderations.append(payload)
+            resp = {"ok": True, "authorized": True, "status": payload.get("decision")}
+        elif act == "admin_approve":
+            recorded_writebacks.append(payload)
+            resp = {"ok": True, "authorized": True, "status": "Approved", "upserted": True, "rowNumber": 2}
+        else:
+            resp = {"ok": True, "authorized": True}
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=json.dumps(resp).encode("utf-8"),
+        )
+
+    def _inject_custom_polygon_override(route: Any) -> None:
+        ov_doc = {
+            "overrides": {
+                "0621100000014": {
+                    "hcad_num": "0621100000014",
+                    "address": "1127 KEY ST",
+                    "year_built": 1925,
+                    "original_hcad_year": 1930,
+                    "historic_district": "Norhill",
+                    "contributing": "Contributing",
+                    "geometry": json.loads(custom_poly_str),
+                    "source_citation": f"1925 Directory [GEOMETRY_GEOJSON: {custom_poly_str}]",
+                }
+            }
+        }
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=json.dumps(ov_doc).encode("utf-8"),
+        )
+
+    page.route("**/script.google.com/macros/**", _moderation_and_writeback_webhook)
+    page.route("**/data/curated_overrides.json*", _inject_custom_polygon_override)
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=watchlist", wait_until="domcontentloaded")
+    page.wait_for_selector("#list .row[data-watch-id='prop-key-lost']", timeout=15000)
+    page.locator("#list .row[data-watch-id='prop-key-lost']").click()
+    page.wait_for_selector("#sourceConflictWritebackCard", state="visible", timeout=15000)
+
+    # 1. Lost / Vacant Lot parcel conflicts with standing custom-polygon override -> 1-click writeback strips custom polygon!
+    conflict_txt = page.locator("#sourceConflictWritebackCard").inner_text()
+    assert "Standing vs. Demolished" in conflict_txt or "Demolished" in conflict_txt
+    assert page.locator("#wb-suppress-vacant").is_checked()
+    page.click("#publishApprovedOverrideBtn")
+
+    waited = 0
+    while waited < 5000 and not recorded_writebacks:
+        page.wait_for_timeout(150)
+        waited += 150
+    assert len(recorded_writebacks) == 1
+    wb_sent = recorded_writebacks[0]
+    assert wb_sent["hcad_num"] == "0621100000014"
+    assert wb_sent["suppress_only"] is True
+    assert wb_sent["suggested_year_built"] in (0, "0")
+    assert not wb_sent.get("geometry_geojson")
+    assert "[GEOMETRY_GEOJSON:" not in str(wb_sent.get("source_citation") or "")
+
+    # 2. Switch to Mode 4 (Community Moderation Queue) and moderate all 3 items (Pending archival edit, _FLAG dispute, and Field_Survey)
+    assert page.locator("#modeModerationBtn").is_visible()
+    page.click("#modeModerationBtn")
+    page.wait_for_selector("#list .row[data-mod-queue-id]", timeout=10000)
+    assert page.locator("#list .row[data-mod-queue-id]").count() == 3
+
+    # (a) Approve Pending_Submissions archival year/architect edit
+    page.locator("#list .row[data-mod-queue-id='Pending_Submissions:2:0420090000001']").click()
+    page.fill("#mq-note", "Confirmed against 1928 City Directory")
+    page.click("[data-mod-decision='Approved']")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#list .row[data-mod-queue-id]').length === 2",
+        timeout=5000,
+    )
+    assert recorded_moderations[-1]["sourceTab"] == "Pending_Submissions"
+    assert recorded_moderations[-1]["decision"] == "Approved"
+    assert recorded_moderations[-1]["suggested_year_built"] == 1928
+
+    # (b) Resolve PHOTO_MISATTRIBUTION_FLAG -> automatically sends decision == 'Resolved' with blank year!
+    page.locator("#list .row[data-mod-queue-id='Pending_Submissions:3:0610870390001']").click()
+    assert "Mark Flag Resolved" in page.locator("[data-mod-decision='Approved']").inner_text()
+    page.click("[data-mod-decision='Approved']")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#list .row[data-mod-queue-id]').length === 1",
+        timeout=5000,
+    )
+    assert recorded_moderations[-1]["decision"] == "Resolved"
+    assert recorded_moderations[-1]["suggested_year_built"] == ""
+
+    # (c) Promote Walk-the-Block Field_Surveys item -> sends sourceTab == 'Field_Surveys', survey_id == 'SURV_WTB_101', decision == 'Approved'
+    page.locator("#list .row[data-mod-queue-id='Field_Surveys:2:SURV_WTB_101']").click()
+    assert "Promote Survey to Map" in page.locator("[data-mod-decision='Approved']").inner_text()
+    page.click("[data-mod-decision='Approved']")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#list .row[data-mod-queue-id]').length === 0",
+        timeout=5000,
+    )
+    assert recorded_moderations[-1]["sourceTab"] == "Field_Surveys"
+    assert recorded_moderations[-1]["survey_id"] == "SURV_WTB_101"
+    assert recorded_moderations[-1]["decision"] == "Approved"
+    assert recorded_moderations[-1]["suggested_year_built"] == 1949

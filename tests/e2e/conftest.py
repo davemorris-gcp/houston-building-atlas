@@ -482,6 +482,186 @@ def attach_error_monitors(page: Any, base_url: str) -> tuple[list[str], list[str
     return page_errors, console_errors, local_http_errors
 
 
+def seed_phase1_staff_watchlist_session(target: Any) -> None:
+    """Seeds a Phase 1 authenticated Preservation Staff session and hermetic Watchlist dossiers on a Page or BrowserContext."""
+    ctx = getattr(target, "context", target)
+    session_json = json.dumps(
+        {
+            "authorized": True,
+            "verifiedByWebhook": True,
+            "email": "staff@preservation.example.org",
+            "role": "staff",
+            "displayLabel": "Preservation Staff",
+            "adminPasskey": "test-passkey-2026",
+            "supportsRoamingSync": True,
+            "supportsPhase1Monitoring": True,
+        }
+    )
+    ctx.add_init_script(
+        f"""
+        if (!sessionStorage.getItem('ph_atlas_admin_session')) {{
+            sessionStorage.setItem('ph_atlas_admin_session', {json.dumps(session_json)});
+            localStorage.setItem('ph_atlas_admin_session', {json.dumps(session_json)});
+        }}
+        """
+    )
+
+    seeded_dossiers = [
+        {
+            "id": "prop-kirby-mansion",
+            "parcelId": "0152300000001",
+            "propertyName": "John Henry Kirby Mansion",
+            "address": "2000 Smith St.",
+            "hcadAccount": "0152300000001",
+            "tier": "1",
+            "tierConfirmed": True,
+            "trackerStatus": "Active / High Priority",
+            "yearBuilt": 1894,
+            "designation": "National Register (individual); City Landmark",
+            "updatedAt": "2026-10-28T12:00:00Z",
+            "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+            "checklist": [
+                {
+                    "id": "chk-08",
+                    "title": "Open Records / GovQA",
+                    "status": "In Progress",
+                    "checks": [
+                        {
+                            "date": "2026-10-27",
+                            "discoveredAt": "2026-10-27T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": False,
+                            "result": "[AUTO-SWEEP] No results found",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-10",
+                    "title": "TDLR TABS",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "tabs:TABS20260001",
+                            "result": "[AUTO-SWEEP] TDLR TABS #TABS20260001 registration filed at 2000 Smith St",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-14",
+                    "title": "Demolition & Building Permits",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "coh:26090093",
+                            "result": "[AUTO-SWEEP] BLD DEMO/SEWER DISC 2 OF 2 building demolition permit #26090093",
+                        }
+                    ],
+                },
+                {
+                    "id": "chk-15",
+                    "title": "TX DSHS Asbestos & Demolition",
+                    "status": "Flagged",
+                    "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                    "checks": [
+                        {
+                            "date": "2026-10-28",
+                            "discoveredAt": "2026-10-28T12:00:00Z",
+                            "source": "auto-sweep",
+                            "adverse": True,
+                            "agencyRecordId": "dshs:2026005825",
+                            "result": "[AUTO-SWEEP] DSHS Notification #2026005825 TX DSHS Demolition Filing",
+                        }
+                    ],
+                },
+            ],
+        },
+        {
+            "id": "prop-112-travis",
+            "parcelId": "0010160000011",
+            "propertyName": "112 Travis Commercial Block",
+            "address": "112 TRAVIS ST",
+            "hcadAccount": "0010160000011",
+            "tier": "1",
+            "tierConfirmed": True,
+            "trackerStatus": "Active / High Priority",
+            "yearBuilt": 1882,
+            "designation": "Market Square Historic District",
+            "updatedAt": "2026-10-27T12:00:00Z",
+            "checklist": [],
+        },
+        {
+            "id": "prop-801-mcgowen",
+            "parcelId": "0231000000006",
+            "propertyName": "801 McGowen Corner Building",
+            "address": "801 MCGOWEN ST",
+            "hcadAccount": "0231000000006",
+            "tier": "1",
+            "tierConfirmed": True,
+            "trackerStatus": "Active / High Priority",
+            "yearBuilt": 1924,
+            "designation": "Midtown",
+            "updatedAt": "2026-10-27T12:00:00Z",
+            "checklist": [],
+        },
+    ]
+
+    def _phase1_watchlist_route(route: Any) -> None:
+        if route.request.method.upper() != "POST":
+            route.fulfill(
+                status=200,
+                content_type="text/csv; charset=utf-8",
+                headers=_CORS_HEADERS,
+                body=b"hcad_num,status\n",
+            )
+            return
+        payload = json.loads(route.request.post_data or "{}")
+        action = payload.get("action") or ""
+        if action == "pull_monitoring_state":
+            resp: dict[str, Any] = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "email": "staff@preservation.example.org",
+                "areas": [],
+                "parcels": [],
+                "decisions": [],
+                "events": [],
+                "watchlistDossiers": [
+                    {"watch_property_id": d["id"], "dossier_json": json.dumps(d)}
+                    for d in seeded_dossiers
+                ],
+                "staffOnly": {"parcelStrategy": [], "watchedEntities": []},
+                "pendingModerationCount": 0,
+            }
+        else:
+            resp = {
+                "ok": True,
+                "authorized": True,
+                "role": "staff",
+                "email": "staff@preservation.example.org",
+                "supportsRoamingSync": True,
+                "supportsPhase1Monitoring": True,
+            }
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            headers=_CORS_HEADERS,
+            body=json.dumps(resp).encode("utf-8"),
+        )
+
+    target.route("**/script.google.com/macros/**", _phase1_watchlist_route)
+
+
 @pytest.fixture
 def guarded_page(page: Any, atlas_base_url: str) -> Any:
     configure_fast_e2e_context(page.context, atlas_base_url)

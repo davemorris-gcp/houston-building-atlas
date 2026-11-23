@@ -481,11 +481,25 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
     assert.ok(!/[\u2013\u2014]/.test(srcText), `${srcRel} contains forbidden U+2013/U+2014 dashes`);
   }
 
-  // Verify /llms.txt and /llms-full.txt content and Section 2 completeness
+  // Verify /llms.txt and /llms-full.txt content, Phase 1 public-only Section 1, and Section 2 completeness
   const llmsTxt = fs.readFileSync(path.join(APP_DIR, "llms.txt"), "utf8");
   const llmsFullTxt = fs.readFileSync(path.join(APP_DIR, "llms-full.txt"), "utf8");
   assert.ok(llmsTxt.includes("# The Houston Building Atlas (Preservation Houston)"));
-  assert.ok(llmsFullTxt.includes("## Section 1: Active Endangered Property Watchlist"));
+  assert.ok(
+    llmsFullTxt.includes(
+      "## Section 1: Public Planning Commission Pre-1976 Filings & Recent Lost Houston Graduations"
+    )
+  );
+  assert.equal(
+    llmsFullTxt.includes("## Section 1: Active Endangered Property Watchlist"),
+    false,
+    "app/llms-full.txt must not leak private Watchlist dossier tables"
+  );
+  assert.equal(
+    llmsFullTxt.includes("plat-monitor.html#tab=watchlist&watch="),
+    false,
+    "app/llms-full.txt must not leak private Watchlist deep links"
+  );
   assert.ok(llmsFullTxt.includes("## Section 2: Active Demolition Permits & Texas DSHS Asbestos Alerts"));
   assert.ok(llmsFullTxt.includes("## Section 8: Linked Archival Finding Aids"));
   assert.ok(llmsFullTxt.includes("`26090093`"), "Section 2 must populate COH project numbers");

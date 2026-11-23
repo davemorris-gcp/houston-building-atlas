@@ -28,15 +28,20 @@ import urllib.request
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT / "pipeline") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
-
-from atlas_pipeline.schema import (  # noqa: E402
-    DEFAULT_SHEET_PUBLISHED_CSV_URL as SHEET_PUBLISHED_CSV_URL,
-    DEFAULT_SHEET_WEBHOOK_URL as SHEET_WEBHOOK_URL,
-    DEFAULT_WORKSPACE_BACKUP_PATH as DEFAULT_BACKUP_PATH,
-    PLAT_SYNC_HEADERS,
-)
+try:
+    from .schema import (
+        DEFAULT_SHEET_PUBLISHED_CSV_URL as SHEET_PUBLISHED_CSV_URL,
+        DEFAULT_SHEET_WEBHOOK_URL as SHEET_WEBHOOK_URL,
+        DEFAULT_WORKSPACE_BACKUP_PATH as DEFAULT_BACKUP_PATH,
+    )
+except ImportError:
+    if str(REPO_ROOT / "pipeline") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+    from atlas_pipeline.schema import (
+        DEFAULT_SHEET_PUBLISHED_CSV_URL as SHEET_PUBLISHED_CSV_URL,
+        DEFAULT_SHEET_WEBHOOK_URL as SHEET_WEBHOOK_URL,
+        DEFAULT_WORKSPACE_BACKUP_PATH as DEFAULT_BACKUP_PATH,
+    )
 
 
 def _sanitize_text(val: Any) -> str:
@@ -106,128 +111,6 @@ def _scrub_json_value(obj: Any, *, key_hint: str = "") -> Any:
     if isinstance(obj, dict):
         return {str(k): _scrub_json_value(v, key_hint=str(k)) for k, v in obj.items()}
     return obj
-
-
-def _extract_sync_timestamp(raw_citation: str, fallback_date: str = "") -> str:
-    s = (raw_citation or "").strip()
-    if s.startswith("{"):
-        try:
-            parsed = json.loads(s)
-            if isinstance(parsed, dict):
-                if isinstance(parsed.get("review"), dict) and parsed["review"].get("updated"):
-                    return str(parsed["review"]["updated"])
-                for key in ("updatedAt", "updated", "savedAt"):
-                    if parsed.get(key):
-                        return str(parsed[key])
-        except Exception:
-            pass
-    return _sanitize_text(fallback_date)
-
-
-def partition_pending_submissions_rows(
-    rows: list[list[str]],
-    existing_plat_sync_rows: list[list[str]] | None = None,
-) -> dict[str, list[list[str]]]:
-    """Partition raw Pending_Submissions rows (excluding header) losslessly for sheet cleanup."""
-    sync_by_key: dict[str, tuple[str, int, list[str]]] = {}
-    seq = 0
-
-    for ex_row in existing_plat_sync_rows or []:
-        seq += 1
-        padded = [_sanitize_text(c) for c in ex_row] + [""] * 12
-        key = padded[1]
-        if not key or key.lower() in ("hcad_num", "record key (cycle/property)"):
-            continue
-        cite = padded[8]
-        ts = _extract_sync_timestamp(cite, padded[11] if len(ex_row) > 11 else "")
-        norm_sync_row = [
-            "Approved",
-            key,
-            padded[2],
-            padded[3],
-            padded[4],
-            padded[5],
-            padded[6],
-            padded[7]
-            or ("PLAT_MONITOR_REVIEW" if key.startswith("PLAT_REV:") else "PROPERTY_WATCHLIST_UPDATE"),
-            cite,
-            padded[9],
-            padded[10],
-            ts,
-        ]
-        sync_by_key[key] = (ts, seq, norm_sync_row)
-
-    clean_pending_rows: list[list[str]] = []
-    citydir_batch_archive_rows: list[list[str]] = []
-
-    for raw_row in rows:
-        seq += 1
-        if not any(str(c or "").strip() for c in raw_row):
-            continue
-        padded = [_sanitize_text(c) for c in raw_row]
-        while len(padded) < 23:
-            padded.append("")
-
-        status = padded[0]
-        hcad_key = padded[1]
-        src_type = padded[7]
-        cite = padded[8]
-        submitted_by = padded[11]
-        submitted_at = padded[12]
-
-        is_plat_or_watch = (
-            src_type.upper() in ("PLAT_MONITOR_REVIEW", "PROPERTY_WATCHLIST_UPDATE")
-            or hcad_key.startswith("PLAT_REV:")
-            or hcad_key.startswith("WATCH_PROP:")
-        )
-        if is_plat_or_watch and hcad_key:
-            ts = _extract_sync_timestamp(cite, submitted_at)
-            norm_sync_row = [
-                "Approved",
-                hcad_key,
-                padded[2],
-                padded[3],
-                padded[4],
-                padded[5],
-                padded[6],
-                src_type
-                or (
-                    "PLAT_MONITOR_REVIEW"
-                    if hcad_key.startswith("PLAT_REV:")
-                    else "PROPERTY_WATCHLIST_UPDATE"
-                ),
-                cite,
-                padded[9],
-                padded[10] or submitted_by,
-                ts or submitted_at,
-            ]
-            prev = sync_by_key.get(hcad_key)
-            if prev is None or (ts, seq) >= (prev[0], prev[1]):
-                sync_by_key[hcad_key] = (ts, seq, norm_sync_row)
-            continue
-
-        is_auto_citydir_pending = (
-            status.lower() == "pending"
-            and "batch auditor" in submitted_by.lower()
-            and src_type.lower() == "houston city directory"
-        )
-        data_row_18_plus_w = padded[:18] + ["", "", "", "", padded[22]]
-        if is_auto_citydir_pending:
-            citydir_batch_archive_rows.append(data_row_18_plus_w)
-        else:
-            clean_pending_rows.append(data_row_18_plus_w)
-
-    deduped_sync_rows = [
-        item[2]
-        for _, item in sorted(
-            sync_by_key.items(), key=lambda kv: (kv[0].startswith("PLAT_REV:"), kv[0])
-        )
-    ]
-    return {
-        "plat_watchlist_sync_rows": deduped_sync_rows,
-        "citydir_batch_archive_rows": citydir_batch_archive_rows,
-        "clean_pending_rows": clean_pending_rows,
-    }
 
 
 def _fetch_text(url: str, timeout: int = 45) -> str:

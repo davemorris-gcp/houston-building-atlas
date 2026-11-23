@@ -770,10 +770,12 @@ def test_ut11_and_it5_twelve_tab_sheets_contract_and_apps_script_guards() -> Non
     assert len(hub_rows[HUB_RESULTS_HEADER_ROW - 1]) == 12
     assert "Pending_Submissions!A2:A" in hub_rows[HUB_RESULTS_FORMULA_ROW - 1][0]  # Row 25
 
-    # Verify baseline Instructions rows safeguard Row 5 (Apps Script) and Row 6 (B6 Passkey)
+    # Verify baseline Instructions rows safeguard Row 5 (standalone Apps Script reference) and Row 6 (B6 Passkey)
     instr_rows = build_instructions_rows()
     assert "Google Apps Script Code" in instr_rows[4][0]
-    assert instr_rows[4][1] == APPS_SCRIPT_CODE
+    assert "pipeline/atlas_pipeline/apps_script/Code.cjs" in instr_rows[4][1]
+    assert len(instr_rows[4][1]) < 48000
+    assert len(APPS_SCRIPT_CODE) > 50000
     assert "Passkey" in instr_rows[5][0] and "B6" in instr_rows[5][0]
 
     # Verify Approved_Edits filter formula mirrors Col W into Col P cleanly (16 cols)
@@ -883,7 +885,7 @@ def test_ut11_and_it5_twelve_tab_sheets_contract_and_apps_script_guards() -> Non
 
     # Verify APPS_SCRIPT_CODE safeguards (DF-4, DF-5, Defect #12 upsert protection, `/` preservation)
     assert "getSheetByName('Field_Surveys')" in APPS_SCRIPT_CODE
-    assert "payload.action === 'field_survey'" in APPS_SCRIPT_CODE
+    assert "action === 'field_survey'" in APPS_SCRIPT_CODE
     assert "payload.geometry_geojson" in APPS_SCRIPT_CODE
     assert "existingReview !== 'Unreviewed'" in APPS_SCRIPT_CODE
     assert "rawBldName.split(/[;|]/)" in APPS_SCRIPT_CODE
@@ -1228,6 +1230,7 @@ def test_post_review_apps_script_formula_hardening_and_survey_merge_guards(tmp_p
         source_type on 'Footprint Issue: ...' geometry edits, and respects explicit
         replace_parcel_shards on primary bare-HCAD keys.
     """
+    import re
     from atlas_pipeline.schema import FIELD_SURVEY_CONTRIBUTING_VALUES
     from atlas_pipeline.setup_admin_sheet import APPS_SCRIPT_CODE, build_admin_hub_rows
     from atlas_pipeline.sync_curated_edits import merge_override_record, parse_approved_csv_rows
@@ -1240,10 +1243,13 @@ def test_post_review_apps_script_formula_hardening_and_survey_merge_guards(tmp_p
     # Critical #1: APPS_SCRIPT_CODE hardening invariants + zero literal double quotes (so Google Sheets
     # single-click cell copy never doubles inner `"` -> `""` and causes V8 SyntaxError or CSV bugs)
     assert '"' not in APPS_SCRIPT_CODE
-    assert "surveyRow = [\n        safeSurveyId,\n        sanitizeSheetFormulaPrefix_(surveyAt),\n        'Unreviewed'," in APPS_SCRIPT_CODE
+    assert re.search(
+        r"surveyRow\s*=\s*\[\s*safeSurveyId,\s*sanitizeSheetFormulaPrefix_\(surveyAt\),\s*'Unreviewed',",
+        APPS_SCRIPT_CODE,
+    )
     assert "revCell.getFormula()" in APPS_SCRIPT_CODE
     assert "allowedReviewStatuses[existingReview] === true" in APPS_SCRIPT_CODE
-    assert "setValues([[sanitizeSheetFormulaPrefix_(geomGeoJsonStr)]])" in APPS_SCRIPT_CODE
+    assert "sanitizeSheetFormulaPrefix_(colWGeom)" in APPS_SCRIPT_CODE
     assert "sanitizeSheetFormulaPrefix_(citationStr)" in APPS_SCRIPT_CODE
     assert "payload.review_status" not in APPS_SCRIPT_CODE
 

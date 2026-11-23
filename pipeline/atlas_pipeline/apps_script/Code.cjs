@@ -916,6 +916,7 @@ function computeAttentionServer_(parcel, areasMap) {
 
   var st = Math.floor(Number(parcel.threat_stage) || 0);
   var hasActive = (st >= 1 && st <= 5);
+  var activeSt = hasActive ? st : 0;
   var effSig = String(parcel.significance_level || '').trim().toLowerCase() ||
                String(parcel.recommended_significance || '').trim().toLowerCase() ||
                (String(parcel.review_status || '').trim().toLowerCase() === 'needs_research' ? 'needs_research' : '');
@@ -923,7 +924,7 @@ function computeAttentionServer_(parcel, areasMap) {
 
   if (effSig === 'high' || effSig === 'moderate' || effSig === 'needs_research') {
     if (hasActive) {
-      if (prot === 'binding' && st <= 3) return 'watch';
+      if (prot === 'binding' && activeSt <= 3) return 'watch';
       return 'act';
     }
     return 'watch';
@@ -940,7 +941,7 @@ function computeAttentionServer_(parcel, areasMap) {
     }
   }
   var contrib = String(parcel.contributing_status || '').trim().toLowerCase() || computeContributingServer_(parcel, areasMap);
-  if (isPriority && contrib === 'contributing' && st >= 3 && st <= 5) return 'watch';
+  if (isPriority && contrib === 'contributing' && activeSt >= 3 && activeSt <= 5) return 'watch';
   return 'record';
 }
 
@@ -966,6 +967,87 @@ function compactHistoryJsonServer_(entries, maxChars) {
     str = encode([single], dropped);
   }
   return str;
+}
+
+function compactWatchlistDossierServer_(rawObj, maxChars) {
+  var limit = maxChars || 48000;
+  var clean = {};
+  if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj)) {
+    try { clean = JSON.parse(JSON.stringify(rawObj)); } catch (_e) { clean = {}; }
+  }
+  var str = JSON.stringify(clean);
+  if (str.length <= limit) return str;
+
+  if (clean.photoDataUrl) {
+    clean.photoDataUrl = '';
+    clean.photoDataUrlOmittedInCompactCell = true;
+    str = JSON.stringify(clean);
+    if (str.length <= limit) return str;
+  }
+
+  if (Array.isArray(clean.findingsLog) && clean.findingsLog.length > 0) {
+    clean.findingsLog = [];
+    str = JSON.stringify(clean);
+    if (str.length <= limit) return str;
+  }
+
+  var droppedChecks = Number(clean.truncatedCheckCount) || 0;
+  while (str.length > limit && Array.isArray(clean.checklist)) {
+    var targetRow = null;
+    var maxLen = 1;
+    for (var i = 0; i < clean.checklist.length; i++) {
+      var row = clean.checklist[i];
+      if (row && Array.isArray(row.checks) && row.checks.length > maxLen) {
+        maxLen = row.checks.length;
+        targetRow = row;
+      }
+    }
+    if (!targetRow) break;
+    targetRow.checks.shift();
+    droppedChecks++;
+    clean.truncatedCheckCount = droppedChecks;
+    str = JSON.stringify(clean);
+  }
+
+  if (str.length > limit) {
+    var tKeys = ['notes', 'buildingHistory', 'phPastActions'];
+    for (var ti = 0; ti < tKeys.length; ti++) {
+      if (str.length <= limit) break;
+      var tk = tKeys[ti];
+      if (typeof clean[tk] === 'string' && clean[tk].length > 200) {
+        var excess = str.length - limit + 256;
+        clean[tk] = clean[tk].slice(0, Math.max(200, clean[tk].length - excess));
+        str = JSON.stringify(clean);
+      }
+    }
+  }
+  return str;
+}
+
+function isVacantSuppressPayload_(payload, rawSourceType, rawSuggestedYear, parsedSuggestedYr, hasValidStandingYr, hasCustomGeom, allowOverrideCustomGeom) {
+  if (!allowOverrideCustomGeom && hasCustomGeom) return false;
+  if (payload.suppress_only === true) return true;
+  var lowYr = String(rawSuggestedYear || '').trim().toLowerCase();
+  if (/^(?:0|vacant(?:\s+lot)?|demolished|none|n\/a)$/.test(lowYr)) {
+    if (payload.suppress_only === false && lowYr === '0') return false;
+    return true;
+  }
+  if (hasValidStandingYr) return false;
+  var isZeroOrBlankYr = (rawSuggestedYear === '' || parsedSuggestedYr === 0);
+  if (!isZeroOrBlankYr) return false;
+  var footprintIssueStr = String(payload.footprint_issue || '');
+  var footprintNotesStr = String(payload.footprint_notes || payload.notes || '');
+  var citationStr = String(payload.source_citation || '');
+  var combinedVacantMeta = [footprintIssueStr, rawSourceType, citationStr].join(' | ');
+  var legacyIssueAndSrc = footprintIssueStr + ' | ' + rawSourceType;
+  var legacyNotesAndCite = footprintNotesStr + ' | ' + citationStr;
+  if (/(\[demolished\s*\/\s*vacant\s+lot|demolished\s*[-:\/]?\s*lot\s+currently\s+vacant|vacant\s+lot\s*\(hide\s+footprint\)|\bsuppress_only\b)/i.test(combinedVacantMeta)) {
+    return true;
+  }
+  if (/building\s+demolished\s+or\s+replaced/i.test(legacyIssueAndSrc) && /\bvacant\b|\bcleared\b|\bempty\s+lot\b|\bno\s+replacement\b/i.test(legacyNotesAndCite)) {
+    return true;
+  }
+  return false;
 }
 
 /* ---------- Split-Range Formula-Safe Pending_Submissions Helpers ---------- */
@@ -1106,15 +1188,23 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
   var hasStandingYr = isFinite(parsedYr) && parsedYr >= 1836 && parsedYr <= 2035;
 
   var citationStr = String(payload.source_citation || '');
-  var isExplicitVacant = payload.suppress_only === true ||
-    (payload.suppress_only !== false && rawSuggestedYear === '0') ||
-    /^vacant(\s+lot)?$|^demolished$|^none$|^n\/a$/i.test(rawSuggestedYear);
-
   var rawGeomVal = payload.geometry_geojson;
+  var incomingGeomStr = '';
+  if (rawGeomVal && typeof rawGeomVal === 'object') incomingGeomStr = JSON.stringify(rawGeomVal);
+  else if (typeof rawGeomVal === 'string' && rawGeomVal.trim() !== '') incomingGeomStr = rawGeomVal.trim();
+  var isExplicitVacant = !isFlagType && isVacantSuppressPayload_(
+    payload,
+    rawSourceType,
+    rawSuggestedYear,
+    parsedYr,
+    hasStandingYr,
+    Boolean(incomingGeomStr),
+    payload.suppress_only === true || rawSuggestedYear === '0' || /^vacant(\s+lot)?$|^demolished$|^none$|^n\/a$/i.test(rawSuggestedYear)
+  );
+
   var geomGeoJsonStr = '';
   if (!isExplicitVacant) {
-    if (rawGeomVal && typeof rawGeomVal === 'object') geomGeoJsonStr = JSON.stringify(rawGeomVal);
-    else if (typeof rawGeomVal === 'string' && rawGeomVal.trim() !== '') geomGeoJsonStr = rawGeomVal.trim();
+    geomGeoJsonStr = incomingGeomStr;
   } else {
     // Strip stale custom polygon tags when suppressing a demolished/vacant lot so ghost footprints never persist!
     citationStr = stripTaggedJsonSpanServer_(citationStr, '[GEOMETRY_GEOJSON:');
@@ -1684,15 +1774,9 @@ function createAppsScriptController_(customEnv) {
             return createJsonResponse_(env, { ok: false, authorized: false, error: 'Only Staff can create or promote new Watchlist dossiers.' });
           }
         }
-        var dJson = JSON.stringify(dObj);
-        if (dJson.length > 48000 && dObj.photoDataUrl) {
-          var slim = {};
-          for (var dk in dObj) { if (Object.prototype.hasOwnProperty.call(dObj, dk)) slim[dk] = dObj[dk]; }
-          slim.photoDataUrl = '';
-          dJson = JSON.stringify(slim);
-        }
-        if (dJson.length > 48500) {
-          return createJsonResponse_(env, { ok: false, error: 'Watchlist dossier exceeds 48,500-character cell safety limit.' });
+        var dJson = compactWatchlistDossierServer_(dObj, 48000);
+        if (dJson.length > 48000) {
+          return createJsonResponse_(env, { ok: false, error: 'Watchlist dossier exceeds 48,000-character cell safety limit.' });
         }
         var nowWlIso = new Date().toISOString();
         var wlRow = {
@@ -1821,7 +1905,7 @@ function createAppsScriptController_(customEnv) {
                 attention_level: String(incW.attentionLevel || 'watch'),
                 advocacy_status: String(incW.advocacyStatus || 'monitoring'),
                 outcome: String(incW.outcome || ''),
-                dossier_json: JSON.stringify(incW).slice(0, 48500),
+                dossier_json: compactWatchlistDossierServer_(incW, 48000),
                 updated_by: 'Automated Pipeline',
                 updated_at: incW.updatedAt || new Date().toISOString()
               };
@@ -1854,8 +1938,8 @@ function createAppsScriptController_(customEnv) {
                   });
                   er.checks = autoChecks.concat(humanChecks);
                 }
-                var mergedJsonStr = JSON.stringify(existingDocObj);
-                if (mergedJsonStr.length <= 48500) {
+                var mergedJsonStr = compactWatchlistDossierServer_(existingDocObj, 48000);
+                if (mergedJsonStr.length <= 48000) {
                   exWRow.dossier_json = mergedJsonStr;
                   outWlRows.push(exWRow);
                 }
@@ -2085,7 +2169,16 @@ function createAppsScriptController_(customEnv) {
         : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
       var parsedPubYr = (rawSugPub !== '' && isFinite(Number(rawSugPub))) ? Math.round(Number(rawSugPub)) : NaN;
       var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= 1836 && parsedPubYr <= 2035;
-      var isVacPub = !isNonYrPub && !geomPubStr && (payload.suppress_only === true || rawSugPub === '0' || /^vacant(\s+lot)?$|^demolished$/i.test(rawSugPub));
+      var hasPubCustomGeom = Boolean(geomPubStr) || String(payload.source_citation || '').indexOf('[GEOMETRY_GEOJSON:') !== -1;
+      var isVacPub = !isNonYrPub && isVacantSuppressPayload_(
+        payload,
+        rawSourceType,
+        rawSugPub,
+        parsedPubYr,
+        validPubYr,
+        hasPubCustomGeom,
+        false
+      );
       var pubSheetYr = isNonYrPub ? '' : (isVacPub ? 0 : (validPubYr ? parsedPubYr : ''));
       var rawPubHcad = stripLeadingSheetTick_(payload.hcad_num || '').trim();
       var pubColsAtoR = [

@@ -644,6 +644,7 @@ import {
   ACTIVITY_STREAM_META,
   AUTOMATED_SWEEP_AGENCY_LABELS,
   shiftIsoDate,
+  resolveInitialAgendaGroup,
   resolveInitialMonitorMode,
   synthesizeLiveMonitorEvents,
   computeWatermarkState,
@@ -990,7 +991,8 @@ function parseWatchRowDossier(row){
     try { parsed = JSON.parse(row.dossier_json); } catch (_e) {}
   }
   const base = parsed && typeof parsed === "object" ? { ...parsed } : { ...row };
-  if (row.watch_id && !base.id) base.id = row.watch_id;
+  const rowWatchId = row.watch_property_id || row.watch_id || "";
+  if (rowWatchId && !base.id) base.id = rowWatchId;
   if (row.parcel_id && !base.parcelId) base.parcelId = row.parcel_id;
   if (row.hcad_num && !base.hcadAccount) base.hcadAccount = row.hcad_num;
   if (row.primary_address && !base.address) base.address = row.primary_address;
@@ -1055,11 +1057,17 @@ function hydratePhase1MapsFromPayload(payload, activeRole = "public"){
       if (!candidate || isLegacyUnconfirmedPlatSeed(candidate)) continue;
       const normCloud = normalizeWatchProperty(candidate);
       if (!normCloud) continue;
+      const cloudEntry = {
+        ...candidate,
+        id: normCloud.id,
+        updatedAt: normCloud.updatedAt,
+        trackerStatus: normCloud.trackerStatus,
+      };
       const prevCloud = cloudWatchlistById.get(normCloud.id);
       const prevMs = Date.parse(prevCloud?.updatedAt || "") || 0;
       const nextMs = Date.parse(normCloud.updatedAt || "") || 0;
       if (!prevCloud || nextMs >= prevMs) {
-        cloudWatchlistById.set(normCloud.id, normCloud);
+        cloudWatchlistById.set(normCloud.id, cloudEntry);
         if (isRemovedWatchlistTombstone(normCloud)) {
           staticWatchlistById.delete(normCloud.id);
         }
@@ -1077,14 +1085,18 @@ function persistMonitoringSnapshotToRoleCache(){
     ...(WL?.watchedProperties || []),
     ...Object.values(WL?.removedTombstones || {}),
   ].map(wp => ({
+    watch_property_id: wp.id,
     watch_id: wp.id,
     parcel_id: wp.parcelId || "",
     hcad_num: (parseHcadAccountList(wp.hcadAccount || "").hcadIds[0]) || "",
     primary_address: wp.address || "",
     property_name: wp.propertyName || "",
+    attention_level: wp.attentionLevel || "watch",
+    advocacy_status: wp.advocacyStatus || "monitoring",
+    outcome: wp.outcome || "",
     tracker_status: wp.trackerStatus || "",
     dossier_json: JSON.stringify(wp),
-    updated_by: wp.updatedBy || sess.email || "",
+    updated_by: wp.updatedBy || "Preservation Staff",
     updated_at: wp.updatedAt || "",
   }));
   return saveCachedMonitoringState(sess.email, sess.role, {
@@ -1147,7 +1159,7 @@ const _initialWmInputs = deriveWatermarkInputsFromRoamingState(
 );
 let view = {
   mode: "agenda",
-  group: "check",
+  group: resolveInitialAgendaGroup({ searchString: window.location.search }),
   selected: null, // composite <cycleKey>::<appNo>
   selectedWatchId: null,
   editingWatchId: null,
@@ -1686,10 +1698,21 @@ function hydrateCycleReviewsFromParcelDecisions(){
       const hasCloudDecision = monitoringDecisionsByParcelId.has(assessment.parcelId);
       if (hasCloudDecision || monitoringParcelsById.has(assessment.parcelId)) {
         const nextRev = { ...curRev, parcelId: assessment.parcelId };
-        if (assessment.derivedTier && !curRev.tier) {
+        const isAssessed =
+          assessment.parcel.review_status === "assessed" && Boolean(assessment.parcel.significance_level);
+        const decCycleKey = String(assessment.decision?.latest_cycle_key || "").trim();
+        if (assessment.derivedTier && (!curRev.tier || curRev.derivedFromParcel)) {
           nextRev.tier = assessment.derivedTier;
-          nextRev.tierConfirmed =
-            assessment.parcel.review_status === "assessed" && Boolean(assessment.parcel.significance_level);
+          nextRev.derivedFromParcel = true;
+          nextRev.tierConfirmed = isAssessed;
+          if (isAssessed && decCycleKey && ck > decCycleKey) {
+            nextRev.carriedConfirmedFromCycle = decCycleKey;
+          } else {
+            delete nextRev.carriedConfirmedFromCycle;
+          }
+        }
+        if (assessment.decidedAt && !curRev.updated && (!decCycleKey || ck <= decCycleKey)) {
+          nextRev.updated = assessment.decidedAt;
         }
         if (assessment.screeningNotes && !curRev.why) {
           nextRev.why = assessment.screeningNotes;
@@ -6766,14 +6789,16 @@ async function pullModerationQueue(){
   return moderationQueueItems;
 }
 
-async function pullAuthenticatedMonitoringState(){
+async function pullAuthenticatedMonitoringState({ promptOnExpired = false } = {}){
   const sess = getStaffSession();
   if (!sess || !sess.authorized) return false;
   try {
     const resp = await pullCloudMonitoringState({
       webhookUrl: SHEET_WEBHOOK_URL,
       session: sess,
-      onTokenExpired: handleTokenExpiredPrompt,
+      onTokenExpired: promptOnExpired
+        ? handleTokenExpiredPrompt
+        : () => toast("Google Sign-In session expired - click Staff Sign-In to refresh private monitoring state."),
     });
     if (!resp || !resp.ok) return false;
     const { appliedWatch, appliedDecisions } = hydratePhase1MapsFromPayload(
@@ -6912,14 +6937,14 @@ function openStaffAuthModal({ isExpiredReauth = false } = {}){
     updateModeButtons();
     updateStaffAuthButtonUI();
     markActivityDirty();
-    render();
-    back.remove();
-    toast(`Signed in as ${res.session.email} (${res.session.role === "screener" ? "Screener" : "Staff"}).`);
-    await pullAuthenticatedMonitoringState();
-    if (getPendingAuthRetryCount() > 0) {
+    if (!res.switchedAccountOrRole && getPendingAuthRetryCount() > 0) {
       await replayPendingAuthRetries();
       toast("Saved pending edits after session re-verification.");
     }
+    await pullAuthenticatedMonitoringState();
+    render();
+    back.remove();
+    toast(`Signed in as ${res.session.email} (${res.session.role === "screener" ? "Screener" : "Staff"}).`);
   };
 
   const gsiSlot = $("#saGoogleSignInSlot");
@@ -8684,23 +8709,29 @@ document.addEventListener("click", async e => {
     const stratNotes = ($("#so-strategy-notes")?.value || "").trim();
     const outLog = ($("#so-outreach-log")?.value || "").trim();
     const contacts = ($("#so-contacts")?.value || "").trim();
+    const existingStrat = staffStrategyByParcelId.get(pid) || {};
+    const parcelMeta = monitoringParcelsById.get(pid) || {};
     const nextRec = {
       parcel_id: pid,
-      private_strategy_notes: stratNotes,
-      owner_outreach_log: outLog,
-      sensitive_contacts: contacts,
-      internal_sensitivity: "staff_confidential",
-      updated_by: sess.email || "Preservation Staff",
+      hcad_num: parcelMeta.hcad_num || existingStrat.hcad_num || (normalizeHcad13(pid) || ""),
+      strategy_notes: stratNotes,
+      contact_notes: contacts,
+      owner_relationship_notes: outLog,
+      decision_matrix_json: existingStrat.decision_matrix_json || "",
+      updated_by: "Preservation Staff",
       updated_at: new Date().toISOString(),
     };
     staffStrategyByParcelId.set(pid, nextRec);
     persistMonitoringSnapshotToRoleCache();
-    const resp = await callMonitoringRpc({
-      webhookUrl: SHEET_WEBHOOK_URL,
-      action: "upsert_staff_only",
-      body: { target: "parcel_strategy", record: nextRec },
-      onTokenExpired: handleTokenExpiredPrompt,
-    });
+    const sendStrategyRpc = () =>
+      callMonitoringRpc({
+        webhookUrl: SHEET_WEBHOOK_URL,
+        action: "upsert_staff_only",
+        body: { target: "parcel_strategy", record: nextRec },
+        onTokenExpired: handleTokenExpiredPrompt,
+        retryFn: sendStrategyRpc,
+      });
+    const resp = await sendStrategyRpc();
     toast(resp?.ok ? "Saved Staff-Only strategy notes." : (resp?.error || "Saved locally; sync pending."));
     return;
   }
@@ -8721,16 +8752,18 @@ document.addEventListener("click", async e => {
       ? {
           ...staffWatchedEntities[existingIdx],
           active: staffWatchedEntities[existingIdx].active === false ? true : false,
-          updated_by: sess.email || "Preservation Staff",
+          updated_by: "Preservation Staff",
           updated_at: new Date().toISOString(),
         }
       : {
           entity_id: `ENT:${cleanName.toUpperCase().replace(/[^A-Z0-9]+/g, "_").slice(0, 48)}`,
           entity_name: cleanName,
           normalized_key: normalizeDeveloperEntityKey(cleanName),
-          role_type: "developer_or_firm",
+          entity_role: "developer",
+          pattern_notes: "",
+          linked_parcel_ids: "",
           active: true,
-          updated_by: sess.email || "Preservation Staff",
+          updated_by: "Preservation Staff",
           updated_at: new Date().toISOString(),
         };
     if (existingIdx >= 0) staffWatchedEntities[existingIdx] = entityRec;
@@ -8738,12 +8771,15 @@ document.addEventListener("click", async e => {
     if (S) prepareAllCycles();
     persistMonitoringSnapshotToRoleCache();
     render();
-    await callMonitoringRpc({
-      webhookUrl: SHEET_WEBHOOK_URL,
-      action: "upsert_staff_only",
-      body: { target: "watched_entity", record: entityRec },
-      onTokenExpired: handleTokenExpiredPrompt,
-    });
+    const sendEntityRpc = () =>
+      callMonitoringRpc({
+        webhookUrl: SHEET_WEBHOOK_URL,
+        action: "upsert_staff_only",
+        body: { target: "watched_entity", record: entityRec },
+        onTokenExpired: handleTokenExpiredPrompt,
+        retryFn: sendEntityRpc,
+      });
+    await sendEntityRpc();
     toast(entityRec.active ? `Now watching future filings by "${cleanName}".` : `Paused watch on "${cleanName}".`);
     return;
   }
@@ -8762,12 +8798,15 @@ document.addEventListener("click", async e => {
       if (S) prepareAllCycles();
       persistMonitoringSnapshotToRoleCache();
       render();
-      await callMonitoringRpc({
-        webhookUrl: SHEET_WEBHOOK_URL,
-        action: "upsert_staff_only",
-        body: { target: "watched_entity", record: updated },
-        onTokenExpired: handleTokenExpiredPrompt,
-      });
+      const sendRemoveEntityRpc = () =>
+        callMonitoringRpc({
+          webhookUrl: SHEET_WEBHOOK_URL,
+          action: "upsert_staff_only",
+          body: { target: "watched_entity", record: updated },
+          onTokenExpired: handleTokenExpiredPrompt,
+          retryFn: sendRemoveEntityRpc,
+        });
+      await sendRemoveEntityRpc();
       toast(`Removed "${updated.entity_name}" from active watched entities.`);
     }
     return;

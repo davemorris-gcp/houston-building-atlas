@@ -24,32 +24,58 @@ import urllib.request
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT / "pipeline") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
-
-from atlas_pipeline.parcel_monitoring_model import (  # noqa: E402
-    MONITORING_SCHEMA_CONTRACT,
-    build_campus_parcel_index,
-    classify_protection_level,
-    compact_history_json_fifo,
-    compute_attention_level,
-    compute_contributing_status,
-    compute_threat_stage_from_events,
-    derive_legacy_tier_from_parcel,
-    detect_parcel_signal_flags,
-    evaluate_historical_baseline_event,
-    map_agency_or_permit_to_threat_stage,
-    migrate_legacy_tier_to_parcel_fields,
-    mint_synthetic_unparceled_id,
-    normalize_hcad13,
-    normalize_parcel_record,
-    parse_delimited_list,
-    parse_related_hcads,
-    resolve_canonical_parcel_id,
-    resolve_effective_area_context,
-    sanitize_monitoring_text,
-    to_chicago_calendar_date,
-)
+try:
+    from .parcel_monitoring_model import (
+        MONITORING_SCHEMA_CONTRACT,
+        build_campus_parcel_index,
+        classify_protection_level,
+        compact_history_json_fifo,
+        compact_watchlist_dossier_json,
+        compute_attention_level,
+        compute_contributing_status,
+        compute_threat_stage_from_events,
+        derive_legacy_tier_from_parcel,
+        detect_parcel_signal_flags,
+        evaluate_historical_baseline_event,
+        map_agency_or_permit_to_threat_stage,
+        migrate_legacy_tier_to_parcel_fields,
+        mint_synthetic_unparceled_id,
+        normalize_hcad13,
+        normalize_parcel_record,
+        parse_delimited_list,
+        parse_related_hcads,
+        resolve_canonical_parcel_id,
+        resolve_effective_area_context,
+        sanitize_monitoring_text,
+        to_chicago_calendar_date,
+    )
+except ImportError:
+    if str(REPO_ROOT / "pipeline") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+    from atlas_pipeline.parcel_monitoring_model import (
+        MONITORING_SCHEMA_CONTRACT,
+        build_campus_parcel_index,
+        classify_protection_level,
+        compact_history_json_fifo,
+        compact_watchlist_dossier_json,
+        compute_attention_level,
+        compute_contributing_status,
+        compute_threat_stage_from_events,
+        derive_legacy_tier_from_parcel,
+        detect_parcel_signal_flags,
+        evaluate_historical_baseline_event,
+        map_agency_or_permit_to_threat_stage,
+        migrate_legacy_tier_to_parcel_fields,
+        mint_synthetic_unparceled_id,
+        normalize_hcad13,
+        normalize_parcel_record,
+        parse_delimited_list,
+        parse_related_hcads,
+        resolve_canonical_parcel_id,
+        resolve_effective_area_context,
+        sanitize_monitoring_text,
+        to_chicago_calendar_date,
+    )
 
 BOGUS_DPV_SUBDIV_SEED_RE = re.compile(r"^(?:plat-)?DPV-20\d{2}-\d{3,5}$", re.IGNORECASE)
 RETRACTED_ROUNDED_CYCLE_KEY = "2026-10-16"
@@ -191,7 +217,12 @@ def is_legacy_unconfirmed_plat_review_py(cycle_key: str, app_no: str, rev_obj: A
         and not _BOILERPLATE_WHY_RE.match(sanitize_monitoring_text(rev_obj.get(k) or ""))
         for k in ("why", "sources", "followup")
     )
-    if cycle_key == RETRACTED_ROUNDED_CYCLE_KEY and not has_human_fields and not rev_obj.get("tier"):
+    if (
+        cycle_key == RETRACTED_ROUNDED_CYCLE_KEY
+        and not has_human_fields
+        and not rev_obj.get("humanEdited")
+        and not rev_obj.get("tierConfirmed")
+    ):
         return True
     return False
 
@@ -822,10 +853,7 @@ def compile_migration_bundle(
             "derivedTier": derive_legacy_tier_from_parcel(parcel_rec) or str(wp.get("tier") or "1"),
             "updatedBy": "Preservation Staff",
         }
-        dossier_json_str = json.dumps(enriched_wp, separators=(",", ":"), ensure_ascii=False)
-        if len(dossier_json_str) > 48000 and enriched_wp.get("photoDataUrl"):
-            enriched_wp["photoDataUrl"] = ""
-            dossier_json_str = json.dumps(enriched_wp, separators=(",", ":"), ensure_ascii=False)
+        dossier_json_str = compact_watchlist_dossier_json(enriched_wp)
 
         watchlist_dossiers_by_id[wid] = {
             "watch_property_id": wid,
@@ -838,7 +866,7 @@ def compile_migration_bundle(
             "attention_level": parcel_rec["attention_level"],
             "advocacy_status": parcel_rec["advocacy_status"],
             "outcome": parcel_rec["outcome"],
-            "dossier_json": dossier_json_str[:48500],
+            "dossier_json": dossier_json_str,
             "updated_by": "Preservation Staff",
             "updated_at": sanitize_monitoring_text(wp.get("updatedAt") or now_iso),
         }

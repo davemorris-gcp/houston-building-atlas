@@ -58,17 +58,15 @@ function createMemoryStorage(initial = {}) {
 }
 
 function extractAppsScriptCodeFromPython() {
+  const cjsPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "apps_script", "Code.cjs");
+  assert.ok(fs.existsSync(cjsPath), "Expected standalone Apps Script module at pipeline/atlas_pipeline/apps_script/Code.cjs");
   const pyPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "setup_admin_sheet.py");
   const pySrc = fs.readFileSync(pyPath, "utf8");
-  const marker = 'APPS_SCRIPT_CODE = """';
-  const start = pySrc.indexOf(marker);
-  assert.ok(start !== -1, "Expected APPS_SCRIPT_CODE assignment in setup_admin_sheet.py");
-  const bodyStart = start + marker.length;
-  const end = pySrc.indexOf('"""', bodyStart);
-  assert.ok(end !== -1, "Expected closing triple-quote for APPS_SCRIPT_CODE");
-  const raw = pySrc.slice(bodyStart, end);
-  // Python triple-quoted string unescaping for \\ -> \
-  return raw.replace(/\\\\/g, "\\");
+  assert.ok(
+    pySrc.includes("APPS_SCRIPT_PATH") && pySrc.includes("Code.cjs"),
+    "setup_admin_sheet.py must load APPS_SCRIPT_CODE from standalone apps_script/Code.cjs"
+  );
+  return fs.readFileSync(cjsPath, "utf8");
 }
 
 function createAppsScriptVmHarness(appsScriptSource, { passkey = "test-passkey-2026", editors = ["advocate@example.org", "colleague@example.org"] } = {}) {
@@ -876,84 +874,64 @@ test("UT-ROAM-6: APPS_SCRIPT_CODE in Node vm enforces zero double quotes, 1-RTT 
   assert.equal(verifyHydrated.data.userState.readLedger["ev:keep:unread"]?.r, 0);
   assert.equal(verifyHydrated.data.userState.prefs.actGroupBy.v, "date");
 
-  // 4. Plat_&_Watchlist_Sync in-place key upsert without touching Pending_Submissions
-  const plat1 = vmApp.callDoPost({
-    action: "admin_approve",
+  // 4. Phase 1 retirement of unauthenticated ?feed=plat_sync + PLAT_SYNC_CSV_V1 cache eviction + normalized parcel/dossier upserts
+  vmApp.cacheStore.set("PLAT_SYNC_CSV_V1", "stale,private,csv");
+  const retiredPlatFeed = vmApp.callDoGet({ feed: "plat_sync" });
+  assert.equal(retiredPlatFeed.mimeType, "application/json");
+  const retiredBody = JSON.parse(retiredPlatFeed.text);
+  assert.equal(retiredBody.ok, false);
+  assert.equal(retiredBody.authorized, false);
+  assert.equal(
+    vmApp.cacheStore.has("PLAT_SYNC_CSV_V1"),
+    false,
+    "doGet must evict legacy PLAT_SYNC_CSV_V1 from CacheService"
+  );
+
+  const parcelDec = vmApp.callDoPost({
+    action: "upsert_parcel_decision",
     admin_email: "advocate@example.org",
     admin_passkey: "test-passkey-2026",
-    hcad_num: "PLAT_REV:2026-11-12:2026-1810",
-    address: "Montrose Replat (1226 W Pierce St)",
-    year_built: 1924,
-    contributing: "Tier 2",
-    source_type: "PLAT_MONITOR_REVIEW",
-    source_citation: JSON.stringify({
-      cycleKey: "2026-11-12",
-      appNo: "2026-1810",
-      review: { tier: "2", updated: "2026-11-22T00:10:00Z" },
-    }),
+    parcel_id: "0621100000014",
+    patch: {
+      parcel_id: "0621100000014",
+      hcad_num: "0621100000014",
+      primary_address: "1127 KEY ST",
+      year_built: 1924,
+      review_status: "assessed",
+      significance_level: "high",
+      threat_stage: 3,
+      advocacy_status: "active_advocacy",
+      screening_notes: "Pre-1930 bungalow verified.",
+    },
   });
-  assert.equal(plat1.data.ok, true);
-  assert.equal(plat1.data.routed_to, "Plat_&_Watchlist_Sync");
-  assert.equal(plat1.data.upserted, false);
+  assert.equal(parcelDec.data.ok, true);
+  assert.equal(parcelDec.data.parcel.attention_level, "act");
 
-  // Prime ?feed=plat_sync cache, then upsert same PLAT_REV key -> must overwrite row in place & invalidate cache
-  const csvBeforeUpdate = vmApp.callDoGet({ feed: "plat_sync" });
-  assert.equal(csvBeforeUpdate.mimeType, "text/csv");
-  assert.match(csvBeforeUpdate.text, /Tier 2/);
-
-  const plat2 = vmApp.callDoPost({
-    action: "admin_approve",
+  const watchUpsert = vmApp.callDoPost({
+    action: "upsert_watchlist_dossier",
     admin_email: "advocate@example.org",
     admin_passkey: "test-passkey-2026",
-    hcad_num: "PLAT_REV:2026-11-12:2026-1810",
-    address: "Montrose Replat (1226 W Pierce St)",
-    year_built: 1924,
-    contributing: "Tier 1",
-    source_type: "PLAT_MONITOR_REVIEW",
-    source_citation: JSON.stringify({
-      cycleKey: "2026-11-12",
-      appNo: "2026-1810",
-      review: { tier: "1", updated: "2026-11-22T00:25:00Z" },
-    }),
-  });
-  assert.equal(plat2.data.ok, true);
-  assert.equal(plat2.data.upserted, true);
-
-  const watch1 = vmApp.callDoPost({
-    action: "sync_plat_watchlist",
-    admin_email: "advocate@example.org",
-    admin_passkey: "test-passkey-2026",
-    hcad_num: "WATCH_PROP:prop-kirby-mansion",
-    address: "2000 Smith St. (Kirby Mansion)",
-    year_built: 1894,
-    contributing: "Tier 1",
-    source_type: "PROPERTY_WATCHLIST_UPDATE",
-    source_citation: JSON.stringify({
+    watch_property_id: "prop-kirby-mansion",
+    dossier: {
       id: "prop-kirby-mansion",
+      parcelId: "0152300000001",
+      hcadAccount: "0152300000001",
+      address: "2000 Smith St.",
+      propertyName: "Kirby Mansion",
+      attentionLevel: "record",
+      advocacyStatus: "closed",
+      outcome: "lost",
       updatedAt: "2026-11-22T00:30:00Z",
-    }),
+    },
   });
-  assert.equal(watch1.data.ok, true);
-  assert.equal(watch1.data.routed_to, "Plat_&_Watchlist_Sync");
-  assert.equal(watch1.data.upserted, false);
-
-  const syncSheet = vmApp.sheets.get("Plat_&_Watchlist_Sync");
-  assert.ok(syncSheet);
-  assert.equal(syncSheet.isSheetHidden(), true, "Newly created Plat_&_Watchlist_Sync tab must be hidden");
-  assert.equal(syncSheet._grid.length, 3, "Expected header + 2 unique keys (zero duplicate rows)");
+  assert.equal(watchUpsert.data.ok, true);
 
   const pendingSheet = vmApp.sheets.get("Pending_Submissions");
   assert.equal(
     pendingSheet._grid.length,
     1,
-    "PLAT_MONITOR_REVIEW and PROPERTY_WATCHLIST_UPDATE must NEVER append to Pending_Submissions"
+    "Normalized parcel decisions and Watchlist dossiers must NEVER append to Pending_Submissions"
   );
-
-  // Verify ?feed=plat_sync serves updated Tier 1 row while default doGet({}) serves Approved_Edits
-  const csvAfterUpdate = vmApp.callDoGet({ feed: "plat_sync" });
-  assert.match(csvAfterUpdate.text, /Tier 1/);
-  assert.doesNotMatch(csvAfterUpdate.text, /Tier 2/);
-  assert.match(csvAfterUpdate.text, /WATCH_PROP:prop-kirby-mansion/);
 
   const defaultApprovedCsv = vmApp.callDoGet({});
   assert.match(defaultApprovedCsv.text, /0621100000014,1127 KEY ST,1925/);

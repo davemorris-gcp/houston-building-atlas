@@ -35,6 +35,7 @@ from conftest import (
     ExternalUrlHarvester,
     attach_error_monitors,
     configure_fast_e2e_context,
+    seed_phase1_staff_watchlist_session,
     wait_for_atlas_ready,
 )
 
@@ -515,8 +516,9 @@ def warm_mobile_ux_suite(
             }"""
         )
 
-    # Boot plat-monitor.html once for Test 5
+    # Boot plat-monitor.html once for Test 5 (with authenticated Staff Watchlist state so responsive Watchlist tables render)
     plat_page = context.new_page()
+    seed_phase1_staff_watchlist_session(plat_page)
     plat_page_errs, plat_console_errs, plat_http_errs = attach_error_monitors(
         plat_page, atlas_base_url
     )

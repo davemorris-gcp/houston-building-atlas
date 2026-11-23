@@ -1,5 +1,5 @@
-"""Unit tests for Google Workspace cloud state backup, Pending_Submissions partitioning,
-?feed=plat_sync primary/fallback ingestion, and Apps Script roaming invariants.
+"""Unit tests for Google Workspace public Approved_Edits backup, authenticated
+pipeline_token monitoring pull/fallback, and Apps Script roaming/RBAC invariants.
 """
 
 from __future__ import annotations
@@ -13,184 +13,30 @@ import pytest
 
 from atlas_pipeline import backup_workspace_state, fetch_plat_and_watchlist
 from atlas_pipeline.backup_workspace_state import (
-    PLAT_SYNC_HEADERS,
     compile_workspace_backup_payload,
-    partition_pending_submissions_rows,
     run_live_backup,
 )
+from atlas_pipeline.schema import PLAT_SYNC_HEADERS
 from atlas_pipeline.setup_admin_sheet import APPS_SCRIPT_CODE, build_instructions_rows
 
 
 def test_apps_script_roaming_and_instructions_hygiene_invariants() -> None:
-    """APPS_SCRIPT_CODE has zero literal double quotes, zero forbidden dashes, and supports roaming + plat_sync."""
+    """APPS_SCRIPT_CODE has zero literal double quotes, zero forbidden dashes, and supports roaming + Phase 1 RBAC."""
     assert '"' not in APPS_SCRIPT_CODE
     assert "\u2013" not in APPS_SCRIPT_CODE
     assert "\u2014" not in APPS_SCRIPT_CODE
-    assert "supportsRoamingSync = true" in APPS_SCRIPT_CODE
+    assert "supportsRoamingSync: true" in APPS_SCRIPT_CODE
+    assert "supportsPhase1Monitoring: true" in APPS_SCRIPT_CODE
     assert "get_user_state" in APPS_SCRIPT_CODE
     assert "put_user_state" in APPS_SCRIPT_CODE
-    assert "feed === 'plat_sync'" in APPS_SCRIPT_CODE
-    assert "Plat_&_Watchlist_Sync" in APPS_SCRIPT_CODE
+    assert "pull_monitoring_state" in APPS_SCRIPT_CODE
+    assert "PLAT_SYNC_CSV_V1" in APPS_SCRIPT_CODE
+    assert "_Monitoring_Roles" in APPS_SCRIPT_CODE
     assert "_Staff_User_State" in APPS_SCRIPT_CODE
 
     instr_dump = json.dumps(build_instructions_rows(), ensure_ascii=False)
     assert "\u2013" not in instr_dump
     assert "\u2014" not in instr_dump
-
-
-def test_partition_pending_submissions_rows_lossless_dedup_and_archive() -> None:
-    """Losslessly separates PLAT_REV:*/WATCH_PROP:* (deduped by latest timestamp), automated CityDir pending rows, and human rows."""
-    existing_sync = [
-        PLAT_SYNC_HEADERS,
-        [
-            "Approved",
-            "PLAT_REV:2026-11-12:2026-1810",
-            "Montrose Replat",
-            "1924",
-            "1924",
-            "",
-            "Tier 2",
-            "PLAT_MONITOR_REVIEW",
-            json.dumps({"cycleKey": "2026-11-12", "appNo": "2026-1810", "review": {"tier": "2", "updated": "2026-11-20T10:00:00Z"}}),
-            "",
-            "Preservation Staff",
-            "2026-11-20T10:00:00Z",
-        ],
-    ]
-
-    def mk_pending_row(
-        status: str,
-        hcad_key: str,
-        addr: str,
-        src_type: str,
-        cite: str,
-        submitted_by: str,
-        submitted_at: str,
-        geom_w: str = "",
-    ) -> list[str]:
-        row = [
-            status,
-            hcad_key,
-            addr,
-            "1925",
-            "1930",
-            "Norhill",
-            "Contributing",
-            src_type,
-            cite,
-            "",
-            "",
-            submitted_by,
-            submitted_at,
-            "Note",
-            "Bldg",
-            "",
-            "Craftsman",
-            "",
-            "=FORMULA_S",
-            "=FORMULA_T",
-            "=FORMULA_U",
-            "=FORMULA_V",
-            geom_w,
-        ]
-        assert len(row) == 23
-        return row
-
-    raw_pending_rows = [
-        # Newer PLAT_REV update (must beat existing_sync 2026-11-20T10:00:00Z AND survive an older out-of-order row below)
-        mk_pending_row(
-            "Approved",
-            "PLAT_REV:2026-11-12:2026-1810",
-            "Montrose Replat",
-            "PLAT_MONITOR_REVIEW",
-            json.dumps({"cycleKey": "2026-11-12", "appNo": "2026-1810", "review": {"tier": "1", "updated": "2026-11-22T08:00:00Z"}}),
-            "Preservation Advocate",
-            "2026-11-22T08:00:00Z",
-        ),
-        mk_pending_row(
-            "Approved",
-            "PLAT_REV:2026-11-12:2026-1810",
-            "Montrose Replat",
-            "PLAT_MONITOR_REVIEW",
-            json.dumps({"cycleKey": "2026-11-12", "appNo": "2026-1810", "review": {"tier": "3", "updated": "2026-11-21T08:00:00Z"}}),
-            "Preservation Advocate",
-            "2026-11-21T08:00:00Z",
-        ),
-        # Duplicate WATCH_PROP rows -> newest updatedAt wins
-        mk_pending_row(
-            "Approved",
-            "WATCH_PROP:prop-kirby-mansion",
-            "2000 Smith St.",
-            "PROPERTY_WATCHLIST_UPDATE",
-            json.dumps({"id": "prop-kirby-mansion", "tier": "2", "updatedAt": "2026-11-19T12:00:00Z"}),
-            "Preservation Advocate",
-            "2026-11-19T12:00:00Z",
-        ),
-        mk_pending_row(
-            "Approved",
-            "WATCH_PROP:prop-kirby-mansion",
-            "2000 Smith St.",
-            "PROPERTY_WATCHLIST_UPDATE",
-            json.dumps({"id": "prop-kirby-mansion", "tier": "1", "updatedAt": "2026-11-22T09:15:00Z"}),
-            "Preservation Advocate",
-            "2026-11-22T09:15:00Z",
-        ),
-        # Automated City Directory Batch Auditor Pending row -> archived to _CityDir_Batch_Archive
-        mk_pending_row(
-            "Pending",
-            "0621100000099",
-            "1135 KEY ST",
-            "Houston City Directory",
-            "1926 City Directory listing\u2014verified",
-            "City Directory Batch Auditor",
-            "2026-11-01",
-        ),
-        # Approved City Directory row -> MUST remain in clean_pending_rows so Approved_Edits formula still sees it!
-        mk_pending_row(
-            "Approved",
-            "0621100000014",
-            "1127 KEY ST",
-            "Houston City Directory",
-            "1926 City Directory listing",
-            "City Directory Batch Auditor",
-            "2026-11-01",
-            geom_w='{"type":"Polygon","coordinates":[[[-95.38,29.79],[-95.379,29.79],[-95.379,29.791],[-95.38,29.79]]]}',
-        ),
-        # Human community Pending submission -> MUST remain in clean_pending_rows
-        mk_pending_row(
-            "Pending",
-            "0610870390001",
-            "1506 HEIGHTS BLVD",
-            "Sanborn Fire Insurance Map",
-            "1924 Sanborn Vol 6\u2013Sheet 612",
-            "Community Researcher",
-            "2026-11-18",
-        ),
-        # Blank row ignored cleanly
-        ["", "", ""],
-    ]
-
-    res = partition_pending_submissions_rows(raw_pending_rows, existing_plat_sync_rows=existing_sync)
-
-    sync_rows = res["plat_watchlist_sync_rows"]
-    assert len(sync_rows) == 2
-    # Deterministic order: WATCH_PROP:* before PLAT_REV:*
-    assert sync_rows[0][1] == "WATCH_PROP:prop-kirby-mansion"
-    assert json.loads(sync_rows[0][8])["tier"] == "1"
-    assert sync_rows[1][1] == "PLAT_REV:2026-11-12:2026-1810"
-    assert json.loads(sync_rows[1][8])["review"]["tier"] == "1"
-
-    archive_rows = res["citydir_batch_archive_rows"]
-    assert len(archive_rows) == 1
-    assert archive_rows[0][1] == "0621100000099"
-    assert archive_rows[0][18:22] == ["", "", "", ""]
-    assert "\u2014" not in archive_rows[0][8]
-
-    clean_rows = res["clean_pending_rows"]
-    assert [r[1] for r in clean_rows] == ["0621100000014", "0610870390001"]
-    assert clean_rows[0][18:22] == ["", "", "", ""]
-    assert clean_rows[0][22].startswith('{"type":"Polygon"')
-    assert "\u2013" not in clean_rows[1][8]
 
 
 def test_compile_workspace_backup_payload_scrubs_pii_dashes_large_photos_and_preserves_existing_on_outage(
@@ -313,29 +159,42 @@ def test_compile_workspace_backup_payload_scrubs_pii_dashes_large_photos_and_pre
         plat_sync_csv=plat_buf.getvalue(),
         approved_edits_csv=app_buf.getvalue(),
     )
-    assert payload["counts"] == {"platReviews": 1, "watchProperties": 1, "approvedOverrides": 1}
-    watch_entry = payload["watchProperties"]["WATCH_PROP:prop-kirby-mansion"]
-    assert watch_entry.get("photoDataUrlOmittedInCompactBackup") is True
-    assert "photoDataUrl" not in watch_entry
+    assert payload["schemaVersion"] == "2.0"
+    assert payload["counts"] == {"approvedOverrides": 1}
+    assert "platReviews" not in payload
+    assert "watchProperties" not in payload
 
     serialized = json.dumps(payload, ensure_ascii=False)
     assert "\u2013" not in serialized
     assert "\u2014" not in serialized
     assert "advocate@example.org" not in serialized, "Staff email PII must never leak into workspace_cloud_backup.json"
     assert "Sample Staffer" not in serialized, "Individual staff names must be normalized to Preservation Staff in public Git backups"
+    assert "prop-kirby-mansion" not in serialized, "Private Watchlist dossiers must never enter public workspace_cloud_backup.json"
 
-    # Verify run_live_backup writes valid file on success and preserves existing file when feeds return empty
+    # Verify run_live_backup writes Approved_Edits-only payload, triggers decoupled Drive backup when token set, and scrubs legacy sections on outage
     out_file = tmp_path / "workspace_cloud_backup.json"
+    drive_triggered: list[str] = []
+    monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "test-pipe-token-2026")
+    monkeypatch.setattr(
+        backup_workspace_state,
+        "trigger_drive_vault_backup",
+        lambda webhook_url="", pipeline_token="", timeout=45: (
+            drive_triggered.append(webhook_url) or {"ok": True, "target": "drive_folder"}
+        ),
+    )
     monkeypatch.setattr(
         backup_workspace_state,
         "_fetch_text",
-        lambda url, timeout=20: plat_buf.getvalue() if "feed=plat_sync" in url else app_buf.getvalue(),
+        lambda _url, timeout=45: app_buf.getvalue(),
     )
     written = run_live_backup(out_file)
-    assert written["counts"]["platReviews"] == 1
+    assert written["counts"] == {"approvedOverrides": 1}
+    assert "platReviews" not in written
+    assert "watchProperties" not in written
+    assert len(drive_triggered) == 1
     saved_text = out_file.read_text(encoding="utf-8")
 
-    def _failing_fetch(_url: str, timeout: int = 20) -> str:
+    def _failing_fetch(_url: str, timeout: int = 45) -> str:
         raise OSError("Simulated network outage")
 
     monkeypatch.setattr(backup_workspace_state, "_fetch_text", _failing_fetch)
@@ -343,61 +202,67 @@ def test_compile_workspace_backup_payload_scrubs_pii_dashes_large_photos_and_pre
     assert outage_res == {}
     assert out_file.read_text(encoding="utf-8") == saved_text
 
-    # Partial outage (including HTTP 200 HTML error page or header-only CSV): must preserve existing sections!
-    def _partial_outage_fetch(url: str, timeout: int = 45) -> str:
-        if "feed=plat_sync" in url:
-            return "<!DOCTYPE html><html><body>Apps Script quota exceeded</body></html>"
-        return app_buf.getvalue()
+    # Legacy file containing pre-Phase-1 platReviews/watchProperties MUST be scrubbed even during an Approved_Edits outage!
+    out_file.write_text(
+        json.dumps(
+            {
+                "schemaVersion": "1.0",
+                "platReviews": {"PLAT_REV:2026-11-12:2026-1810": {"tier": "1"}},
+                "watchProperties": {"WATCH_PROP:prop-kirby-mansion": {"id": "prop-kirby-mansion"}},
+                "approvedOverrides": payload["approvedOverrides"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    scrubbed_outage = run_live_backup(out_file)
+    assert scrubbed_outage["counts"] == {"approvedOverrides": 1}
+    assert "platReviews" not in scrubbed_outage
+    assert "watchProperties" not in scrubbed_outage
+    on_disk_scrubbed = json.loads(out_file.read_text(encoding="utf-8"))
+    assert "platReviews" not in on_disk_scrubbed
+    assert "watchProperties" not in on_disk_scrubbed
 
-    monkeypatch.setattr(backup_workspace_state, "_fetch_text", _partial_outage_fetch)
-    partial_res = run_live_backup(out_file)
-    assert partial_res["counts"] == {"platReviews": 1, "watchProperties": 1, "approvedOverrides": 1}
-    assert "WATCH_PROP:prop-kirby-mansion" in partial_res["watchProperties"]
-    assert "PLAT_REV:2026-11-12:2026-1810" in partial_res["platReviews"]
 
-
-def test_pull_cloud_sheet_sync_rows_prefers_plat_sync_feed_and_falls_back_cleanly(
+def test_pull_cloud_sheet_sync_rows_authenticated_pipeline_token_and_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """pull_cloud_sheet_sync_rows queries Tier 1 (?feed=plat_sync) -> Tier 2 (Approved_Edits CSV) -> Tier 3 (workspace_cloud_backup.json)."""
-    primary_csv = (
-        "status,hcad_num,source_type,source_citation,verified_by\n"
-        'Approved,PLAT_REV:2026-11-12:2026-1810,PLAT_MONITOR_REVIEW,"{""cycleKey"":""2026-11-12"",""appNo"":""2026-1810"",""review"":{""tier"":""2"",""updated"":""2026-11-20T00:00:00Z""}}",Preservation Staff\n'
-        'Approved,PLAT_REV:2026-11-12:2026-1810,PLAT_MONITOR_REVIEW,"{""cycleKey"":""2026-11-12"",""appNo"":""2026-1810"",""review"":{""tier"":""1"",""updated"":""2026-11-22T00:00:00Z""}}",Preservation Staff\n'
+    """pull_cloud_sheet_sync_rows uses authenticated ATLAS_PIPELINE_SYNC_TOKEN POST first and falls back cleanly without ?feed=plat_sync."""
+    calls: list[dict] = []
+
+    def _fake_pull_via_token(*, webhook_url: str = "", pipeline_token: str = "", timeout: int = 45) -> dict:
+        calls.append({"webhook_url": webhook_url, "pipeline_token": pipeline_token})
+        return {
+            "platReviews": {("2026-11-12", "2026-1810"): {"tier": "1", "tierConfirmed": True}},
+            "watchProperties": {},
+            "parcels": [],
+            "watchedEntities": [],
+        }
+
+    monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "pipe-secret-2026")
+    monkeypatch.setattr(
+        fetch_plat_and_watchlist,
+        "pull_workspace_monitoring_via_pipeline_token",
+        _fake_pull_via_token,
     )
-    calls: list[str] = []
-
-    def _fake_fetch_primary(url: str, timeout: int = 15) -> bytes:
-        calls.append(url)
-        if "feed=plat_sync" in url:
-            return primary_csv.encode("utf-8")
-        raise AssertionError("Should not hit fallback CSV when ?feed=plat_sync returned valid records")
-
-    monkeypatch.setattr(fetch_plat_and_watchlist, "fetch_bytes", _fake_fetch_primary)
     res1 = fetch_plat_and_watchlist.pull_cloud_sheet_sync_rows(backup_json_path=None)
     assert len(calls) == 1
-    assert "feed=plat_sync" in calls[0]
     assert res1["platReviews"][("2026-11-12", "2026-1810")]["tier"] == "1"
 
-    # Tier 2: ?feed=plat_sync returns empty header stub -> falls back to SHEET_PUBLISHED_CSV_URL
-    calls.clear()
+    # Without ATLAS_PIPELINE_SYNC_TOKEN and without private sections in backup_json_path, returns clean empty dicts (never hits ?feed=plat_sync!)
+    monkeypatch.delenv("ATLAS_PIPELINE_SYNC_TOKEN", raising=False)
+    monkeypatch.setattr(
+        fetch_plat_and_watchlist,
+        "fetch_bytes",
+        lambda url, timeout=15: (_ for _ in ()).throw(
+            AssertionError(f"Must never call unauthenticated CSV feed {url}")
+        ),
+    )
+    res_empty = fetch_plat_and_watchlist.pull_cloud_sheet_sync_rows(backup_json_path=None)
+    assert res_empty == {"platReviews": {}, "watchProperties": {}}
 
-    def _fake_fetch_fallback(url: str, timeout: int = 15) -> bytes:
-        calls.append(url)
-        if "feed=plat_sync" in url:
-            return b"status,hcad_num\n"
-        return primary_csv.encode("utf-8")
-
-    monkeypatch.setattr(fetch_plat_and_watchlist, "fetch_bytes", _fake_fetch_fallback)
-    res2 = fetch_plat_and_watchlist.pull_cloud_sheet_sync_rows(backup_json_path=None)
-    assert len(calls) == 2
-    assert "feed=plat_sync" in calls[0]
-    assert "output=csv" in calls[1]
-    assert res2["platReviews"][("2026-11-12", "2026-1810")]["tier"] == "1"
-
-    # Tier 3: Both remote feeds return empty -> falls back to local workspace_cloud_backup.json
-    tier3_backup = tmp_path / "workspace_cloud_backup.json"
+    # Local hermetic test fixture JSON still hydrates cleanly when explicitly supplied
+    tier3_backup = tmp_path / "hermetic_fixture_backup.json"
     tier3_backup.write_text(
         json.dumps(
             {
@@ -422,7 +287,6 @@ def test_pull_cloud_sheet_sync_rows_prefers_plat_sync_feed_and_falls_back_cleanl
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(fetch_plat_and_watchlist, "fetch_bytes", lambda _u, timeout=15: b"")
     res3 = fetch_plat_and_watchlist.pull_cloud_sheet_sync_rows(backup_json_path=tier3_backup)
     assert res3["platReviews"][("2026-12-03", "2026-1524")]["tier"] == "2"
     wp3 = res3["watchProperties"]["prop-tier3-test"]

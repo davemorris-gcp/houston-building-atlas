@@ -34,45 +34,46 @@ export { MODERATION_CATEGORIES };
 
 export const STORY_CHECK_STEPS = Object.freeze([
   {
-    key: "sanborn_footprint",
-    label: "1. Sanborn & Historic Aerials",
-    placeholder: "e.g. Matches 1924 Sanborn Vol. 3 Sheet 312 2-story brick footprint",
+    key: "city_directories_1866_1926",
+    legacyKeys: ["city_directories"],
+    label: "1. Houston City Directories (1866-1926)",
+    placeholder: "e.g. Listed by 1926 Morrison & Fourmy directory with early resident / grocer",
   },
   {
-    key: "city_directories",
-    label: "2. Houston City Directories (1866-1960s)",
-    placeholder: "e.g. Listed by 1928 with early neighborhood grocer / resident",
+    key: "red_book_1915",
+    legacyKeys: ["sanborn_footprint"],
+    label: "2. 1915 Red Book & Sanborn Maps",
+    placeholder: "e.g. Documented on 1924 Sanborn Vol. 3 Sheet 312 or 1915 Red Book of Houston",
   },
   {
-    key: "architect_permit",
-    label: "3. Architect, Builder & Original Permit",
-    placeholder: "e.g. Original Mechanic's Lien / architect attribution / HPL clipping",
+    key: "hcad_deed_history",
+    legacyKeys: ["architect_permit"],
+    label: "3. Deed Chain, Architect & Original Permit",
+    placeholder: "e.g. Pre-2004 Clerk deed chain, Mechanic's Lien, or original architect attribution",
   },
   {
-    key: "neighborhood_context",
-    label: "4. Streetscape & Community Story",
-    placeholder: "e.g. Intact anchor corner on blockface; civic or cultural history",
+    key: "local_partner_check",
+    legacyKeys: ["neighborhood_context"],
+    label: "4. Local Partner & Streetscape Context",
+    placeholder: "e.g. Intact anchor corner on blockface; neighborhood civic or cultural history",
   },
 ]);
 
 export const SIGNIFICANCE_BASIS_LABELS = Object.freeze({
-  architecture: "Architecture / Style",
-  history_culture: "Cultural / Community History",
-  architect_builder: "Notable Architect / Builder",
-  streetscape_context: "Streetscape / Blockface Anchor",
-  integrity_rarity: "High Integrity / Rare Survivor",
+  architecture: "Architecture / Style & Integrity",
+  person_org_event: "Person, Organization / Architect or Event",
+  community_cultural: "Community, Cultural & Streetscape Context",
 });
 
 export const INTEGRITY_LABELS = Object.freeze({
-  intact: "Intact (Original form & openings)",
-  minor_alterations: "Minor / Reversible Alterations",
-  substantially_altered: "Substantially Altered",
+  good: "Good (Intact original form & openings)",
+  fair: "Fair (Minor / reversible alterations)",
+  poor: "Poor (Substantially altered)",
 });
 
 export const ADVOCACY_STATUS_LABELS = Object.freeze({
   monitoring: "Monitoring (Active Automated Sweeps)",
-  active_advocacy: "Active Advocacy / Escalation",
-  outreach: "Owner / Partner Outreach Underway",
+  active_advocacy: "Active Advocacy / Outreach & Escalation",
   recording_only: "Recording Only (Survey & Metrics)",
   closed: "Closed Case (Stage 6)",
 });
@@ -106,7 +107,15 @@ export function parseStoryCheckJson(raw) {
     const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (obj && typeof obj === "object") {
       for (const st of STORY_CHECK_STEPS) {
-        const entry = obj[st.key];
+        let entry = obj[st.key];
+        if (entry === undefined && Array.isArray(st.legacyKeys)) {
+          for (const lk of st.legacyKeys) {
+            if (obj[lk] !== undefined) {
+              entry = obj[lk];
+              break;
+            }
+          }
+        }
         if (entry && typeof entry === "object") {
           base[st.key] = {
             checked: Boolean(entry.checked),
@@ -206,9 +215,10 @@ export function resolveEffectiveParcelAssessment({
   const atlasKnownHigh = Boolean(
     /\b(?:landmark|good\s+brick|national\s+register|rthl|state\s+antiquities)\b/i.test(desigText)
   );
+  const legacyReviewTier = review?.derivedFromParcel ? "" : review?.tier || "";
   const legacySource = watchProp
     ? {
-        tier: watchProp.tier || review?.tier || "",
+        tier: watchProp.tier || legacyReviewTier,
         trackerStatus: watchProp.trackerStatus || "",
         why: review?.why || "",
         notes: watchProp.notes || "",
@@ -217,7 +227,7 @@ export function resolveEffectiveParcelAssessment({
         graduateToLost: Boolean(watchProp.lostHoustonId || watchProp.trackerStatus === "Lost"),
       }
     : {
-        tier: review?.tier || "",
+        tier: legacyReviewTier,
         trackerStatus: "",
         why: review?.why || "",
         followup: review?.followup || "",
@@ -231,6 +241,7 @@ export function resolveEffectiveParcelAssessment({
     atlasKnownHigh,
     defaultThreatStage: defaultStage,
   });
+  const hasAuthoritativeCloudRow = Boolean(cloudDecision || cloudParcel);
 
   const nextHearingDateCst = sanitizeMonitoringText(
     platItem?.hearingDateIso ||
@@ -269,11 +280,9 @@ export function resolveEffectiveParcelAssessment({
       cloudDecision?.recommended_significance ??
       cloudParcel?.recommended_significance ??
       migratedFallback.recommended_significance,
-    significance_level:
-      cloudDecision?.significance_level ||
-      cloudParcel?.significance_level ||
-      watchProp?.significanceLevel ||
-      migratedFallback.significance_level,
+    significance_level: hasAuthoritativeCloudRow
+      ? cloudDecision?.significance_level || cloudParcel?.significance_level || ""
+      : watchProp?.significanceLevel || migratedFallback.significance_level,
     significance_basis:
       cloudDecision?.significance_basis ||
       cloudParcel?.significance_basis ||
@@ -768,17 +777,17 @@ export function renderStaffOnlyStrategyCardHtml({
       <div class="grid2" style="margin-top:8px">
         <div class="field" style="margin-bottom:6px">
           <label for="so-strategy-notes">Private Advocacy Strategy &amp; Negotiation Notes</label>
-          <textarea id="so-strategy-notes" rows="2" placeholder="Confidential partner notes, acquisition leads, council office discussions...">${esc(st.private_strategy_notes || "")}</textarea>
+          <textarea id="so-strategy-notes" rows="2" placeholder="Confidential partner notes, acquisition leads, council office discussions...">${esc(st.strategy_notes ?? st.private_strategy_notes ?? "")}</textarea>
         </div>
         <div class="field" style="margin-bottom:6px">
-          <label for="so-outreach-log">Owner / Partner Outreach &amp; Sensitive Contacts</label>
-          <textarea id="so-outreach-log" rows="2" placeholder="Direct owner/attorney contacts, outreach dates, confidential status...">${esc(st.owner_outreach_log || "")}</textarea>
+          <label for="so-outreach-log">Owner / Partner Outreach &amp; Relationship Notes</label>
+          <textarea id="so-outreach-log" rows="2" placeholder="Direct owner/attorney contacts, outreach dates, confidential status...">${esc(st.owner_relationship_notes ?? st.owner_outreach_log ?? "")}</textarea>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <label for="so-contacts" style="font-size:12px;font-weight:600">Key Contact Phone / Email:</label>
-          <input id="so-contacts" type="text" value="${esc(st.sensitive_contacts || "")}" placeholder="Optional private contact info" style="padding:4px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;min-width:210px;background:#fff">
+          <input id="so-contacts" type="text" value="${esc(st.contact_notes ?? st.sensitive_contacts ?? "")}" placeholder="Optional private contact info" style="padding:4px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;min-width:210px;background:#fff">
         </div>
         <button type="button" class="btn sm primary" id="saveStaffStrategyBtn" data-parcel-id="${esc(parcelId)}">💾 Save Staff-Only Notes</button>
       </div>

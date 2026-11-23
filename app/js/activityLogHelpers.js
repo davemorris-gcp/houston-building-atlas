@@ -302,9 +302,55 @@ function normalizeModeToken(raw) {
   return "";
 }
 
+const AGENDA_GROUP_ALIASES = Object.freeze({
+  check: "check",
+  needs_screening: "check",
+  t1: "t1",
+  "1": "t1",
+  tier1: "t1",
+  act: "t1",
+  t2: "t2",
+  "2": "t2",
+  tier2: "t2",
+  watch: "t2",
+  t3: "t3",
+  "3": "t3",
+  tier3: "t3",
+  record: "t3",
+  t4: "t4",
+  "4": "t4",
+  tier4: "t4",
+  closed: "t4",
+  designated: "designated",
+  etj: "etj",
+  out: "out",
+  screened_out: "out",
+  all: "all",
+});
+
+/**
+ * Resolve initial Agenda Funnel group from legacy `t1..t4` or normalized `act`/`watch`/`record`
+ * URL query parameters (`?group=`, `?tier=`, `?attention=`, or `?tab=t1..t4` when in agenda mode).
+ */
+export function resolveInitialAgendaGroup({ searchString = "" } = {}) {
+  const rawSearch = String(searchString || "").replace(/^\?/, "");
+  const params = new URLSearchParams(rawSearch);
+  for (const key of ["group", "tier", "attention", "filter"]) {
+    const rawVal = String(params.get(key) || "").trim().toLowerCase();
+    if (rawVal && AGENDA_GROUP_ALIASES[rawVal]) {
+      return AGENDA_GROUP_ALIASES[rawVal];
+    }
+  }
+  const tabRaw = String(params.get("tab") || "").trim().toLowerCase();
+  if (tabRaw && !normalizeModeToken(tabRaw) && AGENDA_GROUP_ALIASES[tabRaw]) {
+    return AGENDA_GROUP_ALIASES[tabRaw];
+  }
+  return "check";
+}
+
 /**
  * Resolve the initial Plat & Property Monitor tab with strict URL parameter authority:
- *   explicit `?mode=` / `?tab=` > `?watch=` / `?hcad=` / `?address=` > `?cycle=` / `?app=` / `?id=`
+ *   explicit `?mode=` / `?tab=` > `?watch=` / `?hcad=` / `?address=` > `?cycle=` / `?app=` / `?id=` / `?group=` / `?tier=`
  *   > `storedLastMode` (`phpam:lastMode`) > `"agenda"` default.
  */
 export function resolveInitialMonitorMode({ searchString = "", storedLastMode = "" } = {}) {
@@ -324,10 +370,17 @@ export function resolveInitialMonitorMode({ searchString = "", storedLastMode = 
     return { mode: "watchlist", explicitUrlOverride: true, reason: "watch_deeplink" };
   }
 
+  const tabRaw = String(params.get("tab") || "").trim().toLowerCase();
+  const hasAgendaFilterParam = Boolean(
+    String(params.get("group") || params.get("tier") || params.get("attention") || "").trim() ||
+      (tabRaw && AGENDA_GROUP_ALIASES[tabRaw])
+  );
+
   if (
     String(params.get("cycle") || "").trim() ||
     String(params.get("app") || "").trim() ||
-    String(params.get("id") || "").trim()
+    String(params.get("id") || "").trim() ||
+    hasAgendaFilterParam
   ) {
     return { mode: "agenda", explicitUrlOverride: true, reason: "agenda_deeplink" };
   }
@@ -559,6 +612,24 @@ export function synthesizeLiveMonitorEvents({
     ? String(staticLog.generatedAt || staticLog.lastSweepAt || "").trim()
     : "";
   const baselineLocalDate = ledgerBaselineIso ? toChicagoDateIso(ledgerBaselineIso) : "";
+  // Phase 1 sanitizes public monitor_activity_log.json strictly to `permits` & `agenda` streams,
+  // so authenticated `watchlist` & `staff` events hydrated from Google Workspace are absent from
+  // `staticLog.events` and must be evaluated against the 90-day retention window rather than
+  // suppressed at `staticLog.generatedAt`.
+  const isPublicOnlyStaticLog = Boolean(
+    hasStaticLog &&
+      (staticLog.publicOnly === true ||
+        (Array.isArray(staticLog.events) &&
+          staticLog.events.length > 0 &&
+          staticLog.summary?.byStream?.watchlist === 0 &&
+          staticLog.summary?.byStream?.staff === 0 &&
+          !staticLog.events.some(
+            (ev) =>
+              ev &&
+              (ev.stream === "staff" ||
+                (ev.stream === "watchlist" && ev.kind !== "watchlist_sweep_degraded"))
+          )))
+  );
 
   const eventsById = new Map();
   if (hasStaticLog) {
@@ -588,6 +659,15 @@ export function synthesizeLiveMonitorEvents({
       return isIsoStrictlyAfter(mutationTs, ledgerBaselineIso);
     }
     return cleanDate >= fallback7dFloorDate;
+  };
+
+  const passesPrivateStreamGate = (mutationTs, candidateLocalDate) => {
+    if (isPublicOnlyStaticLog) {
+      const cleanDate = parseIsoDatePrefix(candidateLocalDate);
+      if (!cleanDate || cleanDate < retentionFloorDate) return false;
+      return Boolean(mutationTs);
+    }
+    return passesTemporalGate(mutationTs, candidateLocalDate);
   };
 
   const nowEpochMs = parseIsoEpochMs(effectiveNowIso);
@@ -698,7 +778,7 @@ export function synthesizeLiveMonitorEvents({
     if (isArchived) {
       const archTs = String(prop.archivedAt || prop.updatedAt || "");
       const archDay = toChicagoDateIso(archTs, parseIsoDatePrefix(archTs)) || todayLocal;
-      if (passesTemporalGate(archTs, archDay)) {
+      if (passesPrivateStreamGate(archTs, archDay)) {
         const archivedTierNum =
           String(prop.tier || "") === "4" ||
           prop.trackerStatus === "Archived (Tier 4)" ||
@@ -751,7 +831,9 @@ export function synthesizeLiveMonitorEvents({
       startIso &&
       startIso >= retentionFloorDate &&
       (hasStaticLog
-        ? (!baselineLocalDate || startIso >= baselineLocalDate) && passesTemporalGate(createTs, startIso)
+        ? isPublicOnlyStaticLog
+          ? passesPrivateStreamGate(createTs, startIso)
+          : (!baselineLocalDate || startIso >= baselineLocalDate) && passesTemporalGate(createTs, startIso)
         : startIso >= fallback7dFloorDate);
 
     if (canSynthesizeAdd) {
@@ -793,7 +875,7 @@ export function synthesizeLiveMonitorEvents({
         .filter((t) => t && String(t).includes("T"))
         .sort((a, b) => (parseIsoEpochMs(b) ?? 0) - (parseIsoEpochMs(a) ?? 0))[0];
       const updDay = latestPropMutation ? toChicagoDateIso(latestPropMutation, todayLocal) : "";
-      if (latestPropMutation && updDay && passesTemporalGate(latestPropMutation, updDay)) {
+      if (latestPropMutation && updDay && passesPrivateStreamGate(latestPropMutation, updDay)) {
         const byTxt = prop.updatedBy ? ` by ${prop.updatedBy}` : "";
         tryAddSynthetic(
           makeActivityEvent({
@@ -857,7 +939,7 @@ export function synthesizeLiveMonitorEvents({
             discTs = fbRaw.includes("T") ? fbRaw : clampDateNoonToNow(fbRaw);
           }
           const candDay = toChicagoDateIso(discTs || chkDate, chkDate);
-          if (!passesTemporalGate(discTs, candDay)) continue;
+          if (!passesPrivateStreamGate(discTs, candDay)) continue;
           const isHistBaseline = Boolean(
             chk.historicalBaseline === true ||
               isHistoricalAutoSweepDate(
@@ -912,14 +994,14 @@ export function synthesizeLiveMonitorEvents({
             !verifiedTs &&
             row.updatedAt &&
             chkDate &&
-            (!baselineLocalDate || chkDate >= baselineLocalDate)
+            (isPublicOnlyStaticLog || !baselineLocalDate || chkDate >= baselineLocalDate)
           ) {
             verifiedTs = String(row.updatedAt);
           }
           const candDay = loggedRaw
             ? toChicagoDateIso(loggedRaw, chkDate)
             : chkDate;
-          if (!passesTemporalGate(verifiedTs, candDay)) continue;
+          if (!passesPrivateStreamGate(verifiedTs, candDay)) continue;
           const tsVal =
             verifiedTs && verifiedTs.includes("T") ? verifiedTs : `${chkDate}T12:00:00Z`;
           tryAddSynthetic(
@@ -958,7 +1040,7 @@ export function synthesizeLiveMonitorEvents({
       if (row.humanStatusEdited && row.status === "Flagged" && statusTs) {
         const statusDay = toChicagoDateIso(statusTs, parseIsoDatePrefix(row.lastChecked) || todayLocal);
         const stId = buildWatchStatusEventId(pid, rowId, row.status, statusDay);
-        if (!eventsById.has(stId) && passesTemporalGate(statusTs, statusDay)) {
+        if (!eventsById.has(stId) && passesPrivateStreamGate(statusTs, statusDay)) {
           tryAddSynthetic(
             makeActivityEvent({
               id: stId,
@@ -1123,7 +1205,7 @@ export function synthesizeLiveMonitorEvents({
       if (eventsById.has(evId)) continue;
       const updRaw = String(rev.updated || "").trim();
       const revDay = toChicagoDateIso(updRaw, cycleKey) || cycleKey;
-      if (!passesTemporalGate(updRaw, revDay)) continue;
+      if (!passesPrivateStreamGate(updRaw, revDay)) continue;
       const matchedIt = itemsByApp.get(String(appNo).trim()) || { app: appNo, name: appNo };
       const atlas = matchedIt.atlas && typeof matchedIt.atlas === "object" ? matchedIt.atlas : {};
       const rLinks = [];

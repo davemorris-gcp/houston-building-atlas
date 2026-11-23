@@ -37,6 +37,7 @@ import html
 import io
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -7670,7 +7671,7 @@ def _parse_cloud_sheet_sync_csv_text(csv_text: str) -> dict:
     plat_reviews: dict[tuple[str, str], dict] = {}
     watch_props: dict[str, dict] = {}
     if not csv_text or not csv_text.strip():
-        return {"platReviews": plat_reviews, "watchProperties": watch_props}
+        return {"platReviews": plat_reviews, "watchProperties": watch_props, "parcels": [], "watchedEntities": []}
 
     reader = csv.DictReader(io.StringIO(csv_text))
     for row in reader:
@@ -7739,22 +7740,23 @@ def _parse_cloud_sheet_sync_csv_text(csv_text: str) -> dict:
                     norm_rec["_hasExplicitChecklist"] = has_explicit_checklist
                     watch_props[pid] = norm_rec
 
-    return {"platReviews": plat_reviews, "watchProperties": watch_props}
+    return {"platReviews": plat_reviews, "watchProperties": watch_props, "parcels": [], "watchedEntities": []}
 
 
 def pull_workspace_monitoring_via_pipeline_token(
     *,
-    webhook_url: str = SHEET_WEBHOOK_URL,
+    webhook_url: str | None = None,
     pipeline_token: str = "",
     timeout: int = 45,
 ) -> dict:
     """Pull normalized Phase 1 monitoring tables via authenticated `pipeline_pull_monitoring`."""
     tok = (pipeline_token or os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN") or "").strip()
-    if not tok or not webhook_url:
+    target_url = (webhook_url if webhook_url is not None else SHEET_WEBHOOK_URL).strip()
+    if not tok or not target_url:
         return {"platReviews": {}, "watchProperties": {}, "parcels": [], "watchedEntities": []}
     try:
         req = urllib.request.Request(
-            webhook_url,
+            target_url,
             data=json.dumps(
                 {"action": "pipeline_pull_monitoring", "pipeline_token": tok}
             ).encode("utf-8"),
@@ -7831,21 +7833,61 @@ def pull_workspace_monitoring_via_pipeline_token(
     }
 
 
+def match_watched_entities_against_parties(
+    party_texts: list[str] | tuple[str, ...],
+    watched_entities: list[dict] | None = None,
+) -> list[str]:
+    """Match filing party names strictly against active Staff-curated `Watched_People_And_Firms` entries."""
+    if not watched_entities:
+        return []
+    from atlas_pipeline.parcel_monitoring_model import normalize_party_comparison_key
+
+    norm_parties = [
+        normalize_party_comparison_key(p)
+        for p in (party_texts or [])
+        if str(p or "").strip()
+    ]
+    norm_parties = [p for p in norm_parties if len(p) >= 3]
+    if not norm_parties:
+        return []
+
+    matched_names: list[str] = []
+    for ent in watched_entities:
+        if not isinstance(ent, dict):
+            continue
+        active_raw = str(ent.get("active", "true")).strip().lower()
+        if active_raw in ("false", "0", "no"):
+            continue
+        ent_name = str(ent.get("entity_name") or "").strip()
+        ent_key = normalize_party_comparison_key(ent.get("normalized_key") or ent_name)
+        if len(ent_key) < 3:
+            continue
+        if any(ent_key == p or ent_key in p or p in ent_key for p in norm_parties):
+            label = ent_name or ent_key
+            if label not in matched_names:
+                matched_names.append(label)
+    return matched_names
+
+
 def push_sweep_results_to_workspace(
     watchlist_doc: dict,
     *,
-    webhook_url: str = SHEET_WEBHOOK_URL,
+    plat_dataset: dict | None = None,
+    watched_entities: list[dict] | None = None,
+    webhook_url: str | None = None,
     pipeline_token: str = "",
     timeout: int = 60,
 ) -> dict:
     """Push automated 8-agency sweep updates back to Google Workspace without touching human columns."""
     tok = (pipeline_token or os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN") or "").strip()
-    if not tok or not webhook_url:
+    target_url = (webhook_url if webhook_url is not None else SHEET_WEBHOOK_URL).strip()
+    if not tok or not target_url:
         return {"ok": False, "skipped": True}
 
     from atlas_pipeline.parcel_monitoring_model import (
         classify_protection_level,
         compute_threat_stage_from_events,
+        detect_parcel_signal_flags,
         evaluate_historical_baseline_event,
         map_agency_or_permit_to_threat_stage,
         parse_related_hcads,
@@ -7854,7 +7896,7 @@ def push_sweep_results_to_workspace(
     )
 
     as_of_cst = to_chicago_calendar_date(watchlist_doc.get("lastAutoSweepAt") or "")
-    parcel_patches: list[dict] = []
+    parcel_patches_by_id: dict[str, dict] = {}
     events_out: list[dict] = []
     dossiers_out: list[dict] = []
 
@@ -7871,6 +7913,13 @@ def push_sweep_results_to_workspace(
             name=str(wp.get("propertyName") or wp["id"]),
         )
         added_at = str((wp.get("keyDates") or {}).get("monitoringStarted") or wp.get("updatedAt") or "")
+        party_candidates = [
+            str(wp.get("developer") or ""),
+            str(wp.get("buyerRelatedEntities") or ""),
+            str(wp.get("architectEngineer") or ""),
+            str(wp.get("ownerOfRecord") or ""),
+        ]
+        matched_watched = match_watched_entities_against_parties(party_candidates, watched_entities)
         p_events: list[dict] = []
         for chk_row in wp.get("checklist") or []:
             if not isinstance(chk_row, dict):
@@ -7910,28 +7959,113 @@ def push_sweep_results_to_workspace(
                     "headline": res_txt[:160],
                     "summary": res_txt[:1000],
                     "party_names": str(wp.get("developer") or ""),
-                    "mismatch_flag": "",
+                    "mismatch_flag": "watched_entity_match" if matched_watched else "",
                     "source_url": "",
                     "raw_ref_id": ref_tok,
                 }
                 events_out.append(ev_obj)
                 p_events.append(ev_obj)
 
-        parcel_patches.append(
-            {
-                "parcel_id": pid,
-                "hcad_num": hcads[0] if hcads else "",
-                "owner_of_record": str(wp.get("ownerOfRecord") or ""),
-                "designation_summary": str(wp.get("designation") or ""),
-                "protection_level": classify_protection_level(wp.get("designation") or ""),
-                "threat_stage": compute_threat_stage_from_events(p_events),
-                "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
-            }
+        sig_flags = detect_parcel_signal_flags(
+            owner_of_record=str(wp.get("ownerOfRecord") or ""),
+            party_names=[str(wp.get("developer") or ""), str(wp.get("buyerRelatedEntities") or "")],
+            event_kinds=[e["event_kind"] for e in p_events],
         )
+        if matched_watched and "watched_entity_match" not in sig_flags:
+            sig_flags.append("watched_entity_match")
+
+        parcel_patches_by_id[pid] = {
+            "parcel_id": pid,
+            "hcad_num": hcads[0] if hcads else "",
+            "owner_of_record": str(wp.get("ownerOfRecord") or ""),
+            "designation_summary": str(wp.get("designation") or ""),
+            "protection_level": classify_protection_level(wp.get("designation") or ""),
+            "threat_stage": compute_threat_stage_from_events(p_events),
+            "signal_flags": "; ".join(sig_flags),
+            "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
+        }
+
+    # Also flag active-cycle Planning Commission plat applications filed by Staff-curated Watched_People_And_Firms
+    if plat_dataset and watched_entities:
+        cyc_key = str(plat_dataset.get("cycleKey") or "")
+        for it in plat_dataset.get("items") or []:
+            if not isinstance(it, dict):
+                continue
+            atlas_meta = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
+            item_parties = [
+                str(it.get("developer") or ""),
+                str(it.get("applicant") or ""),
+                str(atlas_meta.get("owner") or ""),
+            ]
+            matched_plat_ents = match_watched_entities_against_parties(item_parties, watched_entities)
+            if not matched_plat_ents:
+                continue
+            it_hcads = parse_related_hcads(
+                [
+                    it.get("hcad") or "",
+                    *[p.get("hcad") for p in (atlas_meta.get("parcels") or []) if isinstance(p, dict)],
+                ]
+            )
+            app_no = str(it.get("app") or "").strip()
+            pid = resolve_canonical_parcel_id(
+                hcad_ids=it_hcads,
+                app_no=app_no,
+                address=str(atlas_meta.get("primaryAddress") or ""),
+                name=str(it.get("name") or app_no),
+            )
+            ev_id = f"EVT:chk-09:{cyc_key}_{app_no}:{pid}"
+            events_out.append(
+                {
+                    "event_id": ev_id,
+                    "parcel_id": pid,
+                    "hcad_num": it_hcads[0] if it_hcads else "",
+                    "threat_stage": 3,
+                    "source_agency": "chk-09",
+                    "event_kind": str(it.get("type") or "Plat Application"),
+                    "filing_date": to_chicago_calendar_date(it.get("submittedIso") or cyc_key) or cyc_key,
+                    "detected_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
+                    "is_historical_baseline": False,
+                    "headline": f"Watched Entity Filing ({matched_plat_ents[0]}): {it.get('name') or app_no}"[:160],
+                    "summary": f"Matched curated Watched_People_And_Firms ({', '.join(matched_plat_ents)}) on {app_no}."[:1000],
+                    "party_names": "; ".join([p for p in item_parties if p]),
+                    "mismatch_flag": "watched_entity_match",
+                    "source_url": str(it.get("pdf") or it.get("noticePdf") or ""),
+                    "raw_ref_id": app_no,
+                }
+            )
+            if pid in parcel_patches_by_id:
+                ex_flags = [f.strip() for f in parcel_patches_by_id[pid].get("signal_flags", "").split(";") if f.strip()]
+                if "watched_entity_match" not in ex_flags:
+                    ex_flags.append("watched_entity_match")
+                parcel_patches_by_id[pid]["signal_flags"] = "; ".join(ex_flags)
+                parcel_patches_by_id[pid]["threat_stage"] = max(int(parcel_patches_by_id[pid].get("threat_stage") or 0), 3)
+            else:
+                it_flags = detect_parcel_signal_flags(
+                    owner_of_record=str(atlas_meta.get("owner") or ""),
+                    party_names=[str(it.get("developer") or ""), str(it.get("applicant") or "")],
+                    land_use_class=str(it.get("landUse") or ""),
+                    event_kinds=[str(it.get("type") or "Plat Application")],
+                )
+                if "watched_entity_match" not in it_flags:
+                    it_flags.append("watched_entity_match")
+                parcel_patches_by_id[pid] = {
+                    "parcel_id": pid,
+                    "hcad_num": it_hcads[0] if it_hcads else "",
+                    "primary_address": str(atlas_meta.get("primaryAddress") or it.get("name") or ""),
+                    "owner_of_record": str(atlas_meta.get("owner") or ""),
+                    "land_use_class": str(it.get("landUse") or ""),
+                    "designation_summary": "; ".join(atlas_meta.get("designations") or []),
+                    "protection_level": classify_protection_level("; ".join(atlas_meta.get("designations") or [])),
+                    "threat_stage": 3,
+                    "signal_flags": "; ".join(it_flags),
+                    "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
+                }
+
+    parcel_patches = list(parcel_patches_by_id.values())
 
     try:
         req = urllib.request.Request(
-            webhook_url,
+            target_url,
             data=json.dumps(
                 {
                     "action": "pipeline_push_sweep_results",
@@ -7961,7 +8095,10 @@ def pull_cloud_sheet_sync_rows(
 
     if os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN"):
         pulled = pull_workspace_monitoring_via_pipeline_token(webhook_url=SHEET_WEBHOOK_URL)
-        if pulled.get("platReviews") or pulled.get("watchProperties"):
+        if any(
+            pulled.get(k)
+            for k in ("platReviews", "watchProperties", "parcels", "watchedEntities")
+        ):
             return pulled
 
     if backup_json_path is not None and backup_json_path.exists():
@@ -9239,7 +9376,12 @@ def _merge_prior_disk_watchlist_and_reviews(cloud_sync: dict) -> dict:
         except Exception as exc:
             print(f"[warn] Could not seed Plat Reviews fallback from {plat_out.name}: {exc}")
 
-    return {"platReviews": plat_reviews, "watchProperties": watch_props}
+    return {
+        "platReviews": plat_reviews,
+        "watchProperties": watch_props,
+        "parcels": list(cloud_sync.get("parcels") or []),
+        "watchedEntities": list(cloud_sync.get("watchedEntities") or []),
+    }
 
 
 def main() -> None:
@@ -9295,7 +9437,11 @@ def main() -> None:
         sweep_plat_dataset, idx, cloud_sync=cloud_sync, run_live_sweeps=True
     )
     if os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN"):
-        push_res = push_sweep_results_to_workspace(watchlist)
+        push_res = push_sweep_results_to_workspace(
+            watchlist,
+            plat_dataset=sweep_plat_dataset,
+            watched_entities=cloud_sync.get("watchedEntities"),
+        )
         print(f"      Pushed private sweep updates to Google Workspace: {push_res}")
 
     public_wl_stub = build_public_watchlist_telemetry_stub(watchlist)

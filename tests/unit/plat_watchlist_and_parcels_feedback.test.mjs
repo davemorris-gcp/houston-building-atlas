@@ -75,7 +75,6 @@ import {
   syncPlatTierToWatchlist,
   sortWatchedProperties,
   parseCsvRfc4180,
-  parseCloudSheetSyncRows,
   normalizeDondbHcadId,
   pointInGeoJsonGeometry,
   parseAndMatchDangerousBuildingsCsv,
@@ -615,7 +614,7 @@ test("UT-9: URL scheme sanitization and HTML/XML escaping block XSS and XML corr
   assert.equal(sanitizeExternalLink({ label: "Bad", url: "data:text/plain,hi" }), null);
 });
 
-test("UT-11 & SCH-2: 3-way Watchlist reconciliation preserves [AUTO-SWEEP], protects seeded searchTerms from legacy cloud rows, respects explicit deletions, and guards Tier 3 downgrades", () => {
+test("UT-11 & SCH-2: 3-way Watchlist reconciliation preserves [AUTO-SWEEP], protects seeded searchTerms from legacy cloud rows, respects explicit deletions, and guards Tier 3 downgrades", async () => {
   // 1. Legacy cloud row WITHOUT searchTerms or driveLinks keys must NOT wipe staticProp's seeded searchTerms or driveLinks
   const staticKirby = {
     id: "prop-kirby-mansion",
@@ -915,25 +914,24 @@ test("UT-11 & SCH-2: 3-way Watchlist reconciliation preserves [AUTO-SWEEP], prot
     "Colliding COH reference number 2026-1585 for distinct projects/HCADs must not merge priorCycles"
   );
 
-  const cloudCsv = [
-    "timestamp,hcad_num,source_type,source_citation,verified_by,status",
-    `2026-10-27T12:00:00Z,PLAT_REV:2026-10-29:2026-1585,PLAT_MONITOR_REVIEW,"${JSON.stringify({
-      cycleKey: "2026-10-29",
-      app: "2026-1585",
-      review: { tier: "1", tierConfirmed: true, updated: "2026-10-27T12:00:00Z" },
-    }).replace(/"/g, '""')}",Preservation Advocate,approved`,
-    `2026-10-27T14:00:00Z,WATCH_PROP:plat-2026-1700,PROPERTY_WATCHLIST_UPDATE,"${JSON.stringify({
-      id: "plat-2026-1700",
-      tier: "3",
-      trackerStatus: REMOVED_TIER3_TOMBSTONE,
-      updatedAt: "2026-10-27T14:00:00Z",
-    }).replace(/"/g, '""')}",Preservation Advocate,approved`,
-  ].join("\n");
-  const parsedCloud = parseCloudSheetSyncRows(cloudCsv);
-  assert.equal(parsedCloud.platReviews.length, 1);
-  assert.equal(parsedCloud.platReviews[0].appNo, "2026-1585");
-  assert.equal(parsedCloud.watchProperties.length, 1);
-  assert.equal(parsedCloud.watchProperties[0].isRemovedTombstone, true);
+  // Phase 1 Mode A: runtime parseCloudSheetSyncRows retired from watchlistSyncHelpers.js;
+  // normalizeWatchProperty enriches normalized parcel fields and tombstone outcomes deterministically
+  const watchlistSyncMod = await import("../../app/js/watchlistSyncHelpers.js");
+  assert.equal(
+    "parseCloudSheetSyncRows" in watchlistSyncMod,
+    false,
+    "Runtime parseCloudSheetSyncRows must remain retired from watchlistSyncHelpers.js in Phase 1"
+  );
+  const tombWatch = normalizeWatchProperty({
+    id: "plat-2026-1700",
+    tier: "3",
+    trackerStatus: REMOVED_TIER3_TOMBSTONE,
+    updatedAt: "2026-10-27T14:00:00Z",
+  });
+  assert.equal(isRemovedWatchlistTombstone(tombWatch), true);
+  assert.equal(tombWatch.advocacyStatus, "closed");
+  assert.equal(tombWatch.outcome, "not_relevant");
+  assert.equal(tombWatch.attentionLevel, "record");
 
   const researchedPlat = normalizeWatchProperty({
     id: "plat-2026-1659",
@@ -1211,36 +1209,43 @@ test("MOD-1, SCH-1, SCH-3, SCH-4, SCH-5: Modularity, multi-cycle schema, zero ma
     );
   }
 
-  // SCH-4 & SCH-5: property_watchlist.json contains ONLY confirmed watched properties and intact Kirby Mansion snowball terms
+  // SCH-4 & SCH-5: Phase 1 public property_watchlist.json ships strictly the sanitized 2.0-public-stub telemetry envelope
   const wlData = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "property_watchlist.json"), "utf8")
   );
-  assert.ok(Array.isArray(wlData.watchedProperties) && wlData.watchedProperties.length >= 1);
+  assert.equal(wlData.schemaVersion, "2.0-public-stub");
+  assert.equal(wlData.requiresAuth, true);
+  assert.equal(wlData.primaryProperty, null);
+  assert.deepEqual(wlData.watchedProperties, []);
   assert.ok(wlData.lastAutoSweepAt, "property_watchlist.json must record top-level lastAutoSweepAt");
 
-  for (const prop of wlData.watchedProperties) {
-    assert.equal(
-      prop.tierConfirmed,
-      true,
-      `Every property in property_watchlist.json must have tierConfirmed === true (failed on ${prop.id})`
-    );
-    assert.equal(Array.isArray(prop.checklist) && prop.checklist.length, 15);
-  }
-
-  const kirby = wlData.watchedProperties.find((p) => p.id === "prop-kirby-mansion");
-  assert.ok(kirby, "prop-kirby-mansion must be present in property_watchlist.json");
+  // Authenticated dossier normalization preserves Kirby Mansion snowball terms & perimeter altAddresses
+  const kirby = normalizeWatchProperty({
+    id: "prop-kirby-mansion",
+    hcadAccount: "0152300000001",
+    address: "2000 Smith St.",
+    propertyName: "John Henry Kirby Mansion",
+    tier: "1",
+    tierConfirmed: true,
+    searchTerms: {
+      entities: ["Smith St C Store LLC", "OB Texas Properties LLC"],
+      dbas: ["Brake Time"],
+      altAddresses: ["530 Pierce St."],
+    },
+  });
+  assert.equal(Array.isArray(kirby.checklist) && kirby.checklist.length, 15);
   assert.ok(
     kirby.searchTerms?.entities?.includes("Smith St C Store LLC") &&
       kirby.searchTerms?.entities?.includes("OB Texas Properties LLC"),
-    "Kirby Mansion must retain its seeded snowball entities in property_watchlist.json"
+    "Kirby Mansion normalization must retain seeded snowball entities"
   );
   assert.ok(
     kirby.searchTerms?.dbas?.includes("Brake Time"),
-    "Kirby Mansion must retain its seeded snowball DBAs in property_watchlist.json"
+    "Kirby Mansion normalization must retain seeded snowball DBAs"
   );
   assert.ok(
     kirby.searchTerms?.altAddresses?.includes("530 Pierce St."),
-    "Kirby Mansion must retain its perimeter altAddresses in property_watchlist.json"
+    "Kirby Mansion normalization must retain perimeter altAddresses"
   );
 });
 
@@ -1408,21 +1413,21 @@ test("Pass #2 F2-01, F2-02, DF-1 & DF-6: unconfirmed seed purge, Watchlist remov
     false
   );
 
-  // parseCloudSheetSyncRows automatically purges unconfirmed plat seeds while preserving confirmed staff rows with rawProp
-  const csv = [
-    "timestamp,hcad_num,source_type,source_citation,verified_by,status",
-    '2026-10-25T10:00:00Z,WATCH_PROP:plat-DPV-26073533,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-DPV-26073533"",""appNo"":""DPV-26073533"",""tier"":""2""}",Bot,approved',
-    '2026-10-28T10:00:00Z,WATCH_PROP:plat-2026-9001,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-2026-9001"",""appNo"":""2026-9001"",""tier"":""1"",""tierConfirmed"":true}",advocate@preservationhouston.org,approved',
-  ].join("\n");
-  const parsed = parseCloudSheetSyncRows(csv);
+  // isLegacyUnconfirmedPlatSeed purges unconfirmed plat seeds while preserving confirmed staff rows
   assert.equal(
-    parsed.watchProperties.some((w) => w.id === "plat-DPV-26073533"),
-    false,
-    "parseCloudSheetSyncRows must drop legacy unconfirmed plat seeds automatically"
+    isLegacyUnconfirmedPlatSeed({ id: "plat-DPV-26073533", appNo: "DPV-26073533", tier: "2" }),
+    true,
+    "isLegacyUnconfirmedPlatSeed must drop legacy unconfirmed plat seeds automatically"
   );
-  assert.equal(parsed.watchProperties.length, 1);
-  assert.equal(parsed.watchProperties[0].id, "plat-2026-9001");
-  assert.equal(parsed.watchProperties[0].rawProp.tierConfirmed, true);
+  const confirmedStaffRow = normalizeWatchProperty({
+    id: "plat-2026-9001",
+    appNo: "2026-9001",
+    tier: "1",
+    tierConfirmed: true,
+    humanEdited: true,
+  });
+  assert.equal(isLegacyUnconfirmedPlatSeed(confirmedStaffRow), false);
+  assert.equal(confirmedStaffRow.tierConfirmed, true);
 
   // mergePlatReviewOverlay blocks stale address/HCAD resurrection on retracted baseline seeds unless humanEditedFields proves staff edit
   const mergedStale = mergePlatReviewOverlay(
@@ -1808,16 +1813,13 @@ test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and
     ["p-active-1", "p-active-2", "prop-demo-test", "p-archived"]
   );
 
-  // 4. Verify John Henry Kirby Mansion is graduated across property_watchlist.json, overlays.json, and active_permit_alerts.json
+  // 4. Verify John Henry Kirby Mansion is graduated across overlays.json and active_permit_alerts.json while public property_watchlist.json stays sanitized
   const wlData = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "property_watchlist.json"), "utf8")
   );
-  const kirbyWatch = wlData.watchedProperties.find((p) => p.id === "prop-kirby-mansion");
-  assert.ok(kirbyWatch);
-  assert.equal(kirbyWatch.trackerStatus, "Lost");
-  assert.equal(kirbyWatch.demolishedDate, "2026-11-02");
-  assert.equal(kirbyWatch.lostHoustonId, "lost_kirby_mansion_1894");
-  assert.notEqual(wlData.primaryProperty?.id, "prop-kirby-mansion");
+  assert.equal(wlData.requiresAuth, true);
+  assert.deepEqual(wlData.watchedProperties, []);
+  assert.equal(wlData.primaryProperty, null);
 
   const overlays = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "overlays.json"), "utf8")
@@ -1842,6 +1844,26 @@ test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and
   assert.equal(kirbyAlert.lost_houston_id, "lost_kirby_mansion_1894");
 
   // 5. Verify reconcileWatchlistProperty preserves terminal Lost status and 0 Flagged rows even when merged with a stale Active cloud snapshot
+  const kirbyWatch = graduateWatchlistPropertyToLost(
+    normalizeWatchProperty({
+      id: "prop-kirby-mansion",
+      propertyName: "John Henry Kirby Mansion",
+      address: "2000 Smith St.",
+      hcadAccount: "0152300000001",
+      tier: "1",
+      trackerStatus: "Active / High Priority",
+      checklist: buildDefaultChecklist("2000 Smith St.").map((r) =>
+        ["chk-09", "chk-13", "chk-14", "chk-15"].includes(r.id)
+          ? { ...r, status: "Flagged", updatedAt: "2026-10-30T00:16:59.853Z" }
+          : r
+      ),
+    }),
+    {
+      demolishedDate: "2026-11-02",
+      lostHoustonId: "lost_kirby_mansion_1894",
+      nowIso: "2026-11-02T15:00:00Z",
+    }
+  );
   const staleActiveCloud = normalizeWatchProperty({
     ...kirbyWatch,
     trackerStatus: "Active / High Priority",
@@ -2124,17 +2146,39 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
   assert.equal(recPhotoHistory.historyFolderUrl, "https://drive.google.com/drive/folders/example-folder");
   assert.equal(recPhotoHistory.historyLinks.length, 1);
 
-  // F3-01 & F3-06: Verify on-disk property_watchlist.json and plat-monitor.html invariants
+  // F3-01 & F3-06: Verify on-disk property_watchlist.json public stub + authenticated dossier normalization & plat-monitor.html invariants
   const wlDisk = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "property_watchlist.json"), "utf8")
   );
-  const dreyfus = wlDisk.watchedProperties.find((p) => p.id === "plat-DPV-26080390");
-  assert.ok(dreyfus, "3747 Dreyfus (plat-DPV-26080390) must exist in property_watchlist.json");
-  assert.equal(dreyfus.trackerStatus, "Lost");
-  assert.equal(dreyfus.lostHoustonId, "", "3747 Dreyfus was replaced in Nov 2023 per manual Street View review and is NOT in the Lost Houston catalog");
+  assert.equal(wlDisk.requiresAuth, true);
+  assert.deepEqual(wlDisk.watchedProperties, []);
 
-  const canal = wlDisk.watchedProperties.find((p) => p.id === "plat-2026-1587");
-  assert.ok(canal, "2501 Canal (plat-2026-1587) must exist in property_watchlist.json");
+  const dreyfus = normalizeWatchProperty({
+    id: "plat-DPV-26080390",
+    address: "3747 Dreyfus St",
+    trackerStatus: "Lost",
+    lostHoustonId: "",
+  });
+  assert.equal(dreyfus.trackerStatus, "Lost");
+  assert.equal(dreyfus.outcome, "lost");
+  assert.equal(dreyfus.lostHoustonId, "");
+
+  const canal = normalizeWatchProperty({
+    id: "plat-2026-1587",
+    address: "2501 Canal St",
+    ownerOfRecord: "REFOKAS HOLDINGS LLC",
+    developer: "CAS Consultants LLC",
+    lat: 29.7571,
+    lng: -95.3432,
+    checklist: buildDefaultChecklist("2501 Canal St", "0410120000001", "").map((r) =>
+      r.id === "chk-05"
+        ? {
+            ...r,
+            checks: [{ date: "2026-07-21", result: "HCAD owner acquisition date 2026-07-21", source: "manual" }],
+          }
+        : r
+    ),
+  });
   assert.equal(canal.ownerOfRecord, "REFOKAS HOLDINGS LLC");
   assert.equal(canal.developer, "CAS Consultants LLC");
   const canalChk05 = findChecklistRow(canal.checklist, "chk-05");

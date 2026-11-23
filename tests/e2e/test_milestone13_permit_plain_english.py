@@ -11,6 +11,7 @@ from conftest import (
     ExternalUrlHarvester,
     attach_error_monitors,
     configure_fast_e2e_context,
+    seed_phase1_staff_watchlist_session,
     wait_for_atlas_ready,
 )
 
@@ -351,7 +352,8 @@ def test_milestone14_early_warning_permit_and_watchlist_plain_english(
         f"Expected 0 .act-card-plain-note on degraded sweep cards, got {degraded_plain_count}"
     )
 
-    # 4. Switch to Property Watchlist mode for John Henry Kirby Mansion (prop-kirby-mansion)
+    # 4. Switch to authenticated Property Watchlist mode for John Henry Kirby Mansion (prop-kirby-mansion)
+    seed_phase1_staff_watchlist_session(page)
     page.goto(
         f"{atlas_base_url}/plat-monitor.html?mode=watchlist&watch=prop-kirby-mansion",
         wait_until="domcontentloaded",

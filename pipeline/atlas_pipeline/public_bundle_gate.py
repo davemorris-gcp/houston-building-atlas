@@ -24,10 +24,12 @@ import sys
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT / "pipeline") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
-
-from atlas_pipeline.parcel_monitoring_model import sanitize_monitoring_text  # noqa: E402
+try:
+    from .parcel_monitoring_model import sanitize_monitoring_text
+except ImportError:
+    if str(REPO_ROOT / "pipeline") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+    from atlas_pipeline.parcel_monitoring_model import sanitize_monitoring_text
 
 OLDER_RING_SUPER_NEIGHBORHOODS_PUBLIC = frozenset(
     {
@@ -356,6 +358,8 @@ def sanitize_public_monitor_activity_log(act_doc: dict[str, Any]) -> dict[str, A
     doc["lastSweepHealth"] = sanitize_sweep_health_for_public(
         doc.get("lastSweepHealth"), str(doc.get("lastSweepAt") or doc.get("generatedAt") or "")
     )
+    doc["publicOnly"] = True
+    doc["privacyContract"] = "phase1_public_streams_only"
     doc["dailyRuns"] = clean_runs
     doc["events"] = public_events
     doc["summary"] = {

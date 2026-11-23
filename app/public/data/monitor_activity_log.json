@@ -40421,5 +40421,7 @@
         }
       ]
     }
-  ]
+  ],
+  "publicOnly": true,
+  "privacyContract": "phase1_public_streams_only"
 }

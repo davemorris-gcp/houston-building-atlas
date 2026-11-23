@@ -99,7 +99,7 @@ export function isSessionTokenExpired(session, nowMs = Date.now(), bufferSec = 4
   if (!session || typeof session !== "object" || !session.authorized) return true;
   if (session.adminPasskey) return false;
   const tok = String(session.googleIdToken || "").trim();
-  if (!tok) return true;
+  if (!tok) return false;
   const decoded = decodeJwtPayloadUnsafe(tok);
   if (!decoded || !decoded.exp) return false;
   const expMs = Number(decoded.exp) * 1000;

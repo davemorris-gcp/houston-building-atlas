@@ -535,6 +535,7 @@ def compute_attention_level(
 
     stage = _safe_int(parcel.get("threat_stage"))
     has_active_stage = 1 <= stage <= 5
+    active_stage = stage if has_active_stage else 0
 
     has_urgent_hearing = False
     if as_of_date_cst and next_hearing_date_cst:
@@ -561,7 +562,7 @@ def compute_attention_level(
 
     if eff_sig in ("high", "moderate", "needs_research"):
         if has_active_threat:
-            if protection == "binding" and stage <= 3:
+            if protection == "binding" and active_stage <= 3:
                 return "watch"
             return "act"
         return "watch"
@@ -574,7 +575,7 @@ def compute_attention_level(
     if (
         area_ctx["priorityStatus"] == "priority"
         and contributing == "contributing"
-        and 3 <= stage <= 5
+        and 3 <= active_stage <= 5
     ):
         return "watch"
 
@@ -605,7 +606,15 @@ def explain_attention_level(
     if adv == "recording_only":
         return "Record: Placed in Recording Only mode"
     stage = max(0, min(6, _safe_int(parcel.get("threat_stage"))))
+    active_stage = stage if 1 <= stage <= 5 else 0
     stage_label = MONITORING_SCHEMA_CONTRACT["enums"]["threatStages"].get(str(stage), "None")
+    has_urgent_hearing = False
+    if as_of_date_cst and next_hearing_date_cst:
+        delta_days = calendar_days_between(as_of_date_cst, next_hearing_date_cst)
+        has_urgent_hearing = (
+            delta_days is not None
+            and 0 <= delta_days <= int(MONITORING_SCHEMA_CONTRACT["hearingUrgentWindowDays"])
+        )
     sig = (
         sanitize_monitoring_text(parcel.get("significance_level"))
         or sanitize_monitoring_text(parcel.get("recommended_significance"))
@@ -620,17 +629,22 @@ def explain_attention_level(
     ) or classify_protection_level(parcel.get("designation_summary") or "")
 
     if level == "act":
-        return f"Act: {sig.replace('_', ' ')} significance + Stage {stage} ({stage_label})"
+        if active_stage == 0 and has_urgent_hearing:
+            return f"Act: {sig.replace('_', ' ')} significance + upcoming hearing ({next_hearing_date_cst})"
+        return f"Act: {sig.replace('_', ' ')} significance + Stage {active_stage} ({stage_label})"
     if level == "watch":
         if (
             sig in ("high", "moderate", "needs research")
             and prot == "binding"
-            and 1 <= stage <= 3
+            and (active_stage >= 1 or has_urgent_hearing)
+            and active_stage <= 3
         ):
-            return f"Watch: Binding HAHC review moderates Stage {stage} ({stage_label})"
+            if active_stage >= 1:
+                return f"Watch: Binding HAHC review moderates Stage {active_stage} ({stage_label})"
+            return f"Watch: Binding HAHC review moderates upcoming hearing ({next_hearing_date_cst})"
         if sig in ("high", "moderate", "needs research"):
             return f"Watch: {sig} significance with no active threat filing yet"
-        return f"Watch: Contributing parcel in Priority Area facing Stage {stage} ({stage_label})"
+        return f"Watch: Contributing parcel in Priority Area facing Stage {active_stage} ({stage_label})"
     return "Record: Logged for citywide survey and neighborhood metrics"
 
 
@@ -873,6 +887,61 @@ def compact_history_json_fifo(
             last["note"] = last["note"][: max(120, max_chars - 512)]
         kept = [last]
         serialized = _encode(kept, truncated_count)
+    return serialized
+
+
+def compact_watchlist_dossier_json(
+    dossier_obj: dict[str, Any] | None = None,
+    max_chars: int = int(MONITORING_SCHEMA_CONTRACT["safeSheetCellCharLimit"]),
+) -> str:
+    """Compact a `Watchlist_Dossiers.dossier_json` payload FIFO below `48,000` chars as valid JSON."""
+    clean: dict[str, Any] = (
+        _sanitize_payload_dashes(json.loads(json.dumps(dossier_obj)))
+        if isinstance(dossier_obj, dict)
+        else {}
+    )
+    serialized = json.dumps(clean, separators=(",", ":"), ensure_ascii=False)
+    if len(serialized) <= max_chars:
+        return serialized
+
+    if clean.get("photoDataUrl"):
+        clean["photoDataUrl"] = ""
+        clean["photoDataUrlOmittedInCompactCell"] = True
+        serialized = json.dumps(clean, separators=(",", ":"), ensure_ascii=False)
+        if len(serialized) <= max_chars:
+            return serialized
+
+    if isinstance(clean.get("findingsLog"), list) and clean["findingsLog"]:
+        clean["findingsLog"] = []
+        serialized = json.dumps(clean, separators=(",", ":"), ensure_ascii=False)
+        if len(serialized) <= max_chars:
+            return serialized
+
+    dropped_checks = _safe_int(clean.get("truncatedCheckCount"))
+    while len(serialized) > max_chars and isinstance(clean.get("checklist"), list):
+        target_row: dict[str, Any] | None = None
+        max_len = 1
+        for row in clean["checklist"]:
+            if isinstance(row, dict) and isinstance(row.get("checks"), list) and len(row["checks"]) > max_len:
+                max_len = len(row["checks"])
+                target_row = row
+        if target_row is None:
+            break
+        target_row["checks"].pop(0)
+        dropped_checks += 1
+        clean["truncatedCheckCount"] = dropped_checks
+        serialized = json.dumps(clean, separators=(",", ":"), ensure_ascii=False)
+
+    if len(serialized) > max_chars:
+        for tk in ("notes", "buildingHistory", "phPastActions"):
+            if len(serialized) <= max_chars:
+                break
+            val = clean.get(tk)
+            if isinstance(val, str) and len(val) > 200:
+                excess = len(serialized) - max_chars + 256
+                clean[tk] = val[: max(200, len(val) - excess)]
+                serialized = json.dumps(clean, separators=(",", ":"), ensure_ascii=False)
+
     return serialized
 
 

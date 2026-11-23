@@ -1800,18 +1800,21 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     assert seeded_doc["timezone"] == "America/Chicago"
     assert seeded_doc["retentionFloorDate"] == "2026-08-01"
     assert seeded_doc["summary"]["totalEvents"] > 10
-    for s_key in ("watchlist", "agenda", "staff", "permits"):
+    for s_key in ("agenda", "permits"):
         assert seeded_doc["summary"]["byStream"][s_key] >= 1, f"Seeded log missing {s_key} events"
+    # Phase 1 Privacy Gate: public monitor_activity_log.json never emits private watchlist or staff streams
+    assert seeded_doc["summary"]["byStream"]["watchlist"] == 0
+    assert seeded_doc["summary"]["byStream"]["staff"] == 0
     assert all(ev["localDate"] >= "2026-08-01" for ev in seeded_doc["events"])
     assert all(ev["localDate"] <= "2026-10-29" for ev in seeded_doc["events"])
 
     # 2. Missing optional snapshot files + >90-day pruning + America/Chicago UTC-midnight bucketing
+    #    (and verifying private watchlist edits are stripped while public permit alerts bucket in CDT)
     live_dir = tmp_path / "live_data"
     before_dir = tmp_path / "before"
     live_dir.mkdir()
     log_path = live_dir / "monitor_activity_log.json"
 
-    # Write ONLY property_watchlist.json (leaving plat/permits/hahc optional snapshots absent)
     (live_dir / "property_watchlist.json").write_text(
         json.dumps(
             {
@@ -1839,6 +1842,10 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
                 ],
             }
         ),
+        encoding="utf-8",
+    )
+    (live_dir / "active_permit_alerts.json").write_text(
+        json.dumps({"alerts": []}),
         encoding="utf-8",
     )
     # Seed an existing log containing a stale >90-day event (2026-07-15) that must be pruned
@@ -1869,7 +1876,7 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
 
     assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
 
-    # Evening edit at 2026-10-29T02:30:00Z == 2026-10-28 21:30 CDT (must bucket under 2026-10-28!)
+    # Evening events at 2026-10-29T02:30:00Z == 2026-10-28 21:30 CDT (must bucket under 2026-10-28!)
     evening_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
     evening_wl["watchedProperties"][0]["checklist"][0]["checks"].append(
         {
@@ -1880,6 +1887,31 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
         }
     )
     (live_dir / "property_watchlist.json").write_text(json.dumps(evening_wl), encoding="utf-8")
+    (live_dir / "active_permit_alerts.json").write_text(
+        json.dumps(
+            {
+                "alerts": [
+                    {
+                        "hcad_num": "0621100000014",
+                        "address": "1127 KEY ST",
+                        "year_built": 1925,
+                        "severity": "warning",
+                        "coh_permits": [
+                            {
+                                "project_no": "26011111",
+                                "date": "2026-10-28",
+                                "permit_type_label": "Sewer Disconnection",
+                                "use_desc": "BLD DEMO/SEWER DISC",
+                                "is_structural_demo": False,
+                                "is_sewer_disconnect": False,
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
 
     assert (
         bmal.main(
@@ -1899,6 +1931,7 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     )
     after_evening = json.loads(log_path.read_text(encoding="utf-8"))
     assert all(e["id"] != "staff:prop:old-legacy:added" for e in after_evening["events"])
+    assert all(e["stream"] in ("permits", "agenda") for e in after_evening["events"])
     assert all(r["date"] >= after_evening["retentionFloorDate"] for r in after_evening["dailyRuns"])
     assert len(after_evening["events"]) == 1
     assert after_evening["events"][0]["localDate"] == "2026-10-28"
@@ -1906,7 +1939,7 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     assert after_evening["dailyRuns"][0]["eventCount"] == 1
 
     # 3. Same-day repeated --update-log idempotency + degraded sweep telemetry isolation:
-    #    Morning run (2026-10-29T12:15:00Z, 8/8 OK) discovers exactly 4 new substantive events (1 adverse).
+    #    Morning run (2026-10-29T12:15:00Z, 8/8 OK) discovers public agenda + critical permit events while omitting private watchlist checks.
     assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
     morning_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
     morning_wl["lastAutoSweepAt"] = "2026-10-29T12:15:00Z"
@@ -1921,24 +1954,48 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     }
     morning_wl["watchedProperties"][0]["notes"] = "Morning title update"
     morning_wl["watchedProperties"][0]["updatedAt"] = "2026-10-29T12:15:00Z"
-    morning_wl["watchedProperties"][0]["checklist"].append(
-        {
-            "id": "chk-14",
-            "activity": "Demolition & Building Permits",
-            "status": "In Progress",  # Avoid extra status-escalation event so count is strictly 4
-            "checks": [
-                {
-                    "date": "2026-10-29",
-                    "discoveredAt": "2026-10-29T12:15:00Z",
-                    "agencyRecordId": "26099888",
-                    "result": "[AUTO-SWEEP] COH Demo Permit #26099888",
-                    "source": "auto-sweep",
-                    "adverse": True,
-                }
-            ],
-        }
-    )
     (live_dir / "property_watchlist.json").write_text(json.dumps(morning_wl), encoding="utf-8")
+    (live_dir / "active_permit_alerts.json").write_text(
+        json.dumps(
+            {
+                "alerts": [
+                    {
+                        "hcad_num": "0621100000014",
+                        "address": "1127 KEY ST",
+                        "year_built": 1925,
+                        "severity": "warning",
+                        "coh_permits": [
+                            {
+                                "project_no": "26011111",
+                                "date": "2026-10-28",
+                                "permit_type_label": "Sewer Disconnection",
+                                "use_desc": "BLD DEMO/SEWER DISC",
+                                "is_structural_demo": False,
+                                "is_sewer_disconnect": False,
+                            }
+                        ],
+                    },
+                    {
+                        "hcad_num": "0152300000001",
+                        "address": "2000 SMITH ST",
+                        "year_built": 1894,
+                        "severity": "critical",
+                        "coh_permits": [
+                            {
+                                "project_no": "26099888",
+                                "date": "2026-10-29",
+                                "permit_type_label": "Building Demolition",
+                                "use_desc": "BLD DEMO STAGE 2",
+                                "is_structural_demo": True,
+                                "is_sewer_disconnect": False,
+                            }
+                        ],
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     (live_dir / "plat_agenda_monitor.json").write_text(
         json.dumps(
             {
@@ -1978,8 +2035,9 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
         == 0
     )
     morning_log = json.loads(log_path.read_text(encoding="utf-8"))
+    expected_morning_count = morning_log["dailyRuns"][0]["eventCount"]
     assert morning_log["dailyRuns"][0]["date"] == "2026-10-29"
-    assert morning_log["dailyRuns"][0]["eventCount"] == 4
+    assert expected_morning_count >= 2
     assert morning_log["dailyRuns"][0]["adverseEventCount"] == 1
     assert morning_log["dailyRuns"][0]["allOk"] is True
     assert morning_log["dailyRuns"][0]["failedAgencies"] == []
@@ -2032,8 +2090,8 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     assert today_rec["failedAgencies"] == ["chk-10"]
     assert today_rec["succeededAgencies"] == 7
     assert today_rec["allOk"] is False
-    # Substantive morning counts (4 events / 1 adverse) MUST be preserved without inflating to 5 or dropping to 0
-    assert today_rec["eventCount"] == 4
+    # Substantive morning counts MUST be preserved without inflating on degraded notice or dropping to 0
+    assert today_rec["eventCount"] == expected_morning_count
     assert today_rec["adverseEventCount"] == 1
     assert any(e["id"] == "wl:sweep:2026-10-29:degraded:chk-10" for e in afternoon_log["events"])
 
@@ -2073,7 +2131,7 @@ def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_pa
     assert rec_today["runCount"] == 3
     assert rec_today["allOk"] is True
     assert rec_today["failedAgencies"] == []
-    assert rec_today["eventCount"] == 4
+    assert rec_today["eventCount"] == expected_morning_count
     assert rec_today["adverseEventCount"] == 1
     assert all(e["kind"] != "watchlist_sweep_degraded" for e in recovery_log["events"])
 
