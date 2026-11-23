@@ -26,6 +26,13 @@ import {
   cleanEntityListString,
   canonicalPropertyAddressKey,
 } from "./platMonitorHelpers.js?v=20261113c";
+import {
+  classifyProtectionLevel,
+  computeAttentionLevel,
+  deriveLegacyTierFromParcel,
+  migrateLegacyTierToParcelFields,
+  resolveCanonicalParcelId,
+} from "./parcelMonitoringModel.js?v=20261113c";
 
 export {
   stripCorporateSuffixCommas,
@@ -1484,8 +1491,95 @@ export function normalizeWatchProperty(rawProp = {}) {
     : "";
   const resolvedOwnerOfRecord = hcadOwnerResolved || rawOwnerClean;
 
+  const hcadParsed = parseHcadAccountList(
+    String(rawProp.hcadAccount ?? rawProp.hcad ?? rawProp.hcad_num ?? "").trim()
+  );
+  const resolvedParcelId = resolveCanonicalParcelId({
+    parcelId: rawProp.parcelId || rawProp.parcel_id || "",
+    campusGroupId: rawProp.campusGroupId || rawProp.campus_group_id || "",
+    hcadIds: hcadParsed.hcadIds,
+    appNo: resolvedAppNo,
+    address,
+    name: propertyName,
+  });
+  const migratedParcelDefaults = migrateLegacyTierToParcelFields(
+    {
+      tier,
+      trackerStatus,
+      removedFromWatchlist: isTombstone,
+      yearBuilt: rawProp.yearBuilt ?? "",
+      designation: rawProp.designation ?? "",
+      notes: rawProp.notes ?? "",
+      removalReason: rawProp.removalReason ?? "",
+      threatStage: rawProp.threatStage ?? rawProp.threat_stage,
+    },
+    { isWatchlist: true }
+  );
+  const reviewStatus = String(
+    rawProp.reviewStatus || rawProp.review_status || migratedParcelDefaults.review_status
+  ).trim();
+  const recommendedSignificance = String(
+    rawProp.recommendedSignificance ??
+      rawProp.recommended_significance ??
+      migratedParcelDefaults.recommended_significance
+  ).trim();
+  const significanceLevel = String(
+    rawProp.significanceLevel ??
+      rawProp.significance_level ??
+      migratedParcelDefaults.significance_level
+  ).trim();
+  const significanceBasis = Array.isArray(rawProp.significanceBasis)
+    ? rawProp.significanceBasis.join("; ")
+    : String(rawProp.significanceBasis ?? rawProp.significance_basis ?? "").trim();
+  const contributingStatus = String(
+    rawProp.contributingStatus ||
+      rawProp.contributing_status ||
+      migratedParcelDefaults.contributing_status
+  ).trim();
+  const integrity = String(rawProp.integrity || "").trim();
+  const protectionLevel = String(
+    rawProp.protectionLevel ||
+      rawProp.protection_level ||
+      classifyProtectionLevel(String(rawProp.designation || ""))
+  ).trim();
+  const advocacyStatus = String(
+    rawProp.advocacyStatus || rawProp.advocacy_status || migratedParcelDefaults.advocacy_status
+  ).trim();
+  const outcome = String(
+    rawProp.outcome !== undefined ? rawProp.outcome : migratedParcelDefaults.outcome
+  ).trim();
+  const attentionOverride = String(
+    rawProp.attentionOverride ?? rawProp.attention_override ?? ""
+  ).trim();
+  const threatStage = Number.isFinite(Number(rawProp.threatStage ?? rawProp.threat_stage))
+    ? Math.max(0, Math.min(6, Math.trunc(Number(rawProp.threatStage ?? rawProp.threat_stage))))
+    : migratedParcelDefaults.threat_stage;
+  const attentionLevel = computeAttentionLevel({
+    year_built: Number(String(rawProp.yearBuilt || "").slice(0, 4)) || 0,
+    designation_summary: String(rawProp.designation || ""),
+    review_status: reviewStatus,
+    recommended_significance: recommendedSignificance,
+    significance_level: significanceLevel,
+    contributing_status: contributingStatus,
+    protection_level: protectionLevel,
+    threat_stage: threatStage,
+    advocacy_status: advocacyStatus,
+    outcome,
+    attention_override: attentionOverride,
+  });
+  const derivedTier =
+    deriveLegacyTierFromParcel({
+      review_status: reviewStatus,
+      recommended_significance: recommendedSignificance,
+      significance_level: significanceLevel,
+      advocacy_status: advocacyStatus,
+      outcome,
+      attention_level: attentionLevel,
+    }) || tier;
+
   const normalized = {
     id,
+    parcelId: resolvedParcelId,
     propertyName,
     platProjectName: String(
       rawProp.platProjectName || (resolvedAppNo ? propertyName : "") || ""
@@ -1509,6 +1603,19 @@ export function normalizeWatchProperty(rawProp = {}) {
     designFirm,
     architectEngineer: designFirm,
     tier,
+    derivedTier,
+    reviewStatus,
+    recommendedSignificance,
+    significanceLevel,
+    significanceBasis,
+    contributingStatus,
+    integrity,
+    protectionLevel,
+    threatStage,
+    advocacyStatus,
+    outcome,
+    attentionLevel,
+    attentionOverride,
     tierConfirmed: isTombstone
       ? false
       : isPlatOriginated
@@ -2710,23 +2817,30 @@ export function graduateWatchlistPropertyToLost(
  * (Lost / Saved) and Archived (Tier 3 / Tier 4) entries below active watched properties.
  */
 export function sortWatchedProperties(list = []) {
+  const attentionOrder = { act: 0, watch: 1, record: 2 };
   const tierOrder = { "1": 0, "2": 1, "3": 2, "4": 3 };
   const inactiveRank = (p) => {
     const st = String(p?.trackerStatus || "");
-    if (isArchivedWatchlistStatus(st)) return 2;
-    if (st === "Lost" || st === "Saved") return 1;
+    const adv = String(p?.advocacyStatus || "");
+    const out = String(p?.outcome || "");
+    if (isArchivedWatchlistStatus(st) || out === "not_relevant" || out === "no_longer_threatened") {
+      return 2;
+    }
+    if (st === "Lost" || st === "Saved" || adv === "closed" || out === "lost" || out === "saved") {
+      return 1;
+    }
     return 0;
   };
   return (Array.isArray(list) ? list : []).slice().sort((a, b) => {
     const aInact = inactiveRank(a);
     const bInact = inactiveRank(b);
     if (aInact !== bInact) return aInact - bInact;
+    const attA = attentionOrder[String(a?.attentionLevel || "")] ?? 9;
+    const attB = attentionOrder[String(b?.attentionLevel || "")] ?? 9;
+    if (attA !== attB && attA < 9 && attB < 9) return attA - attB;
     const ta = tierOrder[String(a?.tier || "1")] ?? 2;
     const tb = tierOrder[String(b?.tier || "1")] ?? 2;
     if (ta !== tb) return ta - tb;
-    const aKirby = a?.id === "prop-kirby-mansion" ? 0 : 1;
-    const bKirby = b?.id === "prop-kirby-mansion" ? 0 : 1;
-    if (aKirby !== bKirby) return aKirby - bKirby;
     const addrA = String(a?.address || a?.propertyName || "");
     const addrB = String(b?.address || b?.propertyName || "");
     return addrA.localeCompare(addrB);

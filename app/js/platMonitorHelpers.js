@@ -12,6 +12,20 @@
  *   5. Human-contribution dossier detection guarding Tier 3 downgrades and cleanups.
  */
 
+import {
+  classifyProtectionLevel,
+  computeAttentionLevel,
+  deriveLegacyTierFromParcel,
+  migrateLegacyTierToParcelFields,
+} from "./parcelMonitoringModel.js?v=20261113c";
+
+export {
+  classifyProtectionLevel,
+  computeAttentionLevel,
+  deriveLegacyTierFromParcel,
+  migrateLegacyTierToParcelFields,
+};
+
 export const THREAT_CATEGORIES = [
   "Significant Building Threatened",
   "Neighborhood / District Context Impact",
@@ -455,6 +469,27 @@ export function resolveMultiParcelBuildingTier(
     suggestedTier = "2";
   }
 
+  const protectionLevel = classifyProtectionLevel(uniqueDesignations.join("; "));
+  const suggestedAttentionLevel = computeAttentionLevel({
+    year_built: oldestYearBuilt,
+    designation_summary: uniqueDesignations.join("; "),
+    protection_level: protectionLevel,
+    review_status: uniqueDesignations.length > 0 ? "assessed" : "not_reviewed",
+    significance_level:
+      uniqueDesignations.length > 0
+        ? "high"
+        : suggestedTier === "1"
+        ? "high"
+        : suggestedTier === "2"
+        ? "moderate"
+        : "",
+    threat_stage: allParcelsConfirmedVacant && oldestYearBuilt === 0 ? 0 : 3,
+    advocacy_status:
+      allParcelsConfirmedVacant && uniqueDesignations.length === 0 && oldestYearBuilt === 0
+        ? "recording_only"
+        : "monitoring",
+  });
+
   return {
     oldestYearBuilt,
     earliestYearBuilt: oldestYearBuilt,
@@ -464,6 +499,8 @@ export function resolveMultiParcelBuildingTier(
     primaryAddress,
     parcels: parcelSummaries,
     designations: uniqueDesignations,
+    protectionLevel,
+    suggestedAttentionLevel,
     suggestedTier,
     confirmedVacant: allParcelsConfirmedVacant,
   };
@@ -2182,6 +2219,8 @@ export function buildWatchedDeveloperMap({
   cycles = {},
   cycleOrder = [],
   watchedProperties = [],
+  watchedEntities = null,
+  curatedOnly = Array.isArray(watchedEntities),
   isTombstoneFn = null,
 } = {}) {
   const map = new Map();
@@ -2193,12 +2232,37 @@ export function buildWatchedDeveloperMap({
     const dup = bucket.some(
       (d) =>
         d.sourceType === descriptor.sourceType &&
+        d.entityId === descriptor.entityId &&
         d.watchId === descriptor.watchId &&
         d.cycleKey === descriptor.cycleKey &&
         d.appNo === descriptor.appNo
     );
     if (!dup) bucket.push({ ...descriptor, rawName: rawPart, entityKey: key });
   };
+
+  if (Array.isArray(watchedEntities)) {
+    for (const ent of watchedEntities) {
+      if (!ent || typeof ent !== "object") continue;
+      if (ent.active === false || String(ent.active).trim().toLowerCase() === "false") continue;
+      const name = String(ent.entity_name || ent.name || "").trim();
+      if (!name) continue;
+      addEntry(name, {
+        sourceType: "watched_entity",
+        entityId: String(ent.entity_id || ""),
+        entityRole: String(ent.entity_role || "developer"),
+        label: name,
+        patternNotes: String(ent.pattern_notes || ""),
+        address: String(ent.linked_parcel_ids || ""),
+        watchId: "",
+        cycleKey: "",
+        appNo: "",
+        tier: "1",
+      });
+    }
+    if (curatedOnly) {
+      return map;
+    }
+  }
 
   for (const wp of Array.isArray(watchedProperties) ? watchedProperties : []) {
     if (!wp || typeof wp !== "object") continue;
