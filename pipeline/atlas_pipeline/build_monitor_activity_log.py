@@ -2062,11 +2062,14 @@ def run_update_or_seed(
         retention_days=retention_days,
         seed_mode=seed_initial,
     )
+    from atlas_pipeline.public_bundle_gate import sanitize_public_monitor_activity_log
+
+    public_merged = sanitize_public_monitor_activity_log(merged)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    payload_txt = json.dumps(merged, indent=2)
+    payload_txt = json.dumps(public_merged, indent=2)
     assert "\u2014" not in payload_txt, "Generated monitor_activity_log.json must never contain U+2014"
     log_path.write_text(payload_txt + "\n", encoding="utf-8")
-    return merged
+    return public_merged
 
 
 def main(argv: list[str] | None = None) -> int:

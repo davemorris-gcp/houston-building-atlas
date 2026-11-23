@@ -7742,26 +7742,227 @@ def _parse_cloud_sheet_sync_csv_text(csv_text: str) -> dict:
     return {"platReviews": plat_reviews, "watchProperties": watch_props}
 
 
+def pull_workspace_monitoring_via_pipeline_token(
+    *,
+    webhook_url: str = SHEET_WEBHOOK_URL,
+    pipeline_token: str = "",
+    timeout: int = 45,
+) -> dict:
+    """Pull normalized Phase 1 monitoring tables via authenticated `pipeline_pull_monitoring`."""
+    tok = (pipeline_token or os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN") or "").strip()
+    if not tok or not webhook_url:
+        return {"platReviews": {}, "watchProperties": {}, "parcels": [], "watchedEntities": []}
+    try:
+        req = urllib.request.Request(
+            webhook_url,
+            data=json.dumps(
+                {"action": "pipeline_pull_monitoring", "pipeline_token": tok}
+            ).encode("utf-8"),
+            headers={"Content-Type": "text/plain;charset=utf-8"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8", errors="ignore"))
+    except Exception as exc:
+        print(f"[warn] pipeline_pull_monitoring failed ({exc})")
+        return {"platReviews": {}, "watchProperties": {}, "parcels": [], "watchedEntities": []}
+
+    if not isinstance(body, dict) or not body.get("ok"):
+        return {"platReviews": {}, "watchProperties": {}, "parcels": [], "watchedEntities": []}
+
+    from atlas_pipeline.parcel_monitoring_model import derive_legacy_tier_from_parcel
+
+    plat_reviews: dict[tuple[str, str], dict] = {}
+    watch_props: dict[str, dict] = {}
+    parcels_by_id = {
+        str(p.get("parcel_id") or ""): p
+        for p in (body.get("parcels") or [])
+        if isinstance(p, dict) and p.get("parcel_id")
+    }
+    for dec in body.get("decisions") or []:
+        if not isinstance(dec, dict):
+            continue
+        ck = str(dec.get("latest_cycle_key") or "").strip()
+        ap = str(dec.get("latest_app_no") or "").strip()
+        pid = str(dec.get("parcel_id") or "").strip()
+        p_rec = parcels_by_id.get(pid) or dec
+        if ck and ap:
+            plat_reviews[(ck, ap)] = {
+                "hcad": str(dec.get("hcad_num") or p_rec.get("hcad_num") or ""),
+                "address": str(p_rec.get("primary_address") or ""),
+                "yearBuilt": str(p_rec.get("year_built") or ""),
+                "designation": str(p_rec.get("designation_summary") or ""),
+                "tier": derive_legacy_tier_from_parcel(p_rec),
+                "tierConfirmed": dec.get("review_status") in ("assessed", "needs_research"),
+                "why": str(dec.get("screening_notes") or ""),
+                "updated": str(dec.get("decided_at") or p_rec.get("updated_at") or ""),
+            }
+
+    for raw_d in body.get("watchlistDossiers") or []:
+        if not isinstance(raw_d, dict):
+            continue
+        prop_obj = (
+            json.loads(raw_d["dossier_json"])
+            if isinstance(raw_d.get("dossier_json"), str) and raw_d["dossier_json"].startswith("{")
+            else dict(raw_d)
+        )
+        pid = str(prop_obj.get("id") or raw_d.get("watch_property_id") or "").strip()
+        if pid and not is_legacy_unconfirmed_plat_seed(prop_obj):
+            prop_obj["id"] = pid
+            norm_rec = normalize_watch_property_record(prop_obj)
+            norm_rec["_hasExplicitSearchTerms"] = isinstance(prop_obj.get("searchTerms"), dict) or bool(
+                prop_obj.get("searchTermsUpdatedAt")
+            )
+            norm_rec["_hasExplicitDriveLinks"] = (
+                isinstance(prop_obj.get("driveLinks"), list)
+                or isinstance(prop_obj.get("documents"), list)
+                or bool(prop_obj.get("driveLinksUpdatedAt"))
+            )
+            norm_rec["_hasExplicitChecklist"] = (
+                isinstance(prop_obj.get("checklist"), list) and len(prop_obj.get("checklist")) > 0
+            )
+            watch_props[pid] = norm_rec
+
+    return {
+        "platReviews": plat_reviews,
+        "watchProperties": watch_props,
+        "parcels": list(parcels_by_id.values()),
+        "watchedEntities": list(body.get("watchedEntitiesForMatching") or []),
+    }
+
+
+def push_sweep_results_to_workspace(
+    watchlist_doc: dict,
+    *,
+    webhook_url: str = SHEET_WEBHOOK_URL,
+    pipeline_token: str = "",
+    timeout: int = 60,
+) -> dict:
+    """Push automated 8-agency sweep updates back to Google Workspace without touching human columns."""
+    tok = (pipeline_token or os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN") or "").strip()
+    if not tok or not webhook_url:
+        return {"ok": False, "skipped": True}
+
+    from atlas_pipeline.parcel_monitoring_model import (
+        classify_protection_level,
+        compute_threat_stage_from_events,
+        evaluate_historical_baseline_event,
+        map_agency_or_permit_to_threat_stage,
+        parse_related_hcads,
+        resolve_canonical_parcel_id,
+        to_chicago_calendar_date,
+    )
+
+    as_of_cst = to_chicago_calendar_date(watchlist_doc.get("lastAutoSweepAt") or "")
+    parcel_patches: list[dict] = []
+    events_out: list[dict] = []
+    dossiers_out: list[dict] = []
+
+    for wp in watchlist_doc.get("watchedProperties") or []:
+        if not isinstance(wp, dict) or not wp.get("id"):
+            continue
+        dossiers_out.append(wp)
+        hcads = parse_related_hcads(wp.get("hcadAccount") or "")
+        pid = resolve_canonical_parcel_id(
+            parcel_id=str(wp.get("parcelId") or ""),
+            hcad_ids=hcads,
+            app_no=str(wp.get("appNo") or ""),
+            address=str(wp.get("address") or ""),
+            name=str(wp.get("propertyName") or wp["id"]),
+        )
+        added_at = str((wp.get("keyDates") or {}).get("monitoringStarted") or wp.get("updatedAt") or "")
+        p_events: list[dict] = []
+        for chk_row in wp.get("checklist") or []:
+            if not isinstance(chk_row, dict):
+                continue
+            chk_id = str(chk_row.get("id") or "")
+            for idx_c, chk in enumerate(chk_row.get("checks") or []):
+                if not isinstance(chk, dict):
+                    continue
+                res_txt = str(chk.get("result") or "").strip()
+                if not res_txt or "no new filings" in res_txt.lower() or "no matching" in res_txt.lower():
+                    continue
+                st = map_agency_or_permit_to_threat_stage(
+                    source_agency=chk_id,
+                    event_kind=str(chk_row.get("title") or chk_id),
+                    summary_text=res_txt,
+                    adverse=chk.get("adverse") is not False,
+                )
+                if st <= 0:
+                    continue
+                f_date = str(chk.get("date") or "")
+                is_hist = bool(chk.get("historicalBaseline") is True) or evaluate_historical_baseline_event(
+                    filing_date=f_date,
+                    parcel_added_at=added_at,
+                    as_of_date_cst=as_of_cst,
+                )
+                ref_tok = str(chk.get("agencyRecordId") or f"{f_date}_{idx_c}")
+                ev_obj = {
+                    "event_id": f"EVT:{chk_id}:{ref_tok}:{pid}",
+                    "parcel_id": pid,
+                    "hcad_num": hcads[0] if hcads else "",
+                    "threat_stage": st,
+                    "source_agency": chk_id,
+                    "event_kind": str(chk_row.get("title") or chk_id),
+                    "filing_date": to_chicago_calendar_date(f_date) or f_date,
+                    "detected_at": str(chk.get("discoveredAt") or watchlist_doc.get("lastAutoSweepAt") or ""),
+                    "is_historical_baseline": is_hist,
+                    "headline": res_txt[:160],
+                    "summary": res_txt[:1000],
+                    "party_names": str(wp.get("developer") or ""),
+                    "mismatch_flag": "",
+                    "source_url": "",
+                    "raw_ref_id": ref_tok,
+                }
+                events_out.append(ev_obj)
+                p_events.append(ev_obj)
+
+        parcel_patches.append(
+            {
+                "parcel_id": pid,
+                "hcad_num": hcads[0] if hcads else "",
+                "owner_of_record": str(wp.get("ownerOfRecord") or ""),
+                "designation_summary": str(wp.get("designation") or ""),
+                "protection_level": classify_protection_level(wp.get("designation") or ""),
+                "threat_stage": compute_threat_stage_from_events(p_events),
+                "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
+            }
+        )
+
+    try:
+        req = urllib.request.Request(
+            webhook_url,
+            data=json.dumps(
+                {
+                    "action": "pipeline_push_sweep_results",
+                    "pipeline_token": tok,
+                    "parcels": parcel_patches,
+                    "events": events_out,
+                    "watchlistDossiers": dossiers_out,
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "text/plain;charset=utf-8"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8", errors="ignore"))
+    except Exception as exc:
+        print(f"[warn] pipeline_push_sweep_results failed ({exc})")
+        return {"ok": False, "error": str(exc)}
+
+
 def pull_cloud_sheet_sync_rows(
     csv_text: str | None = None,
     backup_json_path: Path | None = DEFAULT_WORKSPACE_BACKUP_PATH,
 ) -> dict:
-    """Pull approved PLAT_MONITOR_REVIEW and PROPERTY_WATCHLIST_UPDATE rows from Plat_&_Watchlist_Sync."""
+    """Pull monitoring state via authenticated `ATLAS_PIPELINE_SYNC_TOKEN` (or hermetic test fixtures)."""
     if csv_text is not None:
         return _parse_cloud_sheet_sync_csv_text(csv_text)
 
-    cb = int(dt.datetime.now().timestamp())
-    primary_b = fetch_bytes(f"{SHEET_WEBHOOK_URL}?feed=plat_sync", timeout=35)
-    if primary_b:
-        parsed_primary = _parse_cloud_sheet_sync_csv_text(primary_b.decode("utf-8", errors="ignore"))
-        if parsed_primary["platReviews"] or parsed_primary["watchProperties"]:
-            return parsed_primary
-
-    raw_b = fetch_bytes(f"{SHEET_PUBLISHED_CSV_URL}&_cb={cb}", timeout=20)
-    if raw_b:
-        parsed_fallback = _parse_cloud_sheet_sync_csv_text(raw_b.decode("utf-8", errors="ignore"))
-        if parsed_fallback["platReviews"] or parsed_fallback["watchProperties"]:
-            return parsed_fallback
+    if os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN"):
+        pulled = pull_workspace_monitoring_via_pipeline_token(webhook_url=SHEET_WEBHOOK_URL)
+        if pulled.get("platReviews") or pulled.get("watchProperties"):
+            return pulled
 
     if backup_json_path is not None and backup_json_path.exists():
         try:
@@ -9074,25 +9275,36 @@ def main() -> None:
         except Exception as exc:
             print(f"[warn] Could not read prior {plat_out.name}: {exc}")
 
+    from atlas_pipeline.public_bundle_gate import (
+        build_public_watchlist_telemetry_stub,
+        sanitize_public_plat_agenda_dataset,
+    )
+
     if sweep_plat_dataset is plat_dataset:
+        public_plat = sanitize_public_plat_agenda_dataset(plat_dataset)
         with open(plat_out, "w", encoding="utf-8") as f:
-            json.dump(plat_dataset, f, indent=2)
+            json.dump(public_plat, f, indent=2)
         print(
-            f"[6/6] Wrote {plat_out} (active cycle {plat_dataset['cycleKey']}, "
-            f"cycles={plat_dataset['cycleOrder']}, "
-            f"{plat_dataset['summary']['totalAgendaItems']} active items, "
-            f"{plat_dataset['summary']['toCheckCount']} to check)."
+            f"[6/6] Wrote sanitized public {plat_out} (active cycle {public_plat['cycleKey']}, "
+            f"cycles={public_plat['cycleOrder']}, "
+            f"{public_plat['summary']['totalAgendaItems']} active items, "
+            f"{public_plat['summary']['toCheckCount']} to check)."
         )
 
     watchlist = build_property_watchlist(
         sweep_plat_dataset, idx, cloud_sync=cloud_sync, run_live_sweeps=True
     )
+    if os.environ.get("ATLAS_PIPELINE_SYNC_TOKEN"):
+        push_res = push_sweep_results_to_workspace(watchlist)
+        print(f"      Pushed private sweep updates to Google Workspace: {push_res}")
+
+    public_wl_stub = build_public_watchlist_telemetry_stub(watchlist)
     wl_out = DATA_DIR / "property_watchlist.json"
     with open(wl_out, "w", encoding="utf-8") as f:
-        json.dump(watchlist, f, indent=2)
+        json.dump(public_wl_stub, f, indent=2)
     print(
-        f"      Wrote {wl_out} ({len(watchlist['watchedProperties'])} confirmed watched properties, "
-        f"lastAutoSweepAt={watchlist['lastAutoSweepAt']})."
+        f"      Wrote sanitized public sweep health stub {wl_out} "
+        f"(lastAutoSweepAt={public_wl_stub['lastAutoSweepAt']})."
     )
 
     enrich_kirby_mansion_permit_alert()

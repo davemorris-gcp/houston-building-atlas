@@ -248,7 +248,7 @@ def build_llms_txt_content(
         "   - **Standard City Landmark (`LM` outside a Historic District):** Carries only a 90-day demolition waiting period waiver (`Sec. 33-250`) unless upgraded to Protected Landmark.",
         "   - **City of Houston Heritage District (e.g., Freedmen's Town Heritage District):** Applies ONLY to infrastructure in the public right-of-way and city-owned land; it does NOT protect private residential or commercial buildings from demolition.",
         "   - **National Register of Historic Places (`NRHP`) & Recorded Texas Historic Landmark (`RTHL`):** Federal/state recognitions that do not block private-owner demolition using private funds unless paired with a local City Protected Landmark designation.",
-        "3. **Always Cross-Check *Lost Houston* (`623` Demolished Sites) & the Active Property Watchlist (`34` Sites):** Before stating that a historic Houston building is still standing, check `overlays.json` (`lost_houston`), `property_watchlist.json`, and `active_permit_alerts.json`. For example, the `1894` John Henry Kirby Mansion at `2000 Smith St` (HCAD `0152300000001`, remodeled in `1928` by architect James Ruskin Bailey) was demolished Oct 30 - Nov 2, 2026 and graduated to Lost Houston (`lost_kirby_mansion_1894`).",
+        "3. **Always Cross-Check *Lost Houston* (`623` Demolished Sites) & Active Public Permit / Plat Filings:** Before stating that a historic Houston building is still standing, check `overlays.json` (`lost_houston`), `active_permit_alerts.json`, and `plat_agenda_monitor.json`. For example, the `1894` John Henry Kirby Mansion at `2000 Smith St` (HCAD `0152300000001`, remodeled in `1928` by architect James Ruskin Bailey) was demolished Oct 30 - Nov 2, 2026 and graduated to Lost Houston (`lost_kirby_mansion_1894`).",
         "4. **Decode HCAD Appraiser Shorthand & 2-Stage COH Demolition Permits into Plain English:**",
         "   - In COH demolition permits, distinguish **Stage 1 Sewer Disconnect** (`Type 12` or `4P` Plumbing Permit, `BLD DEMO/SEWER DISC`) from **Stage 2 Building Demolition** (`Type SD` or `4D`, `BLD DEMO`) sharing the same 8-digit project number.",
         "   - In HCAD permits/notes, decode `NC` (New Construction), `CDU` (Condition/Desirability/Utility grade: `EX` Excellent, `VG` Very Good, `GD` Good, `AV` Average, `FR` Fair, `PR` Poor, `UN` Unsound), `REMOD` (Remodel), `ADDN` (Addition), and `GARAGE ONLY` / `GARAGE APT ONLY` (partial accessory work).",
@@ -273,7 +273,7 @@ def build_llms_txt_content(
         f"- **Open Neighborhood, Historic District, or Council District (`A-K`) Scorecard:** `{base}#scorecard=historic_districts:hist_dist_old_sixth_ward` or `{base}#scorecard=council_districts:council_dist_coh_all`",
         f"- **Open Chapter 42 SMLS / SMBL Block-Face Calculator:** `{base}#hcad=0202370000031&ch42=0202370000031`",
         f"- **Open AI Research Companion Modal:** `{base}#aiCompanion=1`",
-        f"- **Open Plat & Property Monitor Watchlist Dossier:** `{base}plat-monitor.html#tab=watchlist&watch=prop-kirby-mansion`",
+        f"- **Open Public Planning Commission Plat & Variance Monitor:** `{base}plat-monitor.html`",
         "",
         "## Primary Public Data & Archive URL Templates",
         "",
@@ -292,7 +292,7 @@ def build_llms_txt_content(
         "",
         f"- [Summary Statistics (`stats_summary.json`)]({base}public/data/stats_summary.json): Countywide dated building counts and year bounds.",
         f"- [Active Demolition & Asbestos Alerts (`active_permit_alerts.json`)]({base}public/data/active_permit_alerts.json): Live 2-stage COH demolition permits and TX DSHS 10-day asbestos notifications.",
-        f"- [15-Point Property Watchlist (`property_watchlist.json`)]({base}public/data/property_watchlist.json): Curated endangered historic properties and multi-agency check logs.",
+        f"- [Planning Commission Plat & Variance Monitor (`plat_agenda_monitor.json`)]({base}public/data/plat_agenda_monitor.json): Public Planning Commission agenda and PlatTracker GIS filings cross-referenced against dated historic parcels.",
         f"- [Architect & Style Portfolio Metadata (`portfolio-metadata.json`)]({base}public/data/portfolio-metadata.json): Biographies, eras, and primary sources for Houston architects, builders, and styles.",
         f"- [TARO 2.0 & HPL Archival Finding-Aid Index (`archival_index.json`)]({base}public/data/archival_index.json): 595 parcel-linked architectural drawings, photos, and box/folder citations across 65 collections.",
         f"- [COH Historic District Parcel Surveys (`hpo_district_surveys.json`)]({base}public/data/hpo_district_surveys.json): All 23 COH Historic District survey inventories (6,169 rows), Design Guidelines PDFs, and official maps.",
@@ -318,8 +318,8 @@ def build_llms_full_txt_content(
     if not isinstance(overrides, dict):
         overrides = {}
 
-    watchlist_doc = _load_json_safe(d_dir / "property_watchlist.json", {})
-    watched_props = watchlist_doc.get("watchedProperties") or []
+    plat_doc = _load_json_safe(d_dir / "plat_agenda_monitor.json", {})
+    plat_items = plat_doc.get("items") or []
 
     alerts_doc = _load_json_safe(d_dir / "active_permit_alerts.json", {})
     alerts_list = alerts_doc.get("alerts") or []
@@ -334,31 +334,33 @@ def build_llms_full_txt_content(
         "",
         "---",
         "",
-        "## Section 1: Active Endangered Property Watchlist & Recent Graduations",
+        "## Section 1: Public Planning Commission Pre-1976 Filings & Recent Lost Houston Graduations",
         "",
-        "These properties are tracked in the Preservation Houston 15-Point Property Watchlist (`plat-monitor.html#tab=watchlist`).",
+        "Public Planning Commission subdivision/variance filings matched to pre-1976 historic parcels (`plat-monitor.html`).",
         "",
-        "| Status | Tier | Address | Property Name | Year Built | HCAD Account | Architect / Designation | Watchlist Deep Link |",
+        "| Cycle Date | App No | Filing Type | Address / Subdivision | Oldest Year | HCAD Account | Public Designations | Monitor Link |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
 
-    for wp in watched_props:
-        if not isinstance(wp, dict) or wp.get("removedFromWatchlist"):
+    added_plat_rows = 0
+    for pit in plat_items:
+        if not isinstance(pit, dict) or added_plat_rows >= 40:
             continue
-        wp_id = _clean_dash_text(wp.get("id") or "")
-        status = _clean_dash_text(wp.get("trackerStatus") or "Monitoring")
-        if wp.get("demolishedDate"):
-            status = f"{status} (Demolished {_clean_dash_text(wp.get('demolishedDate'))})"
-        tier = _clean_dash_text(wp.get("tier") or "")
-        addr = _clean_dash_text(wp.get("address") or "")
-        name = _clean_dash_text(wp.get("propertyName") or wp.get("platProjectName") or addr)
-        yr = _clean_dash_text(wp.get("yearBuilt") or "")
-        hcad = _clean_dash_text(wp.get("hcadAccount") or "")
-        arch = _clean_dash_text(wp.get("architect") or wp.get("designation") or wp.get("neighborhood") or "")
-        link = f"{base}plat-monitor.html#tab=watchlist&watch={wp_id}"
+        at_obj = pit.get("atlas") if isinstance(pit.get("atlas"), dict) else {}
+        oldest_yr = int(at_obj.get("earliestYearBuilt") or at_obj.get("oldestYearBuilt") or 0)
+        if oldest_yr < 1836 or oldest_yr > 1976:
+            continue
+        app_no = _clean_dash_text(pit.get("app") or "")
+        cyc_dt = _clean_dash_text(pit.get("pcDateIso") or plat_doc.get("cycleKey") or "")
+        f_type = _clean_dash_text(pit.get("type") or "")
+        addr = _clean_dash_text(at_obj.get("primaryAddress") or pit.get("name") or "")
+        hcad = _clean_dash_text(pit.get("hcad") or "")
+        desigs = _clean_dash_text("; ".join(at_obj.get("designations") or []) or pit.get("superN") or "")
+        link = f"{base}plat-monitor.html"
         sections.append(
-            f"| {status} | Tier {tier} | {addr} | {name} | {yr} | `{hcad}` | {arch} | [Watchlist]({link}) |"
+            f"| {cyc_dt} | `{app_no}` | {f_type} | {addr} | {oldest_yr} | `{hcad}` | {desigs} | [Monitor]({link}) |"
         )
+        added_plat_rows += 1
 
     sections.extend([
         "",

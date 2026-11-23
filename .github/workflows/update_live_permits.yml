@@ -50,6 +50,8 @@ jobs:
             --weekly-xlsx-count 4
 
       - name: Run Planning Commission plat, variance & multi-agency watchlist pipeline
+        env:
+          ATLAS_PIPELINE_SYNC_TOKEN: ${{ secrets.ATLAS_PIPELINE_SYNC_TOKEN }}
         run: |
           python3 pipeline/atlas_pipeline/fetch_plat_and_watchlist.py
 
@@ -63,9 +65,15 @@ jobs:
             --update-log \
             --before-dir /tmp/atlas_monitor_before
 
-      - name: Snapshot Google Workspace Cloud Sync State to Git Backup
+      - name: Snapshot Public Approved_Edits to Git & Trigger Restricted Drive Backup
+        env:
+          ATLAS_PIPELINE_SYNC_TOKEN: ${{ secrets.ATLAS_PIPELINE_SYNC_TOKEN }}
         run: |
           python3 pipeline/atlas_pipeline/backup_workspace_state.py
+
+      - name: Verify Public Bundle Zero-Leak Gate
+        run: |
+          python3 pipeline/atlas_pipeline/public_bundle_gate.py --verify-repo
 
       - name: Commit and push updated permit alerts, plat monitor, watchlist, HAHC tracker, and activity log
         run: |

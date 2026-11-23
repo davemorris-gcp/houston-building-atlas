@@ -176,7 +176,7 @@ def build_general_demolished_catalog(
     Build a general HCAD / sub-building -> demolished metadata map across:
       1. `curated_overrides.json` whole-parcel overrides (`is_demolished`, `demolished_date`, `lost_houston_id`, or whole-parcel `suppress_only`; sub-building `#b2` / `osm_city_*` / `bld_*` overrides stay scoped to their exact feature key)
       2. `overlays.json -> lost_houston` active-window graduations (`year_demolished >= ACTIVE_TAX_YEAR` without overriding standing parcel overrides)
-      3. `property_watchlist.json -> watchedProperties` (`trackerStatus == 'Lost'` / `demolishedDate` / `lostHoustonId`, excluding removed tombstones)
+      3. Optional `watchlist_raw -> watchedProperties` when supplied in-memory (public `property_watchlist.json` ships `watchedProperties: []` so public demolished suppression comes from `curated_overrides.json` + `overlays.json`)
     """
     out: dict[str, dict] = {}
     standing_override_hcads: set[str] = set()
