@@ -583,7 +583,6 @@ import {
   buildOccurrenceKey,
   parseOccurrenceKey,
   getCanonicalPlatAppIds,
-  mergePlatReviewOverlay,
   isBoilerplatePlatWhy,
   describeCycleMeetingAction,
   linkCrossCycleHistory,
@@ -626,7 +625,6 @@ import {
   rebuildFindingsLog,
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
-  stringifyWatchPropertyForSheetCell,
   reconcileWatchlistProperty,
   dedupeWatchlistProperties,
   syncWatchlistTierToPlatReviews,
@@ -673,7 +671,6 @@ import {
 
 import {
   DEFAULT_SHEET_WEBHOOK_URL,
-  normalizeStaffEmail,
   createEmptyRoamingState,
   deriveWatermarkInputsFromRoamingState,
   applyMarkCaughtUpToRoamingState,
@@ -684,8 +681,6 @@ import {
   getRoamingPrefValue,
   loadLocalUserRoamingState,
   saveLocalUserRoamingState,
-  clearLegacyMirrorOnSignOut,
-  hydrateRoamingStateFromVerifyResponse,
   pushCloudUserRoamingState,
   syncUserRoamingStateWithCloud,
 } from "./js/userRoamingState.js?v=20261113c";
@@ -711,16 +706,15 @@ import {
 } from "./js/parcelMonitoringModel.js?v=20261113c";
 
 import {
-  LS_ADMIN_SESSION_KEY,
   callMonitoringRpc,
   canAccessStaffOnly,
+  createParcelSyncCoordinator,
   ensureCleanUnauthenticatedStorageOnBoot,
   getActiveMonitoringRole,
   getPendingAuthRetryCount,
   loadCachedMonitoringState,
   mountGoogleSignInButton,
   pullCloudMonitoringState,
-  purgePrivateMonitoringStorage,
   readActiveMonitoringSession,
   replayPendingAuthRetries,
   saveCachedMonitoringState,
@@ -976,15 +970,51 @@ let localWatchlistById = new Map();
 let monitoringAreasById = new Map();
 let monitoringParcelsById = new Map();
 let monitoringDecisionsByParcelId = new Map();
-let cloudDecisionUpdatedAtByParcelId = new Map();
-const pendingParcelSyncBatches = {};
-const inFlightParcelSyncByKey = {};
 let monitoringEvents = [];
 let campusParcelIndex = buildCampusParcelIndex([]);
 let staffStrategyByParcelId = new Map();
 let staffWatchedEntities = [];
 let moderationQueueItems = [];
 let pendingModerationCount = 0;
+const parcelSyncCoordinator = createParcelSyncCoordinator({
+  debounceMs: 650,
+  sendDecisionRpc: ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
+    callMonitoringRpc({
+      webhookUrl: DEFAULT_SHEET_WEBHOOK_URL,
+      action: "upsert_parcel_decision",
+      body: {
+        parcel_id: parcelId,
+        expected_updated_at: expectedUpdatedAt,
+        patch,
+      },
+      onTokenExpired: handleTokenExpiredPrompt,
+      retryFn,
+    }),
+  onSuccess: (resp, { hasNewerPendingEdit }) => {
+    if (!hasNewerPendingEdit) {
+      if (resp.parcel) {
+        monitoringParcelsById.set(
+          resp.parcel.parcel_id,
+          normalizeParcelRecord(resp.parcel, { areasById: monitoringAreasById })
+        );
+        campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
+      }
+      if (resp.decision && resp.decision.parcel_id) {
+        monitoringDecisionsByParcelId.set(resp.decision.parcel_id, resp.decision);
+      }
+      persistMonitoringSnapshotToRoleCache();
+    }
+    const noteEl = $("#savedNote");
+    if (noteEl) {
+      noteEl.textContent =
+        "☁️ Synced parcel decision to Google Workspace · " + new Date().toLocaleTimeString();
+    }
+  },
+  onConflict: () => {
+    toast("Another reviewer updated this parcel concurrently; pulling latest cloud state.");
+    pullAuthenticatedMonitoringState();
+  },
+});
 
 function parseWatchRowDossier(row){
   if (!row || typeof row !== "object") return null;
@@ -1014,11 +1044,22 @@ function hydratePhase1MapsFromPayload(payload, activeRole = "public", { fromClou
     }
   }
   if (Array.isArray(payload.parcels)) {
+    const dirtyOptimisticParcels = new Map();
+    for (const [pid, curP] of monitoringParcelsById.entries()) {
+      if (parcelSyncCoordinator.hasPendingOrInFlight(pid)) {
+        dirtyOptimisticParcels.set(pid, curP);
+      }
+    }
     monitoringParcelsById.clear();
     for (const rawP of payload.parcels) {
       if (!rawP) continue;
       const normP = normalizeParcelRecord(rawP, { areasById: monitoringAreasById });
-      if (normP.parcel_id) monitoringParcelsById.set(normP.parcel_id, normP);
+      if (normP.parcel_id && !dirtyOptimisticParcels.has(normP.parcel_id)) {
+        monitoringParcelsById.set(normP.parcel_id, normP);
+      }
+    }
+    for (const [pid, curP] of dirtyOptimisticParcels.entries()) {
+      monitoringParcelsById.set(pid, curP);
     }
     campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
   }
@@ -1027,12 +1068,8 @@ function hydratePhase1MapsFromPayload(payload, activeRole = "public", { fromClou
     for (const dec of payload.decisions) {
       if (dec && dec.parcel_id) {
         const decPid = String(dec.parcel_id);
-        if (fromCloud) {
-          cloudDecisionUpdatedAtByParcelId.set(decPid, String(dec.decided_at || ""));
-        } else if (!cloudDecisionUpdatedAtByParcelId.has(decPid) && dec.decided_at) {
-          cloudDecisionUpdatedAtByParcelId.set(decPid, String(dec.decided_at));
-        }
-        if (!pendingParcelSyncBatches[`parcel:${decPid}`]) {
+        parcelSyncCoordinator.recordHydratedTimestamp(decPid, dec.decided_at, { fromCloud });
+        if (!parcelSyncCoordinator.hasPendingOrInFlight(decPid)) {
           monitoringDecisionsByParcelId.set(decPid, dec);
         }
         appliedDecisions++;
@@ -6621,16 +6658,10 @@ function wipeInMemoryPrivateStateOnSignOut(){
     clearTimeout(cloudSyncTimers[k]);
     delete cloudSyncTimers[k];
   }
-  for (const k of Object.keys(pendingParcelSyncBatches)) {
-    delete pendingParcelSyncBatches[k];
-  }
-  for (const k of Object.keys(inFlightParcelSyncByKey)) {
-    delete inFlightParcelSyncByKey[k];
-  }
+  parcelSyncCoordinator.clearAll();
   monitoringAreasById.clear();
   monitoringParcelsById.clear();
   monitoringDecisionsByParcelId.clear();
-  cloudDecisionUpdatedAtByParcelId.clear();
   monitoringEvents = [];
   campusParcelIndex = buildCampusParcelIndex([]);
   staffStrategyByParcelId.clear();
@@ -7057,73 +7088,7 @@ function openStaffAuthModal({ isExpiredReauth = false } = {}){
 function queueCloudSyncParcelDecision(parcelId, patchPayload = {}, expectedUpdatedAt = ""){
   const sess = getStaffSession();
   if (!sess || !sess.authorized || !parcelId) return;
-  const timerKey = `parcel:${parcelId}`;
-  const prevBatch = pendingParcelSyncBatches[timerKey];
-  pendingParcelSyncBatches[timerKey] = {
-    expectedUpdatedAt: prevBatch ? prevBatch.expectedUpdatedAt : expectedUpdatedAt,
-    patchPayload: prevBatch ? { ...prevBatch.patchPayload, ...patchPayload } : { ...patchPayload },
-  };
-  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
-  cloudSyncTimers[timerKey] = setTimeout(async () => {
-    delete cloudSyncTimers[timerKey];
-    if (inFlightParcelSyncByKey[timerKey]) {
-      try { await inFlightParcelSyncByKey[timerKey]; } catch (_e) {}
-    }
-    const batch = pendingParcelSyncBatches[timerKey];
-    if (!batch) return;
-    delete pendingParcelSyncBatches[timerKey];
-    const resolvedExpectedTs = cloudDecisionUpdatedAtByParcelId.has(parcelId)
-      ? (cloudDecisionUpdatedAtByParcelId.get(parcelId) || "")
-      : batch.expectedUpdatedAt;
-    const sendRpc = () =>
-      callMonitoringRpc({
-        webhookUrl: SHEET_WEBHOOK_URL,
-        action: "upsert_parcel_decision",
-        body: {
-          parcel_id: parcelId,
-          expected_updated_at: resolvedExpectedTs,
-          patch: batch.patchPayload,
-        },
-        onTokenExpired: handleTokenExpiredPrompt,
-        retryFn: sendRpc,
-      });
-    const rpcPromise = sendRpc();
-    inFlightParcelSyncByKey[timerKey] = rpcPromise;
-    let resp = null;
-    try {
-      resp = await rpcPromise;
-    } finally {
-      if (inFlightParcelSyncByKey[timerKey] === rpcPromise) {
-        delete inFlightParcelSyncByKey[timerKey];
-      }
-    }
-    if (resp && resp.ok) {
-      if (resp.decision && resp.decision.parcel_id) {
-        cloudDecisionUpdatedAtByParcelId.set(
-          String(resp.decision.parcel_id),
-          String(resp.decision.decided_at || "")
-        );
-      }
-      if (!pendingParcelSyncBatches[timerKey]) {
-        if (resp.parcel) {
-          monitoringParcelsById.set(
-            resp.parcel.parcel_id,
-            normalizeParcelRecord(resp.parcel, { areasById: monitoringAreasById })
-          );
-          campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
-        }
-        if (resp.decision && resp.decision.parcel_id) {
-          monitoringDecisionsByParcelId.set(resp.decision.parcel_id, resp.decision);
-        }
-        persistMonitoringSnapshotToRoleCache();
-      }
-      const noteEl = $("#savedNote");
-      if (noteEl) noteEl.textContent = "☁️ Synced parcel decision to Google Workspace · " + new Date().toLocaleTimeString();
-    } else if (resp && resp.conflict) {
-      toast("Another reviewer updated this parcel concurrently; pulling latest cloud state.");
-      pullAuthenticatedMonitoringState();
-    }
-  }, 650);
+  parcelSyncCoordinator.enqueue(parcelId, patchPayload, expectedUpdatedAt);
 }
 
 function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = null, reRender = true } = {}){
@@ -7174,10 +7139,14 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
     toast(merged.error || "Could not apply parcel decision.");
     return null;
   }
+  if (patch.threat_stage === undefined) {
+    fullPatch.threat_stage = merged.parcel.threat_stage;
+  }
 
-  const prevDecidedAt = cloudDecisionUpdatedAtByParcelId.has(merged.parcel.parcel_id)
-    ? (cloudDecisionUpdatedAtByParcelId.get(merged.parcel.parcel_id) || "")
-    : (currentAssessment.decidedAt || "");
+  const prevDecidedAt = parcelSyncCoordinator.captureBaselineExpectedTs(
+    merged.parcel.parcel_id,
+    currentAssessment.decidedAt || ""
+  );
   monitoringParcelsById.set(merged.parcel.parcel_id, merged.parcel);
   monitoringDecisionsByParcelId.set(merged.parcel.parcel_id, merged.decision);
   campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));

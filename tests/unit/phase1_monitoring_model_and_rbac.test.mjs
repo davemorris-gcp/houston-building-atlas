@@ -10,6 +10,7 @@ import {
   MONITORING_SCHEMA_CONTRACT,
   buildCampusParcelIndex,
   calendarDaysBetween,
+  canonicalizeCampusId,
   classifyProtectionLevel,
   compactHistoryJsonFifo,
   compactWatchlistDossierJson,
@@ -41,6 +42,7 @@ import {
   LS_CROSS_TAB_BROADCAST_KEY,
   callMonitoringRpc,
   canAccessStaffOnly,
+  createParcelSyncCoordinator,
   decodeJwtPayloadUnsafe,
   ensureCleanUnauthenticatedStorageOnBoot,
   getActiveMonitoringRole,
@@ -1936,16 +1938,17 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
     "Edited #mq-hcad must persist and zero-pad prefix"
   );
   assert.equal(pendSheet.getRange(demoItem.rowNumber, 4).getValue(), 0);
-  assert.equal(pendSheet.getRange(demoItem.rowNumber, 9).getValue(), "Field verified archival note");
+  assert.equal(
+    pendSheet.getRange(demoItem.rowNumber, 9).getValue(),
+    "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] Field verified archival note"
+  );
 });
 
-test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep protection/owner retention, CAMPUS slug parity, Field_Surveys N/A vs Demolished-vacant, Col J source_url & duplicate Approved superseding, and server tag scanner", () => {
-  const cjsPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "apps_script", "Code.cjs");
-  const exported = requireCjs(cjsPath);
-  const nowSec = Math.floor(1795450000000 / 1000);
-  const staffJwt = "jwt-r20-staff";
+function createStaffBootstrappedHarness(nowMs = 1795450000000) {
+  const nowSec = Math.floor(nowMs / 1000);
+  const staffJwt = "jwt-staff-isolated";
   const h = createPhase1AppsScriptHarness({
-    nowMs: 1795450000000,
+    nowMs,
     tokenDirectory: {
       [staffJwt]: {
         claims: {
@@ -1958,8 +1961,11 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
     },
   });
   h.callPost({ action: "bootstrap_phase1_vaults", google_id_token: staffJwt });
+  return { h, staffJwt };
+}
 
-  // 1. Pinned clock (h.setNowMs) across 3 consecutive Watchlist saves & 3 consecutive Decision saves advances T -> T+1ms -> T+2ms monotonically
+test("UT-P1-Mono: pinned clock advances Watchlist_Dossiers.updated_at and Decisions.decided_at strictly monotonically", () => {
+  const { h, staffJwt } = createStaffBootstrappedHarness(1795450000000);
   h.setNowMs(1795450000000);
   const t0Iso = new Date(1795450000000).toISOString();
   const t1Iso = new Date(1795450000001).toISOString();
@@ -1968,19 +1974,19 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
   const wlSave1 = h.callPost({
     action: "upsert_watchlist_dossier",
     google_id_token: staffJwt,
-    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 1" },
+    dossier: { id: "prop-mono", address: "100 Main St", notes: "Save 1" },
   });
   const wlSave2 = h.callPost({
     action: "upsert_watchlist_dossier",
     google_id_token: staffJwt,
     expected_updated_at: wlSave1.updated_at,
-    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 2" },
+    dossier: { id: "prop-mono", address: "100 Main St", notes: "Save 2" },
   });
   const wlSave3 = h.callPost({
     action: "upsert_watchlist_dossier",
     google_id_token: staffJwt,
     expected_updated_at: wlSave2.updated_at,
-    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 3" },
+    dossier: { id: "prop-mono", address: "100 Main St", notes: "Save 3" },
   });
   assert.equal(wlSave1.updated_at, t0Iso);
   assert.equal(wlSave2.updated_at, t1Iso);
@@ -2009,8 +2015,107 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
   assert.equal(decSave1.decision.decided_at, t0Iso);
   assert.equal(decSave2.decision.decided_at, t1Iso);
   assert.equal(decSave3.decision.decided_at, t2Iso);
+});
 
-  // 2. Standing 12-digit Parcels row survives pipeline_push_sweep_results on 13-digit HCAD without clobbering protection, owner, significance, or added_at
+test("IT-P1-Campus: 12-digit sweep preservation, single-parcel to CAMPUS:<SLUG> in-place promotion, and case-insensitive CAMPUS parity", () => {
+  const cjsPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "apps_script", "Code.cjs");
+  const exported = requireCjs(cjsPath);
+  const { h, staffJwt } = createStaffBootstrappedHarness(1795450000000);
+
+  // 1. Case-insensitive CAMPUS:<SLUG> canonicalization parity across JS and Code.cjs
+  for (const variant of [
+    { parcelId: "", campusGroupId: "Parish Assemblage" },
+    { parcelId: "", campusGroupId: "campus:Parish Assemblage" },
+    { parcelId: "", campusGroupId: "CAMPUS:Parish Assemblage" },
+    { parcelId: "campus:Parish Assemblage", campusGroupId: "" },
+    { parcelId: "CAMPUS:Parish Assemblage", campusGroupId: "" },
+    { parcelId: "0420010000001", campusGroupId: "campus:Parish Assemblage" },
+  ]) {
+    assert.equal(resolveCanonicalParcelId(variant), "CAMPUS:PARISH_ASSEMBLAGE");
+  }
+  assert.equal(canonicalizeCampusId("campus:Parish Assemblage"), "CAMPUS:PARISH_ASSEMBLAGE");
+
+  // 2. Seed standing single-parcel row '0420010000001' in Parcels + Decisions, then promote in place to CAMPUS:PARISH_ASSEMBLAGE
+  const initialSingle = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420010000001",
+    patch: {
+      hcad_num: "0420010000001",
+      primary_address: "1200 ANNEX ST",
+      year_built: 1912,
+      owner_of_record: "PARISH BOARD",
+      protection_level: "binding",
+      designation_summary: "Protected Landmark",
+      review_status: "assessed",
+      significance_level: "high",
+      screening_notes: "Initial single-parcel history",
+    },
+  });
+  assert.equal(initialSingle.ok, true);
+
+  // Stale expected_updated_at on campus promotion must still trigger conflict detection!
+  const stalePromote = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420010000001",
+    expected_updated_at: "2020-01-01T00:00:00.000Z",
+    patch: { campus_group_id: "campus:Parish Assemblage" },
+  });
+  assert.equal(stalePromote.ok, false);
+  assert.equal(stalePromote.conflict, true);
+
+  const promotedCampus = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420010000001",
+    expected_updated_at: initialSingle.decision.decided_at,
+    patch: {
+      campus_group_id: "campus:Parish Assemblage",
+      related_hcads: "0420010000001; 0420010000002",
+      screening_notes: "Promoted to 2-lot campus assemblage",
+    },
+  });
+  assert.equal(promotedCampus.ok, true);
+  assert.equal(promotedCampus.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
+  assert.equal(Number(promotedCampus.parcel.year_built), 1912, "In-place campus promotion must preserve year_built");
+  assert.equal(promotedCampus.parcel.protection_level, "binding", "In-place campus promotion must preserve protection_level");
+  assert.equal(promotedCampus.parcel.owner_of_record, "PARISH BOARD");
+  assert.equal(JSON.parse(promotedCampus.decision.history_json).entries.length, 2, "History entries must carry forward");
+
+  // Push a sweep on mixed-case CAMPUS:Parish Assemblage AND save a campus Watchlist dossier -> zero duplicate rows!
+  assert.equal(
+    h.callPost({
+      action: "pipeline_push_sweep_results",
+      pipeline_token: "pipeline-secret-token-phase1",
+      parcels: [
+        {
+          parcel_id: "CAMPUS:Parish Assemblage",
+          campus_group_id: "Parish Assemblage",
+          threat_stage: 3,
+          protection_level: "none",
+          owner_of_record: "",
+        },
+      ],
+    }).ok,
+    true
+  );
+  assert.equal(
+    h.callPost({
+      action: "upsert_watchlist_dossier",
+      google_id_token: staffJwt,
+      dossier: {
+        id: "prop-parish-campus",
+        parcelId: "0420010000001",
+        campusGroupId: "Parish Assemblage",
+        hcadAccount: "0420010000001; 0420010000002",
+        address: "1200 ANNEX ST",
+      },
+    }).ok,
+    true
+  );
+
+  // Also seed a legacy 12-digit Parcels row and verify sweep preserves standing metadata
   const parcelsSheet = h.coreWb.getSheetByName("Parcels");
   const pHeaders = exported.TABLE_REGISTRY.Parcels.headers;
   const raw12Row = pHeaders.map((col) => {
@@ -2032,98 +2137,109 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
     };
     return seedVals[col] !== undefined ? seedVals[col] : "";
   });
-  const appendRowIdx = parcelsSheet.getLastRow() + 1;
-  parcelsSheet.getRange(appendRowIdx, 1, 1, pHeaders.length).setValues([raw12Row]);
+  parcelsSheet.getRange(parcelsSheet.getLastRow() + 1, 1, 1, pHeaders.length).setValues([raw12Row]);
+  assert.equal(
+    h.callPost({
+      action: "pipeline_push_sweep_results",
+      pipeline_token: "pipeline-secret-token-phase1",
+      parcels: [
+        {
+          parcel_id: "0420090000077",
+          protection_level: "none",
+          owner_of_record: "",
+          significance_level: "",
+          review_status: "not_reviewed",
+          threat_stage: 4,
+        },
+      ],
+    }).ok,
+    true
+  );
 
-  const sweepOn12 = h.callPost({
-    action: "pipeline_push_sweep_results",
-    pipeline_token: "pipeline-secret-token-phase1",
-    parcels: [
-      {
-        parcel_id: "0420090000077",
-        protection_level: "none",
-        owner_of_record: "",
-        significance_level: "",
-        review_status: "not_reviewed",
-        threat_stage: 4,
-        signal_flags: "owner_applicant_mismatch",
-      },
-    ],
-    watchlistDossiers: [
-      {
-        id: "prop-1810-kane",
-        parcelId: "420090000077",
-        hcadAccount: "420090000077",
-        address: "1810 KANE ST",
-      },
-    ],
+  const stateAfter = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
+  assert.equal(stateAfter.parcels.length, 2, "Parcels sheet must hold exactly 1 campus row + 1 12-digit row");
+  assert.equal(stateAfter.decisions.length, 1, "Decisions sheet must hold exactly 1 promoted campus decision row");
+  const campRow = stateAfter.parcels.find((p) => p.parcel_id === "CAMPUS:PARISH_ASSEMBLAGE");
+  assert.equal(campRow.protection_level, "binding");
+  assert.equal(campRow.owner_of_record, "PARISH BOARD");
+  assert.equal(Number(campRow.threat_stage), 3);
+  const kaneRow = stateAfter.parcels.find((p) => p.parcel_id === "0420090000077");
+  assert.equal(kaneRow.significance_level, "high");
+  assert.equal(kaneRow.protection_level, "binding");
+  assert.equal(kaneRow.owner_of_record, "SMITH FAMILY");
+  assert.equal(kaneRow.added_at, "2026-01-15T00:00:00.000Z");
+  const wlGrid = h.coreWb.getSheetByName("Watchlist_Dossiers").getDataRange().getValues();
+  const campWl = wlGrid.find((r) => r[0] === "prop-parish-campus");
+  assert.equal(String(campWl[1]), "CAMPUS:PARISH_ASSEMBLAGE");
+});
+
+test("IT-P1-Reopen: reopening a closed parcel resets threat_stage 6 to 0 across JS and Code.cjs and restores urgent hearing act escalation", () => {
+  const { h, staffJwt } = createStaffBootstrappedHarness(1795450000000);
+
+  // 1. JS normalizeParcelRecord resets threat_stage 6 -> 0 when reopened
+  const closedNorm = normalizeParcelRecord({
+    parcel_id: "0420090000012",
+    significance_level: "high",
+    advocacy_status: "closed",
+    outcome: "saved",
+    threat_stage: 3,
   });
-  assert.equal(sweepOn12.ok, true);
-  const pulledAfter12 = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
-  const kaneParcel = pulledAfter12.parcels.find((p) => p.parcel_id === "0420090000077");
-  assert.ok(kaneParcel);
-  assert.equal(kaneParcel.significance_level, "high", "12-digit Parcels row must retain Staff significance_level");
-  assert.equal(kaneParcel.protection_level, "binding", "12-digit Parcels row must retain binding protection_level");
-  assert.equal(kaneParcel.owner_of_record, "SMITH FAMILY", "12-digit Parcels row must retain non-empty owner_of_record");
-  assert.equal(kaneParcel.added_at, "2026-01-15T00:00:00.000Z", "12-digit Parcels row must retain original added_at");
-  assert.equal(Number(kaneParcel.threat_stage), 4);
-  assert.equal(kaneParcel.attention_level, "act", "Stage 4 on binding high-significance parcel escalates to act");
-  const wlSheetRows = h.coreWb.getSheetByName("Watchlist_Dossiers").getDataRange().getValues();
-  const kaneWlRow = wlSheetRows.find((r) => r[0] === "prop-1810-kane");
-  assert.equal(String(kaneWlRow[1]).replace(/^'/, ""), "0420090000077");
-  assert.equal(String(kaneWlRow[2]).replace(/^'/, ""), "0420090000077");
+  assert.equal(closedNorm.threat_stage, 6);
+  const reopenedNorm = normalizeParcelRecord(
+    {
+      ...closedNorm,
+      advocacy_status: "active_advocacy",
+      outcome: "",
+      threat_stage: 6,
+      next_hearing_date_cst: "2026-11-28",
+    },
+    { asOfDateCst: "2026-11-23" }
+  );
+  assert.equal(reopenedNorm.threat_stage, 0);
+  assert.equal(reopenedNorm.attention_level, "act");
 
-  // 3. CAMPUS canonical ID parity between Code.cjs and resolveCanonicalParcelId
-  const campSaveWithMemberPid = h.callPost({
+  // 2. Code.cjs handleUpsertParcelDecisionAction_ resets threat_stage 6 -> 0 when Staff reopens parcel
+  const closedSrv = h.callPost({
     action: "upsert_parcel_decision",
     google_id_token: staffJwt,
-    parcel_id: "0420010000001",
+    parcel_id: "0420090000012",
+    as_of_date_cst: "2026-11-23",
     patch: {
-      campus_group_id: "Parish Assemblage",
-      related_hcads: "0420010000001; 0420010000002",
       review_status: "assessed",
       significance_level: "high",
+      advocacy_status: "closed",
+      outcome: "no_longer_threatened",
     },
   });
-  assert.equal(campSaveWithMemberPid.ok, true);
-  assert.equal(
-    campSaveWithMemberPid.parcel.parcel_id,
-    resolveCanonicalParcelId({ parcelId: "0420010000001", campusGroupId: "Parish Assemblage" })
-  );
-  assert.equal(campSaveWithMemberPid.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
+  assert.equal(closedSrv.parcel.threat_stage, 6);
+  assert.equal(closedSrv.parcel.attention_level, "record");
 
-  const campSaveEmptyPid = h.callPost({
+  const reopenedSrv = h.callPost({
     action: "upsert_parcel_decision",
     google_id_token: staffJwt,
-    parcel_id: "",
-    expected_updated_at: campSaveWithMemberPid.decision.decided_at,
+    parcel_id: "0420090000012",
+    expected_updated_at: closedSrv.decision.decided_at,
+    as_of_date_cst: "2026-11-23",
+    next_hearing_date_cst: "2026-11-28",
     patch: {
-      campus_group_id: "Parish Assemblage",
-      screening_notes: "Updated campus note",
+      advocacy_status: "active_advocacy",
+      outcome: "",
+      threat_stage: 6,
     },
   });
-  assert.equal(campSaveEmptyPid.ok, true);
-  assert.equal(campSaveEmptyPid.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
-  const idxWith12Digit = buildCampusParcelIndex([
-    { parcel_id: "420090000055", hcad_num: "420090000055", primary_address: "1912 Lubbock St" },
-    { parcel_id: "0420010000001", campus_group_id: "Parish Assemblage", related_hcads: "0420010000001; 0420010000002" },
-  ]);
-  assert.equal(
-    resolveCanonicalParcelId({ hcadIds: ["0420090000055"] }, idxWith12Digit),
-    "0420090000055"
-  );
-  assert.equal(
-    resolveCanonicalParcelId({ hcadIds: ["0420010000002"] }, idxWith12Digit),
-    "CAMPUS:PARISH_ASSEMBLAGE"
-  );
+  assert.equal(reopenedSrv.parcel.threat_stage, 0);
+  assert.equal(reopenedSrv.parcel.attention_level, "act");
+});
 
-  // 4. Field_Surveys 'N/A' & 'None' preserve standing Col D year, Col J source_url, and Col W polygon; 'Demolished - vacant lot' suppresses; duplicate Approved rows become Superseded
-  const polyR20 = JSON.stringify({
+test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge preserves standing years on N/A/None, suppresses Demolished-vacant while keeping district/HCAD cols, splits aliases, and supersedes duplicates", () => {
+  const { h, staffJwt } = createStaffBootstrappedHarness(1795450000000);
+  const polyGeo = JSON.stringify({
     type: "Polygon",
     coordinates: [[[-95.37, 29.74], [-95.36, 29.74], [-95.36, 29.75], [-95.37, 29.74]]],
   });
   const pendSheet = h.coreWb.getSheetByName("Pending_Submissions");
-  // Inject an extra legacy Approved row first to prove upsertApprovedPendingRow_ marks earlier duplicates 'Superseded'
+
+  // Seed duplicate legacy Approved row + active Approved row
   const dupRowIdx = pendSheet.getLastRow() + 1;
   pendSheet
     .getRange(dupRowIdx, 1, 1, 18)
@@ -2149,21 +2265,6 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
         "",
       ],
     ]);
-  assert.equal(
-    h.callPost({
-      action: "admin_approve",
-      google_id_token: staffJwt,
-      hcad_num: "0621100000088",
-      address: "912 BAYLAND AVE",
-      suggested_year_built: 1926,
-      building_name: "Bayland Craftsman",
-      source_url: "https://texashistory.unt.edu/ark:/67531/metapth123/",
-      geometry_geojson: polyR20,
-      source_citation: "1926 Permit",
-    }).ok,
-    true
-  );
-  // Add a second Approved row manually to verify upsert marks the earlier Approved row 'Superseded'
   const secondApprovedIdx = pendSheet.getLastRow() + 1;
   pendSheet
     .getRange(secondApprovedIdx, 1, 1, 18)
@@ -2189,96 +2290,138 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
         "Architect A",
       ],
     ]);
-  pendSheet.getRange(secondApprovedIdx, 23, 1, 1).setValues([[polyR20]]);
+  pendSheet.getRange(secondApprovedIdx, 23, 1, 1).setValues([[polyGeo]]);
 
-  // Promote Field_Survey with observed_year_or_demo_note: "N/A" and blank photo_url -> must preserve 1926, source_url, and Col W polygon, and mark dupRowIdx Superseded!
+  // 1. Field_Surveys with "N/A" preserves standing year 1926, source_url, and Col W polygon, and marks dupRowIdx Superseded
   h.callPost({
     action: "field_survey",
-    survey_id: "SURV_R20_NA",
+    survey_id: "SURV_MOD_NA",
     hcad_num: "0621100000088",
     address: "912 BAYLAND AVE",
     observed_year_or_demo_note: "N/A",
     field_notes: "Intact front gable",
   });
-  const fsRows = h.coreWb.getSheetByName("Field_Surveys").getLastRow();
   assert.equal(
     h.callPost({
       action: "moderate_submission",
       google_id_token: staffJwt,
       sourceTab: "Field_Surveys",
-      rowNumber: fsRows,
-      survey_id: "SURV_R20_NA",
+      rowNumber: h.coreWb.getSheetByName("Field_Surveys").getLastRow(),
+      survey_id: "SURV_MOD_NA",
       decision: "Approved",
     }).ok,
     true
   );
   assert.equal(pendSheet.getRange(dupRowIdx, 1).getValue(), "Superseded");
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Approved");
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 4).getValue(), 1926, "'N/A' survey note must preserve standing year 1926");
-  assert.equal(
-    pendSheet.getRange(secondApprovedIdx, 10).getValue(),
-    "https://texashistory.unt.edu/ark:/67531/metapth123/",
-    "Blank survey photo_url must preserve standing Col J source_url"
-  );
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 23).getValue(), polyR20, "'N/A' survey note must preserve Col W polygon");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 4).getValue(), 1926);
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 10).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 23).getValue(), polyGeo);
 
-  // Approving a Pending_Submissions update without source_url also preserves Col J source_url from priorApprovedRow
+  // 2. Pending_Submissions row with suggested_year_built = "N/A" AND building_name = "Bayland House; Historic Alias" preserves 1926, source_url, and polygon, and splits primaryName / altNames!
   h.callPost({
     hcad_num: "0621100000088",
     address: "912 BAYLAND AVE",
-    suggested_year_built: 1925,
-    source_citation: "1925 City Directory",
+    suggested_year_built: "N/A",
+    building_name: "Bayland House; Historic Alias",
+    source_citation: "1928 City Directory",
   });
-  const pendingBayland912 = h
+  const pendNaItem = h
     .callPost({ action: "list_pending_submissions", google_id_token: staffJwt })
     .items.find((it) => it.sourceTab === "Pending_Submissions" && it.address === "912 BAYLAND AVE");
   assert.equal(
     h.callPost({
-      ...buildModerationDecisionPayload(classifyModerationQueueItem(pendingBayland912), "Approved"),
-      google_id_token: staffJwt,
-    }).ok,
-    true
-  );
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Superseded");
-  assert.equal(
-    pendSheet.getRange(pendingBayland912.rowNumber, 10).getValue(),
-    "https://texashistory.unt.edu/ark:/67531/metapth123/",
-    "Pending_Submissions moderation without new URL must preserve prior Col J source_url"
-  );
-
-  // Promoting Field_Survey with "Demolished - vacant lot" triggers vacant suppression (Col D = 0, Col W = "")
-  h.callPost({
-    action: "field_survey",
-    survey_id: "SURV_R20_DEMO_VACANT",
-    hcad_num: "0621100000088",
-    address: "912 BAYLAND AVE",
-    observed_year_or_demo_note: "Demolished - vacant lot",
-    field_notes: "Slab cleared",
-  });
-  const fsDemoRow = h.coreWb.getSheetByName("Field_Surveys").getLastRow();
-  assert.equal(
-    h.callPost({
       action: "moderate_submission",
       google_id_token: staffJwt,
-      sourceTab: "Field_Surveys",
-      rowNumber: fsDemoRow,
-      survey_id: "SURV_R20_DEMO_VACANT",
+      sourceTab: "Pending_Submissions",
+      rowNumber: pendNaItem.rowNumber,
+      expected_hcad_num: "0621100000088",
       decision: "Approved",
     }).ok,
     true
   );
-  assert.equal(
-    pendSheet.getRange(pendingBayland912.rowNumber, 4).getValue(),
-    0,
-    "'Demolished - vacant lot' must set Col D year = 0"
-  );
-  assert.equal(
-    pendSheet.getRange(pendingBayland912.rowNumber, 23).getValue(),
-    "",
-    "'Demolished - vacant lot' must clear Col W polygon"
-  );
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Superseded");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 4).getValue(), 1926, "Pending_Submissions 'N/A' must preserve standing year 1926");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 10).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 15).getValue(), "Bayland House");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 16).getValue(), "Historic Alias");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 23).getValue(), polyGeo);
 
-  // 5. Server tag scanner preserves trailing citation after unclosed/malformed tag and strips array-valued coordinate tags cleanly
+  // 3. Pending_Submissions row with suggested_year_built = "Demolished - vacant lot" (without suppress_only: true) suppresses year=0 and Col W="" while preserving Cols C/E/F/G!
+  h.callPost({
+    hcad_num: "0621100000088",
+    suggested_year_built: "Demolished - vacant lot",
+    source_citation: "Confirmed cleared lot",
+  });
+  const pendDemoItem = h
+    .callPost({ action: "list_pending_submissions", google_id_token: staffJwt })
+    .items.find((it) => it.sourceTab === "Pending_Submissions" && it.rowNumber > pendNaItem.rowNumber);
+  assert.equal(
+    h.callPost({
+      action: "moderate_submission",
+      google_id_token: staffJwt,
+      sourceTab: "Pending_Submissions",
+      rowNumber: pendDemoItem.rowNumber,
+      expected_hcad_num: "0621100000088",
+      decision: "Approved",
+    }).ok,
+    true
+  );
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 3).getValue(), "912 BAYLAND AVE");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 4).getValue(), 0);
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 5).getValue(), 1930);
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 6).getValue(), "Norhill");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 7).getValue(), "Contributing");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 15).getValue(), "");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 23).getValue(), "");
+
+  // 4. Field_Surveys vacant promotion on another standing override also preserves Cols C/E/F/G while clearing Col D=0 and Col W=""
+  assert.equal(
+    h.callPost({
+      action: "admin_approve",
+      google_id_token: staffJwt,
+      hcad_num: "0621100000089",
+      address: "914 BAYLAND AVE",
+      suggested_year_built: 1924,
+      original_hcad_year: 1932,
+      historic_district: "Norhill",
+      contributing: "Contributing",
+      building_name: "Neighbor Bungalow",
+      geometry_geojson: polyGeo,
+      source_citation: "1924 Sanborn",
+    }).ok,
+    true
+  );
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_DEMO_KEEP_DIST",
+    hcad_num: "0621100000089",
+    address: "914 BAYLAND AVE",
+    observed_year_or_demo_note: "Demolished - vacant lot",
+    field_notes: "Cleared lot",
+  });
+  const promDemoRes = h.callPost({
+    action: "moderate_submission",
+    google_id_token: staffJwt,
+    sourceTab: "Field_Surveys",
+    rowNumber: h.coreWb.getSheetByName("Field_Surveys").getLastRow(),
+    survey_id: "SURV_DEMO_KEEP_DIST",
+    decision: "Approved",
+  });
+  assert.equal(promDemoRes.ok, true);
+  const allPendRows = pendSheet.getDataRange().getValues();
+  const row914Idx = allPendRows.findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000089" && r[0] === "Approved") + 1;
+  assert.equal(pendSheet.getRange(row914Idx, 3).getValue(), "914 BAYLAND AVE");
+  assert.equal(pendSheet.getRange(row914Idx, 4).getValue(), 0);
+  assert.equal(pendSheet.getRange(row914Idx, 5).getValue(), 1932);
+  assert.equal(pendSheet.getRange(row914Idx, 6).getValue(), "Norhill");
+  assert.equal(pendSheet.getRange(row914Idx, 7).getValue(), "Contributing");
+  assert.equal(pendSheet.getRange(row914Idx, 23).getValue(), "");
+});
+
+test("UT-P1-Tags: server tag scanner preserves trailing citations on malformed tags and strips coordinate-array GeoJSON tags", () => {
+  const { h, staffJwt } = createStaffBootstrappedHarness(1795450000000);
+  const pendSheet = h.coreWb.getSheetByName("Pending_Submissions");
+
   h.callPost({
     hcad_num: "0123456000088",
     address: "801 MALFORMED TAG ST",
@@ -2310,8 +2453,128 @@ test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep 
   );
   assert.equal(
     pendSheet.getRange(malformedItem.rowNumber, 9).getValue(),
-    '[GEOMETRY_GEOJSON: {"type":"Polygon" 1926 Sanborn Vol 3 Sheet 42',
+    '[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] [GEOMETRY_GEOJSON: {"type":"Polygon" 1926 Sanborn Vol 3 Sheet 42',
     "Malformed unclosed tag must never truncate trailing human citation text"
   );
-  assert.equal(pendSheet.getRange(arrayItem.rowNumber, 9).getValue(), "1926 Sanborn");
+  assert.equal(
+    pendSheet.getRange(arrayItem.rowNumber, 9).getValue(),
+    "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] 1926 Sanborn"
+  );
+});
+
+test("UT-P1-SyncCoord: createParcelSyncCoordinator coalesces debounced edits, protects in-flight edits from overlapping pulls, and chains expired-token retries sequentially", async () => {
+  const scheduled = new Map();
+  let nextTimerId = 1;
+  const rpcLog = [];
+  const successCalls = [];
+  let deferredRpc1Resolve = null;
+  let tokenExpiredMode = false;
+  const queuedRetries = [];
+
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: (fn) => {
+      const id = nextTimerId++;
+      scheduled.set(id, fn);
+      return id;
+    },
+    cancelTimer: (id) => {
+      scheduled.delete(id);
+    },
+    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) => {
+      rpcLog.push({ parcelId, expectedUpdatedAt, patch });
+      if (tokenExpiredMode) {
+        queuedRetries.push(retryFn);
+        return { ok: false, tokenExpired: true, queuedForRetry: true };
+      }
+      if (rpcLog.length === 1) {
+        return await new Promise((resolve) => {
+          deferredRpc1Resolve = resolve;
+        });
+      }
+      const nextTs = `2026-11-23T12:00:0${rpcLog.length}.000Z`;
+      return {
+        ok: true,
+        parcel: { parcel_id: parcelId, ...patch },
+        decision: { parcel_id: parcelId, ...patch, decided_at: nextTs },
+      };
+    },
+    onSuccess: (resp, meta) => {
+      successCalls.push({ resp, meta });
+    },
+  });
+
+  // 1. Brand-new parcel (no prior cloud decision): captureBaselineExpectedTs seeds "" before optimistic client nowIso
+  const baseTs1 = coord.captureBaselineExpectedTs("0420090000088", "");
+  assert.equal(baseTs1, "");
+  coord.enqueue("0420090000088", { screening_notes: "Edit 1" }, baseTs1);
+  assert.equal(coord.hasPendingOrInFlight("0420090000088"), true);
+
+  // Fire Timer 1 -> RPC 1 is now in flight!
+  const [t1Id, t1Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t1Id);
+  const t1Promise = t1Fn();
+  assert.equal(rpcLog.length, 1);
+  assert.equal(rpcLog[0].expectedUpdatedAt, "");
+  assert.equal(coord.hasPendingOrInFlight("0420090000088"), true);
+
+  // Overlapping stale cloud pull arrives while RPC 1 is in flight -> must NOT overwrite or regress timestamp!
+  coord.recordHydratedTimestamp("0420090000088", "2026-11-20T00:00:00.000Z", { fromCloud: true });
+  assert.equal(coord.getServerTimestamp("0420090000088"), "");
+
+  // Edit 2 arrives while RPC 1 is STILL in flight (even if caller passes a client nowIso fallback, seeded "" wins until RPC 1 settles!)
+  const baseTs2 = coord.captureBaselineExpectedTs("0420090000088", "2026-11-23T99:99:99.000Z");
+  assert.equal(baseTs2, "");
+  coord.enqueue("0420090000088", { significance_level: "high" }, baseTs2);
+
+  // Fire Timer 2 while RPC 1 is still in flight -> Timer 2 awaits RPC 1 before reading expectedUpdatedAt!
+  const [t2Id, t2Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t2Id);
+  const t2Promise = t2Fn();
+  assert.equal(rpcLog.length, 1, "Timer 2 must wait for in-flight RPC 1 before dispatching");
+
+  // Resolve RPC 1 with server timestamp T1 -> onSuccess reports hasNewerPendingEdit=true, and Timer 2 sends expectedUpdatedAt=T1!
+  deferredRpc1Resolve({
+    ok: true,
+    parcel: { parcel_id: "0420090000088", screening_notes: "Edit 1" },
+    decision: { parcel_id: "0420090000088", screening_notes: "Edit 1", decided_at: "2026-11-23T12:00:01.000Z" },
+  });
+  await t1Promise;
+  await t2Promise;
+  assert.equal(successCalls[0].meta.hasNewerPendingEdit, true);
+  assert.equal(successCalls[1].meta.hasNewerPendingEdit, false);
+  assert.equal(rpcLog.length, 2);
+  assert.equal(rpcLog[1].expectedUpdatedAt, "2026-11-23T12:00:01.000Z");
+  assert.equal(coord.getServerTimestamp("0420090000088"), "2026-11-23T12:00:02.000Z");
+  assert.equal(coord.hasPendingOrInFlight("0420090000088"), false);
+
+  // Stale cloud pull arriving AFTER RPC 2 with older timestamp must NOT regress getServerTimestamp!
+  coord.recordHydratedTimestamp("0420090000088", "2026-11-23T12:00:01.000Z", { fromCloud: true });
+  assert.equal(coord.getServerTimestamp("0420090000088"), "2026-11-23T12:00:02.000Z");
+
+  // 2. Two edits (>650ms apart) while 1-hour JWT is expired -> sequential replay chains server timestamps cleanly!
+  tokenExpiredMode = true;
+  coord.enqueue("0420090000088", { screening_notes: "Expired Edit A" }, coord.getServerTimestamp("0420090000088"));
+  const [t3Id, t3Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t3Id);
+  await t3Fn();
+
+  coord.enqueue("0420090000088", { advocacy_status: "active_advocacy" }, coord.getServerTimestamp("0420090000088"));
+  const [t4Id, t4Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t4Id);
+  await t4Fn();
+  assert.equal(queuedRetries.length, 2);
+
+  // Token refreshed -> replay both queued retries sequentially
+  tokenExpiredMode = false;
+  const rA = await queuedRetries[0]();
+  const rB = await queuedRetries[1]();
+  assert.equal(rA.ok, true);
+  assert.equal(rB.ok, true);
+  assert.equal(rpcLog[rpcLog.length - 2].expectedUpdatedAt, "2026-11-23T12:00:02.000Z");
+  assert.equal(
+    rpcLog[rpcLog.length - 1].expectedUpdatedAt,
+    rA.decision.decided_at,
+    "Second replayed retry must dynamically read first retry's server decided_at"
+  );
 });

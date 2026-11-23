@@ -210,6 +210,11 @@ def _norm_addr_key(addr: Any) -> str:
     return re.sub(r"\s+", " ", cleaned).strip()
 
 
+def canonicalize_campus_id(raw_val: Any, fallback: str = "UNKNOWN") -> str:
+    cleaned = re.sub(r"^campus:", "", sanitize_monitoring_text(raw_val), flags=re.I).strip()
+    return f"CAMPUS:{_slugify_token(cleaned, fallback)}"
+
+
 def build_campus_parcel_index(parcels: Any) -> dict[str, dict[str, Any]]:
     """Build secondary `hcad_num -> campus_group_id` and perimeter-address indices."""
     by_parcel_id: dict[str, dict[str, Any]] = {}
@@ -226,8 +231,8 @@ def build_campus_parcel_index(parcels: Any) -> dict[str, dict[str, Any]]:
     def _sort_key(p: Any) -> tuple[int, str]:
         if not isinstance(p, dict):
             return (1, "")
-        pid_raw = str(p.get("parcel_id") or "")
-        is_camp = pid_raw.startswith("CAMPUS:") or bool(
+        pid_raw = str(p.get("parcel_id") or "").strip()
+        is_camp = bool(re.match(r"^campus:", pid_raw, re.I)) or bool(
             sanitize_monitoring_text(p.get("campus_group_id"))
         )
         return (0 if is_camp else 1, pid_raw)
@@ -238,13 +243,11 @@ def build_campus_parcel_index(parcels: Any) -> dict[str, dict[str, Any]]:
         raw_pid = sanitize_monitoring_text(p.get("parcel_id"))
         raw_camp = sanitize_monitoring_text(p.get("campus_group_id"))
         if raw_camp:
-            pid = (
-                raw_camp
-                if raw_camp.startswith("CAMPUS:")
-                else f"CAMPUS:{_slugify_token(raw_camp)}"
-            )
-        elif raw_pid and (raw_pid.startswith("CAMPUS:") or raw_pid.startswith("UNPARCELED:")):
-            pid = raw_pid
+            pid = canonicalize_campus_id(raw_camp)
+        elif raw_pid and re.match(r"^campus:", raw_pid, re.I):
+            pid = canonicalize_campus_id(raw_pid)
+        elif raw_pid and re.match(r"^unparceled:", raw_pid, re.I):
+            pid = f"UNPARCELED:{raw_pid[11:].strip()}"
         else:
             pid = normalize_hcad13(raw_pid or p.get("hcad_num")) or raw_pid
         if not pid:
@@ -277,16 +280,12 @@ def resolve_canonical_parcel_id(
 ) -> str:
     explicit_campus = sanitize_monitoring_text(campus_group_id)
     if explicit_campus:
-        return (
-            explicit_campus
-            if explicit_campus.startswith("CAMPUS:")
-            else f"CAMPUS:{_slugify_token(explicit_campus)}"
-        )
+        return canonicalize_campus_id(explicit_campus)
     explicit_pid = sanitize_monitoring_text(parcel_id)
-    if explicit_pid and (
-        explicit_pid.startswith("CAMPUS:") or explicit_pid.startswith("UNPARCELED:")
-    ):
-        return explicit_pid
+    if explicit_pid and re.match(r"^campus:", explicit_pid, re.I):
+        return canonicalize_campus_id(explicit_pid)
+    if explicit_pid and re.match(r"^unparceled:", explicit_pid, re.I):
+        return f"UNPARCELED:{explicit_pid[11:].strip()}"
     raw_hcad_inputs = [explicit_pid] if explicit_pid else []
     if hcad_ids is not None:
         if isinstance(hcad_ids, (list, tuple)):
@@ -1065,6 +1064,8 @@ def normalize_parcel_record(
     threat_stage = max(0, min(6, _safe_int(raw.get("threat_stage"))))
     if advocacy_status == "closed" or outcome in _TERMINAL_OUTCOMES_SET:
         threat_stage = 6
+    elif threat_stage == 6:
+        threat_stage = 0
 
     yr_num = _safe_int(raw.get("year_built"))
     hcad_yr_num = _safe_int(raw.get("hcad_year_built"))

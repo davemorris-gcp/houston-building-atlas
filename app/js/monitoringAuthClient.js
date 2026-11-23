@@ -684,3 +684,158 @@ export async function mountGoogleSignInButton(
   });
   return { mounted: true };
 }
+
+/**
+ * Pure, timer-injectable client optimistic-concurrency coordinator for `upsert_parcel_decision`
+ * RPCs. Coalesces rapid debounced edits per parcel, keeps pending batches active across
+ * in-flight requests so overlapping background pulls cannot clobber optimistic state or
+ * regress server-confirmed `decided_at` timestamps, and resolves `expected_updated_at`
+ * dynamically inside `sendRpc` so replayed expired-token retries chain cleanly.
+ */
+export function createParcelSyncCoordinator({
+  debounceMs = 650,
+  sendDecisionRpc,
+  onSuccess = null,
+  onConflict = null,
+  scheduleTimer = (fn, ms) => setTimeout(fn, ms),
+  cancelTimer = (id) => clearTimeout(id),
+} = {}) {
+  const cloudUpdatedAtByParcelId = new Map();
+  const pendingBatches = new Map();
+  const inFlightByParcelId = new Map();
+  const timersByParcelId = new Map();
+
+  function clearAll() {
+    for (const timerId of timersByParcelId.values()) {
+      cancelTimer(timerId);
+    }
+    timersByParcelId.clear();
+    pendingBatches.clear();
+    inFlightByParcelId.clear();
+    cloudUpdatedAtByParcelId.clear();
+  }
+
+  function hasPendingOrInFlight(parcelId) {
+    const pid = String(parcelId || "").trim();
+    if (!pid) return false;
+    return Boolean(pendingBatches.has(pid) || inFlightByParcelId.has(pid));
+  }
+
+  function getServerTimestamp(parcelId) {
+    const pid = String(parcelId || "").trim();
+    return cloudUpdatedAtByParcelId.get(pid) || "";
+  }
+
+  function recordHydratedTimestamp(parcelId, decidedAt, { fromCloud = false } = {}) {
+    const pid = String(parcelId || "").trim();
+    if (!pid) return;
+    const incTs = String(decidedAt || "").trim();
+    if (fromCloud) {
+      if (!hasPendingOrInFlight(pid)) {
+        const curTs = cloudUpdatedAtByParcelId.get(pid) || "";
+        if (!curTs || (incTs && incTs >= curTs)) {
+          cloudUpdatedAtByParcelId.set(pid, incTs);
+        }
+      }
+    } else if (!cloudUpdatedAtByParcelId.has(pid) && incTs) {
+      cloudUpdatedAtByParcelId.set(pid, incTs);
+    }
+  }
+
+  function captureBaselineExpectedTs(parcelId, fallbackDecidedAt = "") {
+    const pid = String(parcelId || "").trim();
+    if (!pid) return "";
+    if (!cloudUpdatedAtByParcelId.has(pid)) {
+      cloudUpdatedAtByParcelId.set(pid, String(fallbackDecidedAt || "").trim());
+    }
+    return cloudUpdatedAtByParcelId.get(pid) || "";
+  }
+
+  function enqueue(parcelId, patchPayload = {}, baselineExpectedTs = "") {
+    const pid = String(parcelId || "").trim();
+    if (!pid || typeof sendDecisionRpc !== "function") return;
+    const prev = pendingBatches.get(pid);
+    pendingBatches.set(pid, {
+      baselineExpectedTs: prev ? prev.baselineExpectedTs : String(baselineExpectedTs || "").trim(),
+      patchPayload: prev ? { ...prev.patchPayload, ...patchPayload } : { ...patchPayload },
+    });
+    if (timersByParcelId.has(pid)) {
+      cancelTimer(timersByParcelId.get(pid));
+    }
+    const timerId = scheduleTimer(async () => {
+      timersByParcelId.delete(pid);
+      if (inFlightByParcelId.has(pid)) {
+        try {
+          await inFlightByParcelId.get(pid);
+        } catch (_e) {}
+      }
+      const batch = pendingBatches.get(pid);
+      if (!batch) return;
+
+      const sendRpc = async () => {
+        const expectedTs = cloudUpdatedAtByParcelId.has(pid)
+          ? cloudUpdatedAtByParcelId.get(pid) || ""
+          : batch.baselineExpectedTs;
+        const res = await sendDecisionRpc({
+          parcelId: pid,
+          expectedUpdatedAt: expectedTs,
+          patch: batch.patchPayload,
+          retryFn: sendRpc,
+        });
+        if (res && res.ok && res.decision && res.decision.parcel_id) {
+          const srvPid = String(res.decision.parcel_id).trim();
+          const srvTs = String(res.decision.decided_at || "").trim();
+          const curSrv = cloudUpdatedAtByParcelId.get(srvPid) || "";
+          if (!curSrv || srvTs >= curSrv) {
+            cloudUpdatedAtByParcelId.set(srvPid, srvTs);
+          }
+          if (srvPid !== pid) {
+            const curOrig = cloudUpdatedAtByParcelId.get(pid) || "";
+            if (!curOrig || srvTs >= curOrig) {
+              cloudUpdatedAtByParcelId.set(pid, srvTs);
+            }
+          }
+        }
+        return res;
+      };
+
+      // Atomically transition pid from pendingBatches -> inFlightByParcelId with zero microtask gap
+      pendingBatches.delete(pid);
+      const rpcPromise = sendRpc();
+      inFlightByParcelId.set(pid, rpcPromise);
+      let resp = null;
+      try {
+        resp = await rpcPromise;
+      } finally {
+        if (inFlightByParcelId.get(pid) === rpcPromise) {
+          inFlightByParcelId.delete(pid);
+        }
+      }
+
+      if (resp && resp.ok) {
+        if (typeof onSuccess === "function") {
+          onSuccess(resp, { hasNewerPendingEdit: pendingBatches.has(pid) });
+        }
+      } else if (resp && resp.conflict) {
+        if (resp.currentDecision && resp.currentDecision.decided_at) {
+          cloudUpdatedAtByParcelId.set(pid, String(resp.currentDecision.decided_at).trim());
+        } else {
+          cloudUpdatedAtByParcelId.delete(pid);
+        }
+        if (typeof onConflict === "function") {
+          onConflict(resp);
+        }
+      }
+    }, debounceMs);
+    timersByParcelId.set(pid, timerId);
+  }
+
+  return {
+    clearAll,
+    hasPendingOrInFlight,
+    getServerTimestamp,
+    recordHydratedTimestamp,
+    captureBaselineExpectedTs,
+    enqueue,
+  };
+}

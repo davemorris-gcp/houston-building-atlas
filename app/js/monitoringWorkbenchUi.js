@@ -15,12 +15,9 @@
 import {
   MONITORING_SCHEMA_CONTRACT,
   classifyProtectionLevel,
-  computeAttentionLevel,
-  computeContributingStatus,
   deriveLegacyTierFromParcel,
   explainAttentionLevel,
   migrateLegacyTierToParcelFields,
-  normalizeHcad13,
   normalizeParcelRecord,
   parseDelimitedList,
   parseRelatedHcads,

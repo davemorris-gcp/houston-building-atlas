@@ -331,6 +331,11 @@ export function mintSyntheticUnparceledId({ appNo = "", address = "", name = "" 
  * address) to its parent `CAMPUS:<slug>` or canonical `parcel_id` so multi-parcel church, school,
  * and commercial assemblage filings roll up onto one record instead of spawning orphan rows.
  */
+export function canonicalizeCampusId(rawVal, fallback = "UNKNOWN") {
+  const cleaned = sanitizeMonitoringText(rawVal).replace(/^campus:/i, "").trim();
+  return `CAMPUS:${slugifyToken(cleaned, fallback)}`;
+}
+
 export function buildCampusParcelIndex(parcels = []) {
   const byParcelId = new Map();
   const byMemberHcad = new Map();
@@ -352,12 +357,12 @@ export function buildCampusParcelIndex(parcels = []) {
   // Index explicit CAMPUS:<slug> records first so multi-parcel assemblages win over single-member rows.
   const sorted = list.slice().sort((a, b) => {
     const aCampus =
-      String(a?.parcel_id || "").startsWith("CAMPUS:") ||
+      /^campus:/i.test(String(a?.parcel_id || "").trim()) ||
       Boolean(sanitizeMonitoringText(a?.campus_group_id))
         ? 0
         : 1;
     const bCampus =
-      String(b?.parcel_id || "").startsWith("CAMPUS:") ||
+      /^campus:/i.test(String(b?.parcel_id || "").trim()) ||
       Boolean(sanitizeMonitoringText(b?.campus_group_id))
         ? 0
         : 1;
@@ -370,11 +375,11 @@ export function buildCampusParcelIndex(parcels = []) {
     const rawPid = sanitizeMonitoringText(p.parcel_id);
     const rawCamp = sanitizeMonitoringText(p.campus_group_id);
     const pid = rawCamp
-      ? rawCamp.startsWith("CAMPUS:")
-        ? rawCamp
-        : `CAMPUS:${slugifyToken(rawCamp)}`
-      : rawPid && (rawPid.startsWith("CAMPUS:") || rawPid.startsWith("UNPARCELED:"))
-      ? rawPid
+      ? canonicalizeCampusId(rawCamp)
+      : rawPid && /^campus:/i.test(rawPid)
+      ? canonicalizeCampusId(rawPid)
+      : rawPid && /^unparceled:/i.test(rawPid)
+      ? `UNPARCELED:${rawPid.slice(11).trim()}`
       : normalizeHcad13(rawPid || p.hcad_num) || rawPid;
     if (!pid) continue;
     byParcelId.set(pid, p);
@@ -408,13 +413,14 @@ export function resolveCanonicalParcelId(
 ) {
   const explicitCampus = sanitizeMonitoringText(campusGroupId);
   if (explicitCampus) {
-    return explicitCampus.startsWith("CAMPUS:")
-      ? explicitCampus
-      : `CAMPUS:${slugifyToken(explicitCampus)}`;
+    return canonicalizeCampusId(explicitCampus);
   }
   const explicitPid = sanitizeMonitoringText(parcelId);
-  if (explicitPid && (explicitPid.startsWith("CAMPUS:") || explicitPid.startsWith("UNPARCELED:"))) {
-    return explicitPid;
+  if (explicitPid && /^campus:/i.test(explicitPid)) {
+    return canonicalizeCampusId(explicitPid);
+  }
+  if (explicitPid && /^unparceled:/i.test(explicitPid)) {
+    return `UNPARCELED:${explicitPid.slice(11).trim()}`;
   }
   const normHcads = parseRelatedHcads(
     explicitPid ? [explicitPid, ...(Array.isArray(hcadIds) ? hcadIds : [hcadIds])] : hcadIds
@@ -1223,6 +1229,8 @@ export function normalizeParcelRecord(raw = {}, { asOfDateCst = "", areasById = 
   let threatStage = Math.max(0, Math.min(6, Math.trunc(Number(raw.threat_stage) || 0)));
   if (advocacyStatus === "closed" || TERMINAL_OUTCOMES_SET.has(outcome)) {
     threatStage = 6;
+  } else if (threatStage === 6) {
+    threatStage = 0;
   }
 
   const yrNum = Number(raw.year_built) || 0;

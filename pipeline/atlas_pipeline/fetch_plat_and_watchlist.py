@@ -7947,9 +7947,14 @@ def push_sweep_results_to_workspace(
             sig_flags.append("watched_entity_match")
 
         ev_stage = compute_threat_stage_from_events(p_events, ex_wp_row)
+        wp_is_closed = (
+            str(ex_wp_row.get("advocacy_status") or "").strip().lower() == "closed"
+            or str(ex_wp_row.get("outcome") or "").strip().lower()
+            in ("saved", "lost", "lost_before_review", "relocated", "no_longer_threatened", "not_relevant")
+        )
         prev_stage = int(ex_wp_row.get("threat_stage") or 0)
         active_prev_stage = prev_stage if 1 <= prev_stage <= 5 else 0
-        eff_wp_stage = 6 if ev_stage == 6 else max(active_prev_stage, ev_stage)
+        eff_wp_stage = 6 if (ev_stage == 6 or wp_is_closed) else max(active_prev_stage, ev_stage)
         parcel_patches_by_id[pid] = {
             "parcel_id": pid,
             "hcad_num": str(ex_wp_row.get("hcad_num") or (hcads[0] if hcads else "")),
@@ -8050,7 +8055,11 @@ def push_sweep_results_to_workspace(
                 if matched_plat_ents and "watched_entity_match" not in ex_flags:
                     ex_flags.append("watched_entity_match")
                 parcel_patches_by_id[pid]["signal_flags"] = "; ".join(ex_flags)
-                parcel_patches_by_id[pid]["threat_stage"] = max(int(parcel_patches_by_id[pid].get("threat_stage") or 0), 3)
+                cur_patch_stage = int(parcel_patches_by_id[pid].get("threat_stage") or 0)
+                if cur_patch_stage != 6:
+                    parcel_patches_by_id[pid]["threat_stage"] = max(
+                        cur_patch_stage if 1 <= cur_patch_stage <= 5 else 0, 3
+                    )
             else:
                 if matched_plat_ents and "watched_entity_match" not in it_flags:
                     it_flags.append("watched_entity_match")
@@ -8062,6 +8071,14 @@ def push_sweep_results_to_workspace(
                     if (inferred_it_prot == "none" and ex_it_prot in ("binding", "limited"))
                     else inferred_it_prot
                 )
+                ex_is_closed = (
+                    str((ex_parcel_row or {}).get("advocacy_status") or "").strip().lower() == "closed"
+                    or str((ex_parcel_row or {}).get("outcome") or "").strip().lower()
+                    in ("saved", "lost", "lost_before_review", "relocated", "no_longer_threatened", "not_relevant")
+                )
+                prev_it_stage = int((ex_parcel_row or {}).get("threat_stage") or 0)
+                active_it_stage = prev_it_stage if 1 <= prev_it_stage <= 5 else 0
+                eff_it_stage = 6 if ex_is_closed else max(active_it_stage, 3)
                 parcel_patches_by_id[pid] = {
                     "parcel_id": pid,
                     "hcad_num": str((ex_parcel_row or {}).get("hcad_num") or (it_hcads[0] if it_hcads else "")),
@@ -8070,7 +8087,7 @@ def push_sweep_results_to_workspace(
                     "land_use_class": str(it.get("landUse") or (ex_parcel_row or {}).get("land_use_class") or ""),
                     "designation_summary": desig_str,
                     "protection_level": eff_it_prot,
-                    "threat_stage": max(int((ex_parcel_row or {}).get("threat_stage") or 0), 3),
+                    "threat_stage": eff_it_stage,
                     "signal_flags": "; ".join(it_flags),
                     "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
                 }

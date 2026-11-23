@@ -36,7 +36,6 @@ import {
 } from "./permitPlainEnglish.js?v=20261113c";
 import {
   HISTORICAL_AUTO_SWEEP_MAX_AGE_DAYS,
-  REMOVED_TIER3_TOMBSTONE,
   REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
   escapeHtmlText,

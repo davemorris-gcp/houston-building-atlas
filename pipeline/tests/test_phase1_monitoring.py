@@ -1036,11 +1036,8 @@ def test_it3_daily_sweep_pipeline_end_to_end_with_watched_entities_and_stdlib_ru
         server.server_close()
 
 
-def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gate(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Verify Python merge_parcel_and_decision_concurrent parity, campus sweep rollup, and ai-companion leak gate."""
-    # 1. merge_parcel_and_decision_concurrent with existing_parcel={} / existing_decision={} matches JS 1:1 (issue_099)
+def test_concurrent_merge_parity_campus_canonicalization_and_reopened_stage_reset() -> None:
+    """Verify Python merge_parcel_and_decision_concurrent parity, case-insensitive CAMPUS IDs, and reopened stage reset."""
     pipe_res = pmm.merge_parcel_and_decision_concurrent(
         existing_parcel={},
         existing_decision={},
@@ -1079,15 +1076,45 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
     assert screener_denied["ok"] is False
     assert screener_denied["forbiddenField"] == "significance_level"
 
-    # Tombstone custom areaContext.ageRuleCutoffYear parity (issue_100)
+    # Reopening a closed parcel resets threat_stage 6 -> 0 and restores 14-day urgent hearing 'act'
+    reopened_rec = pmm.normalize_parcel_record(
+        {
+            "parcel_id": "0420090000012",
+            "significance_level": "high",
+            "advocacy_status": "active_advocacy",
+            "outcome": "",
+            "threat_stage": 6,
+            "next_hearing_date_cst": "2026-11-28",
+        },
+        as_of_date_cst="2026-11-23",
+    )
+    assert reopened_rec["threat_stage"] == 0
+    assert reopened_rec["attention_level"] == "act"
+
+    # Case-insensitive CAMPUS canonicalization parity
+    for kw in (
+        {"campus_group_id": "Parish Assemblage"},
+        {"campus_group_id": "campus:Parish Assemblage"},
+        {"campus_group_id": "CAMPUS:Parish Assemblage"},
+        {"parcel_id": "campus:Parish Assemblage"},
+        {"parcel_id": "CAMPUS:Parish Assemblage"},
+        {"parcel_id": "0420010000001", "campus_group_id": "campus:Parish Assemblage"},
+    ):
+        assert pmm.resolve_canonical_parcel_id(**kw) == "CAMPUS:PARISH_ASSEMBLAGE"
+
     tomb_custom = pmm.migrate_legacy_tier_to_parcel_fields(
         {"removedFromWatchlist": True, "why": "Demolished on site", "yearBuilt": 1980},
         is_watchlist=True,
         area_context={"areaIds": ["area:custom"], "ageRuleCutoffYear": 1985},
     )
     assert tomb_custom["outcome"] == "lost"
+    assert "designations" in typing.get_type_hints(pmm.compute_public_plat_suggested_tier)
 
-    # 2. push_sweep_results_to_workspace resolves secondary member HCAD onto existing CAMPUS:<slug> parcel (issue_098)
+
+def test_daily_sweep_campus_assemblage_12digit_hcad_and_reopened_plat_escalation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify push_sweep_results_to_workspace handles CAMPUS member HCADs, 12-digit Parcels rows, and reopened stale stage-6 rows."""
     captured_pushes: list[dict[str, Any]] = []
 
     def fake_urlopen(req: object, timeout: float = 30.0) -> object:
@@ -1106,9 +1133,8 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
 
         return _Resp()
 
-    monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "r18-token")
+    monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "r21-token")
     monkeypatch.setattr(fpw.urllib.request, "urlopen", fake_urlopen)
-    assert "designations" in typing.get_type_hints(pmm.compute_public_plat_suggested_tier)
     fpw.push_sweep_results_to_workspace(
         {
             "lastAutoSweepAt": "2026-11-23T12:00:00Z",
@@ -1179,13 +1205,21 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                     "atlas": {"primaryAddress": "1912 Lubbock St", "owner": "SMITH FAMILY"},
                     "_c": {"group": "check", "flags": ["pre1976"]},
                 },
+                {
+                    "app": "2026-7799",
+                    "name": "Reopened Parcel Replat",
+                    "type": "C3N",
+                    "hcad": "0420090000066",
+                    "atlas": {"primaryAddress": "2010 Lubbock St", "owner": "JONES TRUST"},
+                    "_c": {"group": "check", "flags": ["pre1976"]},
+                },
             ],
             "cycles": {},
         },
         existing_parcels=[
             {
-                "parcel_id": "CAMPUS:PARISH_ASSEMBLAGE",
-                "campus_group_id": "PARISH_ASSEMBLAGE",
+                "parcel_id": "0420010000001",
+                "campus_group_id": "campus:Parish Assemblage",
                 "hcad_num": "0420010000001",
                 "related_hcads": "0420010000001; 0420010000002",
                 "protection_level": "binding",
@@ -1208,6 +1242,13 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                 "protection_level": "binding",
                 "threat_stage": 4,
             },
+            {
+                "parcel_id": "0420090000066",
+                "hcad_num": "0420090000066",
+                "advocacy_status": "active_advocacy",
+                "outcome": "",
+                "threat_stage": 6,
+            },
         ],
     )
     assert len(captured_pushes) == 1
@@ -1222,8 +1263,13 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
     assert pushed_by_id["0420090000055"]["threat_stage"] == 4
     assert "owner_applicant_mismatch" in pushed_by_id["0420090000055"]["signal_flags"]
     assert "commercial_on_residential" in pushed_by_id["0420090000055"]["signal_flags"]
+    assert pushed_by_id["0420090000066"]["threat_stage"] == 3
 
-    # 3. validate_public_bundle_zero_leaks catches Watchlist headings, query-string deep links, summary counters, ai-companion JSON emails, and degraded-event leaks independently
+
+def test_public_bundle_gate_catches_ai_companion_query_watchlist_links_and_summary_counters(
+    tmp_path: Path,
+) -> None:
+    """Verify validate_public_bundle_zero_leaks catches Watchlist headings, query-string deep links, summary counters, JSON emails, and degraded notices."""
     ai_dir = tmp_path / "app" / "public" / "ai-companion"
     data_dir = tmp_path / "app" / "public" / "data"
     ai_dir.mkdir(parents=True)
