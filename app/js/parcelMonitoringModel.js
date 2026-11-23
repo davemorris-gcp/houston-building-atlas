@@ -351,15 +351,31 @@ export function buildCampusParcelIndex(parcels = []) {
 
   // Index explicit CAMPUS:<slug> records first so multi-parcel assemblages win over single-member rows.
   const sorted = list.slice().sort((a, b) => {
-    const aCampus = String(a?.parcel_id || a?.campus_group_id || "").startsWith("CAMPUS:") ? 0 : 1;
-    const bCampus = String(b?.parcel_id || b?.campus_group_id || "").startsWith("CAMPUS:") ? 0 : 1;
+    const aCampus =
+      String(a?.parcel_id || "").startsWith("CAMPUS:") ||
+      Boolean(sanitizeMonitoringText(a?.campus_group_id))
+        ? 0
+        : 1;
+    const bCampus =
+      String(b?.parcel_id || "").startsWith("CAMPUS:") ||
+      Boolean(sanitizeMonitoringText(b?.campus_group_id))
+        ? 0
+        : 1;
     if (aCampus !== bCampus) return aCampus - bCampus;
     return String(a?.parcel_id || "").localeCompare(String(b?.parcel_id || ""));
   });
 
   for (const p of sorted) {
     if (!p || typeof p !== "object") continue;
-    const pid = sanitizeMonitoringText(p.parcel_id || p.campus_group_id || normalizeHcad13(p.hcad_num));
+    const rawPid = sanitizeMonitoringText(p.parcel_id);
+    const rawCamp = sanitizeMonitoringText(p.campus_group_id);
+    const pid = rawCamp
+      ? rawCamp.startsWith("CAMPUS:")
+        ? rawCamp
+        : `CAMPUS:${slugifyToken(rawCamp)}`
+      : rawPid && (rawPid.startsWith("CAMPUS:") || rawPid.startsWith("UNPARCELED:"))
+      ? rawPid
+      : normalizeHcad13(rawPid || p.hcad_num) || rawPid;
     if (!pid) continue;
     byParcelId.set(pid, p);
     const hcads = parseRelatedHcads([

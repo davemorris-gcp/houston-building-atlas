@@ -7838,11 +7838,21 @@ def push_sweep_results_to_workspace(
     )
 
     campus_index = build_campus_parcel_index(existing_parcels or [])
-    existing_parcel_by_id: dict[str, dict] = {
-        str(p.get("parcel_id") or "").strip(): p
-        for p in (existing_parcels or [])
-        if isinstance(p, dict) and str(p.get("parcel_id") or "").strip()
-    }
+    existing_parcel_by_id: dict[str, dict] = {}
+    for p in existing_parcels or []:
+        if not isinstance(p, dict):
+            continue
+        raw_pid = str(p.get("parcel_id") or "").strip()
+        if not raw_pid:
+            continue
+        norm_pid = resolve_canonical_parcel_id(
+            parcel_id=raw_pid,
+            campus_group_id=str(p.get("campus_group_id") or ""),
+            campus_index=campus_index,
+        )
+        existing_parcel_by_id[raw_pid] = p
+        if norm_pid:
+            existing_parcel_by_id[norm_pid] = p
     as_of_cst = to_chicago_calendar_date(watchlist_doc.get("lastAutoSweepAt") or "")
     parcel_patches_by_id: dict[str, dict] = {}
     events_out: list[dict] = []
@@ -7937,6 +7947,9 @@ def push_sweep_results_to_workspace(
             sig_flags.append("watched_entity_match")
 
         ev_stage = compute_threat_stage_from_events(p_events, ex_wp_row)
+        prev_stage = int(ex_wp_row.get("threat_stage") or 0)
+        active_prev_stage = prev_stage if 1 <= prev_stage <= 5 else 0
+        eff_wp_stage = 6 if ev_stage == 6 else max(active_prev_stage, ev_stage)
         parcel_patches_by_id[pid] = {
             "parcel_id": pid,
             "hcad_num": str(ex_wp_row.get("hcad_num") or (hcads[0] if hcads else "")),
@@ -7944,7 +7957,7 @@ def push_sweep_results_to_workspace(
             "land_use_class": wp_lu,
             "designation_summary": wp_desig,
             "protection_level": wp_prot,
-            "threat_stage": max(int(ex_wp_row.get("threat_stage") or 0), ev_stage) if not p_events else ev_stage,
+            "threat_stage": eff_wp_stage,
             "signal_flags": "; ".join(sig_flags),
             "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
         }
@@ -8013,19 +8026,32 @@ def push_sweep_results_to_workspace(
                     "raw_ref_id": app_no,
                 }
             )
+            it_flags = detect_parcel_signal_flags(
+                owner_of_record=str(
+                    atlas_meta.get("owner")
+                    or (ex_parcel_row or {}).get("owner_of_record")
+                    or parcel_patches_by_id.get(pid, {}).get("owner_of_record")
+                    or ""
+                ),
+                party_names=[str(it.get("developer") or ""), str(it.get("applicant") or "")],
+                land_use_class=str(
+                    it.get("landUse")
+                    or (ex_parcel_row or {}).get("land_use_class")
+                    or parcel_patches_by_id.get(pid, {}).get("land_use_class")
+                    or ""
+                ),
+                event_kinds=[str(it.get("type") or "Plat Application")],
+            )
             if pid in parcel_patches_by_id:
                 ex_flags = [f.strip() for f in parcel_patches_by_id[pid].get("signal_flags", "").split(";") if f.strip()]
+                for flg in it_flags:
+                    if flg not in ex_flags:
+                        ex_flags.append(flg)
                 if matched_plat_ents and "watched_entity_match" not in ex_flags:
                     ex_flags.append("watched_entity_match")
                 parcel_patches_by_id[pid]["signal_flags"] = "; ".join(ex_flags)
                 parcel_patches_by_id[pid]["threat_stage"] = max(int(parcel_patches_by_id[pid].get("threat_stage") or 0), 3)
             else:
-                it_flags = detect_parcel_signal_flags(
-                    owner_of_record=str(atlas_meta.get("owner") or (ex_parcel_row or {}).get("owner_of_record") or ""),
-                    party_names=[str(it.get("developer") or ""), str(it.get("applicant") or "")],
-                    land_use_class=str(it.get("landUse") or (ex_parcel_row or {}).get("land_use_class") or ""),
-                    event_kinds=[str(it.get("type") or "Plat Application")],
-                )
                 if matched_plat_ents and "watched_entity_match" not in it_flags:
                     it_flags.append("watched_entity_match")
                 desig_str = "; ".join(atlas_meta.get("designations") or []) or str((ex_parcel_row or {}).get("designation_summary") or "")

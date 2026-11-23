@@ -421,7 +421,7 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
             txt = lp.read_text(encoding="utf-8")
             if re.search(r"^##\s+.*(?:Endangered|Investigative)\s+Property\s+Watchlist\b", txt, re.I | re.M):
                 errors.append(f"{rel_lbl} still contains private Watchlist Section 1 table!")
-            if re.search(r"plat-monitor\.html#tab=watchlist&watch=[A-Za-z0-9]", txt):
+            if re.search(r"plat-monitor\.html[?#][^ \t\r\n\"')>]*\bwatch=[A-Za-z0-9_\-]", txt, re.I):
                 errors.append(f"{rel_lbl} leaked private Watchlist dossier deep links!")
             if "\u2014" in txt or "\u2013" in txt:
                 errors.append(f"{rel_lbl} contains forbidden typographic dashes!")

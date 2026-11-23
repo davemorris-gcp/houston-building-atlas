@@ -1938,3 +1938,380 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
   assert.equal(pendSheet.getRange(demoItem.rowNumber, 4).getValue(), 0);
   assert.equal(pendSheet.getRange(demoItem.rowNumber, 9).getValue(), "Field verified archival note");
 });
+
+test("Round 20 Review Regressions: pinned monotonic concurrency, 12-digit sweep protection/owner retention, CAMPUS slug parity, Field_Surveys N/A vs Demolished-vacant, Col J source_url & duplicate Approved superseding, and server tag scanner", () => {
+  const cjsPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "apps_script", "Code.cjs");
+  const exported = requireCjs(cjsPath);
+  const nowSec = Math.floor(1795450000000 / 1000);
+  const staffJwt = "jwt-r20-staff";
+  const h = createPhase1AppsScriptHarness({
+    nowMs: 1795450000000,
+    tokenDirectory: {
+      [staffJwt]: {
+        claims: {
+          aud: "atlas-client-id.apps.googleusercontent.com",
+          email: "staff@preservation.example.org",
+          email_verified: true,
+          exp: String(nowSec + 3600),
+        },
+      },
+    },
+  });
+  h.callPost({ action: "bootstrap_phase1_vaults", google_id_token: staffJwt });
+
+  // 1. Pinned clock (h.setNowMs) across 3 consecutive Watchlist saves & 3 consecutive Decision saves advances T -> T+1ms -> T+2ms monotonically
+  h.setNowMs(1795450000000);
+  const t0Iso = new Date(1795450000000).toISOString();
+  const t1Iso = new Date(1795450000001).toISOString();
+  const t2Iso = new Date(1795450000002).toISOString();
+
+  const wlSave1 = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: staffJwt,
+    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 1" },
+  });
+  const wlSave2 = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: staffJwt,
+    expected_updated_at: wlSave1.updated_at,
+    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 2" },
+  });
+  const wlSave3 = h.callPost({
+    action: "upsert_watchlist_dossier",
+    google_id_token: staffJwt,
+    expected_updated_at: wlSave2.updated_at,
+    dossier: { id: "prop-r20-mono", address: "100 Main St", notes: "Save 3" },
+  });
+  assert.equal(wlSave1.updated_at, t0Iso);
+  assert.equal(wlSave2.updated_at, t1Iso);
+  assert.equal(wlSave3.updated_at, t2Iso);
+
+  const decSave1 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420090000091",
+    patch: { review_status: "assessed", significance_level: "moderate", screening_notes: "Tick 1" },
+  });
+  const decSave2 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420090000091",
+    expected_updated_at: decSave1.decision.decided_at,
+    patch: { screening_notes: "Tick 2" },
+  });
+  const decSave3 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420090000091",
+    expected_updated_at: decSave2.decision.decided_at,
+    patch: { screening_notes: "Tick 3" },
+  });
+  assert.equal(decSave1.decision.decided_at, t0Iso);
+  assert.equal(decSave2.decision.decided_at, t1Iso);
+  assert.equal(decSave3.decision.decided_at, t2Iso);
+
+  // 2. Standing 12-digit Parcels row survives pipeline_push_sweep_results on 13-digit HCAD without clobbering protection, owner, significance, or added_at
+  const parcelsSheet = h.coreWb.getSheetByName("Parcels");
+  const pHeaders = exported.TABLE_REGISTRY.Parcels.headers;
+  const raw12Row = pHeaders.map((col) => {
+    const seedVals = {
+      parcel_id: "420090000077",
+      hcad_num: "420090000077",
+      primary_address: "1810 KANE ST",
+      year_built: 1915,
+      owner_of_record: "SMITH FAMILY",
+      designation_summary: "Old Sixth Ward",
+      protection_level: "binding",
+      review_status: "assessed",
+      significance_level: "high",
+      threat_stage: 2,
+      advocacy_status: "active_advocacy",
+      attention_level: "watch",
+      added_at: "2026-01-15T00:00:00.000Z",
+      updated_at: "2026-01-15T00:00:00.000Z",
+    };
+    return seedVals[col] !== undefined ? seedVals[col] : "";
+  });
+  const appendRowIdx = parcelsSheet.getLastRow() + 1;
+  parcelsSheet.getRange(appendRowIdx, 1, 1, pHeaders.length).setValues([raw12Row]);
+
+  const sweepOn12 = h.callPost({
+    action: "pipeline_push_sweep_results",
+    pipeline_token: "pipeline-secret-token-phase1",
+    parcels: [
+      {
+        parcel_id: "0420090000077",
+        protection_level: "none",
+        owner_of_record: "",
+        significance_level: "",
+        review_status: "not_reviewed",
+        threat_stage: 4,
+        signal_flags: "owner_applicant_mismatch",
+      },
+    ],
+    watchlistDossiers: [
+      {
+        id: "prop-1810-kane",
+        parcelId: "420090000077",
+        hcadAccount: "420090000077",
+        address: "1810 KANE ST",
+      },
+    ],
+  });
+  assert.equal(sweepOn12.ok, true);
+  const pulledAfter12 = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
+  const kaneParcel = pulledAfter12.parcels.find((p) => p.parcel_id === "0420090000077");
+  assert.ok(kaneParcel);
+  assert.equal(kaneParcel.significance_level, "high", "12-digit Parcels row must retain Staff significance_level");
+  assert.equal(kaneParcel.protection_level, "binding", "12-digit Parcels row must retain binding protection_level");
+  assert.equal(kaneParcel.owner_of_record, "SMITH FAMILY", "12-digit Parcels row must retain non-empty owner_of_record");
+  assert.equal(kaneParcel.added_at, "2026-01-15T00:00:00.000Z", "12-digit Parcels row must retain original added_at");
+  assert.equal(Number(kaneParcel.threat_stage), 4);
+  assert.equal(kaneParcel.attention_level, "act", "Stage 4 on binding high-significance parcel escalates to act");
+  const wlSheetRows = h.coreWb.getSheetByName("Watchlist_Dossiers").getDataRange().getValues();
+  const kaneWlRow = wlSheetRows.find((r) => r[0] === "prop-1810-kane");
+  assert.equal(String(kaneWlRow[1]).replace(/^'/, ""), "0420090000077");
+  assert.equal(String(kaneWlRow[2]).replace(/^'/, ""), "0420090000077");
+
+  // 3. CAMPUS canonical ID parity between Code.cjs and resolveCanonicalParcelId
+  const campSaveWithMemberPid = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420010000001",
+    patch: {
+      campus_group_id: "Parish Assemblage",
+      related_hcads: "0420010000001; 0420010000002",
+      review_status: "assessed",
+      significance_level: "high",
+    },
+  });
+  assert.equal(campSaveWithMemberPid.ok, true);
+  assert.equal(
+    campSaveWithMemberPid.parcel.parcel_id,
+    resolveCanonicalParcelId({ parcelId: "0420010000001", campusGroupId: "Parish Assemblage" })
+  );
+  assert.equal(campSaveWithMemberPid.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
+
+  const campSaveEmptyPid = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "",
+    expected_updated_at: campSaveWithMemberPid.decision.decided_at,
+    patch: {
+      campus_group_id: "Parish Assemblage",
+      screening_notes: "Updated campus note",
+    },
+  });
+  assert.equal(campSaveEmptyPid.ok, true);
+  assert.equal(campSaveEmptyPid.parcel.parcel_id, "CAMPUS:PARISH_ASSEMBLAGE");
+  const idxWith12Digit = buildCampusParcelIndex([
+    { parcel_id: "420090000055", hcad_num: "420090000055", primary_address: "1912 Lubbock St" },
+    { parcel_id: "0420010000001", campus_group_id: "Parish Assemblage", related_hcads: "0420010000001; 0420010000002" },
+  ]);
+  assert.equal(
+    resolveCanonicalParcelId({ hcadIds: ["0420090000055"] }, idxWith12Digit),
+    "0420090000055"
+  );
+  assert.equal(
+    resolveCanonicalParcelId({ hcadIds: ["0420010000002"] }, idxWith12Digit),
+    "CAMPUS:PARISH_ASSEMBLAGE"
+  );
+
+  // 4. Field_Surveys 'N/A' & 'None' preserve standing Col D year, Col J source_url, and Col W polygon; 'Demolished - vacant lot' suppresses; duplicate Approved rows become Superseded
+  const polyR20 = JSON.stringify({
+    type: "Polygon",
+    coordinates: [[[-95.37, 29.74], [-95.36, 29.74], [-95.36, 29.75], [-95.37, 29.74]]],
+  });
+  const pendSheet = h.coreWb.getSheetByName("Pending_Submissions");
+  // Inject an extra legacy Approved row first to prove upsertApprovedPendingRow_ marks earlier duplicates 'Superseded'
+  const dupRowIdx = pendSheet.getLastRow() + 1;
+  pendSheet
+    .getRange(dupRowIdx, 1, 1, 18)
+    .setValues([
+      [
+        "Approved",
+        "'0621100000088",
+        "912 BAYLAND AVE",
+        1922,
+        1930,
+        "Norhill",
+        "Contributing",
+        "Sanborn Map",
+        "1924 Sanborn",
+        "https://texashistory.unt.edu/ark:/67531/old/",
+        "Staff",
+        "Researcher",
+        "2026-01-01",
+        "Initial",
+        "Old Name",
+        "",
+        "Bungalow",
+        "",
+      ],
+    ]);
+  assert.equal(
+    h.callPost({
+      action: "admin_approve",
+      google_id_token: staffJwt,
+      hcad_num: "0621100000088",
+      address: "912 BAYLAND AVE",
+      suggested_year_built: 1926,
+      building_name: "Bayland Craftsman",
+      source_url: "https://texashistory.unt.edu/ark:/67531/metapth123/",
+      geometry_geojson: polyR20,
+      source_citation: "1926 Permit",
+    }).ok,
+    true
+  );
+  // Add a second Approved row manually to verify upsert marks the earlier Approved row 'Superseded'
+  const secondApprovedIdx = pendSheet.getLastRow() + 1;
+  pendSheet
+    .getRange(secondApprovedIdx, 1, 1, 18)
+    .setValues([
+      [
+        "Approved",
+        "'0621100000088",
+        "912 BAYLAND AVE",
+        1926,
+        1930,
+        "Norhill",
+        "Contributing",
+        "Sanborn Map",
+        "1926 Permit",
+        "https://texashistory.unt.edu/ark:/67531/metapth123/",
+        "Staff",
+        "Researcher",
+        "2026-02-01",
+        "Standing",
+        "Bayland Craftsman",
+        "",
+        "Craftsman",
+        "Architect A",
+      ],
+    ]);
+  pendSheet.getRange(secondApprovedIdx, 23, 1, 1).setValues([[polyR20]]);
+
+  // Promote Field_Survey with observed_year_or_demo_note: "N/A" and blank photo_url -> must preserve 1926, source_url, and Col W polygon, and mark dupRowIdx Superseded!
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_R20_NA",
+    hcad_num: "0621100000088",
+    address: "912 BAYLAND AVE",
+    observed_year_or_demo_note: "N/A",
+    field_notes: "Intact front gable",
+  });
+  const fsRows = h.coreWb.getSheetByName("Field_Surveys").getLastRow();
+  assert.equal(
+    h.callPost({
+      action: "moderate_submission",
+      google_id_token: staffJwt,
+      sourceTab: "Field_Surveys",
+      rowNumber: fsRows,
+      survey_id: "SURV_R20_NA",
+      decision: "Approved",
+    }).ok,
+    true
+  );
+  assert.equal(pendSheet.getRange(dupRowIdx, 1).getValue(), "Superseded");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Approved");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 4).getValue(), 1926, "'N/A' survey note must preserve standing year 1926");
+  assert.equal(
+    pendSheet.getRange(secondApprovedIdx, 10).getValue(),
+    "https://texashistory.unt.edu/ark:/67531/metapth123/",
+    "Blank survey photo_url must preserve standing Col J source_url"
+  );
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 23).getValue(), polyR20, "'N/A' survey note must preserve Col W polygon");
+
+  // Approving a Pending_Submissions update without source_url also preserves Col J source_url from priorApprovedRow
+  h.callPost({
+    hcad_num: "0621100000088",
+    address: "912 BAYLAND AVE",
+    suggested_year_built: 1925,
+    source_citation: "1925 City Directory",
+  });
+  const pendingBayland912 = h
+    .callPost({ action: "list_pending_submissions", google_id_token: staffJwt })
+    .items.find((it) => it.sourceTab === "Pending_Submissions" && it.address === "912 BAYLAND AVE");
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(classifyModerationQueueItem(pendingBayland912), "Approved"),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Superseded");
+  assert.equal(
+    pendSheet.getRange(pendingBayland912.rowNumber, 10).getValue(),
+    "https://texashistory.unt.edu/ark:/67531/metapth123/",
+    "Pending_Submissions moderation without new URL must preserve prior Col J source_url"
+  );
+
+  // Promoting Field_Survey with "Demolished - vacant lot" triggers vacant suppression (Col D = 0, Col W = "")
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_R20_DEMO_VACANT",
+    hcad_num: "0621100000088",
+    address: "912 BAYLAND AVE",
+    observed_year_or_demo_note: "Demolished - vacant lot",
+    field_notes: "Slab cleared",
+  });
+  const fsDemoRow = h.coreWb.getSheetByName("Field_Surveys").getLastRow();
+  assert.equal(
+    h.callPost({
+      action: "moderate_submission",
+      google_id_token: staffJwt,
+      sourceTab: "Field_Surveys",
+      rowNumber: fsDemoRow,
+      survey_id: "SURV_R20_DEMO_VACANT",
+      decision: "Approved",
+    }).ok,
+    true
+  );
+  assert.equal(
+    pendSheet.getRange(pendingBayland912.rowNumber, 4).getValue(),
+    0,
+    "'Demolished - vacant lot' must set Col D year = 0"
+  );
+  assert.equal(
+    pendSheet.getRange(pendingBayland912.rowNumber, 23).getValue(),
+    "",
+    "'Demolished - vacant lot' must clear Col W polygon"
+  );
+
+  // 5. Server tag scanner preserves trailing citation after unclosed/malformed tag and strips array-valued coordinate tags cleanly
+  h.callPost({
+    hcad_num: "0123456000088",
+    address: "801 MALFORMED TAG ST",
+    suggested_year_built: 1930,
+    source_citation: '[GEOMETRY_GEOJSON: {"type":"Polygon" 1926 Sanborn Vol 3 Sheet 42',
+  });
+  h.callPost({
+    hcad_num: "0123456000089",
+    address: "803 ARRAY TAG ST",
+    suggested_year_built: 1930,
+    source_citation: "[GEOMETRY_GEOJSON: [[-95.36,29.75],[-95.35,29.75],[-95.35,29.76],[-95.36,29.75]]] 1926 Sanborn",
+  });
+  const tagItems = h.callPost({ action: "list_pending_submissions", google_id_token: staffJwt }).items;
+  const malformedItem = classifyModerationQueueItem(tagItems.find((it) => it.address === "801 MALFORMED TAG ST"));
+  const arrayItem = classifyModerationQueueItem(tagItems.find((it) => it.address === "803 ARRAY TAG ST"));
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(malformedItem, "Approved", { suppress_only: true }),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(arrayItem, "Approved", { suppress_only: true }),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  assert.equal(
+    pendSheet.getRange(malformedItem.rowNumber, 9).getValue(),
+    '[GEOMETRY_GEOJSON: {"type":"Polygon" 1926 Sanborn Vol 3 Sheet 42',
+    "Malformed unclosed tag must never truncate trailing human citation text"
+  );
+  assert.equal(pendSheet.getRange(arrayItem.rowNumber, 9).getValue(), "1926 Sanborn");
+});

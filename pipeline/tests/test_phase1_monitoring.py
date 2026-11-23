@@ -1134,7 +1134,28 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                             ],
                         }
                     ],
-                }
+                },
+                {
+                    "id": "prop-12digit-baseline",
+                    "parcelId": "0420090000055",
+                    "hcadAccount": "0420090000055",
+                    "address": "1912 Lubbock St",
+                    "checklist": [
+                        {
+                            "id": "chk-03",
+                            "title": "Harris County Clerk Deeds",
+                            "status": "Complete",
+                            "checks": [
+                                {
+                                    "date": "2024-01-10",
+                                    "historicalBaseline": True,
+                                    "agencyRecordId": "deed-hist-1",
+                                    "result": "[AUTO-SWEEP] Historical baseline deed",
+                                }
+                            ],
+                        }
+                    ],
+                },
             ],
         },
         plat_dataset={
@@ -1147,7 +1168,17 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                     "hcad": "0420010000002",
                     "atlas": {"primaryAddress": "1202 Annex St", "owner": "PARISH BOARD"},
                     "_c": {"group": "check", "flags": ["pre1976"]},
-                }
+                },
+                {
+                    "app": "2026-7788",
+                    "name": "Lubbock Commercial Replat",
+                    "type": "Commercial Replat",
+                    "hcad": "0420090000055",
+                    "developer": "ACME TEARDOWN VENTURES LLC",
+                    "applicant": "FAST PLATTING INC",
+                    "atlas": {"primaryAddress": "1912 Lubbock St", "owner": "SMITH FAMILY"},
+                    "_c": {"group": "check", "flags": ["pre1976"]},
+                },
             ],
             "cycles": {},
         },
@@ -1168,6 +1199,15 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                 "protection_level": "binding",
                 "threat_stage": 3,
             },
+            {
+                "parcel_id": "420090000055",
+                "hcad_num": "420090000055",
+                "owner_of_record": "SMITH FAMILY",
+                "land_use_class": "A1",
+                "designation_summary": "Protected Landmark",
+                "protection_level": "binding",
+                "threat_stage": 4,
+            },
         ],
     )
     assert len(captured_pushes) == 1
@@ -1177,18 +1217,33 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
     assert pushed_by_id["0010010000001"]["protection_level"] == "binding"
     assert pushed_by_id["0010010000001"]["owner_of_record"] == "SMITH FAMILY"
     assert "commercial_on_residential" in pushed_by_id["0010010000001"]["signal_flags"]
+    assert pushed_by_id["0420090000055"]["protection_level"] == "binding"
+    assert pushed_by_id["0420090000055"]["owner_of_record"] == "SMITH FAMILY"
+    assert pushed_by_id["0420090000055"]["threat_stage"] == 4
+    assert "owner_applicant_mismatch" in pushed_by_id["0420090000055"]["signal_flags"]
+    assert "commercial_on_residential" in pushed_by_id["0420090000055"]["signal_flags"]
 
-    # 3. validate_public_bundle_zero_leaks catches Watchlist headings, ai-companion JSON emails, and degraded-event leaks independently
+    # 3. validate_public_bundle_zero_leaks catches Watchlist headings, query-string deep links, summary counters, ai-companion JSON emails, and degraded-event leaks independently
     ai_dir = tmp_path / "app" / "public" / "ai-companion"
     data_dir = tmp_path / "app" / "public" / "data"
     ai_dir.mkdir(parents=True)
     data_dir.mkdir(parents=True)
     (ai_dir / "guide.md").write_text(
-        "## Active Investigative Property Watchlist\nNo emails in this file.\n",
+        "## Active Investigative Property Watchlist\n"
+        "See https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html?mode=watchlist&watch=prop-1\n",
         encoding="utf-8",
     )
     (ai_dir / "manifest.json").write_text(
         json.dumps({"contact": "screener@preservation.example.org"}),
+        encoding="utf-8",
+    )
+    (data_dir / "plat_agenda_monitor.json").write_text(
+        json.dumps(
+            {
+                "summary": {"tier1Count": 2},
+                "cycles": {"2026-11-12": {"summary": {"reviewedCount": 5}}},
+            }
+        ),
         encoding="utf-8",
     )
     (data_dir / "monitor_activity_log.json").write_text(
@@ -1215,7 +1270,10 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
     )
     leaks = pbg.validate_public_bundle_zero_leaks(tmp_path)
     assert any("guide.md still contains private Watchlist" in err for err in leaks)
+    assert any("guide.md leaked private Watchlist dossier deep links" in err for err in leaks)
     assert any("manifest.json leaked non-public email" in err for err in leaks)
+    assert any("top-level summary leaked private key 'tier1Count'" in err for err in leaks)
+    assert any("cycle 2026-11-12 summary leaked private key 'reviewedCount'" in err for err in leaks)
     assert any("dailyRuns 2026-11-23 leaked propertiesSwept" in err for err in leaks)
     assert any("degraded notice deg:1 leaked 'address'" in err for err in leaks)
     assert any("monitor_activity_log.json event" in err for err in leaks)

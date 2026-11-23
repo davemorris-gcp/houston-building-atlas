@@ -144,12 +144,28 @@ function normalizeHcadKeyServer_(rawVal) {
   return parts.length > 1 ? (parts[0] + '#' + parts.slice(1).join('#')) : parts[0];
 }
 
+function slugifyTokenServer_(rawVal, fallback) {
+  var slug = sanitizeDashesServer_(rawVal)
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 64);
+  return slug || fallback || 'UNKNOWN';
+}
+
 function normalizeParcelIdServer_(rawParcelId, rawCampusGroupId) {
   var camp = stripLeadingSheetTick_(rawCampusGroupId || '').trim();
+  if (camp) {
+    return camp.indexOf('CAMPUS:') === 0
+      ? camp
+      : ('CAMPUS:' + slugifyTokenServer_(camp.replace(/^campus:/i, ''), 'UNKNOWN'));
+  }
   var pid = normalizeHcadKeyServer_(rawParcelId);
-  if (pid && pid.toUpperCase().indexOf('CAMPUS:') === 0) return 'CAMPUS:' + pid.slice(7).trim();
-  if (!pid && camp) {
-    return camp.toUpperCase().indexOf('CAMPUS:') === 0 ? ('CAMPUS:' + camp.slice(7).trim()) : ('CAMPUS:' + camp);
+  if (pid && pid.toUpperCase().indexOf('CAMPUS:') === 0) {
+    return pid.indexOf('CAMPUS:') === 0
+      ? pid
+      : ('CAMPUS:' + slugifyTokenServer_(pid.slice(7), 'UNKNOWN'));
   }
   return pid;
 }
@@ -165,79 +181,92 @@ function constantTimeEquals_(a, b) {
   return diff === 0;
 }
 
-function extractBalancedTagJson_(text, prefix) {
+function findTaggedJsonSpansServer_(text, prefix, caseInsensitive) {
   var s = String(text || '');
-  var idx = s.indexOf(prefix);
-  if (idx === -1) return null;
-  var start = idx + prefix.length;
-  while (start < s.length && /\s/.test(s.charAt(start))) start++;
-  if (s.charAt(start) !== '{') return null;
-  var depth = 0;
-  var inStr = false;
-  var esc = false;
-  for (var i = start; i < s.length; i++) {
-    var ch = s.charAt(i);
-    if (inStr) {
-      if (esc) { esc = false; }
-      else if (ch === '\\') { esc = true; }
-      else if (ch === DQUOTE_) { inStr = false; }
-    } else {
+  var needle = caseInsensitive ? String(prefix || '').toUpperCase() : String(prefix || '');
+  var hay = caseInsensitive ? s.toUpperCase() : s;
+  if (!s || !needle || hay.indexOf(needle) === -1) return [];
+  var spans = [];
+  var pos = 0;
+  while (pos < s.length) {
+    var idx = hay.indexOf(needle, pos);
+    if (idx < 0) break;
+    var cur = idx + needle.length;
+    while (cur < s.length && /\s/.test(s.charAt(cur))) cur++;
+    var openCh = s.charAt(cur);
+    if (openCh !== '{' && openCh !== '[') {
+      pos = idx + needle.length;
+      continue;
+    }
+    var stack = [openCh];
+    var inStr = false;
+    var esc = false;
+    var endJson = -1;
+    for (var i = cur + 1; i < s.length; i++) {
+      var ch = s.charAt(i);
+      if (inStr) {
+        if (esc) { esc = false; }
+        else if (ch === '\\') { esc = true; }
+        else if (ch === DQUOTE_) { inStr = false; }
+        continue;
+      }
       if (ch === DQUOTE_) { inStr = true; }
-      else if (ch === '{') { depth++; }
-      else if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(s.slice(start, i + 1)); } catch (_e) { return null; }
+      else if (ch === '{' || ch === '[') { stack.push(ch); }
+      else if (ch === '}' || ch === ']') {
+        var top = stack[stack.length - 1];
+        if ((ch === '}' && top === '{') || (ch === ']' && top === '[')) {
+          stack.pop();
+          if (!stack.length) {
+            endJson = i + 1;
+            break;
+          }
+        } else {
+          break;
         }
       }
     }
+    if (endJson < 0) {
+      pos = idx + needle.length;
+      continue;
+    }
+    var closeIdx = endJson;
+    while (closeIdx < s.length && /\s/.test(s.charAt(closeIdx))) closeIdx++;
+    if (s.charAt(closeIdx) !== ']') {
+      pos = idx + needle.length;
+      continue;
+    }
+    try {
+      spans.push({ start: idx, end: closeIdx + 1, value: JSON.parse(s.slice(cur, endJson)) });
+      pos = closeIdx + 1;
+    } catch (_e) {
+      pos = idx + needle.length;
+    }
   }
-  return null;
+  return spans;
+}
+
+function extractBalancedTagJson_(text, prefix) {
+  var spans = findTaggedJsonSpansServer_(text, prefix, false);
+  return spans.length ? spans[spans.length - 1].value : null;
 }
 
 function stripTaggedJsonSpanServer_(text, prefix) {
   var s = String(text || '');
-  var upperPrefix = String(prefix || '').toUpperCase();
-  if (!upperPrefix) return s.trim();
-  for (var guard = 0; guard < 32; guard++) {
-    var idx = s.toUpperCase().indexOf(upperPrefix);
-    if (idx === -1) break;
-    var cur = idx + upperPrefix.length;
-    while (cur < s.length && /\s/.test(s.charAt(cur))) cur++;
-    var endBracket = -1;
-    if (s.charAt(cur) === '{') {
-      var depth = 0;
-      var inStr = false;
-      var esc = false;
-      for (var i = cur; i < s.length; i++) {
-        var ch = s.charAt(i);
-        if (inStr) {
-          if (esc) { esc = false; }
-          else if (ch === '\\') { esc = true; }
-          else if (ch === DQUOTE_) { inStr = false; }
-        } else {
-          if (ch === DQUOTE_) { inStr = true; }
-          else if (ch === '{') { depth++; }
-          else if (ch === '}') {
-            depth--;
-            if (depth === 0) {
-              var closePos = i + 1;
-              while (closePos < s.length && /\s/.test(s.charAt(closePos))) closePos++;
-              if (s.charAt(closePos) === ']') endBracket = closePos;
-              break;
-            }
-          }
-        }
-      }
-    } else {
-      endBracket = s.indexOf(']', cur);
-    }
-    var prefixPart = s.slice(0, idx).trim();
-    var suffixPart = endBracket !== -1 ? s.slice(endBracket + 1).trim() : '';
-    s = (prefixPart + (prefixPart && suffixPart ? ' ' : '') + suffixPart).trim();
-    if (endBracket === -1) break;
+  var spans = findTaggedJsonSpansServer_(s, prefix, true);
+  if (!spans.length) return sanitizeDashesServer_(s).trim();
+  var parts = [];
+  var last = 0;
+  for (var i = 0; i < spans.length; i++) {
+    parts.push(s.slice(last, spans[i].start));
+    last = spans[i].end;
   }
-  return s;
+  parts.push(s.slice(last));
+  return sanitizeDashesServer_(parts.join(''))
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s*\|\s*$/, '')
+    .replace(/^\s*\|\s*/, '')
+    .replace(/\s*\|\s*\|\s*/g, ' | ')
+    .trim();
 }
 
 function defaultHostEnv_() {
@@ -251,6 +280,13 @@ function defaultHostEnv_() {
     contentService: typeof ContentService !== 'undefined' ? ContentService : null,
     nowMs: function() { return new Date().getTime(); }
   };
+}
+
+function nextMonotonicIsoServer_(env, prevIso) {
+  var nowMs = (env && typeof env.nowMs === 'function') ? env.nowMs() : new Date().getTime();
+  var prevMs = prevIso ? Date.parse(String(prevIso).trim()) : NaN;
+  var nextMs = (isFinite(prevMs) && prevMs >= nowMs) ? (prevMs + 1) : nowMs;
+  return new Date(nextMs).toISOString();
 }
 
 function getScriptCacheSafe_(env) {
@@ -1125,17 +1161,26 @@ function compactWatchlistDossierServer_(rawObj, maxChars) {
   return str;
 }
 
+function isExplicitDemolishedYearTextServer_(rawVal) {
+  var low = sanitizeDashesServer_(rawVal).trim().toLowerCase();
+  if (!low) return false;
+  if (/^(?:0|vacant(?:\s+lot)?|demolished)$/.test(low)) return true;
+  if (/\bdemolished\b/.test(low) && /\b(?:vacant|cleared|empty|lot|gone|slab)\b/.test(low)) return true;
+  if (/\bvacant\s+lot\b/.test(low)) return true;
+  return false;
+}
+
 function isVacantSuppressPayload_(payload, rawSourceType, rawSuggestedYear, parsedSuggestedYr, hasValidStandingYr, hasCustomGeom, allowOverrideCustomGeom) {
   if (!allowOverrideCustomGeom && hasCustomGeom) return false;
   if (payload.suppress_only === true) return true;
   var lowYr = String(rawSuggestedYear || '').trim().toLowerCase();
-  if (/^(?:0|vacant(?:\s+lot)?|demolished|none|n\/a)$/.test(lowYr)) {
+  if (isExplicitDemolishedYearTextServer_(lowYr)) {
     if (payload.suppress_only === false && lowYr === '0') return false;
     return true;
   }
   if (hasValidStandingYr) return false;
-  var isZeroOrBlankYr = (rawSuggestedYear === '' || parsedSuggestedYr === 0);
-  if (!isZeroOrBlankYr) return false;
+  var isBlankOrNonNumericNote = (rawSuggestedYear === '' || parsedSuggestedYr === 0 || lowYr === 'none' || lowYr === 'n/a');
+  if (!isBlankOrNonNumericNote) return false;
   var footprintIssueStr = String(payload.footprint_issue || '');
   var footprintNotesStr = String(payload.footprint_notes || payload.notes || '');
   var citationStr = String(payload.source_citation || '');
@@ -1273,6 +1318,14 @@ function listPendingModerationItems_(ss, limitCount) {
   return items;
 }
 
+function pickStandingCellServer_(payloadVal, rowVal, priorVal, isVacant) {
+  var pv = payloadVal !== undefined && payloadVal !== null ? String(payloadVal).trim() : '';
+  if (pv !== '') return pv;
+  var rv = stripLeadingSheetTick_(rowVal).trim();
+  if (rv !== '') return rv;
+  return (!isVacant && priorVal !== undefined && priorVal !== null) ? stripLeadingSheetTick_(priorVal).trim() : '';
+}
+
 function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
   var sheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
   var rawBldName = String(payload.building_name || '').trim();
@@ -1300,7 +1353,7 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
     parsedYr,
     hasStandingYr,
     Boolean(incomingGeomStr),
-    payload.suppress_only === true || rawSuggestedYear === '0' || /^vacant(\s+lot)?$|^demolished$|^none$|^n\/a$/i.test(rawSuggestedYear)
+    payload.suppress_only === true || isExplicitDemolishedYearTextServer_(rawSuggestedYear)
   );
 
   var geomGeoJsonStr = '';
@@ -1354,11 +1407,14 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
     if (rKey !== '') {
       lastRow = r + 1;
       if (rKey === cleanKey && rStatus === 'approved' && finalStatus === 'Approved') {
+        if (targetRow > 0) {
+          sheet.getRange(targetRow, 1, 1, 1).setValues([['Superseded']]);
+        }
         targetRow = r + 1;
       }
     }
   }
-  // Preserve existing year_built (Col D), original_hcad_year (Col E), Col W polygon, and architectural fields on standing updates
+  // Preserve existing year_built (Col D), original_hcad_year (Col E), source_url (Col J), Col W polygon, and architectural fields on standing updates
   if (targetRow > 0 && !isExplicitVacant) {
     var exRow = vals[targetRow - 1] || [];
     if (payload.geometry_geojson === undefined || geomGeoJsonStr === '') {
@@ -1370,13 +1426,14 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
     if (colsAtoR[4] === '' && exRow[4] !== '' && exRow[4] !== undefined) {
       colsAtoR[4] = exRow[4];
     }
-    if (!primaryName) colsAtoR[14] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[14] || ''));
-    if (!altNames) colsAtoR[15] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[15] || ''));
-    if (!payload.bld_style) colsAtoR[16] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[16] || ''));
-    if (!payload.architect) colsAtoR[17] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[17] || ''));
-    if (!payload.address && exRow[2]) colsAtoR[2] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[2]));
-    if (!payload.historic_district && exRow[5]) colsAtoR[5] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[5]));
-    if (!payload.contributing && exRow[6]) colsAtoR[6] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[6]));
+    colsAtoR[2] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.address, '', exRow[2], false));
+    colsAtoR[5] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.historic_district, '', exRow[5], false));
+    colsAtoR[6] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.contributing, '', exRow[6], false));
+    colsAtoR[9] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.source_url, '', exRow[9], false));
+    colsAtoR[14] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(primaryName, '', exRow[14], false));
+    colsAtoR[15] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(altNames, '', exRow[15], false));
+    colsAtoR[16] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.bld_style, '', exRow[16], false));
+    colsAtoR[17] = sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.architect, '', exRow[17], false));
   }
   var writeRowIdx = targetRow > 0 ? targetRow : (lastRow + 1);
   writePendingRowPreservingFormulas_(sheet, writeRowIdx, colsAtoR, geomGeoJsonStr);
@@ -1685,7 +1742,7 @@ function handleUpsertParcelDecisionAction_(ctx) {
     });
   }
 
-  var nowIso = new Date().toISOString();
+  var nowIso = nextMonotonicIsoServer_(env, curDec && curDec.decided_at);
   var baseP = curParcel || { parcel_id: parcelId, added_at: nowIso };
   var baseD = curDec || { decision_id: decId, parcel_id: parcelId };
   var actorLabel = decAuth.displayLabel || (decAuth.actorType === 'staff' ? 'Preservation Staff' : 'Screener');
@@ -1928,11 +1985,7 @@ function handleUpsertWatchlistDossierAction_(ctx) {
       else delete dObj[fk];
     }
   }
-  var nowMsWl = (env && typeof env.nowMs === 'function') ? env.nowMs() : new Date().getTime();
-  var nowWlIso = new Date(nowMsWl).toISOString();
-  if (exWlRow && String(exWlRow.updated_at || '').trim() === nowWlIso) {
-    nowWlIso = new Date(nowMsWl + 1).toISOString();
-  }
+  var nowWlIso = nextMonotonicIsoServer_(env, exWlRow && exWlRow.updated_at);
   dObj.updatedAt = nowWlIso;
   var dJson = compactWatchlistDossierServer_(dObj, 48000);
   if (dJson.length > 48000) {
@@ -1999,16 +2052,21 @@ function handlePipelinePushSweepResultsAction_(ctx) {
   if (Array.isArray(payload.parcels) && payload.parcels.length) {
     var curParcels = readTableObjects_(ss, TABLE_REGISTRY_.Parcels);
     var curById = {};
-    for (var cp = 0; cp < curParcels.length; cp++) curById[curParcels[cp].parcel_id] = curParcels[cp];
+    for (var cp = 0; cp < curParcels.length; cp++) {
+      var normExPid = normalizeParcelIdServer_(curParcels[cp].parcel_id, curParcels[cp].campus_group_id);
+      if (normExPid) curById[normExPid] = curParcels[cp];
+    }
     var safeParcels = [];
-    var sweepTs = new Date().toISOString();
+    var sweepTs = nextMonotonicIsoServer_(env, '');
     for (var ip = 0; ip < payload.parcels.length; ip++) {
       var incP = payload.parcels[ip];
-      if (!incP || !incP.parcel_id) continue;
-      var exP = curById[incP.parcel_id];
+      var normIncPid = incP ? normalizeParcelIdServer_(incP.parcel_id, incP.campus_group_id) : '';
+      if (!normIncPid) continue;
+      var exP = curById[normIncPid];
       if (!exP || isFullSeed) {
         var seeded = {};
         for (var sk in incP) { if (Object.prototype.hasOwnProperty.call(incP, sk)) seeded[sk] = incP[sk]; }
+        seeded.parcel_id = normIncPid;
         seeded.added_at = seeded.added_at || sweepTs;
         seeded.updated_at = seeded.updated_at || sweepTs;
         seeded.contributing_status = computeContributingServer_(seeded, aMap);
@@ -2018,6 +2076,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
         // Preserve all human decision columns saved concurrently at T1 (T0 < T1 < T2)!
         var mergedP = {};
         for (var ek in exP) { if (Object.prototype.hasOwnProperty.call(exP, ek)) mergedP[ek] = exP[ek]; }
+        mergedP.parcel_id = normIncPid;
         for (var mk in PIPELINE_MACHINE_PARCEL_COLS_) {
           if (Object.prototype.hasOwnProperty.call(PIPELINE_MACHINE_PARCEL_COLS_, mk) && incP[mk] !== undefined) {
             if ((mk === 'owner_of_record' || mk === 'land_use_class' || mk === 'designation_summary') &&
@@ -2067,8 +2126,8 @@ function handlePipelinePushSweepResultsAction_(ctx) {
       if (!exWRow || isFullSeed) {
         var fullDoc = incW.dossier_json ? incW : {
           watch_property_id: wid2,
-          parcel_id: String(incW.parcelId || incW.hcadAccount || wid2).split(/[;|,]/)[0].trim(),
-          hcad_num: String(incW.hcadAccount || '').split(/[;|,]/)[0].trim(),
+          parcel_id: normalizeParcelIdServer_(String(incW.parcelId || incW.hcadAccount || wid2).split(/[;|,]/)[0], incW.campusGroupId || ''),
+          hcad_num: normalizeHcadKeyServer_(String(incW.hcadAccount || '').split(/[;|,]/)[0]),
           primary_address: String(incW.address || ''),
           property_name: String(incW.propertyName || incW.address || wid2),
           attention_level: String(incW.attentionLevel || 'watch'),
@@ -2227,32 +2286,25 @@ function handleModerateSubmissionAction_(ctx) {
     resolvedYrCell = priorApprovedRow[3];
   }
   var resolvedOrigYr = stripLeadingSheetTick_(pRow[4]) || (priorApprovedRow ? stripLeadingSheetTick_(priorApprovedRow[4]) : '');
-  var pickStandingField = function(payloadVal, pRowVal, priorVal) {
-    var pv = payloadVal !== undefined && payloadVal !== null ? String(payloadVal).trim() : '';
-    if (pv !== '') return pv;
-    var rv = stripLeadingSheetTick_(pRowVal).trim();
-    if (rv !== '') return rv;
-    return (priorApprovedRow && !isVacMod) ? stripLeadingSheetTick_(priorVal).trim() : '';
-  };
   var updatedColsAtoR = [
     effectiveStatus,
     /^\d{13}$/.test(targetHcad) ? (SQUOTE_ + targetHcad) : sanitizeSheetFormulaPrefix_(targetHcad),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.address, pRow[2], priorApprovedRow ? priorApprovedRow[2] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.address, pRow[2], priorApprovedRow ? priorApprovedRow[2] : '', false)),
     resolvedYrCell,
     resolvedOrigYr,
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.historic_district, pRow[5], priorApprovedRow ? priorApprovedRow[5] : '')),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.contributing, pRow[6], priorApprovedRow ? priorApprovedRow[6] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.historic_district, pRow[5], priorApprovedRow ? priorApprovedRow[5] : '', false)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.contributing, pRow[6], priorApprovedRow ? priorApprovedRow[6] : '', false)),
     sanitizeSheetFormulaPrefix_(srcTypeRow),
     sanitizeSheetFormulaPrefix_(nextCite),
-    sanitizeSheetFormulaPrefix_(payload.source_url !== undefined && String(payload.source_url).trim() !== '' ? payload.source_url : stripLeadingSheetTick_(pRow[9])),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.source_url, pRow[9], priorApprovedRow ? priorApprovedRow[9] : '', isVacMod)),
     sanitizeSheetFormulaPrefix_(staffLabel),
     sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(pRow[11])),
     stripLeadingSheetTick_(pRow[12]) || new Date().toISOString().slice(0, 10),
     sanitizeSheetFormulaPrefix_(payload.moderation_note || stripLeadingSheetTick_(pRow[13]) || ('Moderated via In-App Queue: ' + effectiveStatus)),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.building_name, pRow[14], priorApprovedRow ? priorApprovedRow[14] : '')),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.alt_names, pRow[15], priorApprovedRow ? priorApprovedRow[15] : '')),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.bld_style, pRow[16], priorApprovedRow ? priorApprovedRow[16] : '')),
-    sanitizeSheetFormulaPrefix_(pickStandingField(payload.architect, pRow[17], priorApprovedRow ? priorApprovedRow[17] : ''))
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.building_name, pRow[14], priorApprovedRow ? priorApprovedRow[14] : '', isVacMod)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.alt_names, pRow[15], priorApprovedRow ? priorApprovedRow[15] : '', isVacMod)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.bld_style, pRow[16], priorApprovedRow ? priorApprovedRow[16] : '', isVacMod)),
+    sanitizeSheetFormulaPrefix_(pickStandingCellServer_(payload.architect, pRow[17], priorApprovedRow ? priorApprovedRow[17] : '', isVacMod))
   ];
   writePendingRowPreservingFormulas_(pendSheet, rowNum, updatedColsAtoR, nextGeomW);
   invalidateCacheKey_(env, 'APPROVED_EDITS_CSV_V1');

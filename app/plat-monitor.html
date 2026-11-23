@@ -704,12 +704,10 @@ import {
   migrateLegacyTierToParcelFields,
   normalizeHcad13,
   normalizeParcelRecord,
-  parseDelimitedList,
   parseRelatedHcads,
   preserveStaffOnlyWatchlistFields,
   resolveCanonicalParcelId,
   sanitizeMonitoringText,
-  toChicagoCalendarDate,
 } from "./js/parcelMonitoringModel.js?v=20261113c";
 
 import {
@@ -745,7 +743,6 @@ import {
 
 import {
   STORY_CHECK_STEPS,
-  parseStoryCheckJson,
   renderAttentionBadgeHtml,
   renderModerationQueueDetailHtml,
   renderModerationQueueListHtml,
@@ -979,6 +976,9 @@ let localWatchlistById = new Map();
 let monitoringAreasById = new Map();
 let monitoringParcelsById = new Map();
 let monitoringDecisionsByParcelId = new Map();
+let cloudDecisionUpdatedAtByParcelId = new Map();
+const pendingParcelSyncBatches = {};
+const inFlightParcelSyncByKey = {};
 let monitoringEvents = [];
 let campusParcelIndex = buildCampusParcelIndex([]);
 let staffStrategyByParcelId = new Map();
@@ -1005,7 +1005,7 @@ function parseWatchRowDossier(row){
   return base;
 }
 
-function hydratePhase1MapsFromPayload(payload, activeRole = "public"){
+function hydratePhase1MapsFromPayload(payload, activeRole = "public", { fromCloud = false } = {}){
   if (!payload || typeof payload !== "object") return { appliedWatch: 0, appliedDecisions: 0 };
   if (Array.isArray(payload.areas)) {
     monitoringAreasById.clear();
@@ -1026,7 +1026,15 @@ function hydratePhase1MapsFromPayload(payload, activeRole = "public"){
   if (Array.isArray(payload.decisions)) {
     for (const dec of payload.decisions) {
       if (dec && dec.parcel_id) {
-        monitoringDecisionsByParcelId.set(String(dec.parcel_id), dec);
+        const decPid = String(dec.parcel_id);
+        if (fromCloud) {
+          cloudDecisionUpdatedAtByParcelId.set(decPid, String(dec.decided_at || ""));
+        } else if (!cloudDecisionUpdatedAtByParcelId.has(decPid) && dec.decided_at) {
+          cloudDecisionUpdatedAtByParcelId.set(decPid, String(dec.decided_at));
+        }
+        if (!pendingParcelSyncBatches[`parcel:${decPid}`]) {
+          monitoringDecisionsByParcelId.set(decPid, dec);
+        }
         appliedDecisions++;
       }
     }
@@ -6613,9 +6621,16 @@ function wipeInMemoryPrivateStateOnSignOut(){
     clearTimeout(cloudSyncTimers[k]);
     delete cloudSyncTimers[k];
   }
+  for (const k of Object.keys(pendingParcelSyncBatches)) {
+    delete pendingParcelSyncBatches[k];
+  }
+  for (const k of Object.keys(inFlightParcelSyncByKey)) {
+    delete inFlightParcelSyncByKey[k];
+  }
   monitoringAreasById.clear();
   monitoringParcelsById.clear();
   monitoringDecisionsByParcelId.clear();
+  cloudDecisionUpdatedAtByParcelId.clear();
   monitoringEvents = [];
   campusParcelIndex = buildCampusParcelIndex([]);
   staffStrategyByParcelId.clear();
@@ -6805,7 +6820,8 @@ async function pullAuthenticatedMonitoringState({ promptOnExpired = false } = {}
     if (!resp || !resp.ok) return false;
     const { appliedWatch, appliedDecisions } = hydratePhase1MapsFromPayload(
       resp,
-      resp.role || sess.role
+      resp.role || sess.role,
+      { fromCloud: true }
     );
     if (canAccessStaffOnly(sess) && (view.mode === "moderation" || pendingModerationCount > 0)) {
       pullModerationQueue().catch(() => {});
@@ -7042,31 +7058,65 @@ function queueCloudSyncParcelDecision(parcelId, patchPayload = {}, expectedUpdat
   const sess = getStaffSession();
   if (!sess || !sess.authorized || !parcelId) return;
   const timerKey = `parcel:${parcelId}`;
+  const prevBatch = pendingParcelSyncBatches[timerKey];
+  pendingParcelSyncBatches[timerKey] = {
+    expectedUpdatedAt: prevBatch ? prevBatch.expectedUpdatedAt : expectedUpdatedAt,
+    patchPayload: prevBatch ? { ...prevBatch.patchPayload, ...patchPayload } : { ...patchPayload },
+  };
   if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
   cloudSyncTimers[timerKey] = setTimeout(async () => {
     delete cloudSyncTimers[timerKey];
+    if (inFlightParcelSyncByKey[timerKey]) {
+      try { await inFlightParcelSyncByKey[timerKey]; } catch (_e) {}
+    }
+    const batch = pendingParcelSyncBatches[timerKey];
+    if (!batch) return;
+    delete pendingParcelSyncBatches[timerKey];
+    const resolvedExpectedTs = cloudDecisionUpdatedAtByParcelId.has(parcelId)
+      ? (cloudDecisionUpdatedAtByParcelId.get(parcelId) || "")
+      : batch.expectedUpdatedAt;
     const sendRpc = () =>
       callMonitoringRpc({
         webhookUrl: SHEET_WEBHOOK_URL,
         action: "upsert_parcel_decision",
         body: {
           parcel_id: parcelId,
-          expected_updated_at: expectedUpdatedAt,
-          patch: patchPayload,
+          expected_updated_at: resolvedExpectedTs,
+          patch: batch.patchPayload,
         },
         onTokenExpired: handleTokenExpiredPrompt,
         retryFn: sendRpc,
       });
-    const resp = await sendRpc();
+    const rpcPromise = sendRpc();
+    inFlightParcelSyncByKey[timerKey] = rpcPromise;
+    let resp = null;
+    try {
+      resp = await rpcPromise;
+    } finally {
+      if (inFlightParcelSyncByKey[timerKey] === rpcPromise) {
+        delete inFlightParcelSyncByKey[timerKey];
+      }
+    }
     if (resp && resp.ok) {
-      if (resp.parcel) {
-        monitoringParcelsById.set(resp.parcel.parcel_id, normalizeParcelRecord(resp.parcel, { areasById: monitoringAreasById }));
-        campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
-      }
       if (resp.decision && resp.decision.parcel_id) {
-        monitoringDecisionsByParcelId.set(resp.decision.parcel_id, resp.decision);
+        cloudDecisionUpdatedAtByParcelId.set(
+          String(resp.decision.parcel_id),
+          String(resp.decision.decided_at || "")
+        );
       }
-      persistMonitoringSnapshotToRoleCache();
+      if (!pendingParcelSyncBatches[timerKey]) {
+        if (resp.parcel) {
+          monitoringParcelsById.set(
+            resp.parcel.parcel_id,
+            normalizeParcelRecord(resp.parcel, { areasById: monitoringAreasById })
+          );
+          campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
+        }
+        if (resp.decision && resp.decision.parcel_id) {
+          monitoringDecisionsByParcelId.set(resp.decision.parcel_id, resp.decision);
+        }
+        persistMonitoringSnapshotToRoleCache();
+      }
       const noteEl = $("#savedNote");
       if (noteEl) noteEl.textContent = "☁️ Synced parcel decision to Google Workspace · " + new Date().toLocaleTimeString();
     } else if (resp && resp.conflict) {
@@ -7125,7 +7175,9 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
     return null;
   }
 
-  const prevDecidedAt = currentAssessment.decidedAt || "";
+  const prevDecidedAt = cloudDecisionUpdatedAtByParcelId.has(merged.parcel.parcel_id)
+    ? (cloudDecisionUpdatedAtByParcelId.get(merged.parcel.parcel_id) || "")
+    : (currentAssessment.decidedAt || "");
   monitoringParcelsById.set(merged.parcel.parcel_id, merged.parcel);
   monitoringDecisionsByParcelId.set(merged.parcel.parcel_id, merged.decision);
   campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));

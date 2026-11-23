@@ -226,17 +226,27 @@ def build_campus_parcel_index(parcels: Any) -> dict[str, dict[str, Any]]:
     def _sort_key(p: Any) -> tuple[int, str]:
         if not isinstance(p, dict):
             return (1, "")
-        pid_raw = str(p.get("parcel_id") or p.get("campus_group_id") or "")
-        return (0 if pid_raw.startswith("CAMPUS:") else 1, pid_raw)
+        pid_raw = str(p.get("parcel_id") or "")
+        is_camp = pid_raw.startswith("CAMPUS:") or bool(
+            sanitize_monitoring_text(p.get("campus_group_id"))
+        )
+        return (0 if is_camp else 1, pid_raw)
 
     for p in sorted(items, key=_sort_key):
         if not isinstance(p, dict):
             continue
-        pid = sanitize_monitoring_text(
-            p.get("parcel_id")
-            or p.get("campus_group_id")
-            or normalize_hcad13(p.get("hcad_num"))
-        )
+        raw_pid = sanitize_monitoring_text(p.get("parcel_id"))
+        raw_camp = sanitize_monitoring_text(p.get("campus_group_id"))
+        if raw_camp:
+            pid = (
+                raw_camp
+                if raw_camp.startswith("CAMPUS:")
+                else f"CAMPUS:{_slugify_token(raw_camp)}"
+            )
+        elif raw_pid and (raw_pid.startswith("CAMPUS:") or raw_pid.startswith("UNPARCELED:")):
+            pid = raw_pid
+        else:
+            pid = normalize_hcad13(raw_pid or p.get("hcad_num")) or raw_pid
         if not pid:
             continue
         by_parcel_id[pid] = p

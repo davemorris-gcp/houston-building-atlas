@@ -353,21 +353,32 @@ def _seed_staff_admin_session(page: Any) -> dict[str, Any]:
         elif action == "upsert_parcel_decision":
             patch = payload.get("patch") or payload.get("decision") or {}
             pid = str(patch.get("parcel_id") or payload.get("parcel_id") or "")
-            if pid:
-                merged_p = {**(state["parcels"].get(pid) or {"parcel_id": pid}), **patch}
-                state["parcels"][pid] = merged_p
-                state["decisions"][pid] = {
-                    **(state["decisions"].get(pid) or {"decision_id": f"DEC:{pid}", "parcel_id": pid}),
-                    **patch,
-                    "decided_at": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+            cur_dec = state["decisions"].get(pid) if pid else None
+            exp_ts = str(payload.get("expected_updated_at") or "").strip()
+            if exp_ts and cur_dec and str(cur_dec.get("decided_at") or "").strip() != exp_ts:
+                resp = {
+                    "ok": False,
+                    "conflict": True,
+                    "error": "Optimistic concurrency conflict",
+                    "currentParcel": state["parcels"].get(pid, {}),
+                    "currentDecision": cur_dec,
                 }
-            resp = {
-                "ok": True,
-                "authorized": True,
-                "role": "staff",
-                "parcel": state["parcels"].get(pid, {}),
-                "decision": state["decisions"].get(pid, {}),
-            }
+            else:
+                if pid:
+                    merged_p = {**(state["parcels"].get(pid) or {"parcel_id": pid}), **patch}
+                    state["parcels"][pid] = merged_p
+                    state["decisions"][pid] = {
+                        **(cur_dec or {"decision_id": f"DEC:{pid}", "parcel_id": pid}),
+                        **patch,
+                        "decided_at": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                    }
+                resp = {
+                    "ok": True,
+                    "authorized": True,
+                    "role": "staff",
+                    "parcel": state["parcels"].get(pid, {}),
+                    "decision": state["decisions"].get(pid, {}),
+                }
         else:
             resp = {"ok": True, "authorized": True}
 
@@ -3143,6 +3154,27 @@ def test_phase1_it5_cross_cycle_parcel_significance_persistence_and_material_del
     assert len(page.locator("#parcelScreeningNotesInput").input_value()) > 650
     assert page.locator("[data-parcel-recheck-banner]").count() == 1
     assert "ACT" in page.locator("#parcelSignificanceCard [data-attention-badge]").inner_text().upper()
+
+    # 3. Rapid sequential parcel assessment edits inside the 650ms debounce window accumulate both fields and preserve server expected_updated_at without self-conflicting
+    rpc_count_before = sum(1 for c in mock_state["rpcLog"] if c.get("action") == "upsert_parcel_decision")
+    updated_note = f"{long_uncapped_note} Confirmed C3N variance escalation note."
+    page.locator("#parcelScreeningNotesInput").fill(updated_note)
+    page.locator("#parcelScreeningNotesInput").dispatch_event("change")
+    page.locator("[data-parcel-conf-sig='moderate']").click()
+    waited_ms = 0
+    while (
+        waited_ms < 4000
+        and sum(1 for c in mock_state["rpcLog"] if c.get("action") == "upsert_parcel_decision") <= rpc_count_before
+    ):
+        page.wait_for_timeout(100)
+        waited_ms += 100
+    page.wait_for_timeout(150)
+    dec_rpcs = [c for c in mock_state["rpcLog"] if c.get("action") == "upsert_parcel_decision"]
+    assert len(dec_rpcs) == rpc_count_before + 1
+    assert dec_rpcs[-1]["expected_updated_at"] == "2026-10-01T15:00:00Z"
+    assert "Confirmed C3N variance escalation note." in mock_state["decisions"]["0420090000088"]["screening_notes"]
+    assert mock_state["decisions"]["0420090000088"]["significance_level"] == "moderate"
+    assert "Synced parcel decision" in page.locator("#savedNote").inner_text()
 
 
 def test_phase1_it6_source_conflict_writeback_and_in_app_community_moderation_queue(
