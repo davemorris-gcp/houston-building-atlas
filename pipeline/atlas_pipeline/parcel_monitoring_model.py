@@ -13,6 +13,7 @@ Why separate Significance, Protection, Threat Stage, Advocacy Status, and Outcom
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import datetime as dt
 import json
 import math
@@ -68,7 +69,7 @@ def sanitize_monitoring_text(raw_val: Any) -> str:
 def compute_public_plat_suggested_tier(
     *,
     oldest_yr: int,
-    designations: Sequence[str] | Iterable[str] = (),
+    designations: Iterable[str] = (),
     flags: Iterable[str] = (),
     super_n: str = "",
     is_confirmed_vacant: bool = False,
@@ -78,6 +79,8 @@ def compute_public_plat_suggested_tier(
     flag_set = set(flags or ())
     norm_sn = str(super_n or "").strip().upper()
     older_ring = frozenset(MONITORING_SCHEMA_CONTRACT["olderRingSuperNeighborhoods"])
+    min_yr = int(MONITORING_SCHEMA_CONTRACT["minStandingYear"])
+    default_cutoff = int(MONITORING_SCHEMA_CONTRACT["defaultAgeCutoffYear"])
 
     if is_confirmed_vacant and oldest_yr == 0 and not desig_list:
         return "3"
@@ -86,10 +89,10 @@ def compute_public_plat_suggested_tier(
     if "dpv" in flag_set:
         return (
             "1"
-            if ((1836 <= oldest_yr <= 1976) or (norm_sn in older_ring))
+            if ((min_yr <= oldest_yr <= default_cutoff) or (norm_sn in older_ring))
             else "2"
         )
-    if 1836 <= oldest_yr <= 1965 and (
+    if min_yr <= oldest_yr <= 1965 and (
         "hearing" in flag_set
         or "variance" in flag_set
         or "split" in flag_set
@@ -101,7 +104,7 @@ def compute_public_plat_suggested_tier(
             if ("hearing" in flag_set or "variance" in flag_set or oldest_yr <= 1935)
             else "2"
         )
-    if 1836 <= oldest_yr <= 1976:
+    if min_yr <= oldest_yr <= default_cutoff:
         return "2"
     return ""
 

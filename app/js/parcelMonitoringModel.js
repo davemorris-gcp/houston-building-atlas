@@ -36,6 +36,9 @@ const SCREENER_DECISION_COLS = new Set(
 const STAFF_ONLY_DECISION_COLS = new Set(
   MONITORING_SCHEMA_CONTRACT.columnOwnership.staffOnlyDecisionCols
 );
+const OLDER_RING_SUPER_NEIGHBORHOODS_SET = new Set(
+  MONITORING_SCHEMA_CONTRACT.olderRingSuperNeighborhoods
+);
 
 const CORP_NOISE_TOKENS_RE =
   /\b(?:LLC|L\s*L\s*C|INC|INCORPORATED|CORP|CORPORATION|LTD|LIMITED|LP|L\s*P|LLP|CO|COMPANY|PROPERTIES|INVESTMENTS|HOLDINGS|GROUP|TRUST|ESTATE\s+OF|ET\s+AL)\b/gi;
@@ -58,69 +61,165 @@ export function sanitizeMonitoringText(rawVal) {
 }
 
 /**
- * Strip embedded `[GEOMETRY_GEOJSON: {...}]` spans from citation text using balanced
- * brace/string scanning so nested GeoJSON arrays or `GeometryCollection` objects never
- * leave trailing JSON fragments in `source_citation`.
+ * Balanced JSON tag scanner shared across `curatedEdits.js`, `sourceConflictResolver.js`,
+ * and `communityModerationQueue.js` (`[GEOMETRY_GEOJSON: {...}]`, `[FIELD_SURVEY_JSON: {...}]`).
  */
-export function stripEmbeddedGeometryTag(rawCitation = "") {
-  let s = String(rawCitation || "");
-  const prefix = "[GEOMETRY_GEOJSON:";
-  let searchFrom = 0;
-  for (;;) {
-    const idx = s.toUpperCase().indexOf(prefix, searchFrom);
-    if (idx === -1) break;
-    let i = idx + prefix.length;
-    while (i < s.length && /\s/.test(s[i])) i += 1;
-    if (s[i] !== "{") {
-      searchFrom = idx + prefix.length;
+export function findTaggedJsonSpans(text, prefix, { caseInsensitive = false } = {}) {
+  const s = String(text || "");
+  if (!s || !prefix) return [];
+  const haystack = caseInsensitive ? s.toUpperCase() : s;
+  const needle = caseInsensitive ? String(prefix).toUpperCase() : String(prefix);
+  if (!haystack.includes(needle)) return [];
+
+  const spans = [];
+  let pos = 0;
+  const n = s.length;
+  const pLen = needle.length;
+
+  while (pos < n) {
+    const idx = haystack.indexOf(needle, pos);
+    if (idx < 0) break;
+    let cur = idx + pLen;
+    while (cur < n && /\s/.test(s[cur])) cur += 1;
+    if (cur >= n || (s[cur] !== "{" && s[cur] !== "[")) {
+      pos = idx + pLen;
       continue;
     }
-    const startJson = i;
-    let depth = 0;
-    let inStr = false;
-    let esc = false;
+
+    const startJson = cur;
+    const stack = [s[cur]];
+    let inString = false;
+    let escaped = false;
     let endJson = -1;
-    let endIdx = -1;
-    for (; i < s.length; i += 1) {
+
+    for (let i = cur + 1; i < n; i += 1) {
       const ch = s[i];
-      if (inStr) {
-        if (esc) esc = false;
-        else if (ch === "\\") esc = true;
-        else if (ch === '"') inStr = false;
-      } else if (ch === '"') {
-        inStr = true;
-      } else if (ch === "{") {
-        depth += 1;
-      } else if (ch === "}") {
-        depth -= 1;
-        if (depth === 0) {
-          endJson = i + 1;
-          let close = endJson;
-          while (close < s.length && /\s/.test(s[close])) close += 1;
-          if (s[close] === "]") endIdx = close + 1;
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === "{" || ch === "[") {
+        stack.push(ch);
+      } else if (ch === "}" || ch === "]") {
+        const top = stack[stack.length - 1];
+        if ((ch === "}" && top === "{") || (ch === "]" && top === "[")) {
+          stack.pop();
+          if (stack.length === 0) {
+            endJson = i + 1;
+            break;
+          }
+        } else {
           break;
         }
       }
     }
-    if (endIdx === -1 || endJson === -1) {
-      searchFrom = idx + prefix.length;
+
+    if (endJson < 0) {
+      pos = idx + pLen;
+      continue;
+    }
+    let closeIdx = endJson;
+    while (closeIdx < n && /\s/.test(s[closeIdx])) closeIdx += 1;
+    if (closeIdx >= n || s[closeIdx] !== "]") {
+      pos = idx + pLen;
       continue;
     }
     try {
-      JSON.parse(s.slice(startJson, endJson));
+      const parsed = JSON.parse(s.slice(startJson, endJson));
+      spans.push({ start: idx, end: closeIdx + 1, value: parsed });
+      pos = closeIdx + 1;
     } catch (_e) {
-      searchFrom = idx + prefix.length;
-      continue;
+      pos = idx + pLen;
     }
-    s = `${s.slice(0, idx)}${s.slice(endIdx)}`;
-    searchFrom = idx;
   }
-  return sanitizeMonitoringText(s)
+  return spans;
+}
+
+export function stripTaggedJsonSpans(text, prefix, { caseInsensitive = false } = {}) {
+  const s = String(text || "");
+  const spans = findTaggedJsonSpans(s, prefix, { caseInsensitive });
+  if (spans.length === 0) return sanitizeMonitoringText(s);
+  const parts = [];
+  let last = 0;
+  for (const span of spans) {
+    parts.push(s.slice(last, span.start));
+    last = span.end;
+  }
+  parts.push(s.slice(last));
+  return sanitizeMonitoringText(parts.join(""))
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\s*\|\s*$/, "")
     .replace(/^\s*\|\s*/, "")
     .replace(/\s*\|\s*\|\s*/g, " | ")
     .trim();
+}
+
+export function stripEmbeddedGeometryTag(rawCitation = "") {
+  return stripTaggedJsonSpans(rawCitation, "[GEOMETRY_GEOJSON:", { caseInsensitive: true });
+}
+
+/**
+ * Compute automated public pre-screen plat tier strictly from public Atlas facts
+ * (kept 1:1 with `compute_public_plat_suggested_tier` in Python).
+ */
+export function computePublicPlatSuggestedTier({
+  oldestYr = 0,
+  designations = [],
+  flags = [],
+  superN = "",
+  isConfirmedVacant = false,
+} = {}) {
+  const desigList = Array.isArray(designations) ? designations.filter(Boolean) : [];
+  const flagSet = flags instanceof Set ? flags : new Set(Array.isArray(flags) ? flags : []);
+  const normSn = String(superN || "").trim().toUpperCase();
+  const yr = Number(oldestYr) || 0;
+  const minYr = MONITORING_SCHEMA_CONTRACT.minStandingYear;
+  const defaultCutoff = MONITORING_SCHEMA_CONTRACT.defaultAgeCutoffYear;
+
+  if (isConfirmedVacant && yr === 0 && desigList.length === 0) return "3";
+  if (desigList.length > 0) return "1";
+  if (flagSet.has("dpv")) {
+    return (yr >= minYr && yr <= defaultCutoff) || OLDER_RING_SUPER_NEIGHBORHOODS_SET.has(normSn)
+      ? "1"
+      : "2";
+  }
+  if (
+    yr >= minYr &&
+    yr <= 1965 &&
+    (flagSet.has("hearing") ||
+      flagSet.has("variance") ||
+      flagSet.has("split") ||
+      flagSet.has("use") ||
+      yr <= 1935)
+  ) {
+    return flagSet.has("hearing") || flagSet.has("variance") || yr <= 1935 ? "1" : "2";
+  }
+  if (yr >= minYr && yr <= defaultCutoff) return "2";
+  return "";
+}
+
+/**
+ * Enforce Staff-only Watchlist dossier field preservation on Screener client sync payloads
+ * so client-side serialization matches `Code.cjs` `STAFF_ONLY_WATCHLIST_DOSSIER_KEYS`.
+ */
+export function preserveStaffOnlyWatchlistFields(rawSerialized, prevCloudRow = null, role = "staff") {
+  if (!rawSerialized || typeof rawSerialized !== "object" || role !== "screener") {
+    return rawSerialized;
+  }
+  const out = { ...rawSerialized };
+  const baseline = prevCloudRow && typeof prevCloudRow === "object" ? prevCloudRow : {};
+  for (const staffKey of MONITORING_SCHEMA_CONTRACT.columnOwnership.staffOnlyWatchlistDossierKeys) {
+    if (baseline[staffKey] !== undefined) {
+      out[staffKey] = baseline[staffKey];
+    } else {
+      delete out[staffKey];
+    }
+  }
+  return out;
 }
 
 /**

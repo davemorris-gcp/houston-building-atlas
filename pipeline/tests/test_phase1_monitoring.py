@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import http.server
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import threading
+import typing
 from typing import Any
 
 import pytest
 
 from atlas_pipeline import backup_workspace_state as bws
 from atlas_pipeline import build_ai_companion as bac
-from atlas_pipeline import build_monitor_activity_log as bmal
 from atlas_pipeline import fetch_live_permits as flp
 from atlas_pipeline import fetch_plat_and_watchlist as fpw
 from atlas_pipeline import migrate_phase1_monitoring as mpm
@@ -1109,8 +1108,35 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
 
     monkeypatch.setenv("ATLAS_PIPELINE_SYNC_TOKEN", "r18-token")
     monkeypatch.setattr(fpw.urllib.request, "urlopen", fake_urlopen)
+    assert "designations" in typing.get_type_hints(pmm.compute_public_plat_suggested_tier)
     fpw.push_sweep_results_to_workspace(
-        {"lastAutoSweepAt": "2026-11-23T12:00:00Z", "watchedProperties": []},
+        {
+            "lastAutoSweepAt": "2026-11-23T12:00:00Z",
+            "watchedProperties": [
+                {
+                    "id": "prop-sixth-ward",
+                    "parcelId": "0010010000001",
+                    "hcadAccount": "0010010000001",
+                    "address": "1800 Kane St",
+                    "designation": "Old Sixth Ward",
+                    "checklist": [
+                        {
+                            "id": "chk-10",
+                            "title": "TDLR TABS Commercial Remodel",
+                            "status": "Flagged",
+                            "checks": [
+                                {
+                                    "date": "2026-11-20",
+                                    "discoveredAt": "2026-11-23T12:00:00Z",
+                                    "agencyRecordId": "tabs-r19-1",
+                                    "result": "[AUTO-SWEEP] TDLR Commercial Remodel",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
         plat_dataset={
             "cycleKey": "2026-11-12",
             "items": [
@@ -1131,32 +1157,56 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
                 "campus_group_id": "PARISH_ASSEMBLAGE",
                 "hcad_num": "0420010000001",
                 "related_hcads": "0420010000001; 0420010000002",
-            }
+                "protection_level": "binding",
+            },
+            {
+                "parcel_id": "0010010000001",
+                "hcad_num": "0010010000001",
+                "owner_of_record": "SMITH FAMILY",
+                "land_use_class": "A1",
+                "designation_summary": "Old Sixth Ward",
+                "protection_level": "binding",
+                "threat_stage": 3,
+            },
         ],
     )
     assert len(captured_pushes) == 1
-    pushed_ids = [p["parcel_id"] for p in captured_pushes[0]["parcels"]]
-    assert pushed_ids == ["CAMPUS:PARISH_ASSEMBLAGE"]
+    pushed_by_id = {p["parcel_id"]: p for p in captured_pushes[0]["parcels"]}
+    assert "CAMPUS:PARISH_ASSEMBLAGE" in pushed_by_id
+    assert pushed_by_id["CAMPUS:PARISH_ASSEMBLAGE"]["protection_level"] == "binding"
+    assert pushed_by_id["0010010000001"]["protection_level"] == "binding"
+    assert pushed_by_id["0010010000001"]["owner_of_record"] == "SMITH FAMILY"
+    assert "commercial_on_residential" in pushed_by_id["0010010000001"]["signal_flags"]
 
-    # 3. validate_public_bundle_zero_leaks catches app/public/ai-companion/* and activity log event leaks (issue_098)
+    # 3. validate_public_bundle_zero_leaks catches Watchlist headings, ai-companion JSON emails, and degraded-event leaks independently
     ai_dir = tmp_path / "app" / "public" / "ai-companion"
     data_dir = tmp_path / "app" / "public" / "data"
     ai_dir.mkdir(parents=True)
     data_dir.mkdir(parents=True)
     (ai_dir / "guide.md").write_text(
-        "## Active Investigative Property Watchlist\nreviewer@preservation.example.org\n",
+        "## Active Investigative Property Watchlist\nNo emails in this file.\n",
+        encoding="utf-8",
+    )
+    (ai_dir / "manifest.json").write_text(
+        json.dumps({"contact": "screener@preservation.example.org"}),
         encoding="utf-8",
     )
     (data_dir / "monitor_activity_log.json").write_text(
         json.dumps(
             {
+                "dailyRuns": [{"date": "2026-11-23", "propertiesSwept": 80}],
                 "events": [
                     {
                         "id": "agenda:1",
                         "stream": "agenda",
                         "reviewer": "Preservation Staff",
                         "watchPropertyId": "prop-1",
-                    }
+                    },
+                    {
+                        "id": "deg:1",
+                        "kind": "watchlist_sweep_degraded",
+                        "address": "500 Secret St",
+                    },
                 ],
                 "summary": {"byStream": {"agenda": 1, "permits": 0, "watchlist": 0, "staff": 0}},
             }
@@ -1164,5 +1214,8 @@ def test_round18_review_regressions_concurrent_merge_campus_sweep_and_bundle_gat
         encoding="utf-8",
     )
     leaks = pbg.validate_public_bundle_zero_leaks(tmp_path)
-    assert any("guide.md" in err for err in leaks)
+    assert any("guide.md still contains private Watchlist" in err for err in leaks)
+    assert any("manifest.json leaked non-public email" in err for err in leaks)
+    assert any("dailyRuns 2026-11-23 leaked propertiesSwept" in err for err in leaks)
+    assert any("degraded notice deg:1 leaked 'address'" in err for err in leaks)
     assert any("monitor_activity_log.json event" in err for err in leaks)

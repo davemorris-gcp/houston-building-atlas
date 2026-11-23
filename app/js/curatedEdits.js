@@ -13,17 +13,15 @@
  */
 
 import {
-  clearLegacyMirrorOnSignOut,
-  hydrateRoamingStateFromVerifyResponse,
-  pushCloudUserRoamingState,
-} from "./userRoamingState.js?v=20261113c";
-import {
-  LS_ADMIN_SESSION_KEY,
   readActiveMonitoringSession,
   signOutMonitoringSession,
   verifyAndSignInMonitoring,
 } from "./monitoringAuthClient.js?v=20261113c";
-import { stripEmbeddedGeometryTag } from "./parcelMonitoringModel.js?v=20261113c";
+import {
+  findTaggedJsonSpans,
+  stripEmbeddedGeometryTag,
+  stripTaggedJsonSpans,
+} from "./parcelMonitoringModel.js?v=20261113c";
 
 export { stripEmbeddedGeometryTag };
 
@@ -523,107 +521,8 @@ export function validateOverridePolygonGeometry(
   };
 }
 
-/**
- * Balanced JSON scanner matching `schema._find_tagged_json_spans` in Python (DF-2, DF-4).
- * Properly walks JSON string escapes and nested braces/brackets (`]]]` inside Polygon coords).
- */
-function findTaggedJsonSpansJs(text, prefix) {
-  const s = String(text || "");
-  if (!s || !prefix || !s.includes(prefix)) return [];
-  const spans = [];
-  let pos = 0;
-  const n = s.length;
-  const pLen = prefix.length;
-
-  while (pos < n) {
-    const idx = s.indexOf(prefix, pos);
-    if (idx < 0) break;
-    let cur = idx + pLen;
-    while (cur < n && /\s/.test(s[cur])) cur++;
-    if (cur >= n || (s[cur] !== "{" && s[cur] !== "[")) {
-      pos = idx + pLen;
-      continue;
-    }
-
-    const startJson = cur;
-    const stack = [s[cur]];
-    let inString = false;
-    let escaped = false;
-    let endJson = -1;
-
-    for (let i = cur + 1; i < n; i++) {
-      const ch = s[i];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (ch === "\\") {
-          escaped = true;
-        } else if (ch === '"') {
-          inString = false;
-        }
-        continue;
-      }
-      if (ch === '"') {
-        inString = true;
-      } else if (ch === "{" || ch === "[") {
-        stack.push(ch);
-      } else if (ch === "}" || ch === "]") {
-        const top = stack[stack.length - 1];
-        if ((ch === "}" && top === "{") || (ch === "]" && top === "[")) {
-          stack.pop();
-          if (stack.length === 0) {
-            endJson = i + 1;
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-    }
-
-    if (endJson < 0) {
-      pos = idx + pLen;
-      continue;
-    }
-    let closeIdx = endJson;
-    while (closeIdx < n && /\s/.test(s[closeIdx])) closeIdx++;
-    if (closeIdx >= n || s[closeIdx] !== "]") {
-      pos = idx + pLen;
-      continue;
-    }
-    try {
-      const parsed = JSON.parse(s.slice(startJson, endJson));
-      spans.push({ start: idx, end: closeIdx + 1, value: parsed });
-      pos = closeIdx + 1;
-    } catch (_e) {
-      pos = idx + pLen;
-    }
-  }
-  return spans;
-}
-
-function stripTaggedJsonSpansJs(text, prefix) {
-  const s = String(text || "");
-  const spans = findTaggedJsonSpansJs(s, prefix);
-  if (spans.length === 0) return s.trim();
-  const parts = [];
-  let last = 0;
-  for (const span of spans) {
-    parts.push(s.slice(last, span.start));
-    last = span.end;
-  }
-  parts.push(s.slice(last));
-  return parts
-    .join("")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\s*\|\s*$/, "")
-    .replace(/^\s*\|\s*/, "")
-    .replace(/\s*\|\s*\|\s*/g, " | ")
-    .trim();
-}
-
 export function extractEmbeddedGeometryJson(sourceCitation) {
-  const spans = findTaggedJsonSpansJs(String(sourceCitation || ""), GEOMETRY_TAG_PREFIX);
+  const spans = findTaggedJsonSpans(String(sourceCitation || ""), GEOMETRY_TAG_PREFIX);
   for (let i = spans.length - 1; i >= 0; i--) {
     const res = validateOverridePolygonGeometry(spans[i].value);
     if (res.ok) return res.geometry;
@@ -654,7 +553,7 @@ export function encodeCitationWithGeometry(sourceCitation, geometryOrRing) {
 }
 
 export function extractEmbeddedFieldSurveyJson(sourceCitation) {
-  const spans = findTaggedJsonSpansJs(String(sourceCitation || ""), FIELD_SURVEY_TAG_PREFIX);
+  const spans = findTaggedJsonSpans(String(sourceCitation || ""), FIELD_SURVEY_TAG_PREFIX);
   for (let i = spans.length - 1; i >= 0; i--) {
     const val = spans[i].value;
     if (val && typeof val === "object" && !Array.isArray(val)) {
@@ -667,7 +566,7 @@ export function extractEmbeddedFieldSurveyJson(sourceCitation) {
 export const extractFieldSurveyEnvelope = extractEmbeddedFieldSurveyJson;
 
 export function stripEmbeddedFieldSurveyTag(sourceCitation) {
-  return stripTaggedJsonSpansJs(String(sourceCitation || ""), FIELD_SURVEY_TAG_PREFIX);
+  return stripTaggedJsonSpans(String(sourceCitation || ""), FIELD_SURVEY_TAG_PREFIX);
 }
 
 export function encodeFieldSurveyEnvelope(sourceCitation, envelope = {}) {

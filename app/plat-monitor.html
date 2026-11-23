@@ -706,6 +706,7 @@ import {
   normalizeParcelRecord,
   parseDelimitedList,
   parseRelatedHcads,
+  preserveStaffOnlyWatchlistFields,
   resolveCanonicalParcelId,
   sanitizeMonitoringText,
   toChicagoCalendarDate,
@@ -7147,19 +7148,22 @@ function applyParcelAssessmentPatch(patch = {}, { platItem = null, watchProp = n
   if (linkedWp) {
     linkedWp.parcelId = merged.parcel.parcel_id;
     linkedWp.reviewStatus = merged.parcel.review_status;
-    linkedWp.significanceLevel = merged.parcel.significance_level;
-    linkedWp.protectionLevel = merged.parcel.protection_level;
-    linkedWp.threatStage = merged.parcel.threat_stage;
-    linkedWp.advocacyStatus = merged.parcel.advocacy_status;
-    linkedWp.outcome = merged.parcel.outcome;
-    linkedWp.attentionLevel = merged.parcel.attention_level;
-    if (nextDerivedTier) linkedWp.tier = nextDerivedTier;
-    if (merged.parcel.outcome === "lost" || merged.parcel.outcome === "lost_before_review") {
-      linkedWp.trackerStatus = "Lost";
-    } else if (merged.parcel.outcome === "saved") {
-      linkedWp.trackerStatus = "Saved";
-    } else if (merged.parcel.outcome === "not_relevant") {
-      linkedWp.trackerStatus = "Archived (Tier 4)";
+    linkedWp.recommendedSignificance = merged.parcel.recommended_significance;
+    if (sess.role === "staff") {
+      linkedWp.significanceLevel = merged.parcel.significance_level;
+      linkedWp.protectionLevel = merged.parcel.protection_level;
+      linkedWp.threatStage = merged.parcel.threat_stage;
+      linkedWp.advocacyStatus = merged.parcel.advocacy_status;
+      linkedWp.outcome = merged.parcel.outcome;
+      linkedWp.attentionLevel = merged.parcel.attention_level;
+      if (nextDerivedTier) linkedWp.tier = nextDerivedTier;
+      if (merged.parcel.outcome === "lost" || merged.parcel.outcome === "lost_before_review") {
+        linkedWp.trackerStatus = "Lost";
+      } else if (merged.parcel.outcome === "saved") {
+        linkedWp.trackerStatus = "Saved";
+      } else if (merged.parcel.outcome === "not_relevant") {
+        linkedWp.trackerStatus = "Archived (Tier 4)";
+      }
     }
     linkedWp.updatedAt = merged.decision.decided_at;
     linkedWp.updatedBy = actorLabel;
@@ -7249,30 +7253,12 @@ function queueCloudSyncWatchProperty(prop){
   cloudSyncTimers[timerKey] = setTimeout(async () => {
     delete cloudSyncTimers[timerKey];
     const reviewerId = ($("#reviewer")?.value || sess.email || "").trim();
-    const rawSerialized = serializeWatchPropertyForSync(prop, reviewerId, prop.updatedAt || new Date().toISOString());
+    const rawSerialized = serializeWatchPropertyForSync(prop, reviewerId, new Date().toISOString());
     if (!rawSerialized) return;
     const prevCloudRow = cloudWatchlistById.get(prop.id) || null;
-    if (sess.role === "screener" && prevCloudRow) {
-      for (const staffKey of [
-        "significanceLevel",
-        "significance_level",
-        "advocacyStatus",
-        "advocacy_status",
-        "outcome",
-        "attentionOverride",
-        "attention_override",
-        "contributingOverride",
-        "tier",
-        "trackerStatus",
-        "removedFromWatchlist",
-        "removalReason",
-      ]) {
-        if (prevCloudRow[staffKey] !== undefined) rawSerialized[staffKey] = prevCloudRow[staffKey];
-        else delete rawSerialized[staffKey];
-      }
-    }
-    const compactedJson = compactWatchlistDossierJson(rawSerialized);
-    let serialized = rawSerialized;
+    const roleGuarded = preserveStaffOnlyWatchlistFields(rawSerialized, prevCloudRow, sess.role);
+    const compactedJson = compactWatchlistDossierJson(roleGuarded);
+    let serialized = roleGuarded;
     try {
       serialized = JSON.parse(compactedJson);
     } catch (_ce) {}

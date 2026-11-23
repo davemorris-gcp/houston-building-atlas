@@ -14,10 +14,6 @@ import {
   stripEmbeddedGeometryTag,
 } from "./parcelMonitoringModel.js?v=20261113c";
 
-export function stripEmbeddedGeometryTagClient(rawCitation = "") {
-  return stripEmbeddedGeometryTag(rawCitation);
-}
-
 function validHistoricYearOrZero(val) {
   if (val === null || val === undefined || val === "") return null;
   const s = String(val).trim();
@@ -230,7 +226,7 @@ export function buildApprovedOverrideWritebackPayload({
     sourceCitation || existingOverride?.source_citation || "Verified during Preservation Monitoring review."
   );
   if (suppressVacant) {
-    cleanCitation = stripEmbeddedGeometryTagClient(cleanCitation);
+    cleanCitation = stripEmbeddedGeometryTag(cleanCitation);
   }
 
   const payload = {

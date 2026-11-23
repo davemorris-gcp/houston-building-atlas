@@ -96,6 +96,13 @@ var STAFF_ONLY_DECISION_COLS_ = {
   outcome: true, attention_override: true, atlas_writeback_summary: true
 };
 
+var STAFF_ONLY_WATCHLIST_DOSSIER_KEYS_ = [
+  'significanceLevel', 'significance_level', 'advocacyStatus', 'advocacy_status',
+  'outcome', 'attentionOverride', 'attention_override', 'attentionLevel', 'attention_level',
+  'contributingOverride', 'contributing_override', 'graduateToLost',
+  'tier', 'trackerStatus', 'removedFromWatchlist', 'removalReason'
+];
+
 var TERMINAL_OUTCOMES_ = {
   lost: true, lost_before_review: true, not_relevant: true,
   saved: true, moved: true, no_longer_threatened: true
@@ -125,6 +132,26 @@ function sanitizeSheetFormulaPrefix_(val) {
 function stripLeadingSheetTick_(val) {
   var s = String(val === null || val === undefined ? '' : val);
   return s.charAt(0) === SQUOTE_ ? s.slice(1) : s;
+}
+
+function normalizeHcadKeyServer_(rawVal) {
+  var clean = stripLeadingSheetTick_(rawVal || '').trim();
+  if (!clean) return '';
+  var parts = clean.split('#');
+  if (/^\d{10,12}$/.test(parts[0])) {
+    while (parts[0].length < 13) parts[0] = '0' + parts[0];
+  }
+  return parts.length > 1 ? (parts[0] + '#' + parts.slice(1).join('#')) : parts[0];
+}
+
+function normalizeParcelIdServer_(rawParcelId, rawCampusGroupId) {
+  var camp = stripLeadingSheetTick_(rawCampusGroupId || '').trim();
+  var pid = normalizeHcadKeyServer_(rawParcelId);
+  if (pid && pid.toUpperCase().indexOf('CAMPUS:') === 0) return 'CAMPUS:' + pid.slice(7).trim();
+  if (!pid && camp) {
+    return camp.toUpperCase().indexOf('CAMPUS:') === 0 ? ('CAMPUS:' + camp.slice(7).trim()) : ('CAMPUS:' + camp);
+  }
+  return pid;
 }
 
 function constantTimeEquals_(a, b) {
@@ -345,9 +372,8 @@ function formatCellForHeader_(colName, rawVal) {
   if (typeof rawVal === 'number') return isFinite(rawVal) ? rawVal : '';
   var s = sanitizeDashesServer_(rawVal);
   if (colName === 'hcad_num' || (colName === 'parcel_id' && /^\d{10,13}$/.test(s.trim()))) {
-    var padded = s.trim();
-    while (padded.length < 13 && /^\d+$/.test(padded)) padded = '0' + padded;
-    return SQUOTE_ + padded;
+    var padded = normalizeHcadKeyServer_(s);
+    return /^\d{13}$/.test(padded) ? (SQUOTE_ + padded) : sanitizeSheetFormulaPrefix_(padded);
   }
   var clean = sanitizeSheetFormulaPrefix_(s);
   if (clean.length > 48500) {
@@ -367,6 +393,11 @@ function upsertTableObjectsBatch_(ss, spec, records) {
   var pkIdx = hdr.indexOf(spec.primaryKey);
   if (pkIdx === -1) return { inserted: 0, updated: 0 };
 
+  var normPkFn = function(val) {
+    var base = stripLeadingSheetTick_(val).trim();
+    return (spec.primaryKey === 'parcel_id' || spec.primaryKey === 'hcad_num') ? normalizeHcadKeyServer_(base) : base;
+  };
+
   var rowByPk = {};
   var grid = [];
   for (var r = 0; r < vals.length; r++) {
@@ -376,7 +407,7 @@ function upsertTableObjectsBatch_(ss, spec, records) {
     }
     grid.push(copyRow);
     if (r > 0) {
-      var exPk = stripLeadingSheetTick_(copyRow[pkIdx]).trim();
+      var exPk = normPkFn(copyRow[pkIdx]);
       if (exPk) rowByPk[exPk] = r;
     }
   }
@@ -389,7 +420,7 @@ function upsertTableObjectsBatch_(ss, spec, records) {
   for (var i = 0; i < records.length; i++) {
     var rec = records[i];
     if (!rec || typeof rec !== 'object') continue;
-    var pk = stripLeadingSheetTick_(rec[spec.primaryKey]).trim();
+    var pk = normPkFn(rec[spec.primaryKey]);
     if (!pk) continue;
     var existingRowIdx = rowByPk[pk];
     if (existingRowIdx !== undefined) {
@@ -1288,10 +1319,7 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
 
   var sheetYearVal = isFlagType ? '' : (isExplicitVacant ? 0 : (hasStandingYr ? parsedYr : ''));
   var finalStatus = (isFlagType && !hasStandingYr && !isExplicitVacant) ? 'Resolved' : 'Approved';
-  var cleanKey = stripLeadingSheetTick_(payload.hcad_num || '').trim();
-  if (/^\d{10,12}$/.test(cleanKey)) {
-    while (cleanKey.length < 13) cleanKey = '0' + cleanKey;
-  }
+  var cleanKey = normalizeHcadKeyServer_(payload.hcad_num || '');
   if (!cleanKey) {
     return { ok: false, error: 'Missing hcad_num for Approved_Edits writeback.' };
   }
@@ -1322,7 +1350,7 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
   var lastRow = 1;
   for (var r = 1; r < vals.length; r++) {
     var rStatus = String(vals[r][0] || '').trim().toLowerCase();
-    var rKey = stripLeadingSheetTick_(vals[r][1]).trim();
+    var rKey = normalizeHcadKeyServer_(vals[r][1]);
     if (rKey !== '') {
       lastRow = r + 1;
       if (rKey === cleanKey && rStatus === 'approved' && finalStatus === 'Approved') {
@@ -1330,11 +1358,17 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
       }
     }
   }
-  // Preserve existing Col W polygon and architectural fields when updating a standing Approved row without replacement values
+  // Preserve existing year_built (Col D), original_hcad_year (Col E), Col W polygon, and architectural fields on standing updates
   if (targetRow > 0 && !isExplicitVacant) {
     var exRow = vals[targetRow - 1] || [];
     if (payload.geometry_geojson === undefined || geomGeoJsonStr === '') {
       geomGeoJsonStr = stripLeadingSheetTick_(exRow[22] || '');
+    }
+    if (colsAtoR[3] === '' && !isFlagType && exRow[3] !== '' && exRow[3] !== undefined) {
+      colsAtoR[3] = exRow[3];
+    }
+    if (colsAtoR[4] === '' && exRow[4] !== '' && exRow[4] !== undefined) {
+      colsAtoR[4] = exRow[4];
     }
     if (!primaryName) colsAtoR[14] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[14] || ''));
     if (!altNames) colsAtoR[15] = sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(exRow[15] || ''));
@@ -1558,6 +1592,9 @@ function handlePullMonitoringStateAction_(ctx) {
     if (dr.dossier_json) {
       try { dObj = JSON.parse(dr.dossier_json); } catch (_de) { dObj = null; }
     }
+    if (dObj && typeof dObj === 'object' && dr.updated_at) {
+      dObj.updatedAt = dr.updated_at;
+    }
     parsedDossiers.push(dObj || dr);
   }
   var respBody = {
@@ -1613,7 +1650,7 @@ function handleUpsertParcelDecisionAction_(ctx) {
       });
     }
   }
-  var parcelId = String(patch.parcel_id || payload.parcel_id || '').trim();
+  var parcelId = normalizeParcelIdServer_(patch.parcel_id || payload.parcel_id || '', patch.campus_group_id || payload.campus_group_id || '');
   if (!parcelId) {
     return createJsonResponse_(env, { ok: false, error: 'Missing parcel_id for decision upsert.' });
   }
@@ -1626,12 +1663,13 @@ function handleUpsertParcelDecisionAction_(ctx) {
   var curParcel = null;
   var curDec = null;
   for (var pi = 0; pi < existingParcels.length; pi++) {
-    if (existingParcels[pi].parcel_id === parcelId) { curParcel = existingParcels[pi]; break; }
+    if (normalizeHcadKeyServer_(existingParcels[pi].parcel_id) === parcelId) { curParcel = existingParcels[pi]; break; }
   }
   var decId = 'DEC:' + parcelId;
   for (var dci = 0; dci < existingDecisions.length; dci++) {
-    if (existingDecisions[dci].decision_id === decId || existingDecisions[dci].parcel_id === parcelId) {
-      curDec = existingDecisions[dci];
+    var exDecRow = existingDecisions[dci];
+    if (exDecRow.decision_id === decId || normalizeHcadKeyServer_(exDecRow.parcel_id) === parcelId) {
+      curDec = exDecRow;
       break;
     }
   }
@@ -1656,7 +1694,7 @@ function handleUpsertParcelDecisionAction_(ctx) {
     : (patch.significance_basis !== undefined ? patch.significance_basis : (baseD.significance_basis || baseP.significance_basis || ''));
 
   var nextDec = {
-    decision_id: decId,
+    decision_id: (curDec && curDec.decision_id) ? curDec.decision_id : decId,
     parcel_id: parcelId,
     hcad_num: patch.hcad_num !== undefined ? patch.hcad_num : (baseD.hcad_num || baseP.hcad_num || ''),
     latest_app_no: patch.latest_app_no !== undefined ? patch.latest_app_no : (baseD.latest_app_no || ''),
@@ -1853,26 +1891,28 @@ function handleUpsertWatchlistDossierAction_(ctx) {
     }
     var prevDoc = {};
     try { prevDoc = JSON.parse(exWlRow.dossier_json || '{}'); } catch (_pe) { prevDoc = {}; }
-    if (dObj.removedFromWatchlist !== undefined && Boolean(dObj.removedFromWatchlist) !== Boolean(prevDoc.removedFromWatchlist)) {
-      return createJsonResponse_(env, {
-        ok: false,
-        authorized: false,
-        forbiddenField: 'removedFromWatchlist',
-        error: 'Screener role cannot modify staff-only Watchlist field: removedFromWatchlist'
-      });
-    }
-    var lockedKeys = [
-      'significanceLevel', 'significance_level', 'advocacyStatus', 'advocacy_status',
-      'outcome', 'attentionOverride', 'attention_override', 'contributingOverride',
-      'tier', 'trackerStatus', 'removalReason'
-    ];
-    for (var lk = 0; lk < lockedKeys.length; lk++) {
-      var fk = lockedKeys[lk];
+    for (var lk = 0; lk < STAFF_ONLY_WATCHLIST_DOSSIER_KEYS_.length; lk++) {
+      var fk = STAFF_ONLY_WATCHLIST_DOSSIER_KEYS_[lk];
+      if (fk === 'removedFromWatchlist' || fk === 'graduateToLost') {
+        if (dObj[fk] !== undefined && Boolean(dObj[fk]) !== Boolean(prevDoc[fk])) {
+          return createJsonResponse_(env, {
+            ok: false,
+            authorized: false,
+            forbiddenField: fk,
+            error: 'Screener role cannot modify staff-only Watchlist field: ' + fk
+          });
+        }
+        if (prevDoc[fk] !== undefined) dObj[fk] = prevDoc[fk];
+        else delete dObj[fk];
+        continue;
+      }
       var prevBaseline = '';
       if (fk === 'advocacyStatus' || fk === 'advocacy_status') {
         prevBaseline = String(prevDoc[fk] !== undefined ? prevDoc[fk] : (prevDoc.advocacyStatus || prevDoc.advocacy_status || exWlRow.advocacy_status || '')).trim();
       } else if (fk === 'outcome') {
         prevBaseline = String(prevDoc.outcome !== undefined ? prevDoc.outcome : (exWlRow.outcome || '')).trim();
+      } else if (fk === 'attentionLevel' || fk === 'attention_level') {
+        prevBaseline = String(prevDoc[fk] !== undefined ? prevDoc[fk] : (prevDoc.attentionLevel || prevDoc.attention_level || exWlRow.attention_level || '')).trim();
       } else {
         prevBaseline = String(prevDoc[fk] !== undefined ? prevDoc[fk] : '').trim();
       }
@@ -1887,18 +1927,21 @@ function handleUpsertWatchlistDossierAction_(ctx) {
       if (prevDoc[fk] !== undefined) dObj[fk] = prevDoc[fk];
       else delete dObj[fk];
     }
-    if (prevDoc.removedFromWatchlist !== undefined) dObj.removedFromWatchlist = prevDoc.removedFromWatchlist;
-    else delete dObj.removedFromWatchlist;
   }
+  var nowMsWl = (env && typeof env.nowMs === 'function') ? env.nowMs() : new Date().getTime();
+  var nowWlIso = new Date(nowMsWl).toISOString();
+  if (exWlRow && String(exWlRow.updated_at || '').trim() === nowWlIso) {
+    nowWlIso = new Date(nowMsWl + 1).toISOString();
+  }
+  dObj.updatedAt = nowWlIso;
   var dJson = compactWatchlistDossierServer_(dObj, 48000);
   if (dJson.length > 48000) {
     return createJsonResponse_(env, { ok: false, error: 'Watchlist dossier exceeds 48,000-character cell safety limit.' });
   }
-  var nowWlIso = new Date().toISOString();
   var wlRow = {
     watch_property_id: wid,
-    parcel_id: String(dObj.parcelId || dObj.parcel_id || dObj.hcadAccount || wid).split(/[;|,]/)[0].trim(),
-    hcad_num: String(dObj.hcadAccount || dObj.hcad_num || '').split(/[;|,]/)[0].trim(),
+    parcel_id: normalizeHcadKeyServer_(String(dObj.parcelId || dObj.parcel_id || dObj.hcadAccount || wid).split(/[;|,]/)[0]),
+    hcad_num: normalizeHcadKeyServer_(String(dObj.hcadAccount || dObj.hcad_num || '').split(/[;|,]/)[0]),
     primary_address: String(dObj.address || ''),
     property_name: String(dObj.propertyName || dObj.address || wid),
     attention_level: wlAuth.actorType === 'screener' && exWlRow ? String(exWlRow.attention_level || dObj.attentionLevel || 'watch') : String(dObj.attentionLevel || 'watch'),
@@ -1906,7 +1949,7 @@ function handleUpsertWatchlistDossierAction_(ctx) {
     outcome: wlAuth.actorType === 'screener' && exWlRow ? String(exWlRow.outcome || '') : String(dObj.outcome || ''),
     dossier_json: dJson,
     updated_by: wlAuth.displayLabel || (wlAuth.actorType === 'screener' ? 'Screener' : 'Preservation Staff'),
-    updated_at: dObj.updatedAt || nowWlIso
+    updated_at: nowWlIso
   };
   upsertTableObjectsBatch_(ss, TABLE_REGISTRY_.Watchlist_Dossiers, [wlRow]);
   return createJsonResponse_(env, { ok: true, authorized: true, watch_property_id: wid, updated_at: wlRow.updated_at });
@@ -1977,6 +2020,17 @@ function handlePipelinePushSweepResultsAction_(ctx) {
         for (var ek in exP) { if (Object.prototype.hasOwnProperty.call(exP, ek)) mergedP[ek] = exP[ek]; }
         for (var mk in PIPELINE_MACHINE_PARCEL_COLS_) {
           if (Object.prototype.hasOwnProperty.call(PIPELINE_MACHINE_PARCEL_COLS_, mk) && incP[mk] !== undefined) {
+            if ((mk === 'owner_of_record' || mk === 'land_use_class' || mk === 'designation_summary') &&
+                String(incP[mk] || '').trim() === '' && String(exP[mk] || '').trim() !== '') {
+              continue;
+            }
+            if (mk === 'protection_level') {
+              var incProt = String(incP[mk] || '').trim().toLowerCase();
+              var exProtVal = String(exP[mk] || '').trim().toLowerCase();
+              if (incProt === 'none' && (exProtVal === 'binding' || exProtVal === 'limited')) {
+                continue;
+              }
+            }
             mergedP[mk] = incP[mk];
           }
         }
@@ -2130,17 +2184,14 @@ function handleModerateSubmissionAction_(ctx) {
   var pRow = pendSheet.getRange(rowNum, 1, 1, 23).getValues()[0];
   var existingHcad = stripLeadingSheetTick_(pRow[1]).trim();
   if (payload.expected_hcad_num) {
-    var expHcad = stripLeadingSheetTick_(payload.expected_hcad_num).trim();
-    var normEx = /^\d{10,12}$/.test(existingHcad) ? ('000' + existingHcad).slice(-13) : existingHcad;
-    var normExp = /^\d{10,12}$/.test(expHcad) ? ('000' + expHcad).slice(-13) : expHcad;
-    if (normEx !== normExp) {
+    if (normalizeHcadKeyServer_(existingHcad) !== normalizeHcadKeyServer_(payload.expected_hcad_num)) {
       return createJsonResponse_(env, { ok: false, conflict: true, error: 'Pending_Submissions row shifted; refresh queue and retry.' });
     }
   }
   var srcTypeRow = String(payload.source_type || stripLeadingSheetTick_(pRow[7]) || '').trim();
   var isDisputeFlag = /(?:PHOTO_MISATTRIBUTION_FLAG|CLAIM_DISPUTE_FLAG|NARRATIVE_ERROR_FLAG)$/i.test(srcTypeRow);
   var nextYrRaw = payload.suggested_year_built !== undefined ? String(payload.suggested_year_built).trim() : stripLeadingSheetTick_(pRow[3]).trim();
-  var hasExplicitPromoteYr = nextYrRaw !== '' && isFinite(Number(nextYrRaw)) && Number(nextYrRaw) >= 1836;
+  var hasExplicitPromoteYr = nextYrRaw !== '' && isFinite(Number(nextYrRaw)) && Number(nextYrRaw) >= 1836 && Number(nextYrRaw) <= 2035;
   var effectiveStatus = (decision === 'Approved' && isDisputeFlag && !hasExplicitPromoteYr && payload.suppress_only !== true) ? 'Resolved' : decision;
 
   var isVacMod = payload.suppress_only === true || nextYrRaw === '0';
@@ -2150,36 +2201,58 @@ function handleModerateSubmissionAction_(ctx) {
     nextGeomW = '';
     nextCite = stripTaggedJsonSpanServer_(nextCite, '[GEOMETRY_GEOJSON:');
   }
-  var targetHcad = stripLeadingSheetTick_(
+  var targetHcad = normalizeHcadKeyServer_(
     (payload.hcad_num !== undefined && String(payload.hcad_num).trim() !== '') ? payload.hcad_num : existingHcad
-  ).trim();
-  if (/^\d{10,12}$/.test(targetHcad)) {
-    while (targetHcad.length < 13) targetHcad = '0' + targetHcad;
+  );
+  var priorApprovedRow = null;
+  if (effectiveStatus === 'Approved' && targetHcad) {
+    var allPendVals = pendSheet.getDataRange().getValues();
+    for (var prIdx = 1; prIdx < allPendVals.length; prIdx++) {
+      if (prIdx + 1 === rowNum) continue;
+      var prSt = String(allPendVals[prIdx][0] || '').trim().toLowerCase();
+      var prKey = normalizeHcadKeyServer_(allPendVals[prIdx][1]);
+      if (prSt === 'approved' && prKey === targetHcad) {
+        priorApprovedRow = allPendVals[prIdx];
+        pendSheet.getRange(prIdx + 1, 1, 1, 1).setValues([['Superseded']]);
+      }
+    }
   }
-  var hcadParts = targetHcad.split('#');
-  if (hcadParts.length === 2 && /^\d{10,12}$/.test(hcadParts[0])) {
-    while (hcadParts[0].length < 13) hcadParts[0] = '0' + hcadParts[0];
-    targetHcad = hcadParts[0] + '#' + hcadParts[1];
+  if (priorApprovedRow && !isVacMod && !nextGeomW) {
+    nextGeomW = stripLeadingSheetTick_(priorApprovedRow[22] || '');
   }
+  var resolvedYrCell = isVacMod
+    ? 0
+    : (hasExplicitPromoteYr ? Math.round(Number(nextYrRaw)) : (isDisputeFlag ? '' : stripLeadingSheetTick_(pRow[3])));
+  if (resolvedYrCell === '' && !isVacMod && !isDisputeFlag && priorApprovedRow && priorApprovedRow[3] !== '' && priorApprovedRow[3] !== undefined) {
+    resolvedYrCell = priorApprovedRow[3];
+  }
+  var resolvedOrigYr = stripLeadingSheetTick_(pRow[4]) || (priorApprovedRow ? stripLeadingSheetTick_(priorApprovedRow[4]) : '');
+  var pickStandingField = function(payloadVal, pRowVal, priorVal) {
+    var pv = payloadVal !== undefined && payloadVal !== null ? String(payloadVal).trim() : '';
+    if (pv !== '') return pv;
+    var rv = stripLeadingSheetTick_(pRowVal).trim();
+    if (rv !== '') return rv;
+    return (priorApprovedRow && !isVacMod) ? stripLeadingSheetTick_(priorVal).trim() : '';
+  };
   var updatedColsAtoR = [
     effectiveStatus,
     /^\d{13}$/.test(targetHcad) ? (SQUOTE_ + targetHcad) : sanitizeSheetFormulaPrefix_(targetHcad),
-    sanitizeSheetFormulaPrefix_(payload.address !== undefined ? payload.address : stripLeadingSheetTick_(pRow[2])),
-    isVacMod ? 0 : (hasExplicitPromoteYr ? Math.round(Number(nextYrRaw)) : (isDisputeFlag ? '' : stripLeadingSheetTick_(pRow[3]))),
-    stripLeadingSheetTick_(pRow[4]),
-    sanitizeSheetFormulaPrefix_(payload.historic_district !== undefined ? payload.historic_district : stripLeadingSheetTick_(pRow[5])),
-    sanitizeSheetFormulaPrefix_(payload.contributing !== undefined ? payload.contributing : stripLeadingSheetTick_(pRow[6])),
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.address, pRow[2], priorApprovedRow ? priorApprovedRow[2] : '')),
+    resolvedYrCell,
+    resolvedOrigYr,
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.historic_district, pRow[5], priorApprovedRow ? priorApprovedRow[5] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.contributing, pRow[6], priorApprovedRow ? priorApprovedRow[6] : '')),
     sanitizeSheetFormulaPrefix_(srcTypeRow),
     sanitizeSheetFormulaPrefix_(nextCite),
-    sanitizeSheetFormulaPrefix_(payload.source_url !== undefined ? payload.source_url : stripLeadingSheetTick_(pRow[9])),
+    sanitizeSheetFormulaPrefix_(payload.source_url !== undefined && String(payload.source_url).trim() !== '' ? payload.source_url : stripLeadingSheetTick_(pRow[9])),
     sanitizeSheetFormulaPrefix_(staffLabel),
     sanitizeSheetFormulaPrefix_(stripLeadingSheetTick_(pRow[11])),
     stripLeadingSheetTick_(pRow[12]) || new Date().toISOString().slice(0, 10),
     sanitizeSheetFormulaPrefix_(payload.moderation_note || stripLeadingSheetTick_(pRow[13]) || ('Moderated via In-App Queue: ' + effectiveStatus)),
-    sanitizeSheetFormulaPrefix_(payload.building_name !== undefined ? payload.building_name : stripLeadingSheetTick_(pRow[14])),
-    sanitizeSheetFormulaPrefix_(payload.alt_names !== undefined ? payload.alt_names : stripLeadingSheetTick_(pRow[15])),
-    sanitizeSheetFormulaPrefix_(payload.bld_style !== undefined ? payload.bld_style : stripLeadingSheetTick_(pRow[16])),
-    sanitizeSheetFormulaPrefix_(payload.architect !== undefined ? payload.architect : stripLeadingSheetTick_(pRow[17]))
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.building_name, pRow[14], priorApprovedRow ? priorApprovedRow[14] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.alt_names, pRow[15], priorApprovedRow ? priorApprovedRow[15] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.bld_style, pRow[16], priorApprovedRow ? priorApprovedRow[16] : '')),
+    sanitizeSheetFormulaPrefix_(pickStandingField(payload.architect, pRow[17], priorApprovedRow ? priorApprovedRow[17] : ''))
   ];
   writePendingRowPreservingFormulas_(pendSheet, rowNum, updatedColsAtoR, nextGeomW);
   invalidateCacheKey_(env, 'APPROVED_EDITS_CSV_V1');
@@ -2465,9 +2538,11 @@ if (typeof module !== 'undefined' && module.exports) {
     TABLE_REGISTRY: TABLE_REGISTRY_,
     PIPELINE_MACHINE_PARCEL_COLS: PIPELINE_MACHINE_PARCEL_COLS_,
     STAFF_ONLY_DECISION_COLS: STAFF_ONLY_DECISION_COLS_,
+    STAFF_ONLY_WATCHLIST_DOSSIER_KEYS: STAFF_ONLY_WATCHLIST_DOSSIER_KEYS_,
     TERMINAL_OUTCOMES: TERMINAL_OUTCOMES_,
     POST_ACTION_HANDLERS: POST_ACTION_HANDLERS_,
     computeAttentionServer_: computeAttentionServer_,
+    normalizeHcadKeyServer_: normalizeHcadKeyServer_,
     createAppsScriptController: createAppsScriptController_,
     mergeUserRoamingStateServer_: mergeUserRoamingStateServer_,
     doGet: doGet,

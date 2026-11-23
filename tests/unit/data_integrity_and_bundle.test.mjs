@@ -113,19 +113,29 @@ test("GitHub Pages bundle size limits (every file < 95 MB, total app/ < 980 MB)"
       .map((f) => path.join(APP_DIR, "js", f)),
   ];
   const versionTokensByToken = new Map();
-  const relModuleSpecRe = /(?:from|import)\s*\(?["'](\.\.?\/[^"']*?\.js)\?v=([^"']+)["']/g;
-  const scriptSrcRe = /<script[^>]+src=["'](\.\.?\/[^"']*?\.js)\?v=([^"']+)["']/gi;
+  const unversionedSpecs = [];
+  const relModuleSpecRe = /(?:from|import)\s*(?:\(\s*)?["'](\.\.?\/[^"']*?\.js)(?:\?v=([^"']+))?["']/g;
+  const scriptSrcRe = /<script[^>]+src=["'](\.\.?\/[^"']*?\.js)(?:\?v=([^"']+))?["']/gi;
   for (const srcPath of moduleSources) {
     const srcText = fs.readFileSync(srcPath, "utf8");
     const relPath = path.relative(REPO_ROOT, srcPath);
     for (const re of [relModuleSpecRe, scriptSrcRe]) {
       for (const m of srcText.matchAll(re)) {
         const tok = m[2];
+        if (!tok) {
+          unversionedSpecs.push(`${relPath} -> ${m[1]}`);
+          continue;
+        }
         if (!versionTokensByToken.has(tok)) versionTokensByToken.set(tok, []);
         versionTokensByToken.get(tok).push(`${relPath} -> ${m[1]}?v=${tok}`);
       }
     }
   }
+  assert.deepEqual(
+    unversionedSpecs,
+    [],
+    `Relative .js imports missing ?v= cache-buster: ${unversionedSpecs.join(", ")}`
+  );
   assert.equal(
     versionTokensByToken.size,
     1,

@@ -250,7 +250,7 @@ def sanitize_public_monitor_activity_log(act_doc: dict[str, Any]) -> dict[str, A
             clean_notice = {
                 k: v
                 for k, v in ev.items()
-                if k not in ("watchPropertyId", "hcad", "address", "propertyName")
+                if k not in ("watchPropertyId", "hcad", "address", "propertyName", "reviewer", "staffOnly")
             }
             public_events.append(_scrub_dashes_deep(clean_notice))
             continue
@@ -338,11 +338,20 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
         plat = json.loads(plat_path.read_text(encoding="utf-8"))
         if plat.get("reviews"):
             errors.append("plat_agenda_monitor.json leaked top-level reviews!")
+        summary_groups: list[tuple[str, Any]] = [("top-level", plat.get("summary"))]
         item_groups: list[tuple[str, list[Any]]] = [("top-level", plat.get("items") or [])]
         for ck, cyc in (plat.get("cycles") or {}).items():
             if isinstance(cyc, dict) and cyc.get("reviews"):
                 errors.append(f"plat_agenda_monitor.json cycle {ck} leaked reviews!")
+            summary_groups.append((f"cycle {ck}", (cyc or {}).get("summary") if isinstance(cyc, dict) else None))
             item_groups.append((f"cycle {ck}", (cyc or {}).get("items") or []))
+        for sum_lbl, sum_obj in summary_groups:
+            if isinstance(sum_obj, dict):
+                for priv_sum_key in ("tier1Count", "tier2Count", "tier3Count", "tier4Count", "reviewedCount"):
+                    if priv_sum_key in sum_obj:
+                        errors.append(
+                            f"plat_agenda_monitor.json {sum_lbl} summary leaked private key '{priv_sum_key}'!"
+                        )
         for scope_lbl, item_list in item_groups:
             for it in item_list:
                 if isinstance(it, dict):
@@ -360,10 +369,20 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
     act_path = data_dir / "monitor_activity_log.json"
     if act_path.exists():
         act = json.loads(act_path.read_text(encoding="utf-8"))
+        for run_obj in act.get("dailyRuns") or []:
+            if isinstance(run_obj, dict) and "propertiesSwept" in run_obj:
+                errors.append(
+                    f"monitor_activity_log.json dailyRuns {run_obj.get('date')} leaked propertiesSwept!"
+                )
         for ev in act.get("events") or []:
             if not isinstance(ev, dict):
                 continue
             if ev.get("kind") == "watchlist_sweep_degraded":
+                for deg_priv in ("watchPropertyId", "hcad", "address", "propertyName", "reviewer", "staffOnly"):
+                    if ev.get(deg_priv):
+                        errors.append(
+                            f"monitor_activity_log.json degraded notice {ev.get('id')} leaked '{deg_priv}'!"
+                        )
                 continue
             if ev.get("stream") in ("staff", "watchlist"):
                 errors.append(
@@ -400,13 +419,13 @@ def validate_public_bundle_zero_leaks(repo_root: Path = REPO_ROOT) -> list[str]:
         if lp.exists():
             rel_lbl = str(lp.relative_to(repo_root))
             txt = lp.read_text(encoding="utf-8")
-            if "## Section 1: Active Endangered Property Watchlist" in txt:
+            if re.search(r"^##\s+.*(?:Endangered|Investigative)\s+Property\s+Watchlist\b", txt, re.I | re.M):
                 errors.append(f"{rel_lbl} still contains private Watchlist Section 1 table!")
             if re.search(r"plat-monitor\.html#tab=watchlist&watch=[A-Za-z0-9]", txt):
                 errors.append(f"{rel_lbl} leaked private Watchlist dossier deep links!")
             if "\u2014" in txt or "\u2013" in txt:
                 errors.append(f"{rel_lbl} contains forbidden typographic dashes!")
-            if lp.suffix in (".md", ".txt"):
+            if lp.suffix in (".md", ".txt", ".json"):
                 for em_m in _EMAIL_PATTERN.findall(txt):
                     if em_m.lower() not in _ALLOWED_PUBLIC_ARCHIVE_EMAILS:
                         errors.append(f"{rel_lbl} leaked non-public email token: {em_m}")

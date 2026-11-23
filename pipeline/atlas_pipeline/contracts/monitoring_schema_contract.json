@@ -316,6 +316,24 @@
       "outcome",
       "attention_override",
       "atlas_writeback_summary"
+    ],
+    "staffOnlyWatchlistDossierKeys": [
+      "significanceLevel",
+      "significance_level",
+      "advocacyStatus",
+      "advocacy_status",
+      "outcome",
+      "attentionOverride",
+      "attention_override",
+      "attentionLevel",
+      "attention_level",
+      "contributingOverride",
+      "contributing_override",
+      "graduateToLost",
+      "tier",
+      "trackerStatus",
+      "removedFromWatchlist",
+      "removalReason"
     ]
   },
   "olderRingSuperNeighborhoods": [

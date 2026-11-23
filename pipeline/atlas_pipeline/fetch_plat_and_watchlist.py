@@ -98,7 +98,6 @@ PLAT_TRACKER_APP_CODE_LABELS: dict[str, str] = {
     "VF": "Variance Filing (VF)",
 }
 from atlas_pipeline.schema import (
-    DEFAULT_SHEET_PUBLISHED_CSV_URL as SHEET_PUBLISHED_CSV_URL,
     DEFAULT_SHEET_WEBHOOK_URL as SHEET_WEBHOOK_URL,
     DEFAULT_WORKSPACE_BACKUP_PATH,
 )
@@ -143,12 +142,7 @@ INST_RE = re.compile(
     re.I,
 )
 
-from atlas_pipeline.parcel_monitoring_model import (
-    MONITORING_SCHEMA_CONTRACT as _MON_CONTRACT,
-    compute_public_plat_suggested_tier,
-)
-
-OLDER_RING_SUPER_N = set(_MON_CONTRACT["olderRingSuperNeighborhoods"])
+from atlas_pipeline.parcel_monitoring_model import compute_public_plat_suggested_tier
 
 GENERIC_STANDALONE_PLAT_NAMES = {
     "RESERVE",
@@ -7922,21 +7916,35 @@ def push_sweep_results_to_workspace(
                 events_out.append(ev_obj)
                 p_events.append(ev_obj)
 
+        ex_wp_row = existing_parcel_by_id.get(pid) or {}
+        wp_owner = str(wp.get("ownerOfRecord") or ex_wp_row.get("owner_of_record") or "")
+        wp_lu = str(wp.get("landUseClass") or ex_wp_row.get("land_use_class") or "")
+        wp_desig = str(wp.get("designation") or ex_wp_row.get("designation_summary") or "")
+        inferred_prot = classify_protection_level(wp_desig)
+        ex_prot = str(ex_wp_row.get("protection_level") or "").strip().lower()
+        wp_prot = (
+            ex_prot
+            if (inferred_prot == "none" and ex_prot in ("binding", "limited"))
+            else inferred_prot
+        )
         sig_flags = detect_parcel_signal_flags(
-            owner_of_record=str(wp.get("ownerOfRecord") or ""),
+            owner_of_record=wp_owner,
             party_names=[str(wp.get("developer") or ""), str(wp.get("buyerRelatedEntities") or "")],
+            land_use_class=wp_lu,
             event_kinds=[e["event_kind"] for e in p_events],
         )
         if matched_watched and "watched_entity_match" not in sig_flags:
             sig_flags.append("watched_entity_match")
 
+        ev_stage = compute_threat_stage_from_events(p_events, ex_wp_row)
         parcel_patches_by_id[pid] = {
             "parcel_id": pid,
-            "hcad_num": hcads[0] if hcads else "",
-            "owner_of_record": str(wp.get("ownerOfRecord") or ""),
-            "designation_summary": str(wp.get("designation") or ""),
-            "protection_level": classify_protection_level(wp.get("designation") or ""),
-            "threat_stage": compute_threat_stage_from_events(p_events),
+            "hcad_num": str(ex_wp_row.get("hcad_num") or (hcads[0] if hcads else "")),
+            "owner_of_record": wp_owner,
+            "land_use_class": wp_lu,
+            "designation_summary": wp_desig,
+            "protection_level": wp_prot,
+            "threat_stage": max(int(ex_wp_row.get("threat_stage") or 0), ev_stage) if not p_events else ev_stage,
             "signal_flags": "; ".join(sig_flags),
             "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),
         }
@@ -8021,6 +8029,13 @@ def push_sweep_results_to_workspace(
                 if matched_plat_ents and "watched_entity_match" not in it_flags:
                     it_flags.append("watched_entity_match")
                 desig_str = "; ".join(atlas_meta.get("designations") or []) or str((ex_parcel_row or {}).get("designation_summary") or "")
+                inferred_it_prot = classify_protection_level(desig_str)
+                ex_it_prot = str((ex_parcel_row or {}).get("protection_level") or "").strip().lower()
+                eff_it_prot = (
+                    ex_it_prot
+                    if (inferred_it_prot == "none" and ex_it_prot in ("binding", "limited"))
+                    else inferred_it_prot
+                )
                 parcel_patches_by_id[pid] = {
                     "parcel_id": pid,
                     "hcad_num": str((ex_parcel_row or {}).get("hcad_num") or (it_hcads[0] if it_hcads else "")),
@@ -8028,7 +8043,7 @@ def push_sweep_results_to_workspace(
                     "owner_of_record": str(atlas_meta.get("owner") or (ex_parcel_row or {}).get("owner_of_record") or ""),
                     "land_use_class": str(it.get("landUse") or (ex_parcel_row or {}).get("land_use_class") or ""),
                     "designation_summary": desig_str,
-                    "protection_level": classify_protection_level(desig_str),
+                    "protection_level": eff_it_prot,
                     "threat_stage": max(int((ex_parcel_row or {}).get("threat_stage") or 0), 3),
                     "signal_flags": "; ".join(it_flags),
                     "updated_at": str(watchlist_doc.get("lastAutoSweepAt") or ""),

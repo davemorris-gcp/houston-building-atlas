@@ -13,9 +13,9 @@
  */
 
 import {
-  MONITORING_SCHEMA_CONTRACT,
   classifyProtectionLevel,
   computeAttentionLevel,
+  computePublicPlatSuggestedTier,
   deriveLegacyTierFromParcel,
   migrateLegacyTierToParcelFields,
 } from "./parcelMonitoringModel.js?v=20261113c";
@@ -23,6 +23,7 @@ import {
 export {
   classifyProtectionLevel,
   computeAttentionLevel,
+  computePublicPlatSuggestedTier,
   deriveLegacyTierFromParcel,
   migrateLegacyTierToParcelFields,
 };
@@ -57,10 +58,6 @@ export const HCAD_PUBLIC_QUERY_OUT_FIELDS =
   "HCAD_NUM,owner,subdivision,address,city,zip,state_class,appr_val,mkt_val,impr_val,land_val,legal_lines";
 
 export const HCAD_RESIDENTIAL_GRADE_OUT_FIELDS = "HCAD_NUM,year_impr,grade";
-
-export const OLDER_RING_SUPER_NEIGHBORHOODS = new Set(
-  MONITORING_SCHEMA_CONTRACT.olderRingSuperNeighborhoods
-);
 
 const UTILITY_RE =
   /lift station|water treatment|water plant|wastewater|ground water|utility|detention only/i;
@@ -402,33 +399,17 @@ export function resolveMultiParcelBuildingTier(
     parcelSummaries.find((p) => p.address)?.address ||
     "";
 
-  let suggestedTier = "";
-  if (overrideSuggestedTier) {
-    suggestedTier = String(overrideSuggestedTier).trim();
-  } else if (allParcelsConfirmedVacant && uniqueDesignations.length === 0 && oldestYearBuilt === 0) {
-    suggestedTier = "3";
-  } else if (uniqueDesignations.length > 0) {
-    suggestedTier = "1";
-  } else if (flagSet.has("dpv")) {
-    suggestedTier =
-      (oldestYearBuilt >= 1836 && oldestYearBuilt <= 1976) ||
-      OLDER_RING_SUPER_NEIGHBORHOODS.has(normSn)
-        ? "1"
-        : "2";
-  } else if (
-    oldestYearBuilt >= 1836 &&
-    oldestYearBuilt <= 1965 &&
-    (flagSet.has("hearing") ||
-      flagSet.has("variance") ||
-      flagSet.has("split") ||
-      flagSet.has("use") ||
-      oldestYearBuilt <= 1935)
-  ) {
-    suggestedTier =
-      flagSet.has("hearing") || flagSet.has("variance") || oldestYearBuilt <= 1935 ? "1" : "2";
-  } else if (oldestYearBuilt >= 1836 && oldestYearBuilt <= 1976) {
-    suggestedTier = "2";
-  }
+  const isConfirmedVacantParcel =
+    Boolean(allParcelsConfirmedVacant) && uniqueDesignations.length === 0 && oldestYearBuilt === 0;
+  const suggestedTier = overrideSuggestedTier
+    ? String(overrideSuggestedTier).trim()
+    : computePublicPlatSuggestedTier({
+        oldestYr: oldestYearBuilt,
+        designations: uniqueDesignations,
+        flags: flagSet,
+        superN: normSn,
+        isConfirmedVacant: isConfirmedVacantParcel,
+      });
 
   const protectionLevel = classifyProtectionLevel(uniqueDesignations.join("; "));
   const suggestedAttentionLevel = computeAttentionLevel({

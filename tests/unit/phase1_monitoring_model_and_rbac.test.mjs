@@ -15,6 +15,7 @@ import {
   compactWatchlistDossierJson,
   computeAttentionLevel,
   computeContributingStatus,
+  computePublicPlatSuggestedTier,
   computeThreatStageFromEvents,
   deriveLegacyTierFromParcel,
   detectParcelSignalFlags,
@@ -26,9 +27,11 @@ import {
   mintSyntheticUnparceledId,
   normalizeHcad13,
   normalizeParcelRecord,
+  preserveStaffOnlyWatchlistFields,
   resolveCanonicalParcelId,
   resolveEffectiveAreaContext,
   sanitizeMonitoringText,
+  stripEmbeddedGeometryTag,
   toChicagoCalendarDate,
 } from "../../app/js/parcelMonitoringModel.js";
 
@@ -55,7 +58,6 @@ import {
 import {
   buildApprovedOverrideWritebackPayload,
   detectParcelSourceConflicts,
-  stripEmbeddedGeometryTagClient,
 } from "../../app/js/sourceConflictResolver.js";
 
 import {
@@ -1254,7 +1256,7 @@ test("IT-6, DF-8 & RP-6: Moderation Queue & 1-Click Approved_Edits Writeback pre
   assert.equal(writebackPayload.suggested_year_built, 0);
   assert.equal(writebackPayload.geometry_geojson, "");
   assert.equal(writebackPayload.source_citation.includes("[GEOMETRY_GEOJSON:"), false);
-  assert.equal(stripEmbeddedGeometryTagClient(`Note [GEOMETRY_GEOJSON: ${customPolyGeoJson}] end`), "Note end");
+  assert.equal(stripEmbeddedGeometryTag(`Note [GEOMETRY_GEOJSON: ${customPolyGeoJson}] end`), "Note end");
 
   const adminWriteRes = h.callPost({
     action: "admin_approve",
@@ -1568,6 +1570,10 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
     [...MONITORING_SCHEMA_CONTRACT.columnOwnership.staffOnlyDecisionCols].sort()
   );
   assert.deepEqual(
+    [...exported.STAFF_ONLY_WATCHLIST_DOSSIER_KEYS].sort(),
+    [...MONITORING_SCHEMA_CONTRACT.columnOwnership.staffOnlyWatchlistDossierKeys].sort()
+  );
+  assert.deepEqual(
     Object.keys(exported.TERMINAL_OUTCOMES).sort(),
     [...MONITORING_SCHEMA_CONTRACT.enums.terminalOutcomes].sort()
   );
@@ -1647,7 +1653,7 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
   const screenerInEditors = h.callPost({ action: "verify_admin", google_id_token: screenerJwt });
   assert.equal(screenerInEditors.role, "screener", "Screener in getEditors() must stay restricted to screener");
 
-  // 4. Watchlist dossier Screener Staff-only field lock + expected_updated_at conflict guard (issue_094)
+  // 4. Watchlist dossier Screener Staff-only field lock + server-monotonic expected_updated_at conflict guard (issue_094, Round 19)
   const seedWl = h.callPost({
     action: "upsert_watchlist_dossier",
     google_id_token: staffJwt,
@@ -1656,17 +1662,32 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
       address: "500 Main St",
       significanceLevel: "high",
       advocacyStatus: "active_advocacy",
+      attentionLevel: "act",
       outcome: "",
       updatedAt: "2026-11-23T10:00:00.000Z",
     },
   });
   assert.equal(seedWl.ok, true);
+  assert.notEqual(
+    seedWl.updated_at,
+    "2026-11-23T10:00:00.000Z",
+    "Server must stamp a fresh monotonic updated_at rather than echoing client updatedAt"
+  );
+  const pulledAfterSeed = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
+  assert.equal(
+    pulledAfterSeed.watchlistDossiers.find((d) => d.id === "prop-r18-1").updatedAt,
+    seedWl.updated_at,
+    "pull_monitoring_state must hydrate dossier.updatedAt from Watchlist_Dossiers.updated_at"
+  );
 
   for (const [forbiddenKey, badVal] of [
     ["significanceLevel", "not_significant"],
     ["advocacyStatus", "closed"],
     ["outcome", "not_relevant"],
     ["removedFromWatchlist", true],
+    ["graduateToLost", true],
+    ["contributing_override", "non_contributing"],
+    ["attentionLevel", "record"],
   ]) {
     const badScreenerWl = h.callPost({
       action: "upsert_watchlist_dossier",
@@ -1676,6 +1697,7 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
         address: "500 Main St",
         significanceLevel: "high",
         advocacyStatus: "active_advocacy",
+        attentionLevel: "act",
         outcome: "",
         [forbiddenKey]: badVal,
       },
@@ -1684,6 +1706,22 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
     assert.equal(badScreenerWl.authorized, false);
     assert.equal(badScreenerWl.forbiddenField, forbiddenKey);
   }
+
+  const guardedClientDossier = preserveStaffOnlyWatchlistFields(
+    {
+      id: "prop-r18-1",
+      tier: "1",
+      trackerStatus: "Lost",
+      graduateToLost: true,
+      notes: "Screener note",
+    },
+    null,
+    "screener"
+  );
+  assert.equal("tier" in guardedClientDossier, false);
+  assert.equal("graduateToLost" in guardedClientDossier, false);
+  assert.equal(guardedClientDossier.notes, "Screener note");
+  assert.equal(computePublicPlatSuggestedTier({ oldestYr: 1928, flags: ["hearing"] }), "1");
 
   const staleWl = h.callPost({
     action: "upsert_watchlist_dossier",
@@ -1697,18 +1735,56 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
   const okScreenerWl = h.callPost({
     action: "upsert_watchlist_dossier",
     google_id_token: screenerJwt,
-    expected_updated_at: "2026-11-23T10:00:00.000Z",
+    expected_updated_at: seedWl.updated_at,
     dossier: {
       id: "prop-r18-1",
       address: "500 Main St",
       significanceLevel: "high",
       advocacyStatus: "active_advocacy",
+      attentionLevel: "act",
       outcome: "",
       notes: "Screener deed note added",
-      updatedAt: "2026-11-23T10:30:00.000Z",
+      updatedAt: seedWl.updated_at,
     },
   });
   assert.equal(okScreenerWl.ok, true);
+  assert.notEqual(
+    okScreenerWl.updated_at,
+    seedWl.updated_at,
+    "Subsequent save at identical clock tick must advance updated_at by +1ms"
+  );
+
+  // 10-12 digit unnormalized parcel_id sequential saves keep 1:1 Decisions row without lockout (Round 19)
+  const shortPidSave1 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "420090000055",
+    patch: { review_status: "assessed", significance_level: "moderate" },
+  });
+  assert.equal(shortPidSave1.ok, true);
+  assert.equal(shortPidSave1.parcel.parcel_id, "0420090000055");
+  const shortPidSave2 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420090000055",
+    expected_updated_at: shortPidSave1.decision.decided_at,
+    patch: { screening_notes: "Second save" },
+  });
+  assert.equal(shortPidSave2.ok, true);
+  const shortPidSave3 = h.callPost({
+    action: "upsert_parcel_decision",
+    google_id_token: staffJwt,
+    parcel_id: "0420090000055",
+    expected_updated_at: shortPidSave2.decision.decided_at,
+    patch: { screening_notes: "Third save" },
+  });
+  assert.equal(shortPidSave3.ok, true);
+  const pulledAfterShort = h.callPost({ action: "pull_monitoring_state", google_id_token: staffJwt });
+  assert.equal(
+    pulledAfterShort.decisions.filter((d) => d.parcel_id === "0420090000055").length,
+    1,
+    "Sequential 12-digit then 13-digit saves must maintain exactly 1 Decisions row"
+  );
 
   // 5. upsert_parcel_decision preserves COH Historic District binding protection_level, array significance_basis, and 14-day urgent hearing (issue_096)
   const sixthWardRes = h.callPost({
@@ -1787,9 +1863,53 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
   assert.equal(pendSheet.getRange(2, 15).getValue(), "Historic Bungalow");
   assert.equal(pendSheet.getRange(2, 18).getValue(), "Master Builder");
 
+  // Promoting a Field_Surveys row with prose observed_year_or_demo_note must NOT wipe Col D year 1926! (Round 19)
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_R19_PROSE_NOTE",
+    hcad_num: "0621100000099",
+    address: "900 BAYLAND AVE",
+    observed_year_or_demo_note: "Original wood siding intact",
+    field_notes: "Window trim intact",
+  });
+  assert.equal(
+    h.callPost({
+      action: "moderate_submission",
+      google_id_token: staffJwt,
+      sourceTab: "Field_Surveys",
+      rowNumber: 3,
+      survey_id: "SURV_R19_PROSE_NOTE",
+      decision: "Approved",
+    }).ok,
+    true
+  );
+  assert.equal(pendSheet.getRange(2, 4).getValue(), 1926, "Prose survey promotion must preserve standing Col D year");
+
+  // Approving a new Pending_Submissions year-only row on 0621100000099 must carry forward Col W polygon & mark prior row Superseded!
+  h.callPost({
+    hcad_num: "0621100000099",
+    address: "900 BAYLAND AVE",
+    suggested_year_built: 1925,
+    source_citation: "1925 Directory update",
+  });
+  const baylandPendRow = h
+    .callPost({ action: "list_pending_submissions", google_id_token: staffJwt })
+    .items.find((it) => it.sourceTab === "Pending_Submissions" && it.address === "900 BAYLAND AVE");
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(classifyModerationQueueItem(baylandPendRow), "Approved"),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  assert.equal(pendSheet.getRange(2, 1).getValue(), "Superseded");
+  assert.equal(pendSheet.getRange(baylandPendRow.rowNumber, 4).getValue(), 1925);
+  assert.equal(pendSheet.getRange(baylandPendRow.rowNumber, 23).getValue(), polyJson);
+  assert.equal(pendSheet.getRange(baylandPendRow.rowNumber, 15).getValue(), "Historic Bungalow");
+
   const nestedGeomCollectionCitation =
     'Field verified [GEOMETRY_GEOJSON: {"geometries":[{"type":"Polygon","coordinates":[[[-95.36,29.75],[-95.35,29.75],[-95.35,29.76],[-95.36,29.75]]]}],"type":"GeometryCollection"}] archival note';
-  assert.equal(stripEmbeddedGeometryTagClient(nestedGeomCollectionCitation), "Field verified archival note");
+  assert.equal(stripEmbeddedGeometryTag(nestedGeomCollectionCitation), "Field verified archival note");
 
   // Demolish/vacant suppression on row with nested GeoJSON citation strips entire balanced tag cleanly on server
   h.callPost({
@@ -1810,7 +1930,11 @@ test("Round 18 Review Regressions: Code.cjs schema/attention parity, deactivated
   assert.equal(modDecisionPayload.suggested_year_built, 0);
   const modExec = h.callPost({ ...modDecisionPayload, google_id_token: staffJwt });
   assert.equal(modExec.ok, true);
-  assert.equal(pendSheet.getRange(3, 2).getValue(), "0123456000001#b2", "Edited #mq-hcad must persist and zero-pad prefix");
-  assert.equal(pendSheet.getRange(3, 4).getValue(), 0);
-  assert.equal(pendSheet.getRange(3, 9).getValue(), "Field verified archival note");
+  assert.equal(
+    pendSheet.getRange(demoItem.rowNumber, 2).getValue(),
+    "0123456000001#b2",
+    "Edited #mq-hcad must persist and zero-pad prefix"
+  );
+  assert.equal(pendSheet.getRange(demoItem.rowNumber, 4).getValue(), 0);
+  assert.equal(pendSheet.getRange(demoItem.rowNumber, 9).getValue(), "Field verified archival note");
 });
