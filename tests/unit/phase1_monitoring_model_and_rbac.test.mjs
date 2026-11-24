@@ -7727,3 +7727,213 @@ test("UT-P1-SyncCoord-PartialIntermediateBouncePreservesUpstreamPromotionAndScru
   assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
   assert.equal(coord.getPromotedTarget(PARISH_C), PARISH_C);
 });
+
+test("UT-P1-SyncCoord-PartialBounceOntoServerBackedIntermediatePreservesUpstreamReplaceId: retains replace_parcel_id PARCEL_A when uncreated PARISH_C bounces back onto server-backed LOT_B", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const T_B = "2026-11-24T02:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+  coord.recordHydratedTimestamp(LOT_B, T_B, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, T_A);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "B v1" }, T_B);
+  coord.promoteParcelKey(LOT_B, PARISH_C, T_B);
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "C v1" }, T_B);
+  coord.promoteParcelKey(PARISH_C, NEW_D, T_B);
+  coord.enqueue(NEW_D, { replace_parcel_id: PARISH_C, screening_notes: "D v1" }, T_B);
+  coord.promoteParcelKey(PARISH_C, LOT_B, T_B);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARISH_C, screening_notes: "Back to B" }, T_B);
+  await timers.popNextTimer()();
+  await timers.popNextTimer()();
+
+  const reqD = seenRequests.find((req) => req.parcel_id === NEW_D);
+  const reqB = seenRequests.find((req) => req.parcel_id === LOT_B);
+  assert.equal(reqD?.replace_parcel_id, undefined);
+  assert.equal(reqB?.replace_parcel_id, PARCEL_A);
+  assert.equal(reqB?.expected_updated_at, T_B);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
+  assert.equal(coord.getPromotedTarget(PARISH_C), PARISH_C);
+});
+
+test("UT-P1-SyncCoord-EmptyBatchServerBackedBounceEvictsAbandonedIntermediateHop: evicts TEMP_X->LOT_B and preserves TEMP_X timestamp when empty-batch LOT_B merges back into PARCEL_A after LOT_B->NEW_D", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const TEMP_X = "CAMPUS:TEMP_X";
+  const LOT_B = "CAMPUS:LOT_B";
+  const NEW_D = "CAMPUS:NEW_D";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const T_X = "2026-11-24T02:00:00.000Z";
+  const T_B = "2026-11-24T03:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+  coord.recordHydratedTimestamp(TEMP_X, T_X, { fromCloud: true });
+  coord.recordHydratedTimestamp(LOT_B, T_B, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, TEMP_X, T_A);
+  coord.enqueue(TEMP_X, { replace_parcel_id: PARCEL_A, screening_notes: "Draft X" }, T_X);
+  coord.promoteParcelKey(TEMP_X, LOT_B, T_X);
+  coord.enqueue(LOT_B, { replace_parcel_id: TEMP_X, screening_notes: "Draft B" }, T_B);
+  coord.promoteParcelKey(LOT_B, NEW_D, T_B);
+  coord.enqueue(NEW_D, { replace_parcel_id: LOT_B, screening_notes: "Draft D" }, T_B);
+  coord.promoteParcelKey(LOT_B, PARCEL_A, T_B);
+  coord.enqueue(PARCEL_A, { replace_parcel_id: LOT_B, screening_notes: "Merged into A" }, T_A);
+  await timers.popNextTimer()();
+  await timers.popNextTimer()();
+
+  const reqA = seenRequests.find((req) => req.parcel_id === PARCEL_A);
+  assert.equal(reqA?.replace_parcel_id, LOT_B);
+  assert.equal(coord.getPromotedTarget(TEMP_X), TEMP_X);
+  assert.equal(coord.getServerTimestamp(TEMP_X), T_X);
+});
+
+test("UT-P1-SyncCoord-PartialServerBackedBounceEvictsUnretiredBounceSource: cancels LOT_B->TEMP_X and preserves LOT_B timestamp when TEMP_X already retires upstream PARCEL_A", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const TEMP_X = "CAMPUS:TEMP_X";
+  const LOT_B = "CAMPUS:LOT_B";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const T_X = "2026-11-24T02:00:00.000Z";
+  const T_B = "2026-11-24T03:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+  coord.recordHydratedTimestamp(TEMP_X, T_X, { fromCloud: true });
+  coord.recordHydratedTimestamp(LOT_B, T_B, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, TEMP_X, T_A);
+  coord.enqueue(TEMP_X, { replace_parcel_id: PARCEL_A, screening_notes: "Draft X" }, T_X);
+  coord.promoteParcelKey(TEMP_X, LOT_B, T_X);
+  coord.enqueue(LOT_B, { replace_parcel_id: TEMP_X, screening_notes: "Draft B" }, T_B);
+  coord.promoteParcelKey(LOT_B, TEMP_X, T_B);
+  coord.enqueue(TEMP_X, { replace_parcel_id: LOT_B, screening_notes: "Back to X" }, T_X);
+  await timers.popNextTimer()();
+
+  const reqX = seenRequests.find((req) => req.parcel_id === TEMP_X);
+  assert.equal(reqX?.replace_parcel_id, PARCEL_A);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), TEMP_X);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+  assert.equal(coord.getServerTimestamp(LOT_B), T_B);
+});
+
+test("UT-P1-SyncCoord-CompositeBypassScrubRedirectsWhenScrubbedTargetPromotedOnward: rewinds X->C back to A when C promoted to E before A retargeted to D", async (t) => {
+  const ANNEX_X = "0420010000088";
+  const PARCEL_A = "0420010000001";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const SUB_E = "CAMPUS:SUB_E";
+  const NEW_D = "CAMPUS:NEW_D";
+  const batch1Gate = createDeferred();
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      if (parsed.screening_notes === "In-flight X->A") {
+        await batch1Gate.promise;
+      }
+      return null;
+    },
+  });
+
+  coord.promoteParcelKey(ANNEX_X, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { replace_parcel_id: ANNEX_X, screening_notes: "In-flight X->A" }, "");
+  const batch1Promise = timers.popNextTimer()();
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "C v1" }, "");
+  coord.enqueue(PARCEL_A, { screening_notes: "Draft A" }, "");
+  coord.promoteParcelKey(PARISH_C, SUB_E, "");
+  coord.enqueue(SUB_E, { replace_parcel_id: PARISH_C, screening_notes: "E v1" }, "");
+  coord.promoteParcelKey(PARCEL_A, NEW_D, "");
+  coord.enqueue(NEW_D, { replace_parcel_id: PARCEL_A, screening_notes: "D v1" }, "");
+  const targetWhileInFlight = coord.getPromotedTarget(ANNEX_X);
+  const batch2Promise = timers.popNextTimer()();
+  const batch3Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  await Promise.all([batch1Promise, batch2Promise, batch3Promise]);
+
+  assert.equal(targetWhileInFlight, NEW_D);
+  assert.equal(coord.getPromotedTarget(ANNEX_X), NEW_D);
+});
+
+test("UT-P1-SyncCoord-BlankTimestampStandaloneCommitBounceRetainsReplaceParcelId: treats standalone committed LOT_B with blank decided_at as server-backed on reverse merge into PARCEL_A", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          parcel: { parcel_id: parsed.parcel_id },
+          decision: { parcel_id: parsed.parcel_id, decided_at: "" },
+        }),
+      };
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+
+  coord.enqueue(LOT_B, { screening_notes: "Initial standalone B" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(PARCEL_A, LOT_B, T_A);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Draft B" }, T_A);
+  coord.promoteParcelKey(LOT_B, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { replace_parcel_id: LOT_B, screening_notes: "Merged into A" }, T_A);
+  await timers.popNextTimer()();
+
+  const reqA = seenRequests.find((req) => req.parcel_id === PARCEL_A);
+  assert.equal(reqA?.replace_parcel_id, LOT_B);
+  assert.equal(coord.getPromotedTarget(LOT_B), PARCEL_A);
+});
+
+test("UT-P1-SyncCoord-StandaloneEnqueueClearsPreDetachedProvisionalTimestampDespiteDownstreamTouchedPids: clears stale Z provisional timestamp on LOT_B standalone save when PARISH_C still holds LOT_B in touchedPids", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const ANNEX_Z = "0420010000099";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const T_Z = "2026-11-24T06:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+  coord.recordHydratedTimestamp(ANNEX_Z, T_Z, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, T_A);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "B v1" }, T_A);
+  coord.promoteParcelKey(LOT_B, PARISH_C, T_A);
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "C v1" }, T_A);
+  coord.promoteParcelKey(ANNEX_Z, LOT_B, T_Z);
+  coord.promoteParcelKey(ANNEX_Z, NEW_D, T_Z);
+  coord.enqueue(NEW_D, { replace_parcel_id: ANNEX_Z, screening_notes: "D v1" }, T_Z);
+  coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
+  coord.enqueue(PARISH_C, { screening_notes: "C v2" }, T_A);
+  await timers.popNextTimer()();
+  await timers.popNextTimer()();
+  await timers.popNextTimer()();
+
+  const reqB = seenRequests.find((req) => req.parcel_id === LOT_B);
+  assert.equal(reqB?.expected_updated_at, "");
+});

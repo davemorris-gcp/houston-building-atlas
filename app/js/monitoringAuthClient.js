@@ -1515,8 +1515,12 @@ export function createParcelSyncCoordinator({
     }
     // Commits with blank `decided_at` (or blank-timestamp 409 conflicts) leave `confirmedServerTs`
     // null; fall back to `committedLineageByPid` unless `pid` itself committed an outgoing hop.
-    if (committedLineageByPid.get(pid)?.targetPid) {
+    const ownCommitted = committedLineageByPid.get(pid);
+    if (ownCommitted?.targetPid) {
       return false;
+    }
+    if (ownCommitted?.hasServerRow) {
+      return true;
     }
     for (const entry of committedLineageByPid.values()) {
       if (entry.targetPid === pid) return true;
@@ -1524,15 +1528,22 @@ export function createParcelSyncCoordinator({
     return false;
   }
 
-  function resolveUncommittedUpstreamOrigin(startPid, stopPid = "", allowedToken = null) {
+  function resolveUncommittedUpstreamOrigin(
+    startPid,
+    stopPid = "",
+    allowedToken = null,
+    { skipStartServerRow = false } = {}
+  ) {
     let cur = String(startPid || "").trim();
-    const seen = new Set([stopPid]);
+    const initialPid = cur;
+    const seen = new Set(stopPid ? [stopPid] : []);
     while (cur && !seen.has(cur)) {
       seen.add(cur);
-      if (hasServerBackedRow(cur)) break;
+      if ((cur !== initialPid || !skipStartServerRow) && hasServerBackedRow(cur)) break;
       let incomingSrc = "";
       for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
         if (
+          !seen.has(srcPid) &&
           edge.targetPid === cur &&
           !isEdgeCommitted(srcPid, cur) &&
           isUncommittedEdgeClaimableBy(edge, allowedToken)
@@ -1578,12 +1589,14 @@ export function createParcelSyncCoordinator({
       prevBatch?.bouncedFromPid ||
       (ownerPid === targetPid ? recordsByParcelId.get(targetPid)?.bouncedFromPid || "" : "");
     // Renaming B -> A after an unsent A -> B promotion invokes `promoteParcelKey(B, A)` followed
-    // immediately by `enqueue(A, { replace_parcel_id: B })`: drop uncreated `B` during both the
-    // self-bounce promote (`validPrevRepPid === targetPid`) and follow-up enqueue (`bouncedFromPid`),
-    // while retaining `replace_parcel_id: B` whenever `DEC:B` exists on the server.
+    // immediately by `enqueue(A, { replace_parcel_id: B })`: drop cancelled bounce `B` during both
+    // the bounce promote (`validPrevRepPid === targetPid`) and follow-up enqueue (`bouncedFromPid`),
+    // falling back to `targetPid`'s own uncommitted upstream origin when `A -> B` remains active.
     const effectiveFallback =
-      !fallbackHasServerRow && recordedBouncePid && cleanFallback === recordedBouncePid
-        ? resolveUncommittedUpstreamOrigin(targetPid, "", prevBatch?.batchToken)
+      recordedBouncePid && cleanFallback === recordedBouncePid
+        ? resolveUncommittedUpstreamOrigin(targetPid, "", prevBatch?.batchToken, {
+            skipStartServerRow: true,
+          })
         : resolvedFallback;
     let rootReplacePid = "";
     if (validPrevRepPid === targetPid && !fallbackHasServerRow) {
@@ -1648,6 +1661,7 @@ export function createParcelSyncCoordinator({
       // `serverTs`: null = unseeded, "" = seeded uncreated baseline, ISO = provisional/confirmed ts.
       // `confirmedServerTs`: null = unconfirmed/vacated, ISO = backed by a live `DEC:<pid>` row.
       // `vacatedFloorTs`: monotonic cloud-pull guard preventing stale pre-vacation resurrection.
+      // `bouncedFromPid`: cancelled bounce source pid awaiting phase-2 `enqueue` when `pendingBatch` is null.
       rec = {
         serverTs: null,
         confirmedServerTs: null,
@@ -1773,7 +1787,11 @@ export function createParcelSyncCoordinator({
       if (!rootPid || eligibleBySrc.has(rootPid)) continue;
       const outEdge = promotedEdgeBySourcePid.get(rootPid);
       if ((!outEdge || outEdge.seq >= maxCausalSeq) && canAdvanceCommitted(rootPid)) {
-        nextTargetByPid.set(rootPid, { targetPid: "", seq: maxCausalSeq });
+        nextTargetByPid.set(rootPid, {
+          targetPid: "",
+          seq: maxCausalSeq,
+          hasServerRow: rootPid === srvPid,
+        });
       }
     }
     // When an intermediate parcel clears its committed outgoing edge (`rootPid -> prevCommittedTarget`),
@@ -1792,7 +1810,11 @@ export function createParcelSyncCoordinator({
           upPid !== prevCommittedTarget &&
           canAdvanceCommitted(upPid, bypassSeq)
         ) {
-          nextTargetByPid.set(upPid, { targetPid: prevCommittedTarget, seq: bypassSeq });
+          nextTargetByPid.set(upPid, {
+            targetPid: prevCommittedTarget,
+            seq: bypassSeq,
+            hasServerRow: false,
+          });
         }
       }
     }
@@ -1800,12 +1822,16 @@ export function createParcelSyncCoordinator({
     // `Map` iterates in insertion order rather than topological order, so updating in a
     // single pass would reject reversed hops (e.g. B->A->C after prior A->B) as false cycles
     // against pre-batch committed edges that this commit is overwriting.
-    for (const [nodePid, { seq: commitSeq }] of nextTargetByPid.entries()) {
-      committedLineageByPid.set(nodePid, { targetPid: "", seq: commitSeq });
+    for (const [nodePid, { targetPid, seq: commitSeq, hasServerRow }] of nextTargetByPid.entries()) {
+      committedLineageByPid.set(nodePid, {
+        targetPid: "",
+        seq: commitSeq,
+        hasServerRow: Boolean(!targetPid && hasServerRow),
+      });
     }
     for (const [srcPid, { targetPid, seq: commitSeq }] of nextTargetByPid.entries()) {
       if (targetPid && !committedPathReaches(targetPid, srcPid)) {
-        committedLineageByPid.set(srcPid, { targetPid, seq: commitSeq });
+        committedLineageByPid.set(srcPid, { targetPid, seq: commitSeq, hasServerRow: false });
       }
     }
     for (const [srcPid, liveEdge] of promotedEdgeBySourcePid.entries()) {
@@ -1814,6 +1840,8 @@ export function createParcelSyncCoordinator({
       }
       if (isEdgeCommitted(srcPid, liveEdge.targetPid)) {
         liveEdge.ownerTokens.clear();
+      } else if (liveEdge.ownerTokens.size === 0) {
+        deletePromotedEdge(srcPid);
       }
     }
   }
@@ -2047,6 +2075,16 @@ export function createParcelSyncCoordinator({
         hasUncommittedIncomingPromotedEdge(recPid) ||
         (hasCommittedOutEdge ? isParcelLocallyActive(recPid) : hasPendingOrInFlight(recPid))
       ) {
+        if (
+          !liveOutEdge &&
+          !hasUncommittedIncomingPromotedEdge(recPid) &&
+          candRec.confirmedServerTs === null &&
+          candRec.pendingBatch &&
+          !getBatchReplaceParcelId(candRec.pendingBatch) &&
+          !Array.from(activeBatchTickets).some((t) => t.pid === recPid)
+        ) {
+          candRec.serverTs = candRec.pendingBatch.baselineExpectedTs;
+        }
         continue;
       }
       if (candRec.confirmedServerTs === null) {
@@ -2204,7 +2242,43 @@ export function createParcelSyncCoordinator({
     return rec.serverTs ?? "";
   }
 
-  function scrubRedirectedPendingBatches(fromPid, toPid, preDetachFromAncestors = null) {
+  function releaseBatchTokenFromEdges(batchToken, shouldInspect = () => true) {
+    if (!batchToken) return;
+    for (const [srcPid, liveEdge] of promotedEdgeBySourcePid.entries()) {
+      if (
+        shouldInspect(srcPid, liveEdge) &&
+        liveEdge.ownerTokens.delete(batchToken) &&
+        liveEdge.ownerTokens.size === 0 &&
+        !isEdgeCommitted(srcPid, liveEdge.targetPid)
+      ) {
+        deletePromotedEdge(srcPid);
+      }
+    }
+  }
+
+  function isCancelledAncestorBounce(
+    fromPid,
+    toPid,
+    preDetachFromAncestors,
+    effectiveTargetReplacePid,
+    allowedToken
+  ) {
+    if (!preDetachFromAncestors.has(toPid)) {
+      return false;
+    }
+    if (!hasServerBackedRow(fromPid)) {
+      const origin = resolveUncommittedUpstreamOrigin(fromPid, toPid, allowedToken);
+      return !origin || origin === toPid || !hasServerBackedRow(origin);
+    }
+    return Boolean(effectiveTargetReplacePid && effectiveTargetReplacePid !== fromPid);
+  }
+
+  function scrubRedirectedPendingBatches(
+    fromPid,
+    toPid,
+    preDetachFromAncestors = null,
+    abandonedBounceNodes = null
+  ) {
     // Scrub superseded `fromPid` lineage/replace references from unsent pending batches on other
     // roots (including when `fromPid` briefly detached via `enqueue(fromPid)` or `toPid` detached
     // from `fromPid` before retargeting), and release their ownership tokens on upstream edges.
@@ -2222,8 +2296,17 @@ export function createParcelSyncCoordinator({
       if (!touchesFrom && !repRedirected) continue;
       scrubbedAny = true;
       if (candRec.pendingBatch.batchToken) {
+        const candBranchNodes = new Set([candPid, ...(candRec.pendingBatch.touchedPids || [])]);
+        for (const [nodePid] of promotedEdgeBySourcePid.entries()) {
+          if (promotionPathReaches(nodePid, candPid)) {
+            candBranchNodes.add(nodePid);
+          }
+        }
         for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
-          if (promotionPathReaches(srcPid, redirectedRoot)) {
+          const isAbandonedBounceHop = Boolean(
+            abandonedBounceNodes?.has(srcPid) && srcPid !== fromPid
+          );
+          if (!isAbandonedBounceHop && promotionPathReaches(srcPid, redirectedRoot)) {
             if (
               edge.ownerTokens.delete(candRec.pendingBatch.batchToken) &&
               edge.ownerTokens.size === 0 &&
@@ -2239,10 +2322,12 @@ export function createParcelSyncCoordinator({
             if (edge.ownerTokens.size === 0) {
               deletePromotedEdge(srcPid);
             } else if (
-              edge.targetPid === candPid &&
+              candBranchNodes.has(edge.targetPid) &&
               srcPid !== fromPid &&
               !promotionPathReaches(fromPid, srcPid)
             ) {
+              // Rewind composite bypass edges (`srcPid -> candBranch` co-owned by an in-flight
+              // `srcPid -> fromPid` batch) back to `fromPid` so they follow `fromPid -> toPid`.
               edge.targetPid = fromPid;
             }
           }
@@ -2341,43 +2426,27 @@ export function createParcelSyncCoordinator({
           rootReplacePid !== toPid
       );
       if (fromRepOverridden) {
-        for (const [srcPid, liveEdge] of promotedEdgeBySourcePid.entries()) {
-          if (
-            !promotionPathReaches(rootReplacePid, srcPid) &&
-            liveEdge.ownerTokens.delete(priorFrom.batchToken) &&
-            liveEdge.ownerTokens.size === 0 &&
-            !isEdgeCommitted(srcPid, liveEdge.targetPid)
-          ) {
-            deletePromotedEdge(srcPid);
-          }
-        }
+        releaseBatchTokenFromEdges(
+          priorFrom.batchToken,
+          (srcPid) => !promotionPathReaches(rootReplacePid, srcPid)
+        );
       }
-      const postDetachFromOrigin = resolveUncommittedUpstreamOrigin(
+      const cancelledBounce = isCancelledAncestorBounce(
         fromPid,
         toPid,
+        preDetachFromAncestors,
+        rootReplacePid,
         priorFrom.batchToken
       );
-      const bouncedUncreatedFrom =
-        preDetachFromAncestors.has(toPid) &&
-        !hasServerBackedRow(fromPid) &&
-        (!postDetachFromOrigin ||
-          postDetachFromOrigin === toPid ||
-          !hasServerBackedRow(postDetachFromOrigin));
-      const effectiveBouncedFromPid = bouncedUncreatedFrom ? fromPid : bouncedFromPid;
-      if (bouncedUncreatedFrom || (!rootReplacePid && effectiveBouncedFromPid)) {
+      const effectiveBouncedFromPid = cancelledBounce ? fromPid : bouncedFromPid;
+      if (cancelledBounce || (!rootReplacePid && effectiveBouncedFromPid)) {
         bouncedUncreatedHop = true;
         toRec.bouncedFromPid = effectiveBouncedFromPid;
         deletePromotedEdge(fromPid);
-        for (const [srcPid, liveEdge] of promotedEdgeBySourcePid.entries()) {
-          if (
-            !promotionPathReaches(srcPid, toPid) &&
-            liveEdge.ownerTokens.delete(priorFrom.batchToken) &&
-            liveEdge.ownerTokens.size === 0 &&
-            !isEdgeCommitted(srcPid, liveEdge.targetPid)
-          ) {
-            deletePromotedEdge(srcPid);
-          }
-        }
+        releaseBatchTokenFromEdges(
+          priorFrom.batchToken,
+          (srcPid) => !promotionPathReaches(srcPid, toPid)
+        );
       }
       const existingToRep = resolveBatchReplaceLineage(toPid, toPid, existingTo, "", 0);
       if (existingToRep.prevRepSuperseded) {
@@ -2398,16 +2467,22 @@ export function createParcelSyncCoordinator({
           }
         }
       }
+      let retainedFromEdges = [];
+      if (!fromRepSuperseded && Array.isArray(priorFrom.lineageEdges)) {
+        if (bouncedUncreatedHop) {
+          retainedFromEdges = priorFrom.lineageEdges.filter(
+            (e) => e.srcPid !== toPid && !abandonedBounceNodes.has(e.srcPid)
+          );
+        } else if (fromRepOverridden) {
+          retainedFromEdges = priorFrom.lineageEdges.filter((e) =>
+            promotionPathReaches(rootReplacePid, e.srcPid)
+          );
+        } else {
+          retainedFromEdges = priorFrom.lineageEdges;
+        }
+      }
       const mergedPriorEdges = [
-        ...(!fromRepSuperseded && Array.isArray(priorFrom.lineageEdges)
-          ? bouncedUncreatedHop
-            ? priorFrom.lineageEdges.filter(
-                (e) => e.srcPid !== toPid && !abandonedBounceNodes.has(e.srcPid)
-              )
-            : fromRepOverridden
-            ? priorFrom.lineageEdges.filter((e) => promotionPathReaches(rootReplacePid, e.srcPid))
-            : priorFrom.lineageEdges
-          : []),
+        ...retainedFromEdges,
         ...(!existingToRep.prevRepSuperseded && Array.isArray(existingTo?.lineageEdges)
           ? existingTo.lineageEdges
           : []),
@@ -2434,33 +2509,53 @@ export function createParcelSyncCoordinator({
     } else if (toRec.pendingBatch) {
       restampPendingBatch(toPid, toRec.pendingBatch);
     }
-    const scrubbedAny = scrubRedirectedPendingBatches(fromPid, toPid, preDetachFromAncestors);
-    if (
-      !bouncedUncreatedHop &&
-      !hasPriorFromBatch &&
-      preDetachFromAncestors.has(toPid) &&
-      !hasServerBackedRow(fromPid)
-    ) {
-      const upstreamOrigin = resolveUncommittedUpstreamOrigin(
-        fromPid,
+    const scrubbedAny = scrubRedirectedPendingBatches(
+      fromPid,
+      toPid,
+      preDetachFromAncestors,
+      abandonedBounceNodes
+    );
+    // Must run after `scrubRedirectedPendingBatches` downgrades downstream pending-batch tokens
+    // back to `UNCLAIMED_EDGE` so empty-batch intermediate bounces (`A -> B -> C`, then `B -> A`)
+    // can inspect and evict claimable upstream uncommitted edges reaching `fromPid`.
+    if (!bouncedUncreatedHop && !hasPriorFromBatch && preDetachFromAncestors.has(toPid)) {
+      const targetUpstreamOrigin = resolveUncommittedUpstreamOrigin(
         toPid,
-        toRec.pendingBatch?.batchToken
+        fromPid,
+        toRec.pendingBatch?.batchToken,
+        { skipStartServerRow: true }
       );
-      if (!upstreamOrigin || upstreamOrigin === toPid || !hasServerBackedRow(upstreamOrigin)) {
+      const effectiveTargetReplacePid =
+        getBatchReplaceParcelId(toRec.pendingBatch) ||
+        (targetUpstreamOrigin && targetUpstreamOrigin !== toPid ? targetUpstreamOrigin : "");
+      if (
+        isCancelledAncestorBounce(
+          fromPid,
+          toPid,
+          preDetachFromAncestors,
+          effectiveTargetReplacePid,
+          toRec.pendingBatch?.batchToken
+        )
+      ) {
         bouncedUncreatedHop = true;
         toRec.bouncedFromPid = fromPid;
         if (toRec.pendingBatch) {
           toRec.pendingBatch.bouncedFromPid = fromPid;
         }
         deletePromotedEdge(fromPid);
-        for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
-          if (
-            promotionPathReaches(srcPid, fromPid) &&
-            !isEdgeCommitted(srcPid, edge.targetPid) &&
-            isUncommittedEdgeClaimableBy(edge, toRec.pendingBatch?.batchToken)
-          ) {
-            deletePromotedEdge(srcPid);
-          }
+      }
+      for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
+        const shouldEvictAbandoned = bouncedUncreatedHop
+          ? !promotionPathReaches(srcPid, toPid) &&
+            (abandonedBounceNodes.has(srcPid) || promotionPathReaches(srcPid, fromPid))
+          : srcPid !== fromPid && abandonedBounceNodes.has(srcPid);
+        if (
+          shouldEvictAbandoned &&
+          !isEdgeCommitted(srcPid, edge.targetPid) &&
+          isUncommittedEdgeClaimableBy(edge, toRec.pendingBatch?.batchToken)
+        ) {
+          deletePromotedEdge(srcPid);
+          bouncedUncreatedHop = true;
         }
       }
     }
@@ -2510,13 +2605,14 @@ export function createParcelSyncCoordinator({
       evictBatchUncommittedEdges(prev);
       restoreMissingCommittedEdges(pid);
     }
+    const hasActiveTicketOnPid = Array.from(activeBatchTickets).some((t) => t.pid === pid);
     if (
-      (prevRepSuperseded || (detachedPrevOut && !prev)) &&
+      (prevRepSuperseded || !hasActiveTicketOnPid) &&
       !rootReplacePid &&
       rec.confirmedServerTs === null &&
       !hasUncommittedIncomingPromotedEdge(pid)
     ) {
-      rec.serverTs = cleanBaselineTs;
+      rec.serverTs = prev && !prevRepSuperseded ? prev.baselineExpectedTs : cleanBaselineTs;
     }
     rec.pendingBatch = {
       baselineExpectedTs:
