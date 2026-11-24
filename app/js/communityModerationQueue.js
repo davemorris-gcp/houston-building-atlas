@@ -165,13 +165,22 @@ export function buildModerationDecisionPayload(
     Number.isFinite(Number(editedYear)) &&
     Number(editedYear) >= MONITORING_SCHEMA_CONTRACT.minStandingYear &&
     Number(editedYear) <= MONITORING_SCHEMA_CONTRACT.maxStandingYear;
-  const suppressOnly =
-    inlineEdits.suppress_only !== undefined
-      ? Boolean(inlineEdits.suppress_only) ||
-        (isExplicitDemolishedYearText(editedYear) &&
-          inlineEdits.suggested_year_built !== undefined &&
-          !isExplicitDemolishedYearText(item.suggestedYearBuilt))
-      : item.isVacantReport || isExplicitDemolishedYearText(editedYear);
+  const hasInlineYearEdit = inlineEdits.suggested_year_built !== undefined;
+  let suppressOnly = false;
+  if (inlineEdits.suppress_only !== undefined) {
+    // Typing a demolished token into #mq-year on a non-vacant item overrides an unchecked default box,
+    // while unchecking the box on an already-vacant item still opts out of suppression.
+    suppressOnly =
+      Boolean(inlineEdits.suppress_only) ||
+      (hasInlineYearEdit &&
+        isExplicitDemolishedYearText(editedYear) &&
+        !isExplicitDemolishedYearText(item.suggestedYearBuilt));
+  } else if (hasInlineYearEdit && hasExplicitValidYear) {
+    // Entering an explicit standing year (1836..2035) overrides initial vacant classification.
+    suppressOnly = false;
+  } else {
+    suppressOnly = item.isVacantReport || isExplicitDemolishedYearText(editedYear);
+  }
 
   // Dispute flags without an explicit replacement year resolve to "Resolved" so blank-year rows never enter Approved_Edits
   const effectiveDecision =

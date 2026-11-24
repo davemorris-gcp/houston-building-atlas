@@ -1008,6 +1008,17 @@ function classifyProtectionServer_(desig) {
   return 'none';
 }
 
+var MIN_STANDING_YEAR_ = 1836;
+var MAX_STANDING_YEAR_ = 2035;
+
+function normalizeParcelThreatStageServer_(parcel) {
+  if (String(parcel.advocacy_status || '').toLowerCase() === 'closed' ||
+      TERMINAL_OUTCOMES_[String(parcel.outcome || '').toLowerCase()]) {
+    return 6;
+  }
+  return Number(parcel.threat_stage) === 6 ? 0 : parcel.threat_stage;
+}
+
 function computeContributingServer_(parcel, areasMap) {
   var ov = String(parcel.contributing_override || '').trim().toLowerCase();
   if (ov === 'contributing' || ov === 'non_contributing' || ov === 'outside_area') return ov;
@@ -1027,7 +1038,7 @@ function computeContributingServer_(parcel, areasMap) {
   var inDist = /\bhistoric\s+district\b/i.test(String(parcel.designation_summary || ''));
   if (!inArea && !inDist) return 'outside_area';
   var yr = Number(parcel.year_built) || 0;
-  return (yr >= 1836 && yr <= maxCutoff) ? 'contributing' : 'non_contributing';
+  return (yr >= MIN_STANDING_YEAR_ && yr <= maxCutoff) ? 'contributing' : 'non_contributing';
 }
 
 function toChicagoYmdServer_(msOrIso) {
@@ -1213,8 +1224,6 @@ function isVacantSuppressPayload_(payload, rawSourceType, rawSuggestedYear, pars
 
 /* ---------- Split-Range Formula-Safe Pending_Submissions Helpers ---------- */
 
-var MIN_STANDING_YEAR_ = 1836;
-var MAX_STANDING_YEAR_ = 2035;
 var PENDING_COL_ = {
   STATUS: 0,
   HCAD: 1,
@@ -1956,11 +1965,7 @@ function handleUpsertParcelDecisionAction_(ctx) {
   nextParcel.protection_level = (rawProt === 'binding' || rawProt === 'limited' || rawProt === 'none')
     ? rawProt
     : classifyProtectionServer_(nextParcel.designation_summary || '');
-  if (String(nextParcel.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(nextParcel.outcome || '').toLowerCase()]) {
-    nextParcel.threat_stage = 6;
-  } else if (Number(nextParcel.threat_stage) === 6) {
-    nextParcel.threat_stage = 0;
-  }
+  nextParcel.threat_stage = normalizeParcelThreatStageServer_(nextParcel);
   var asOfYmd = String(payload.as_of_date_cst || toChicagoYmdServer_(env.nowMs ? env.nowMs() : null)).trim();
   var nextHearingYmd = String(patch.next_hearing_date_cst || payload.next_hearing_date_cst || '').trim();
   nextParcel.contributing_status = computeContributingServer_(nextParcel, areasMap);
@@ -2213,11 +2218,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
         if (exP && exP.parcel_id && exP.parcel_id !== normIncPid) {
           sweepParcelReplaceMap[normIncPid] = exP.parcel_id;
         }
-        if (String(seeded.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(seeded.outcome || '').toLowerCase()]) {
-          seeded.threat_stage = 6;
-        } else if (Number(seeded.threat_stage) === 6) {
-          seeded.threat_stage = 0;
-        }
+        seeded.threat_stage = normalizeParcelThreatStageServer_(seeded);
         seeded.added_at = seeded.added_at || sweepTs;
         seeded.updated_at = seeded.updated_at || sweepTs;
         seeded.contributing_status = computeContributingServer_(seeded, aMap);
@@ -2250,11 +2251,7 @@ function handlePipelinePushSweepResultsAction_(ctx) {
             mergedP[mk] = incP[mk];
           }
         }
-        if (String(mergedP.advocacy_status || '').toLowerCase() === 'closed' || TERMINAL_OUTCOMES_[String(mergedP.outcome || '').toLowerCase()]) {
-          mergedP.threat_stage = 6;
-        } else if (Number(mergedP.threat_stage) === 6) {
-          mergedP.threat_stage = 0;
-        }
+        mergedP.threat_stage = normalizeParcelThreatStageServer_(mergedP);
         mergedP.contributing_status = computeContributingServer_(mergedP, aMap);
         mergedP.attention_level = computeAttentionServer_(mergedP, aMap, sweepAsOfYmd, String(incP.next_hearing_date_cst || ''));
         mergedP.updated_at = sweepTs;
@@ -2371,7 +2368,6 @@ function handleModerateSubmissionAction_(ctx) {
       return createJsonResponse_(env, { ok: false, conflict: true, error: 'Field_Surveys row shifted; refresh queue and retry.' });
     }
     if (decision === 'Approved') {
-      fsSheet.getRange(rowNum, 3, 1, 1).setValues([['Promoted to Override']]);
       var promoted = upsertApprovedPendingRow_(ss, env, {
         hcad_num: payload.hcad_num || stripLeadingSheetTick_(fsRow[3]),
         address: payload.address || stripLeadingSheetTick_(fsRow[4]),
@@ -2385,11 +2381,14 @@ function handleModerateSubmissionAction_(ctx) {
         source_url: payload.source_url || stripLeadingSheetTick_(fsRow[14]),
         submitter_name: stripLeadingSheetTick_(fsRow[16]) || staffLabel,
         building_name: payload.building_name || '',
+        alt_names: payload.alt_names || '',
         bld_style: payload.bld_style || '',
         architect: payload.architect || '',
+        geometry_geojson: payload.geometry_geojson,
         moderation_note: payload.moderation_note || ('Promoted from Field_Surveys ' + fsSurveyId)
       }, staffLabel);
       if (!promoted.ok) return createJsonResponse_(env, promoted);
+      fsSheet.getRange(rowNum, 3, 1, 1).setValues([['Promoted to Override']]);
       return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: 'Promoted to Override', promotedOverride: promoted });
     }
     var mappedSurveySt = decision === 'Rejected' ? 'Dismissed' : (decision === 'Needs Info' ? 'Needs Follow-Up' : decision);
@@ -2400,7 +2399,7 @@ function handleModerateSubmissionAction_(ctx) {
   var pendSheet = ss.getSheetByName('Pending_Submissions');
   if (!pendSheet) return createJsonResponse_(env, { ok: false, error: 'Pending_Submissions tab not found.' });
   var pRow = pendSheet.getRange(rowNum, 1, 1, 23).getValues()[0];
-  var existingHcad = stripLeadingSheetTick_(pRow[1]).trim();
+  var existingHcad = stripLeadingSheetTick_(pRow[PENDING_COL_.HCAD]).trim();
   if (payload.expected_hcad_num) {
     if (normalizeHcadKeyServer_(existingHcad) !== normalizeHcadKeyServer_(payload.expected_hcad_num)) {
       return createJsonResponse_(env, { ok: false, conflict: true, error: 'Pending_Submissions row shifted; refresh queue and retry.' });
@@ -2415,8 +2414,8 @@ function handleModerateSubmissionAction_(ctx) {
     var allPendVals = pendSheet.getDataRange().getValues();
     for (var prIdx = 1; prIdx < allPendVals.length; prIdx++) {
       if (prIdx + 1 === rowNum) continue;
-      var prSt = String(allPendVals[prIdx][0] || '').trim().toLowerCase();
-      var prKey = normalizeHcadKeyServer_(allPendVals[prIdx][1]);
+      var prSt = String(allPendVals[prIdx][PENDING_COL_.STATUS] || '').trim().toLowerCase();
+      var prKey = normalizeHcadKeyServer_(allPendVals[prIdx][PENDING_COL_.HCAD]);
       if (prSt === 'approved' && prKey === targetHcad) {
         priorApprovedRow = allPendVals[prIdx];
         priorApprovedIdxs.push(prIdx + 1);
@@ -2538,16 +2537,15 @@ function handlePublicCommunitySubmission_(env, ss, payload, rawSourceType) {
     return createJsonResponse_(env, { ok: false, error: 'geometry_geojson exceeds Google Sheets 49,000-character limit.' });
   }
   var pubSheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
-  var rawBldPub = String(payload.building_name || '').trim();
-  var pubParts = rawBldPub ? rawBldPub.split(/[;|]/).map(function(s) { return s.trim(); }).filter(Boolean) : [];
-  var pubPrimary = pubParts.length > 0 ? pubParts[0] : '';
-  var pubAlt = pubParts.length > 1 ? pubParts.slice(1).join('; ') : String(payload.alt_names || '').trim();
+  var pubNames = splitBuildingNamesServer_(payload.building_name, payload.alt_names);
+  var pubPrimary = pubNames.primaryName;
+  var pubAlt = pubNames.altNames;
   var isNonYrPub = /(?:_FLAG|FIELD_SURVEY_OBSERVATION)$/i.test(rawSourceType);
   var rawSugPub = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && String(payload.suggested_year_built).trim() !== ''
     ? String(payload.suggested_year_built).trim()
     : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
   var parsedPubYr = (rawSugPub !== '' && isFinite(Number(rawSugPub))) ? Math.round(Number(rawSugPub)) : NaN;
-  var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= 1836 && parsedPubYr <= 2035;
+  var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= MIN_STANDING_YEAR_ && parsedPubYr <= MAX_STANDING_YEAR_;
   var hasPubCustomGeom = Boolean(geomPubStr) || String(payload.source_citation || '').indexOf('[GEOMETRY_GEOJSON:') !== -1;
   var isVacPub = !isNonYrPub && isVacantSuppressPayload_(
     payload,

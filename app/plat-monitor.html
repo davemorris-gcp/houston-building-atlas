@@ -737,6 +737,7 @@ import {
 
 import {
   STORY_CHECK_STEPS,
+  hydrateMonitoringParcelAndDecisionMaps,
   renderAttentionBadgeHtml,
   renderModerationQueueDetailHtml,
   renderModerationQueueListHtml,
@@ -1037,63 +1038,17 @@ function parseWatchRowDossier(row){
 
 function hydratePhase1MapsFromPayload(payload, activeRole = "public", { fromCloud = false } = {}){
   if (!payload || typeof payload !== "object") return { appliedWatch: 0, appliedDecisions: 0 };
-  if (Array.isArray(payload.areas)) {
-    monitoringAreasById.clear();
-    for (const a of payload.areas) {
-      if (a && a.area_id) monitoringAreasById.set(String(a.area_id), a);
-    }
-  }
-  if (Array.isArray(payload.parcels)) {
-    const dirtyOptimisticParcels = new Map();
-    for (const [pid, curP] of monitoringParcelsById.entries()) {
-      if (parcelSyncCoordinator.hasPendingOrInFlight(pid)) {
-        dirtyOptimisticParcels.set(pid, curP);
-      }
-    }
-    monitoringParcelsById.clear();
-    for (const rawP of payload.parcels) {
-      if (!rawP) continue;
-      const normP = normalizeParcelRecord(rawP, { areasById: monitoringAreasById });
-      if (normP.parcel_id && !dirtyOptimisticParcels.has(normP.parcel_id)) {
-        monitoringParcelsById.set(normP.parcel_id, normP);
-      }
-    }
-    for (const [pid, curP] of dirtyOptimisticParcels.entries()) {
-      monitoringParcelsById.set(pid, curP);
-    }
-    campusParcelIndex = buildCampusParcelIndex(Array.from(monitoringParcelsById.values()));
-  }
-  let appliedDecisions = 0;
-  if (Array.isArray(payload.decisions)) {
-    const dirtyDecisions = new Map();
-    for (const [pid, curDec] of monitoringDecisionsByParcelId.entries()) {
-      if (parcelSyncCoordinator.hasPendingOrInFlight(pid)) {
-        dirtyDecisions.set(pid, curDec);
-      }
-    }
-    monitoringDecisionsByParcelId.clear();
-    for (const dec of payload.decisions) {
-      if (dec && dec.parcel_id) {
-        const decPid = resolveCanonicalParcelId(
-          {
-            parcelId: dec.parcel_id,
-            hcadIds: [dec.hcad_num || ""],
-            appNo: dec.latest_app_no || "",
-          },
-          campusParcelIndex
-        );
-        if (!decPid) continue;
-        parcelSyncCoordinator.recordHydratedTimestamp(decPid, dec.decided_at, { fromCloud });
-        if (!dirtyDecisions.has(decPid)) {
-          monitoringDecisionsByParcelId.set(decPid, { ...dec, parcel_id: decPid });
-        }
-        appliedDecisions++;
-      }
-    }
-    for (const [pid, curDec] of dirtyDecisions.entries()) {
-      monitoringDecisionsByParcelId.set(pid, curDec);
-    }
-  }
+  const hydratedCore = hydrateMonitoringParcelAndDecisionMaps({
+    payload,
+    areasById: monitoringAreasById,
+    parcelsById: monitoringParcelsById,
+    decisionsByParcelId: monitoringDecisionsByParcelId,
+    syncCoordinator: parcelSyncCoordinator,
+    fromCloud,
+    currentCampusIndex: campusParcelIndex,
+  });
+  campusParcelIndex = hydratedCore.campusIndex;
+  const appliedDecisions = hydratedCore.appliedDecisions;
   if (Array.isArray(payload.events)) {
     monitoringEvents = payload.events.slice();
   }

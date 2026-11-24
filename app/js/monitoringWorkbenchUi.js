@@ -14,6 +14,7 @@
 
 import {
   MONITORING_SCHEMA_CONTRACT,
+  buildCampusParcelIndex,
   classifyProtectionLevel,
   deriveLegacyTierFromParcel,
   explainAttentionLevel,
@@ -997,4 +998,114 @@ export function renderModerationQueueDetailHtml(rawItem) {
       </div>
     </div>
   `;
+}
+
+/**
+ * Pure, unit-testable Phase 1 map hydration helper for `Areas`, `Parcels`, and `Decisions`.
+ * Preserves optimistic dirty entries (`hasPendingOrInFlight`) and prevents background cloud
+ * pulls from resurrecting pre-promotion single-parcel keys during in-place `CAMPUS:<SLUG>`
+ * promotion.
+ */
+export function hydrateMonitoringParcelAndDecisionMaps({
+  payload = {},
+  areasById,
+  parcelsById,
+  decisionsByParcelId,
+  syncCoordinator,
+  fromCloud = false,
+  currentCampusIndex = null,
+} = {}) {
+  let campusIndex = currentCampusIndex;
+  if (Array.isArray(payload.areas) && areasById) {
+    areasById.clear();
+    for (const a of payload.areas) {
+      if (a && a.area_id) areasById.set(String(a.area_id), a);
+    }
+  }
+
+  if (Array.isArray(payload.parcels) && parcelsById) {
+    const dirtyOptimisticParcels = new Map();
+    for (const [pid, curP] of parcelsById.entries()) {
+      if (syncCoordinator?.hasPendingOrInFlight(pid)) {
+        dirtyOptimisticParcels.set(pid, curP);
+      }
+    }
+    const dirtyCampusIndex = buildCampusParcelIndex(Array.from(dirtyOptimisticParcels.values()));
+    parcelsById.clear();
+    for (const rawP of payload.parcels) {
+      if (!rawP) continue;
+      const normP = normalizeParcelRecord(rawP, { areasById });
+      if (!normP.parcel_id) continue;
+      const promotedPid = syncCoordinator?.getPromotedTarget
+        ? syncCoordinator.getPromotedTarget(normP.parcel_id)
+        : normP.parcel_id;
+      if (
+        promotedPid &&
+        promotedPid !== normP.parcel_id &&
+        (dirtyOptimisticParcels.has(promotedPid) ||
+          syncCoordinator?.hasPendingOrInFlight(promotedPid))
+      ) {
+        continue;
+      }
+      const canonicalAgainstDirty = resolveCanonicalParcelId(
+        { parcelId: normP.parcel_id, hcadIds: [normP.hcad_num || ""] },
+        dirtyCampusIndex
+      );
+      if (
+        dirtyOptimisticParcels.has(normP.parcel_id) ||
+        (canonicalAgainstDirty && dirtyOptimisticParcels.has(canonicalAgainstDirty))
+      ) {
+        continue;
+      }
+      parcelsById.set(normP.parcel_id, normP);
+    }
+    for (const [pid, curP] of dirtyOptimisticParcels.entries()) {
+      parcelsById.set(pid, curP);
+    }
+    campusIndex = buildCampusParcelIndex(Array.from(parcelsById.values()));
+  }
+
+  let appliedDecisions = 0;
+  if (Array.isArray(payload.decisions) && decisionsByParcelId) {
+    const dirtyDecisions = new Map();
+    for (const [pid, curDec] of decisionsByParcelId.entries()) {
+      if (syncCoordinator?.hasPendingOrInFlight(pid)) {
+        dirtyDecisions.set(pid, curDec);
+      }
+    }
+    decisionsByParcelId.clear();
+    for (const dec of payload.decisions) {
+      if (!dec || !dec.parcel_id) continue;
+      const rawDecPid = resolveCanonicalParcelId(
+        {
+          parcelId: dec.parcel_id,
+          hcadIds: [dec.hcad_num || ""],
+          appNo: dec.latest_app_no || "",
+        },
+        campusIndex
+      );
+      if (!rawDecPid) continue;
+      const promotedDecPid = syncCoordinator?.getPromotedTarget
+        ? syncCoordinator.getPromotedTarget(rawDecPid)
+        : rawDecPid;
+      const decPid =
+        promotedDecPid &&
+        promotedDecPid !== rawDecPid &&
+        (dirtyDecisions.has(promotedDecPid) ||
+          (parcelsById && parcelsById.has(promotedDecPid)) ||
+          syncCoordinator?.hasPendingOrInFlight(promotedDecPid))
+          ? promotedDecPid
+          : rawDecPid;
+      syncCoordinator?.recordHydratedTimestamp(decPid, dec.decided_at, { fromCloud });
+      if (!dirtyDecisions.has(decPid)) {
+        decisionsByParcelId.set(decPid, { ...dec, parcel_id: decPid });
+      }
+      appliedDecisions++;
+    }
+    for (const [pid, curDec] of dirtyDecisions.entries()) {
+      decisionsByParcelId.set(pid, curDec);
+    }
+  }
+
+  return { campusIndex, appliedDecisions };
 }

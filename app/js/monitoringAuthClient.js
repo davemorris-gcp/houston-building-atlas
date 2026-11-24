@@ -391,9 +391,13 @@ export async function verifyAndSignInMonitoring({
         prevSession.role !== resolvedRole)
   );
   if (switchedAccountOrRole) {
+    _pendingAuthRetryQueue.length = 0;
     purgePrivateMonitoringStorage({ localStore });
     clearLegacyMirrorOnSignOut(localStore);
   } else {
+    if (!prevSession) {
+      _pendingAuthRetryQueue.length = 0;
+    }
     purgePrivateMonitoringStorage({ preserveEmail: resolvedEmail, localStore });
   }
 
@@ -450,9 +454,16 @@ export async function verifyAndSignInMonitoring({
   };
 }
 
-export function queuePendingAuthRetry(retryFn, description = "") {
+export function queuePendingAuthRetry(retryFn, description = "", session = null) {
   if (typeof retryFn === "function") {
-    _pendingAuthRetryQueue.push({ retryFn, description, queuedAt: Date.now() });
+    const owner = session || readActiveMonitoringSession();
+    _pendingAuthRetryQueue.push({
+      retryFn,
+      description,
+      ownerEmail: normalizeStaffEmail(owner?.email || ""),
+      ownerRole: owner?.role || "",
+      queuedAt: Date.now(),
+    });
   }
   return _pendingAuthRetryQueue.length;
 }
@@ -461,10 +472,28 @@ export function getPendingAuthRetryCount() {
   return _pendingAuthRetryQueue.length;
 }
 
-export async function replayPendingAuthRetries() {
+export async function replayPendingAuthRetries({
+  session = null,
+  localStore = getSafeStorage("local"),
+} = {}) {
+  const hasSessionContext = Boolean(session || localStore);
+  const active = session || (localStore ? readActiveMonitoringSession({ localStore }) : null);
+  if (hasSessionContext && (!active || !active.authorized)) {
+    _pendingAuthRetryQueue.length = 0;
+    return [];
+  }
+  const activeEmail = active ? normalizeStaffEmail(active.email || "") : "";
+  const activeRole = active ? active.role || "" : "";
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
   for (const item of pending) {
+    if (
+      active &&
+      ((item.ownerEmail && item.ownerEmail !== activeEmail) ||
+        (item.ownerRole && item.ownerRole !== activeRole))
+    ) {
+      continue;
+    }
     try {
       results.push({ ok: true, result: await item.retryFn(), description: item.description });
     } catch (err) {
@@ -494,7 +523,7 @@ export async function callMonitoringRpc({
 
   if (isSessionTokenExpired(activeSession)) {
     if (typeof retryFn === "function") {
-      queuePendingAuthRetry(retryFn, action);
+      queuePendingAuthRetry(retryFn, action, activeSession);
     }
     if (typeof onTokenExpired === "function") {
       onTokenExpired({ action, session: activeSession });
@@ -538,7 +567,7 @@ export async function callMonitoringRpc({
       /expired|invalid.*token/i.test(String(data.error || ""))
     ) {
       if (typeof retryFn === "function") {
-        queuePendingAuthRetry(retryFn, action);
+        queuePendingAuthRetry(retryFn, action, activeSession);
       }
       if (typeof onTokenExpired === "function") {
         onTokenExpired({ action, session: activeSession });
@@ -596,7 +625,20 @@ export function subscribeCrossTabAuthChanges(onAuthChanged, targetWindow = null)
     if (ev.key === LS_ADMIN_SESSION_KEY || ev.key === LS_CROSS_TAB_BROADCAST_KEY || ev.key === null) {
       const currentSession = readActiveMonitoringSession();
       if (!currentSession) {
+        _pendingAuthRetryQueue.length = 0;
         purgePrivateMonitoringStorage();
+      } else {
+        const curEmail = normalizeStaffEmail(currentSession.email || "");
+        const curRole = currentSession.role || "";
+        for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
+          const it = _pendingAuthRetryQueue[i];
+          if (
+            (it.ownerEmail && it.ownerEmail !== curEmail) ||
+            (it.ownerRole && it.ownerRole !== curRole)
+          ) {
+            _pendingAuthRetryQueue.splice(i, 1);
+          }
+        }
       }
       if (typeof onAuthChanged === "function") {
         onAuthChanged({
@@ -700,65 +742,102 @@ export function createParcelSyncCoordinator({
   scheduleTimer = (fn, ms) => setTimeout(fn, ms),
   cancelTimer = (id) => clearTimeout(id),
 } = {}) {
-  const cloudUpdatedAtByParcelId = new Map();
-  const pendingBatches = new Map();
-  const inFlightByParcelId = new Map();
-  const queuedRetryCountByParcelId = new Map();
+  const recordsByParcelId = new Map();
   const promotedTargetBySourcePid = new Map();
-  const timersByParcelId = new Map();
   let generation = 0;
+
+  function getOrCreateRecord(pid) {
+    let rec = recordsByParcelId.get(pid);
+    if (!rec) {
+      rec = {
+        hasServerTs: false,
+        serverTs: "",
+        pendingBatch: null,
+        inFlightPromise: null,
+        queuedRetryCount: 0,
+        timerId: null,
+      };
+      recordsByParcelId.set(pid, rec);
+    }
+    return rec;
+  }
+
+  function resolveLatestTargetPid(startPid) {
+    let cur = String(startPid || "").trim();
+    const seen = new Set();
+    while (cur && promotedTargetBySourcePid.has(cur) && !seen.has(cur)) {
+      seen.add(cur);
+      cur = promotedTargetBySourcePid.get(cur);
+    }
+    return cur;
+  }
+
+  function getPromotedTarget(parcelId) {
+    return resolveLatestTargetPid(parcelId);
+  }
+
+  function hasOwnActive(pid) {
+    const rec = recordsByParcelId.get(pid);
+    if (!rec) return false;
+    return Boolean(rec.pendingBatch || rec.inFlightPromise || rec.queuedRetryCount > 0);
+  }
 
   function clearAll() {
     generation += 1;
-    for (const timerId of timersByParcelId.values()) {
-      cancelTimer(timerId);
+    for (const rec of recordsByParcelId.values()) {
+      if (rec.timerId !== null) {
+        cancelTimer(rec.timerId);
+      }
     }
-    timersByParcelId.clear();
-    pendingBatches.clear();
-    inFlightByParcelId.clear();
-    queuedRetryCountByParcelId.clear();
+    recordsByParcelId.clear();
     promotedTargetBySourcePid.clear();
-    cloudUpdatedAtByParcelId.clear();
   }
 
   function hasPendingOrInFlight(parcelId) {
     const pid = String(parcelId || "").trim();
     if (!pid) return false;
-    return Boolean(
-      pendingBatches.has(pid) ||
-        inFlightByParcelId.has(pid) ||
-        (queuedRetryCountByParcelId.get(pid) || 0) > 0
-    );
+    if (hasOwnActive(pid)) return true;
+    for (const srcPid of promotedTargetBySourcePid.keys()) {
+      if (resolveLatestTargetPid(srcPid) === pid && hasOwnActive(srcPid)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function getServerTimestamp(parcelId) {
     const pid = String(parcelId || "").trim();
-    return cloudUpdatedAtByParcelId.get(pid) || "";
+    const rec = recordsByParcelId.get(pid);
+    return rec && rec.hasServerTs ? rec.serverTs : "";
   }
 
   function recordHydratedTimestamp(parcelId, decidedAt, { fromCloud = false } = {}) {
     const pid = String(parcelId || "").trim();
     if (!pid) return;
     const incTs = String(decidedAt || "").trim();
+    const rec = getOrCreateRecord(pid);
     if (fromCloud) {
       if (!hasPendingOrInFlight(pid)) {
-        const curTs = cloudUpdatedAtByParcelId.get(pid) || "";
-        if (!curTs || (incTs && incTs >= curTs)) {
-          cloudUpdatedAtByParcelId.set(pid, incTs);
+        if (!rec.hasServerTs || !rec.serverTs || (incTs && incTs >= rec.serverTs)) {
+          rec.hasServerTs = true;
+          rec.serverTs = incTs;
         }
       }
-    } else if (!cloudUpdatedAtByParcelId.has(pid) && incTs) {
-      cloudUpdatedAtByParcelId.set(pid, incTs);
+    } else if (!rec.hasServerTs && incTs) {
+      rec.hasServerTs = true;
+      rec.serverTs = incTs;
     }
   }
 
   function captureBaselineExpectedTs(parcelId, fallbackDecidedAt = "") {
     const pid = String(parcelId || "").trim();
     if (!pid) return "";
-    if (!cloudUpdatedAtByParcelId.has(pid)) {
-      cloudUpdatedAtByParcelId.set(pid, String(fallbackDecidedAt || "").trim());
+    const rec = getOrCreateRecord(pid);
+    if (!rec.hasServerTs) {
+      rec.hasServerTs = true;
+      rec.serverTs = String(fallbackDecidedAt || "").trim();
     }
-    return cloudUpdatedAtByParcelId.get(pid) || "";
+    return rec.serverTs;
   }
 
   function promoteParcelKey(fromParcelId, toParcelId, fallbackDecidedAt = "") {
@@ -768,59 +847,73 @@ export function createParcelSyncCoordinator({
       return captureBaselineExpectedTs(toPid || fromPid, fallbackDecidedAt);
     }
     const baseTs = captureBaselineExpectedTs(fromPid, fallbackDecidedAt);
-    if (!cloudUpdatedAtByParcelId.has(toPid)) {
-      cloudUpdatedAtByParcelId.set(toPid, baseTs);
+    const fromRec = getOrCreateRecord(fromPid);
+    const toRec = getOrCreateRecord(toPid);
+    if (!toRec.hasServerTs) {
+      toRec.hasServerTs = true;
+      toRec.serverTs = baseTs;
     }
     promotedTargetBySourcePid.set(fromPid, toPid);
-    if (timersByParcelId.has(fromPid)) {
-      cancelTimer(timersByParcelId.get(fromPid));
-      timersByParcelId.delete(fromPid);
+    if (fromRec.timerId !== null) {
+      cancelTimer(fromRec.timerId);
+      fromRec.timerId = null;
     }
-    if (pendingBatches.has(fromPid)) {
-      const priorFrom = pendingBatches.get(fromPid);
-      pendingBatches.delete(fromPid);
-      const existingTo = pendingBatches.get(toPid);
-      pendingBatches.set(toPid, {
+    if (fromRec.pendingBatch) {
+      const priorFrom = fromRec.pendingBatch;
+      fromRec.pendingBatch = null;
+      const existingTo = toRec.pendingBatch;
+      const rootReplacePid = priorFrom.patchPayload?.replace_parcel_id || fromPid;
+      const nextPatch = {
+        ...priorFrom.patchPayload,
+        ...(existingTo ? existingTo.patchPayload : {}),
+        replace_parcel_id: rootReplacePid,
+      };
+      if (nextPatch.replace_parcel_id === toPid) {
+        delete nextPatch.replace_parcel_id;
+      }
+      toRec.pendingBatch = {
         baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
-        patchPayload: {
-          ...priorFrom.patchPayload,
-          ...(existingTo ? existingTo.patchPayload : {}),
-          replace_parcel_id: priorFrom.patchPayload?.replace_parcel_id || fromPid,
-        },
-      });
+        patchPayload: nextPatch,
+      };
     }
-    if (inFlightByParcelId.has(fromPid) && !inFlightByParcelId.has(toPid)) {
-      inFlightByParcelId.set(toPid, inFlightByParcelId.get(fromPid));
+    if (fromRec.inFlightPromise && !toRec.inFlightPromise) {
+      toRec.inFlightPromise = fromRec.inFlightPromise;
     }
-    return cloudUpdatedAtByParcelId.get(toPid) || "";
+    return toRec.serverTs;
   }
 
   function enqueue(parcelId, patchPayload = {}, baselineExpectedTs = "") {
     const pid = String(parcelId || "").trim();
     if (!pid || typeof sendDecisionRpc !== "function") return;
-    const prev = pendingBatches.get(pid);
+    const rec = getOrCreateRecord(pid);
+    const prev = rec.pendingBatch;
     const mergedPatch = prev ? { ...prev.patchPayload, ...patchPayload } : { ...patchPayload };
-    if (prev?.patchPayload?.replace_parcel_id && !mergedPatch.replace_parcel_id) {
+    // Preserve the pre-debounce server lookup PK across chained <650ms CAMPUS:<SLUG> renames.
+    if (prev?.patchPayload?.replace_parcel_id) {
       mergedPatch.replace_parcel_id = prev.patchPayload.replace_parcel_id;
     }
-    pendingBatches.set(pid, {
+    if (mergedPatch.replace_parcel_id === pid) {
+      delete mergedPatch.replace_parcel_id;
+    }
+    rec.pendingBatch = {
       baselineExpectedTs: prev ? prev.baselineExpectedTs : String(baselineExpectedTs || "").trim(),
       patchPayload: mergedPatch,
-    });
-    if (timersByParcelId.has(pid)) {
-      cancelTimer(timersByParcelId.get(pid));
+    };
+    if (rec.timerId !== null) {
+      cancelTimer(rec.timerId);
+      rec.timerId = null;
     }
     const capturedGen = generation;
-    const timerId = scheduleTimer(async () => {
+    rec.timerId = scheduleTimer(async () => {
       if (capturedGen !== generation) return;
-      timersByParcelId.delete(pid);
-      if (inFlightByParcelId.has(pid)) {
+      rec.timerId = null;
+      if (rec.inFlightPromise) {
         try {
-          await inFlightByParcelId.get(pid);
+          await rec.inFlightPromise;
         } catch (_e) {}
       }
       if (capturedGen !== generation) return;
-      const batch = pendingBatches.get(pid);
+      const batch = rec.pendingBatch;
       if (!batch) return;
       let countedAsQueued = false;
 
@@ -828,25 +921,25 @@ export function createParcelSyncCoordinator({
         if (capturedGen !== generation) {
           return { ok: false, cancelled: true };
         }
-        if (countedAsQueued) {
-          countedAsQueued = false;
-          const rem = (queuedRetryCountByParcelId.get(pid) || 1) - 1;
-          if (rem > 0) queuedRetryCountByParcelId.set(pid, rem);
-          else queuedRetryCountByParcelId.delete(pid);
+        const expectedTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
+        let res;
+        try {
+          res = await sendDecisionRpc({
+            parcelId: pid,
+            expectedUpdatedAt: expectedTs,
+            patch: batch.patchPayload,
+            retryFn: sendRpc,
+          });
+        } finally {
+          if (countedAsQueued && capturedGen === generation) {
+            countedAsQueued = false;
+            rec.queuedRetryCount = Math.max(0, rec.queuedRetryCount - 1);
+          }
         }
-        const expectedTs = cloudUpdatedAtByParcelId.has(pid)
-          ? cloudUpdatedAtByParcelId.get(pid) || ""
-          : batch.baselineExpectedTs;
-        const res = await sendDecisionRpc({
-          parcelId: pid,
-          expectedUpdatedAt: expectedTs,
-          patch: batch.patchPayload,
-          retryFn: sendRpc,
-        });
         if (capturedGen !== generation) return res;
         if (res && res.queuedForRetry) {
           countedAsQueued = true;
-          queuedRetryCountByParcelId.set(pid, (queuedRetryCountByParcelId.get(pid) || 0) + 1);
+          rec.queuedRetryCount += 1;
           return res;
         }
         if (res && res.ok && res.decision && res.decision.parcel_id) {
@@ -855,23 +948,35 @@ export function createParcelSyncCoordinator({
           for (const keyPid of new Set([
             srvPid,
             pid,
-            promotedTargetBySourcePid.get(srvPid) || "",
-            promotedTargetBySourcePid.get(pid) || "",
+            resolveLatestTargetPid(srvPid),
+            resolveLatestTargetPid(pid),
           ])) {
             if (!keyPid) continue;
-            const cur = cloudUpdatedAtByParcelId.get(keyPid) || "";
-            if (!cur || srvTs >= cur) {
-              cloudUpdatedAtByParcelId.set(keyPid, srvTs);
+            const targetRec = getOrCreateRecord(keyPid);
+            if (!targetRec.hasServerTs || !targetRec.serverTs || srvTs >= targetRec.serverTs) {
+              targetRec.hasServerTs = true;
+              targetRec.serverTs = srvTs;
             }
           }
+          const latestTargetPid = resolveLatestTargetPid(pid);
+          const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
+          const ownFollowUpQueued = Boolean(rec.pendingBatch || rec.queuedRetryCount > 0);
           if (typeof onSuccess === "function") {
-            onSuccess(res, { hasNewerPendingEdit: pendingBatches.has(pid) });
+            onSuccess(res, {
+              hasNewerPendingEdit:
+                isSuperseded ||
+                ownFollowUpQueued ||
+                (latestTargetPid !== pid && hasPendingOrInFlight(latestTargetPid)),
+              supersededByParcelId: isSuperseded ? latestTargetPid : "",
+            });
           }
         } else if (res && res.conflict) {
           if (res.currentDecision && res.currentDecision.decided_at) {
-            cloudUpdatedAtByParcelId.set(pid, String(res.currentDecision.decided_at).trim());
+            rec.hasServerTs = true;
+            rec.serverTs = String(res.currentDecision.decided_at).trim();
           } else {
-            cloudUpdatedAtByParcelId.delete(pid);
+            rec.hasServerTs = false;
+            rec.serverTs = "";
           }
           if (typeof onConflict === "function") {
             onConflict(res);
@@ -880,27 +985,30 @@ export function createParcelSyncCoordinator({
         return res;
       };
 
-      // Atomically transition pid from pendingBatches -> inFlightByParcelId with zero microtask gap
-      pendingBatches.delete(pid);
+      // Atomically transition pid from pendingBatch -> inFlightPromise with zero microtask gap
+      rec.pendingBatch = null;
       const rpcPromise = sendRpc();
-      inFlightByParcelId.set(pid, rpcPromise);
+      rec.inFlightPromise = rpcPromise;
       try {
         await rpcPromise;
       } finally {
-        if (inFlightByParcelId.get(pid) === rpcPromise) {
-          inFlightByParcelId.delete(pid);
+        if (rec.inFlightPromise === rpcPromise) {
+          rec.inFlightPromise = null;
         }
-        const promotedPid = promotedTargetBySourcePid.get(pid);
-        if (promotedPid && inFlightByParcelId.get(promotedPid) === rpcPromise) {
-          inFlightByParcelId.delete(promotedPid);
+        const promotedPid = resolveLatestTargetPid(pid);
+        if (promotedPid && promotedPid !== pid) {
+          const promRec = recordsByParcelId.get(promotedPid);
+          if (promRec && promRec.inFlightPromise === rpcPromise) {
+            promRec.inFlightPromise = null;
+          }
         }
       }
     }, debounceMs);
-    timersByParcelId.set(pid, timerId);
   }
 
   return {
     clearAll,
+    getPromotedTarget,
     hasPendingOrInFlight,
     getServerTimestamp,
     recordHydratedTimestamp,
