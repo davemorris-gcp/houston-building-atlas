@@ -132,10 +132,22 @@ export function normalizeMonitoringSession(raw) {
   };
 }
 
-export function readActiveMonitoringSession({
-  localStore = getSafeStorage("local"),
-  sessionStore = getSafeStorage("session"),
-} = {}) {
+export function readActiveMonitoringSession(opts = {}) {
+  const hasExplicitStore = Boolean(
+    opts && ("localStore" in opts || "sessionStore" in opts)
+  );
+  const localStore =
+    opts && "localStore" in opts
+      ? opts.localStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("local");
+  const sessionStore =
+    opts && "sessionStore" in opts
+      ? opts.sessionStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("session");
   for (const store of [sessionStore, localStore]) {
     if (!store) continue;
     try {
@@ -454,6 +466,19 @@ export async function verifyAndSignInMonitoring({
   };
 }
 
+function isRetryOwnedBySession(item, activeSession) {
+  if (!activeSession) return false;
+  const activeEmail = normalizeStaffEmail(activeSession.email || "");
+  const activeRole = activeSession.role || "";
+  if (item.ownerEmail && item.ownerEmail !== activeEmail) return false;
+  if (item.ownerRole && item.ownerRole !== activeRole) return false;
+  return true;
+}
+
+export function clearPendingAuthRetries() {
+  _pendingAuthRetryQueue.length = 0;
+}
+
 export function queuePendingAuthRetry(retryFn, description = "", session = null) {
   if (typeof retryFn === "function") {
     const owner = session || readActiveMonitoringSession();
@@ -472,26 +497,34 @@ export function getPendingAuthRetryCount() {
   return _pendingAuthRetryQueue.length;
 }
 
-export async function replayPendingAuthRetries({
-  session = null,
-  localStore = getSafeStorage("local"),
-} = {}) {
-  const hasSessionContext = Boolean(session || localStore);
-  const active = session || (localStore ? readActiveMonitoringSession({ localStore }) : null);
+export async function replayPendingAuthRetries(opts = {}) {
+  const hasExplicitStore = Boolean(
+    opts && ("localStore" in opts || "sessionStore" in opts)
+  );
+  const localStore =
+    opts && "localStore" in opts
+      ? opts.localStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("local");
+  const sessionStore =
+    opts && "sessionStore" in opts
+      ? opts.sessionStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("session");
+  const explicitSession = opts?.session || null;
+  const hasSessionContext = Boolean(explicitSession || localStore || sessionStore || hasExplicitStore);
+  const active =
+    explicitSession || readActiveMonitoringSession({ localStore, sessionStore });
   if (hasSessionContext && (!active || !active.authorized)) {
     _pendingAuthRetryQueue.length = 0;
     return [];
   }
-  const activeEmail = active ? normalizeStaffEmail(active.email || "") : "";
-  const activeRole = active ? active.role || "" : "";
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
   for (const item of pending) {
-    if (
-      active &&
-      ((item.ownerEmail && item.ownerEmail !== activeEmail) ||
-        (item.ownerRole && item.ownerRole !== activeRole))
-    ) {
+    if (active && !isRetryOwnedBySession(item, active)) {
       continue;
     }
     try {
@@ -615,27 +648,40 @@ export async function pullCloudMonitoringState({
  * Subscribe to cross-tab `storage` events so Sign Out or `Staff -> Screener` switches
  * in a sibling browser tab immediately unmount private DOM nodes and memory caches.
  */
-export function subscribeCrossTabAuthChanges(onAuthChanged, targetWindow = null) {
+export function subscribeCrossTabAuthChanges(
+  onAuthChanged,
+  targetWindow = null,
+  opts = {}
+) {
   const win = targetWindow || (typeof window !== "undefined" ? window : null);
   if (!win || typeof win.addEventListener !== "function") {
     return () => {};
   }
+  const hasExplicitStore = Boolean(
+    opts && ("localStore" in opts || "sessionStore" in opts)
+  );
+  const localStore =
+    opts && "localStore" in opts
+      ? opts.localStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("local");
+  const sessionStore =
+    opts && "sessionStore" in opts
+      ? opts.sessionStore
+      : hasExplicitStore
+      ? null
+      : getSafeStorage("session");
   const handler = (ev) => {
     if (!ev) return;
     if (ev.key === LS_ADMIN_SESSION_KEY || ev.key === LS_CROSS_TAB_BROADCAST_KEY || ev.key === null) {
-      const currentSession = readActiveMonitoringSession();
+      const currentSession = readActiveMonitoringSession({ localStore, sessionStore });
       if (!currentSession) {
         _pendingAuthRetryQueue.length = 0;
-        purgePrivateMonitoringStorage();
+        purgePrivateMonitoringStorage({ localStore });
       } else {
-        const curEmail = normalizeStaffEmail(currentSession.email || "");
-        const curRole = currentSession.role || "";
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
-          const it = _pendingAuthRetryQueue[i];
-          if (
-            (it.ownerEmail && it.ownerEmail !== curEmail) ||
-            (it.ownerRole && it.ownerRole !== curRole)
-          ) {
+          if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], currentSession)) {
             _pendingAuthRetryQueue.splice(i, 1);
           }
         }
@@ -853,6 +899,7 @@ export function createParcelSyncCoordinator({
       toRec.hasServerTs = true;
       toRec.serverTs = baseTs;
     }
+    promotedTargetBySourcePid.delete(toPid);
     promotedTargetBySourcePid.set(fromPid, toPid);
     if (fromRec.timerId !== null) {
       cancelTimer(fromRec.timerId);
@@ -907,12 +954,12 @@ export function createParcelSyncCoordinator({
     rec.timerId = scheduleTimer(async () => {
       if (capturedGen !== generation) return;
       rec.timerId = null;
-      if (rec.inFlightPromise) {
+      while (rec.inFlightPromise) {
         try {
           await rec.inFlightPromise;
         } catch (_e) {}
+        if (capturedGen !== generation) return;
       }
-      if (capturedGen !== generation) return;
       const batch = rec.pendingBatch;
       if (!batch) return;
       let countedAsQueued = false;
@@ -921,7 +968,21 @@ export function createParcelSyncCoordinator({
         if (capturedGen !== generation) {
           return { ok: false, cancelled: true };
         }
+        while (rec.inFlightPromise) {
+          try {
+            await rec.inFlightPromise;
+          } catch (_e) {}
+          if (capturedGen !== generation) {
+            return { ok: false, cancelled: true };
+          }
+        }
+        const wasQueuedOnEntry = countedAsQueued;
         const expectedTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
+        let settleInFlight;
+        const inFlightToken = new Promise((resolve) => {
+          settleInFlight = resolve;
+        });
+        rec.inFlightPromise = inFlightToken;
         let res;
         try {
           res = await sendDecisionRpc({
@@ -930,79 +991,73 @@ export function createParcelSyncCoordinator({
             patch: batch.patchPayload,
             retryFn: sendRpc,
           });
-        } finally {
-          if (countedAsQueued && capturedGen === generation) {
+          if (capturedGen !== generation) return res;
+          if (res && res.queuedForRetry) {
+            if (!wasQueuedOnEntry) {
+              countedAsQueued = true;
+              rec.queuedRetryCount += 1;
+            }
+            return res;
+          }
+          if (wasQueuedOnEntry) {
             countedAsQueued = false;
             rec.queuedRetryCount = Math.max(0, rec.queuedRetryCount - 1);
           }
-        }
-        if (capturedGen !== generation) return res;
-        if (res && res.queuedForRetry) {
-          countedAsQueued = true;
-          rec.queuedRetryCount += 1;
-          return res;
-        }
-        if (res && res.ok && res.decision && res.decision.parcel_id) {
-          const srvPid = String(res.decision.parcel_id).trim();
-          const srvTs = String(res.decision.decided_at || "").trim();
-          for (const keyPid of new Set([
-            srvPid,
-            pid,
-            resolveLatestTargetPid(srvPid),
-            resolveLatestTargetPid(pid),
-          ])) {
-            if (!keyPid) continue;
-            const targetRec = getOrCreateRecord(keyPid);
-            if (!targetRec.hasServerTs || !targetRec.serverTs || srvTs >= targetRec.serverTs) {
-              targetRec.hasServerTs = true;
-              targetRec.serverTs = srvTs;
+          if (res && res.ok && res.decision && res.decision.parcel_id) {
+            const srvPid = String(res.decision.parcel_id).trim();
+            const srvTs = String(res.decision.decided_at || "").trim();
+            for (const keyPid of new Set([
+              srvPid,
+              pid,
+              resolveLatestTargetPid(srvPid),
+              resolveLatestTargetPid(pid),
+            ])) {
+              if (!keyPid) continue;
+              const targetRec = getOrCreateRecord(keyPid);
+              if (!targetRec.hasServerTs || !targetRec.serverTs || srvTs >= targetRec.serverTs) {
+                targetRec.hasServerTs = true;
+                targetRec.serverTs = srvTs;
+              }
+            }
+            const latestTargetPid = resolveLatestTargetPid(pid);
+            const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
+            const ownFollowUpQueued = Boolean(rec.pendingBatch || rec.queuedRetryCount > 0);
+            if (typeof onSuccess === "function") {
+              onSuccess(res, {
+                hasNewerPendingEdit: isSuperseded || ownFollowUpQueued,
+                supersededByParcelId: isSuperseded ? latestTargetPid : "",
+              });
+            }
+          } else if (res && res.conflict) {
+            if (res.currentDecision && res.currentDecision.decided_at) {
+              rec.hasServerTs = true;
+              rec.serverTs = String(res.currentDecision.decided_at).trim();
+            } else {
+              rec.hasServerTs = false;
+              rec.serverTs = "";
+            }
+            if (typeof onConflict === "function") {
+              onConflict(res);
             }
           }
-          const latestTargetPid = resolveLatestTargetPid(pid);
-          const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
-          const ownFollowUpQueued = Boolean(rec.pendingBatch || rec.queuedRetryCount > 0);
-          if (typeof onSuccess === "function") {
-            onSuccess(res, {
-              hasNewerPendingEdit:
-                isSuperseded ||
-                ownFollowUpQueued ||
-                (latestTargetPid !== pid && hasPendingOrInFlight(latestTargetPid)),
-              supersededByParcelId: isSuperseded ? latestTargetPid : "",
-            });
+          return res;
+        } finally {
+          if (wasQueuedOnEntry && countedAsQueued && capturedGen === generation && !(res && res.queuedForRetry)) {
+            countedAsQueued = false;
+            rec.queuedRetryCount = Math.max(0, rec.queuedRetryCount - 1);
           }
-        } else if (res && res.conflict) {
-          if (res.currentDecision && res.currentDecision.decided_at) {
-            rec.hasServerTs = true;
-            rec.serverTs = String(res.currentDecision.decided_at).trim();
-          } else {
-            rec.hasServerTs = false;
-            rec.serverTs = "";
+          for (const candRec of recordsByParcelId.values()) {
+            if (candRec.inFlightPromise === inFlightToken) {
+              candRec.inFlightPromise = null;
+            }
           }
-          if (typeof onConflict === "function") {
-            onConflict(res);
-          }
+          settleInFlight();
         }
-        return res;
       };
 
       // Atomically transition pid from pendingBatch -> inFlightPromise with zero microtask gap
       rec.pendingBatch = null;
-      const rpcPromise = sendRpc();
-      rec.inFlightPromise = rpcPromise;
-      try {
-        await rpcPromise;
-      } finally {
-        if (rec.inFlightPromise === rpcPromise) {
-          rec.inFlightPromise = null;
-        }
-        const promotedPid = resolveLatestTargetPid(pid);
-        if (promotedPid && promotedPid !== pid) {
-          const promRec = recordsByParcelId.get(promotedPid);
-          if (promRec && promRec.inFlightPromise === rpcPromise) {
-            promRec.inFlightPromise = null;
-          }
-        }
-      }
+      await sendRpc();
     }, debounceMs);
   }
 

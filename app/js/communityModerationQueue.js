@@ -166,17 +166,22 @@ export function buildModerationDecisionPayload(
     Number(editedYear) >= MONITORING_SCHEMA_CONTRACT.minStandingYear &&
     Number(editedYear) <= MONITORING_SCHEMA_CONTRACT.maxStandingYear;
   const hasInlineYearEdit = inlineEdits.suggested_year_built !== undefined;
+  const typedNewStandingYearOnVacant =
+    item.isVacantReport &&
+    hasInlineYearEdit &&
+    hasExplicitValidYear &&
+    editedYear !== item.suggestedYearBuilt;
   let suppressOnly = false;
   if (inlineEdits.suppress_only !== undefined) {
-    // Typing a demolished token into #mq-year on a non-vacant item overrides an unchecked default box,
-    // while unchecking the box on an already-vacant item still opts out of suppression.
-    suppressOnly =
-      Boolean(inlineEdits.suppress_only) ||
-      (hasInlineYearEdit &&
-        isExplicitDemolishedYearText(editedYear) &&
-        !isExplicitDemolishedYearText(item.suggestedYearBuilt));
+    // Typing a standing year (1836..2035) on a pre-checked vacant item opts out of suppression,
+    // while typing a demolished token on a non-vacant item overrides an unchecked default box.
+    suppressOnly = typedNewStandingYearOnVacant
+      ? false
+      : Boolean(inlineEdits.suppress_only) ||
+        (hasInlineYearEdit &&
+          isExplicitDemolishedYearText(editedYear) &&
+          !isExplicitDemolishedYearText(item.suggestedYearBuilt));
   } else if (hasInlineYearEdit && hasExplicitValidYear) {
-    // Entering an explicit standing year (1836..2035) overrides initial vacant classification.
     suppressOnly = false;
   } else {
     suppressOnly = item.isVacantReport || isExplicitDemolishedYearText(editedYear);
@@ -223,7 +228,9 @@ export function buildModerationDecisionPayload(
       : hasExplicitValidYear
       ? Number(editedYear)
       : editedYear,
-    ...(suppressOnly || inlineEdits.suppress_only !== undefined
+    ...(suppressOnly ||
+    inlineEdits.suppress_only !== undefined ||
+    typedNewStandingYearOnVacant
       ? { suppress_only: suppressOnly }
       : {}),
     bld_style: sanitizeMonitoringText(inlineEdits.bld_style ?? item.bldStyle),

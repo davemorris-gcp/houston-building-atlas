@@ -43,6 +43,7 @@ import {
   LS_CROSS_TAB_BROADCAST_KEY,
   callMonitoringRpc,
   canAccessStaffOnly,
+  clearPendingAuthRetries,
   createParcelSyncCoordinator,
   decodeJwtPayloadUnsafe,
   ensureCleanUnauthenticatedStorageOnBoot,
@@ -2391,10 +2392,10 @@ test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge pres
     }).ok,
     true
   );
-  assert.equal(pendSheet.getRange(dupRowIdx, 1).getValue(), "Superseded");
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 4).getValue(), 1926);
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 10).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 23).getValue(), polyGeo);
+  assert.equal(pendSheet.getRange(dupRowIdx, SHEET_COL_STATUS).getValue(), "Superseded");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, SHEET_COL_YEAR_BUILT).getValue(), 1926);
+  assert.equal(pendSheet.getRange(secondApprovedIdx, SHEET_COL_SOURCE_URL).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
+  assert.equal(pendSheet.getRange(secondApprovedIdx, SHEET_COL_GEOMETRY_W).getValue(), polyGeo);
 
   // 2. Pending_Submissions row with suggested_year_built = "N/A" AND building_name = "Bayland House; Historic Alias" preserves 1926, source_url, and polygon, and splits primaryName / altNames!
   h.callPost({
@@ -2418,12 +2419,12 @@ test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge pres
     }).ok,
     true
   );
-  assert.equal(pendSheet.getRange(secondApprovedIdx, 1).getValue(), "Superseded");
-  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 4).getValue(), 1926, "Pending_Submissions 'N/A' must preserve standing year 1926");
-  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 10).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
-  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 15).getValue(), "Bayland House");
-  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 16).getValue(), "Historic Alias");
-  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, 23).getValue(), polyGeo);
+  assert.equal(pendSheet.getRange(secondApprovedIdx, SHEET_COL_STATUS).getValue(), "Superseded");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, SHEET_COL_YEAR_BUILT).getValue(), 1926, "Pending_Submissions 'N/A' must preserve standing year 1926");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, SHEET_COL_SOURCE_URL).getValue(), "https://texashistory.unt.edu/ark:/67531/metapth123/");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, SHEET_COL_BUILDING_NAME).getValue(), "Bayland House");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, SHEET_COL_ALT_NAMES).getValue(), "Historic Alias");
+  assert.equal(pendSheet.getRange(pendNaItem.rowNumber, SHEET_COL_GEOMETRY_W).getValue(), polyGeo);
 
   // 3. Pending_Submissions row with suggested_year_built = "Demolished - vacant lot" (without suppress_only: true) suppresses year=0 and Col W="" while preserving Cols C/E/F/G!
   h.callPost({
@@ -2445,13 +2446,13 @@ test("IT-P1-Moderation: unified Pending_Submissions and Field_Surveys merge pres
     }).ok,
     true
   );
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 3).getValue(), "912 BAYLAND AVE");
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 4).getValue(), 0);
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 5).getValue(), 1930);
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 6).getValue(), "Norhill");
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 7).getValue(), "Contributing");
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 15).getValue(), "");
-  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, 23).getValue(), "");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_ADDRESS).getValue(), "912 BAYLAND AVE");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_YEAR_BUILT).getValue(), 0);
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_ORIG_HCAD_YEAR).getValue(), 1930);
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_DISTRICT).getValue(), "Norhill");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_CONTRIBUTING).getValue(), "Contributing");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_BUILDING_NAME).getValue(), "");
+  assert.equal(pendSheet.getRange(pendDemoItem.rowNumber, SHEET_COL_GEOMETRY_W).getValue(), "");
 
   // 4. Field_Surveys vacant promotion on another standing override also preserves Cols C/E/F/G while clearing Col D=0 and Col W=""
   assert.equal(
@@ -2631,11 +2632,45 @@ test("IT-P1-Moderation-ZeroSurveyAndInlineYearOverride: atomic Field_Surveys pro
 
   const overrideWithStandingYear = buildModerationDecisionPayload(clearedQueueItem, "Approved", {
     suggested_year_built: "1928",
+    suppress_only: true,
     geometry_geojson: polyGeo,
   });
   assert.equal(overrideWithStandingYear.suggested_year_built, 1928);
-  assert.equal(overrideWithStandingYear.suppress_only, undefined);
+  assert.equal(overrideWithStandingYear.suppress_only, false);
   assert.equal(overrideWithStandingYear.geometry_geojson, polyGeo);
+
+  // Also verify end-to-end against Code.cjs on a second vacant survey overridden with standing year 1928!
+  h.callPost({
+    action: "field_survey",
+    survey_id: "SURV_VACANT_OVERRIDDEN_TO_STANDING",
+    hcad_num: "0621100000092",
+    address: "920 BAYLAND AVE",
+    observed_year_or_demo_note: "Cleared vacant lot",
+    field_notes: "False alarm - house still standing behind fence",
+  });
+  const standingOverrideItem = classifyModerationQueueItem(
+    h.callPost({ action: "list_pending_submissions", google_id_token: staffJwt }).items.find(
+      (it) => it.survey_id === "SURV_VACANT_OVERRIDDEN_TO_STANDING"
+    )
+  );
+  assert.equal(
+    h.callPost({
+      ...buildModerationDecisionPayload(standingOverrideItem, "Approved", {
+        suggested_year_built: "1928",
+        suppress_only: true,
+        geometry_geojson: polyGeo,
+      }),
+      google_id_token: staffJwt,
+    }).ok,
+    true
+  );
+  const row920Idx =
+    pendSheet
+      .getDataRange()
+      .getValues()
+      .findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000092" && r[0] === "Approved") + 1;
+  assert.equal(pendSheet.getRange(row920Idx, SHEET_COL_YEAR_BUILT).getValue(), 1928);
+  assert.equal(pendSheet.getRange(row920Idx, SHEET_COL_GEOMETRY_W).getValue(), polyGeo);
 
   assert.equal(
     h.callPost({
@@ -2951,12 +2986,13 @@ test("UT-P1-SyncCoord-ChainedCampusPromotion: preserves root replace_parcel_id a
   assert.equal(rpcLog[0].expectedUpdatedAt, "2026-11-23T16:00:00.000Z");
   assert.equal(rpcLog[0].patch.replace_parcel_id, "0420010000001", "Original server PK must survive multi-hop CAMPUS rename");
 
-  // 2. Promotion while single-parcel RPC #1 is already in-flight marks RPC #1 onSuccess as superseded
+  // 2. Multi-hop promotion while single-parcel RPC #1 is already in-flight clears all intermediate inFlightPromises and breaks rename-back cycles!
   coord.enqueue("0420010000009", { screening_notes: "First single edit" }, "");
   const [inId, inFn] = Array.from(scheduled.entries())[0];
   scheduled.delete(inId);
   const inFlightP = inFn();
-  coord.promoteParcelKey("0420010000009", "CAMPUS:SECOND_CAMPUS", "");
+  coord.promoteParcelKey("0420010000009", "CAMPUS:SECOND_LOT", "");
+  coord.promoteParcelKey("CAMPUS:SECOND_LOT", "CAMPUS:SECOND_CAMPUS", "");
   coord.enqueue(
     "CAMPUS:SECOND_CAMPUS",
     { parcel_id: "CAMPUS:SECOND_CAMPUS", replace_parcel_id: "0420010000009" },
@@ -2975,12 +3011,26 @@ test("UT-P1-SyncCoord-ChainedCampusPromotion: preserves root replace_parcel_id a
   const supersededEvent = successEvents.find((e) => e.resp.parcel.parcel_id === "0420010000009");
   assert.equal(supersededEvent.meta.hasNewerPendingEdit, true);
   assert.equal(supersededEvent.meta.supersededByParcelId, "CAMPUS:SECOND_CAMPUS");
+  assert.equal(coord.hasPendingOrInFlight("CAMPUS:SECOND_LOT"), false);
+  assert.equal(
+    coord.hasPendingOrInFlight("CAMPUS:SECOND_CAMPUS"),
+    false,
+    "Intermediate multi-hop campus record must not leak inFlightPromise"
+  );
+
+  // Acyclic rename-back: CAMPUS:SECOND_CAMPUS -> CAMPUS:SECOND_LOT breaks prior outgoing edge
+  coord.promoteParcelKey("CAMPUS:SECOND_CAMPUS", "CAMPUS:SECOND_LOT", "");
+  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_CAMPUS"), "CAMPUS:SECOND_LOT");
+  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_LOT"), "CAMPUS:SECOND_LOT");
 });
 
-test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates timers/retries and cross-tab/user transitions isolate _pendingAuthRetryQueue", async () => {
+test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates timers/retries, serializes in-flight replays, and isolates _pendingAuthRetryQueue across stores", async () => {
+  clearPendingAuthRetries();
   const scheduled = new Map();
   let nextTimerId = 1;
   let staleRetry = null;
+  let deferredReplayResolve = null;
+  const replayRpcLog = [];
 
   const coord = createParcelSyncCoordinator({
     debounceMs: 650,
@@ -2990,12 +3040,48 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
       return id;
     },
     cancelTimer: (id) => scheduled.delete(id),
-    sendDecisionRpc: async ({ retryFn }) => {
-      staleRetry = retryFn;
-      return { ok: false, tokenExpired: true, queuedForRetry: true };
+    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) => {
+      replayRpcLog.push({ parcelId, expectedUpdatedAt, patch });
+      if (!staleRetry) {
+        staleRetry = retryFn;
+        return { ok: false, tokenExpired: true, queuedForRetry: true };
+      }
+      if (!deferredReplayResolve) {
+        return await new Promise((resolve) => {
+          deferredReplayResolve = resolve;
+        });
+      }
+      return {
+        ok: true,
+        parcel: { parcel_id: parcelId, ...patch },
+        decision: { parcel_id: parcelId, ...patch, decided_at: "2026-11-23T16:20:00.000Z" },
+      };
     },
   });
 
+  // 1. Concurrent debounced edit firing while a queued retry is mid-flight waits for replay's server timestamp
+  coord.enqueue("0420090000050", { screening_notes: "Queued edit" }, "2026-11-23T16:00:00.000Z");
+  const [r1Id, r1Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(r1Id);
+  await r1Fn();
+  const replayInFlight = staleRetry();
+  coord.enqueue("0420090000050", { screening_notes: "Concurrent edit during replay" }, "2026-11-23T16:00:00.000Z");
+  const [r2Id, r2Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(r2Id);
+  const timerDuringReplay = r2Fn();
+  assert.equal(replayRpcLog.length, 2, "Concurrent timer must await in-flight replay before sending RPC #3");
+  deferredReplayResolve({
+    ok: true,
+    parcel: { parcel_id: "0420090000050" },
+    decision: { parcel_id: "0420090000050", decided_at: "2026-11-23T16:15:00.000Z" },
+  });
+  await replayInFlight;
+  await timerDuringReplay;
+  assert.equal(replayRpcLog.length, 3);
+  assert.equal(replayRpcLog[2].expectedUpdatedAt, "2026-11-23T16:15:00.000Z");
+
+  // 2. clearAll() cancels pending timers and invalidates stale queued retries
+  staleRetry = null;
   coord.enqueue("CAMPUS:PARISH_ASSEMBLAGE", { screening_notes: "Before sign-out" }, "2026-11-23T16:05:00.000Z");
   const [qId, qFn] = Array.from(scheduled.entries())[0];
   scheduled.delete(qId);
@@ -3009,7 +3095,8 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
   assert.equal(coord.hasPendingOrInFlight("CAMPUS:PARISH_ASSEMBLAGE"), false);
   assert.equal((await staleRetry()).cancelled, true);
 
-  // Cross-user / cross-tab isolation of module-global _pendingAuthRetryQueue
+  // 3. Cross-user / sessionStore / cross-tab isolation of module-global _pendingAuthRetryQueue
+  clearPendingAuthRetries();
   let userARetryExecuted = false;
   queuePendingAuthRetry(
     async () => {
@@ -3019,35 +3106,61 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
     "upsert_watchlist_dossier",
     { email: "staff.a@preservation.example.org", role: "staff", authorized: true }
   );
-  assert.equal(getPendingAuthRetryCount() >= 1, true);
+  assert.equal(getPendingAuthRetryCount(), 1);
 
-  // Replay under User B must NOT execute User A's queued closure
-  const userBMemStore = createMemoryStorage({
+  // Replay under User B in sessionStore (with localStore = null) must NOT execute User A's queued closure
+  const userBSessionStore = createMemoryStorage({
     [LS_ADMIN_SESSION_KEY]: JSON.stringify({
       authorized: true,
       email: "staff.b@preservation.example.org",
       role: "staff",
     }),
   });
-  const replayRes = await replayPendingAuthRetries({ localStore: userBMemStore });
+  const replayRes = await replayPendingAuthRetries({ localStore: null, sessionStore: userBSessionStore });
   assert.equal(replayRes.length, 0);
   assert.equal(userARetryExecuted, false);
+  assert.equal(getPendingAuthRetryCount(), 0);
 
-  // Also verify cross-tab storage sign-out clears _pendingAuthRetryQueue
-  queuePendingAuthRetry(async () => ({ ok: true }), "upsert_watchlist_dossier", {
+  // Cross-tab storage account switch prunes User A's queued retry while keeping User B's retry
+  queuePendingAuthRetry(async () => ({ ok: true }), "user_a_op", {
     email: "staff.a@preservation.example.org",
     role: "staff",
     authorized: true,
   });
-  assert.equal(getPendingAuthRetryCount(), 1);
-  let listener = null;
-  const unsub = subscribeCrossTabAuthChanges(() => {}, {
-    addEventListener: (_type, fn) => {
-      listener = fn;
-    },
-    removeEventListener: () => {},
+  queuePendingAuthRetry(async () => ({ ok: true }), "user_b_op", {
+    email: "staff.b@preservation.example.org",
+    role: "staff",
+    authorized: true,
   });
+  assert.equal(getPendingAuthRetryCount(), 2);
+  let listener = null;
+  const unsubSwitch = subscribeCrossTabAuthChanges(
+    () => {},
+    {
+      addEventListener: (_type, fn) => {
+        listener = fn;
+      },
+      removeEventListener: () => {},
+    },
+    { localStore: userBSessionStore, sessionStore: null }
+  );
   listener({ key: LS_ADMIN_SESSION_KEY });
-  unsub();
+  unsubSwitch();
+  assert.equal(getPendingAuthRetryCount(), 1);
+
+  // Cross-tab sign-out clears remaining queued retry
+  const emptyStore = createMemoryStorage();
+  const unsubOut = subscribeCrossTabAuthChanges(
+    () => {},
+    {
+      addEventListener: (_type, fn) => {
+        listener = fn;
+      },
+      removeEventListener: () => {},
+    },
+    { localStore: emptyStore, sessionStore: null }
+  );
+  listener({ key: LS_ADMIN_SESSION_KEY });
+  unsubOut();
   assert.equal(getPendingAuthRetryCount(), 0);
 });

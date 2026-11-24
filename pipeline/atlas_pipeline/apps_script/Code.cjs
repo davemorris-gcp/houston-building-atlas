@@ -1246,6 +1246,28 @@ var PENDING_COL_ = {
   GEOMETRY_W: 22
 };
 
+var FIELD_SURVEY_COL_ = {
+  SURVEY_ID: 0,
+  SUBMITTED_AT: 1,
+  REVIEW_STATUS: 2,
+  HCAD: 3,
+  ADDRESS: 4,
+  DISTRICT: 5,
+  INTEGRITY_GRADE: 6,
+  CONDITION_RATING: 7,
+  CONTRIBUTING: 8,
+  WINDOWS_STATUS: 9,
+  CLADDING_MATERIAL: 10,
+  PORCH_INTEGRITY: 11,
+  ORIG_HCAD_YEAR: 12,
+  OBSERVED_YEAR: 13,
+  PHOTO_URL: 14,
+  FIELD_NOTES: 15,
+  SURVEYOR_NAME: 16,
+  GPS_LAT_LNG_ACC: 17,
+  WIDTH: 18
+};
+
 function writePendingRowPreservingFormulas_(sheet, rowIdx, colsAtoR, colWGeom) {
   var row18 = [];
   for (var i = 0; i < 18; i++) {
@@ -1285,8 +1307,8 @@ function countPendingModerationItems_(ss) {
   if (sSheet && typeof sSheet.getDataRange === 'function') {
     var sVals = sSheet.getDataRange().getValues();
     for (var j = 1; j < sVals.length; j++) {
-      var sid = stripLeadingSheetTick_(sVals[j][0]).trim();
-      var rev = String(sVals[j][2] || '').trim().toLowerCase();
+      var sid = stripLeadingSheetTick_(sVals[j][FIELD_SURVEY_COL_.SURVEY_ID]).trim();
+      var rev = String(sVals[j][FIELD_SURVEY_COL_.REVIEW_STATUS] || '').trim().toLowerCase();
       if (sid && (rev === 'unreviewed' || rev === 'needs follow-up')) {
         pendingCount++;
       }
@@ -1337,8 +1359,8 @@ function listPendingModerationItems_(ss, limitCount) {
     var sVals = sSheet.getDataRange().getValues();
     for (var sr = 1; sr < sVals.length && items.length < cap; sr++) {
       var sRow = sVals[sr];
-      var surveyId = stripLeadingSheetTick_(sRow[0]).trim();
-      var revSt = String(sRow[2] || '').trim();
+      var surveyId = stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.SURVEY_ID]).trim();
+      var revSt = String(sRow[FIELD_SURVEY_COL_.REVIEW_STATUS] || '').trim();
       if (!surveyId) continue;
       if (revSt.toLowerCase() !== 'unreviewed' && revSt.toLowerCase() !== 'needs follow-up') continue;
       items.push({
@@ -1347,18 +1369,18 @@ function listPendingModerationItems_(ss, limitCount) {
         rowNumber: sr + 1,
         survey_id: surveyId,
         status: revSt,
-        submitted_at: stripLeadingSheetTick_(sRow[1]),
-        hcad_num: stripLeadingSheetTick_(sRow[3]),
-        address: stripLeadingSheetTick_(sRow[4]),
-        historic_district: stripLeadingSheetTick_(sRow[5]),
-        integrity_grade: stripLeadingSheetTick_(sRow[6]),
-        condition_rating: stripLeadingSheetTick_(sRow[7]),
-        contributing: stripLeadingSheetTick_(sRow[8]),
-        original_hcad_year: stripLeadingSheetTick_(sRow[12]),
-        suggested_year_built: stripLeadingSheetTick_(sRow[13]),
-        source_url: stripLeadingSheetTick_(sRow[14]),
-        source_citation: stripLeadingSheetTick_(sRow[15]),
-        submitted_by: stripLeadingSheetTick_(sRow[16]),
+        submitted_at: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.SUBMITTED_AT]),
+        hcad_num: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.HCAD]),
+        address: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.ADDRESS]),
+        historic_district: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.DISTRICT]),
+        integrity_grade: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.INTEGRITY_GRADE]),
+        condition_rating: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.CONDITION_RATING]),
+        contributing: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.CONTRIBUTING]),
+        original_hcad_year: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.ORIG_HCAD_YEAR]),
+        suggested_year_built: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.OBSERVED_YEAR]),
+        source_url: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.PHOTO_URL]),
+        source_citation: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.FIELD_NOTES]),
+        submitted_by: stripLeadingSheetTick_(sRow[FIELD_SURVEY_COL_.SURVEYOR_NAME]),
         source_type: 'FIELD_SURVEY_OBSERVATION'
       });
     }
@@ -1394,6 +1416,7 @@ function mergeStandingPendingColumnsServer_(opts) {
   var priorRow = opts.priorApprovedRow || null;
   var srcType = String(payload.source_type || (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SOURCE_TYPE]) : '') || opts.defaultSourceType || '').trim();
   var isDisputeFlag = /(?:PHOTO_MISATTRIBUTION_FLAG|CLAIM_DISPUTE_FLAG|NARRATIVE_ERROR_FLAG)$/i.test(srcType);
+  var isNonYrType = /(?:_FLAG|FIELD_SURVEY_OBSERVATION)$/i.test(srcType);
 
   // In queue moderation (rowVals !== null), an explicit empty string from #mq-year clears the
   // submitted year so resolution falls back to priorRow; in direct writeback (rowVals === null),
@@ -1415,6 +1438,7 @@ function mergeStandingPendingColumnsServer_(opts) {
   var effectiveStatus = (opts.requestedDecision === 'Approved' && isDisputeFlag && !hasStandingYr && payload.suppress_only !== true)
     ? 'Resolved'
     : opts.requestedDecision;
+  var isPublicPending = (effectiveStatus === 'Pending' && !rowVals && !priorRow);
 
   var citationStr = payload.source_citation !== undefined ? String(payload.source_citation) : (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.CITATION]) : '');
   var incomingGeomStr = '';
@@ -1425,7 +1449,11 @@ function mergeStandingPendingColumnsServer_(opts) {
     incomingGeomStr = stripLeadingSheetTick_(rowVals[PENDING_COL_.GEOMETRY_W] || '').trim();
   }
 
-  var isVac = effectiveStatus === 'Approved' && !isDisputeFlag && isVacantSuppressPayload_(
+  var hasGeomOrTag = isPublicPending
+    ? (Boolean(incomingGeomStr) || citationStr.indexOf('[GEOMETRY_GEOJSON:') !== -1)
+    : Boolean(incomingGeomStr);
+  var allowGeomOverride = !isPublicPending && (payload.suppress_only === true || isExplicitDemolishedYearTextServer_(rawSuggestedYear));
+  var isVacCandidate = !isDisputeFlag && !(isPublicPending && isNonYrType) && isVacantSuppressPayload_(
     {
       suppress_only: payload.suppress_only,
       footprint_issue: payload.footprint_issue,
@@ -1437,9 +1465,10 @@ function mergeStandingPendingColumnsServer_(opts) {
     rawSuggestedYear,
     parsedYr,
     hasStandingYr,
-    Boolean(incomingGeomStr),
-    payload.suppress_only === true || isExplicitDemolishedYearTextServer_(rawSuggestedYear)
+    hasGeomOrTag,
+    allowGeomOverride
   );
+  var isVac = effectiveStatus === 'Approved' && isVacCandidate;
 
   var geomGeoJsonStr = '';
   if (isVac) {
@@ -1455,7 +1484,9 @@ function mergeStandingPendingColumnsServer_(opts) {
   }
 
   var resolvedYrCell = '';
-  if (effectiveStatus !== 'Approved') {
+  if (isPublicPending) {
+    resolvedYrCell = isNonYrType ? '' : (isVacCandidate ? 0 : (hasStandingYr ? parsedYr : ''));
+  } else if (effectiveStatus !== 'Approved') {
     resolvedYrCell = hasStandingYr ? parsedYr : (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.YEAR_BUILT]).trim() : '');
   } else if (isDisputeFlag) {
     resolvedYrCell = hasStandingYr ? parsedYr : '';
@@ -1479,7 +1510,9 @@ function mergeStandingPendingColumnsServer_(opts) {
   var rawAltCombined = pickStandingCellServer_(payload.alt_names, rowVals ? rowVals[PENDING_COL_.ALT_NAMES] : '', priorRow ? priorRow[PENDING_COL_.ALT_NAMES] : '', isVac);
   var splitNames = splitBuildingNamesServer_(rawNameCombined, rawAltCombined);
 
-  var submitterStr = rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_BY]) : String(payload.submitter_name || payload.submitted_by || opts.authLabel || '');
+  var submitterStr = rowVals
+    ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_BY])
+    : String(payload.submitter_name || payload.submitted_by || opts.defaultSubmitter || opts.authLabel || '');
   var dateStr = (rowVals && stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_AT])) ? stripLeadingSheetTick_(rowVals[PENDING_COL_.SUBMITTED_AT]) : new Date().toISOString().slice(0, 10);
   var modNoteStr = String(payload.moderation_note || (rowVals ? stripLeadingSheetTick_(rowVals[PENDING_COL_.MOD_NOTE]) : '') || opts.defaultModerationNote || '');
 
@@ -2362,24 +2395,24 @@ function handleModerateSubmissionAction_(ctx) {
   if (sourceTab === 'Field_Surveys') {
     var fsSheet = ss.getSheetByName('Field_Surveys');
     if (!fsSheet) return createJsonResponse_(env, { ok: false, error: 'Field_Surveys tab not found.' });
-    var fsRow = fsSheet.getRange(rowNum, 1, 1, 18).getValues()[0];
-    var fsSurveyId = stripLeadingSheetTick_(fsRow[0]).trim();
+    var fsRow = fsSheet.getRange(rowNum, 1, 1, FIELD_SURVEY_COL_.WIDTH).getValues()[0];
+    var fsSurveyId = stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.SURVEY_ID]).trim();
     if (payload.survey_id && fsSurveyId !== String(payload.survey_id).trim()) {
       return createJsonResponse_(env, { ok: false, conflict: true, error: 'Field_Surveys row shifted; refresh queue and retry.' });
     }
     if (decision === 'Approved') {
       var promoted = upsertApprovedPendingRow_(ss, env, {
-        hcad_num: payload.hcad_num || stripLeadingSheetTick_(fsRow[3]),
-        address: payload.address || stripLeadingSheetTick_(fsRow[4]),
-        historic_district: payload.historic_district || stripLeadingSheetTick_(fsRow[5]),
-        contributing: payload.contributing || stripLeadingSheetTick_(fsRow[8]),
-        original_hcad_year: payload.original_hcad_year || stripLeadingSheetTick_(fsRow[12]),
-        suggested_year_built: payload.suggested_year_built !== undefined ? payload.suggested_year_built : stripLeadingSheetTick_(fsRow[13]),
+        hcad_num: payload.hcad_num || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.HCAD]),
+        address: payload.address || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.ADDRESS]),
+        historic_district: payload.historic_district || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.DISTRICT]),
+        contributing: payload.contributing || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.CONTRIBUTING]),
+        original_hcad_year: payload.original_hcad_year || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.ORIG_HCAD_YEAR]),
+        suggested_year_built: payload.suggested_year_built !== undefined ? payload.suggested_year_built : stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.OBSERVED_YEAR]),
         suppress_only: payload.suppress_only,
         source_type: 'Preservation Houston Field Survey',
-        source_citation: payload.source_citation || ('[Promoted Survey ' + fsSurveyId + '] ' + stripLeadingSheetTick_(fsRow[15])),
-        source_url: payload.source_url || stripLeadingSheetTick_(fsRow[14]),
-        submitter_name: stripLeadingSheetTick_(fsRow[16]) || staffLabel,
+        source_citation: payload.source_citation || ('[Promoted Survey ' + fsSurveyId + '] ' + stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.FIELD_NOTES])),
+        source_url: payload.source_url || stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.PHOTO_URL]),
+        submitter_name: stripLeadingSheetTick_(fsRow[FIELD_SURVEY_COL_.SURVEYOR_NAME]) || staffLabel,
         building_name: payload.building_name || '',
         alt_names: payload.alt_names || '',
         bld_style: payload.bld_style || '',
@@ -2388,11 +2421,11 @@ function handleModerateSubmissionAction_(ctx) {
         moderation_note: payload.moderation_note || ('Promoted from Field_Surveys ' + fsSurveyId)
       }, staffLabel);
       if (!promoted.ok) return createJsonResponse_(env, promoted);
-      fsSheet.getRange(rowNum, 3, 1, 1).setValues([['Promoted to Override']]);
+      fsSheet.getRange(rowNum, FIELD_SURVEY_COL_.REVIEW_STATUS + 1, 1, 1).setValues([['Promoted to Override']]);
       return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: 'Promoted to Override', promotedOverride: promoted });
     }
     var mappedSurveySt = decision === 'Rejected' ? 'Dismissed' : (decision === 'Needs Info' ? 'Needs Follow-Up' : decision);
-    fsSheet.getRange(rowNum, 3, 1, 1).setValues([[mappedSurveySt]]);
+    fsSheet.getRange(rowNum, FIELD_SURVEY_COL_.REVIEW_STATUS + 1, 1, 1).setValues([[mappedSurveySt]]);
     return createJsonResponse_(env, { ok: true, sourceTab: 'Field_Surveys', status: mappedSurveySt, rowNumber: rowNum });
   }
 
@@ -2512,16 +2545,16 @@ function handleFieldSurveyIntake_(env, ss, payload) {
   }
   var writeSurveyRow = targetSurveyRow > 0 ? targetSurveyRow : (lastSurveyRow + 1);
   if (targetSurveyRow > 0) {
-    var revCell = surveySheet.getRange(targetSurveyRow, 3);
+    var revCell = surveySheet.getRange(targetSurveyRow, FIELD_SURVEY_COL_.REVIEW_STATUS + 1);
     var existingReview = (typeof revCell.getFormula === 'function' && revCell.getFormula()) ? '' : String((typeof revCell.getDisplayValue === 'function' ? revCell.getDisplayValue() : revCell.getValue()) || '').trim();
     if (existingReview && existingReview !== 'Unreviewed' && allowedReviewStatuses[existingReview] === true) {
-      surveyRow[2] = existingReview;
+      surveyRow[FIELD_SURVEY_COL_.REVIEW_STATUS] = existingReview;
     }
   }
   surveySheet.getRange(writeSurveyRow, 1, 1, surveyRow.length).setValues([surveyRow]);
   return createJsonResponse_(env, {
     ok: true,
-    status: surveyRow[2],
+    status: surveyRow[FIELD_SURVEY_COL_.REVIEW_STATUS],
     routed_to: 'Field_Surveys',
     survey_id: safeSurveyId,
     upserted: targetSurveyRow > 0
@@ -2529,55 +2562,26 @@ function handleFieldSurveyIntake_(env, ss, payload) {
 }
 
 function handlePublicCommunitySubmission_(env, ss, payload, rawSourceType) {
-  var rawGeomValPub = payload.geometry_geojson;
-  var geomPubStr = '';
-  if (rawGeomValPub && typeof rawGeomValPub === 'object') geomPubStr = JSON.stringify(rawGeomValPub);
-  else if (typeof rawGeomValPub === 'string' && rawGeomValPub.trim() !== '') geomPubStr = rawGeomValPub.trim();
-  if (geomPubStr.length > 49000) {
-    return createJsonResponse_(env, { ok: false, error: 'geometry_geojson exceeds Google Sheets 49,000-character limit.' });
+  var pubPayload = {};
+  for (var pk in payload) {
+    if (Object.prototype.hasOwnProperty.call(payload, pk)) pubPayload[pk] = payload[pk];
   }
-  var pubSheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
-  var pubNames = splitBuildingNamesServer_(payload.building_name, payload.alt_names);
-  var pubPrimary = pubNames.primaryName;
-  var pubAlt = pubNames.altNames;
-  var isNonYrPub = /(?:_FLAG|FIELD_SURVEY_OBSERVATION)$/i.test(rawSourceType);
-  var rawSugPub = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && String(payload.suggested_year_built).trim() !== ''
-    ? String(payload.suggested_year_built).trim()
-    : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
-  var parsedPubYr = (rawSugPub !== '' && isFinite(Number(rawSugPub))) ? Math.round(Number(rawSugPub)) : NaN;
-  var validPubYr = isFinite(parsedPubYr) && parsedPubYr >= MIN_STANDING_YEAR_ && parsedPubYr <= MAX_STANDING_YEAR_;
-  var hasPubCustomGeom = Boolean(geomPubStr) || String(payload.source_citation || '').indexOf('[GEOMETRY_GEOJSON:') !== -1;
-  var isVacPub = !isNonYrPub && isVacantSuppressPayload_(
-    payload,
-    rawSourceType,
-    rawSugPub,
-    parsedPubYr,
-    validPubYr,
-    hasPubCustomGeom,
-    false
-  );
-  var pubSheetYr = isNonYrPub ? '' : (isVacPub ? 0 : (validPubYr ? parsedPubYr : ''));
+  pubPayload.source_type = rawSourceType;
+  delete pubPayload.moderation_note;
   var rawPubHcad = stripLeadingSheetTick_(payload.hcad_num || '').trim();
-  var pubColsAtoR = [
-    'Pending',
-    /^\d{13}$/.test(rawPubHcad) ? (SQUOTE_ + rawPubHcad) : sanitizeSheetFormulaPrefix_(rawPubHcad),
-    sanitizeSheetFormulaPrefix_(payload.address || ''),
-    pubSheetYr,
-    Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '',
-    sanitizeSheetFormulaPrefix_(payload.historic_district || ''),
-    sanitizeSheetFormulaPrefix_(payload.contributing || ''),
-    sanitizeSheetFormulaPrefix_(rawSourceType),
-    sanitizeSheetFormulaPrefix_(payload.source_citation || ''),
-    sanitizeSheetFormulaPrefix_(payload.source_url || ''),
-    '',
-    sanitizeSheetFormulaPrefix_(payload.submitter_name || payload.submitted_by || 'Community Member'),
-    new Date().toISOString().slice(0, 10),
-    'Community submission via Houston Building Atlas',
-    sanitizeSheetFormulaPrefix_(pubPrimary),
-    sanitizeSheetFormulaPrefix_(pubAlt),
-    sanitizeSheetFormulaPrefix_(payload.bld_style || ''),
-    sanitizeSheetFormulaPrefix_(payload.architect || '')
-  ];
+  var mergedPub = mergeStandingPendingColumnsServer_({
+    targetHcad: rawPubHcad,
+    requestedDecision: 'Pending',
+    payload: pubPayload,
+    rowVals: null,
+    priorApprovedRow: null,
+    authLabel: '',
+    defaultSubmitter: 'Community Member',
+    defaultSourceType: rawSourceType,
+    defaultModerationNote: 'Community submission via Houston Building Atlas'
+  });
+  if (!mergedPub.ok) return createJsonResponse_(env, mergedPub);
+  var pubSheet = ss.getSheetByName('Pending_Submissions') || ss.insertSheet('Pending_Submissions');
   var colBPub = pubSheet.getRange('B:B').getValues();
   var lastPubRow = 1;
   for (var pr = colBPub.length - 1; pr >= 0; pr--) {
@@ -2586,7 +2590,7 @@ function handlePublicCommunitySubmission_(env, ss, payload, rawSourceType) {
       break;
     }
   }
-  writePendingRowPreservingFormulas_(pubSheet, lastPubRow + 1, pubColsAtoR, geomPubStr);
+  writePendingRowPreservingFormulas_(pubSheet, lastPubRow + 1, mergedPub.colsAtoR, mergedPub.geomGeoJsonStr);
   return createJsonResponse_(env, { ok: true, status: 'Pending', authorized: false });
 }
 
