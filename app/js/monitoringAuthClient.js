@@ -1477,8 +1477,85 @@ export function createParcelSyncCoordinator({
     };
   }
 
+  function syncPatchReplaceParcelId(patchObj, rootReplacePid) {
+    if (!patchObj) return;
+    if (rootReplacePid) {
+      patchObj.replace_parcel_id = rootReplacePid;
+    } else {
+      delete patchObj.replace_parcel_id;
+    }
+  }
+
+  function clampVacatedBaselineTs(targetPid, rootReplacePid, rawTs) {
+    const cleanTs = String(rawTs || "").trim();
+    if (!cleanTs) return "";
+    const guardPid = rootReplacePid || targetPid;
+    const guardFloor = guardPid ? recordsByParcelId.get(guardPid)?.vacatedFloorTs || "" : "";
+    return guardFloor && cleanTs <= guardFloor ? "" : cleanTs;
+  }
+
+  function resolveBatchReplaceLineage(
+    ownerPid,
+    targetPid,
+    prevBatch,
+    fallbackReplacePid = "",
+    fallbackSeq = 0
+  ) {
+    const prevRepPid = getBatchReplaceParcelId(prevBatch);
+    const validPrevRepPid =
+      prevRepPid &&
+      !isReplacePidSuperseded(prevBatch, ownerPid, prevRepPid) &&
+      !hasNewerRedirectedPath(prevRepPid, targetPid, prevBatch?.replaceCausalSeq || 0)
+        ? prevRepPid
+        : "";
+    const prevRepSuperseded = Boolean(prevBatch && prevRepPid && !validPrevRepPid);
+    const cleanFallback = String(fallbackReplacePid || "").trim();
+    const effectiveFallback =
+      prevBatch?.bouncedFromPid && cleanFallback === prevBatch.bouncedFromPid ? "" : cleanFallback;
+    const candidateOriginPid =
+      validPrevRepPid ||
+      (prevBatch && !prevRepPid && ownerPid !== targetPid ? prevBatch.originPid || ownerPid : "") ||
+      effectiveFallback ||
+      targetPid;
+    const rootReplacePid =
+      candidateOriginPid && candidateOriginPid !== targetPid ? candidateOriginPid : "";
+    const bouncedFromPid =
+      ownerPid !== targetPid && !rootReplacePid
+        ? ownerPid
+        : !rootReplacePid
+        ? prevBatch?.bouncedFromPid || ""
+        : "";
+    if (!rootReplacePid) {
+      return {
+        originPid: targetPid,
+        bouncedFromPid,
+        rootReplacePid: "",
+        replaceCausalSeq: 0,
+        prevRepSuperseded,
+      };
+    }
+    const inheritedSeq =
+      prevBatch && validPrevRepPid === rootReplacePid ? prevBatch.replaceCausalSeq || 0 : 0;
+    const liveEdgeSeq = promotionPathReaches(rootReplacePid, targetPid)
+      ? promotedEdgeBySourcePid.get(rootReplacePid)?.seq || 0
+      : 0;
+    return {
+      originPid: rootReplacePid,
+      bouncedFromPid: "",
+      rootReplacePid,
+      replaceCausalSeq: Math.max(inheritedSeq, liveEdgeSeq) || fallbackSeq,
+      prevRepSuperseded,
+    };
+  }
+
   function restampPendingBatch(targetPid, pendingBatch) {
     if (!pendingBatch) return;
+    if (pendingBatch.rootReplacePid && promotionPathReaches(pendingBatch.rootReplacePid, targetPid)) {
+      const liveSeq = promotedEdgeBySourcePid.get(pendingBatch.rootReplacePid)?.seq || 0;
+      if (liveSeq > (pendingBatch.replaceCausalSeq || 0)) {
+        pendingBatch.replaceCausalSeq = liveSeq;
+      }
+    }
     Object.assign(
       pendingBatch,
       captureBatchLineageStamp(targetPid, pendingBatch.batchToken, {
@@ -1861,31 +1938,43 @@ export function createParcelSyncCoordinator({
     ) {
       targetRec.vacatedFloorTs = cleanVacatingTs;
     }
-    if (keepIncomingProvisional && targetRec.serverTs !== null) {
-      return;
-    }
-    targetRec.serverTs = "";
+    let hasStandaloneBatchOnTarget = Boolean(
+      targetRec.pendingBatch && !getBatchReplaceParcelId(targetRec.pendingBatch)
+    );
     if (targetRec.pendingBatch && !getBatchReplaceParcelId(targetRec.pendingBatch)) {
       targetRec.pendingBatch.baselineExpectedTs = "";
     }
     for (const t of activeBatchTickets) {
       if (t.pid === targetPid && t.batch && !getBatchReplaceParcelId(t.batch)) {
+        hasStandaloneBatchOnTarget = true;
         t.batch.baselineExpectedTs = "";
       }
     }
+    if (keepIncomingProvisional && !hasStandaloneBatchOnTarget && targetRec.serverTs !== null) {
+      return;
+    }
+    targetRec.serverTs = "";
   }
 
   function reconcileIdleRecordTimestamps() {
     for (const [recPid, candRec] of recordsByParcelId.entries()) {
+      const liveOutEdge = promotedEdgeBySourcePid.get(recPid);
+      const hasCommittedOutEdge = Boolean(
+        liveOutEdge && isEdgeCommitted(recPid, liveOutEdge.targetPid)
+      );
       if (
-        promotedEdgeBySourcePid.has(recPid) ||
+        (liveOutEdge && !hasCommittedOutEdge) ||
         hasIncomingPromotedEdge(recPid) ||
         hasPendingOrInFlight(recPid)
       ) {
         continue;
       }
       if (candRec.confirmedServerTs === null) {
-        clearRecordServerTs(recPid, { clearConfirmed: false, clearVacatedFloor: false });
+        if (hasCommittedOutEdge) {
+          candRec.serverTs = "";
+        } else {
+          clearRecordServerTs(recPid, { clearConfirmed: false, clearVacatedFloor: false });
+        }
       } else {
         advanceRecordServerTs(recPid, candRec.confirmedServerTs, {
           force: true,
@@ -2035,6 +2124,52 @@ export function createParcelSyncCoordinator({
     return rec.serverTs ?? "";
   }
 
+  function scrubRedirectedPendingBatches(fromPid, toPid) {
+    // Scrub superseded `fromPid` lineage/replace references from unsent pending batches on other
+    // roots (including when `fromPid` briefly detached via `enqueue(fromPid)` before retargeting),
+    // and release their ownership tokens on upstream edges reaching `fromPid`.
+    const redirectedRoot = resolveLatestTargetPid(toPid) || toPid;
+    let scrubbedAny = false;
+    for (const [candPid, candRec] of recordsByParcelId.entries()) {
+      if (candPid === toPid || !candRec.pendingBatch) continue;
+      if ((resolveLatestTargetPid(candPid) || candPid) === redirectedRoot) continue;
+      const candRepPid = getBatchReplaceParcelId(candRec.pendingBatch);
+      const touchesFrom = Boolean(candRec.pendingBatch.touchedPids?.has(fromPid));
+      const repRedirected = Boolean(candRepPid && promotionPathReaches(candRepPid, fromPid));
+      if (!touchesFrom && !repRedirected) continue;
+      scrubbedAny = true;
+      if (candRec.pendingBatch.batchToken) {
+        for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
+          if (
+            promotionPathReaches(srcPid, fromPid) &&
+            edge.ownerTokens.delete(candRec.pendingBatch.batchToken) &&
+            edge.ownerTokens.size === 0 &&
+            !isEdgeCommitted(srcPid, edge.targetPid)
+          ) {
+            edge.ownerTokens.add(UNCLAIMED_EDGE);
+          }
+        }
+      }
+      if (repRedirected) {
+        candRec.pendingBatch.originPid = candPid;
+        candRec.pendingBatch.bouncedFromPid = "";
+        candRec.pendingBatch.rootReplacePid = "";
+        candRec.pendingBatch.replaceCausalSeq = 0;
+        syncPatchReplaceParcelId(candRec.pendingBatch.patchPayload, "");
+        if (candRec.confirmedServerTs === null) {
+          candRec.pendingBatch.baselineExpectedTs = "";
+          candRec.serverTs = "";
+        }
+      }
+      restampPendingBatch(candPid, candRec.pendingBatch);
+    }
+    const toRec = recordsByParcelId.get(toPid);
+    if (scrubbedAny && toRec?.pendingBatch) {
+      restampPendingBatch(toPid, toRec.pendingBatch);
+    }
+    return scrubbedAny;
+  }
+
   function promoteParcelKey(fromParcelId, toParcelId, fallbackDecidedAt = "") {
     const fromPid = String(fromParcelId || "").trim();
     const toPid = String(toParcelId || "").trim();
@@ -2064,28 +2199,31 @@ export function createParcelSyncCoordinator({
       cancelTimer(fromRec.timerId);
       fromRec.timerId = null;
     }
+    let anyMergedRepSuperseded = false;
     if (fromRec.pendingBatch) {
       const priorFrom = fromRec.pendingBatch;
       fromRec.pendingBatch = null;
       const existingTo = toRec.pendingBatch;
-      const priorFromRepPid = getBatchReplaceParcelId(priorFrom);
-      const validPriorFromRepPid =
-        priorFromRepPid &&
-        !isReplacePidSuperseded(priorFrom, fromPid, priorFromRepPid) &&
-        !hasNewerRedirectedPath(priorFromRepPid, toPid, priorFrom.replaceCausalSeq || 0)
-          ? priorFromRepPid
-          : "";
-      const rootReplacePid = validPriorFromRepPid || fromPid;
-      const replaceCausalSeq =
-        validPriorFromRepPid && priorFrom.replaceCausalSeq ? priorFrom.replaceCausalSeq : edgeSeq;
+      const {
+        originPid,
+        bouncedFromPid,
+        rootReplacePid,
+        replaceCausalSeq,
+        prevRepSuperseded: fromRepSuperseded,
+      } = resolveBatchReplaceLineage(fromPid, toPid, priorFrom, fromPid, edgeSeq);
+      if (fromRepSuperseded) {
+        evictBatchUncommittedEdges(priorFrom);
+      }
+      const existingToRep = resolveBatchReplaceLineage(toPid, toPid, existingTo, "", 0);
+      if (existingToRep.prevRepSuperseded) {
+        evictBatchUncommittedEdges(existingTo);
+      }
+      anyMergedRepSuperseded = fromRepSuperseded || existingToRep.prevRepSuperseded;
       const nextPatch = {
         ...priorFrom.patchPayload,
         ...(existingTo ? existingTo.patchPayload : {}),
-        replace_parcel_id: rootReplacePid,
       };
-      if (nextPatch.replace_parcel_id === toPid) {
-        delete nextPatch.replace_parcel_id;
-      }
+      syncPatchReplaceParcelId(nextPatch, rootReplacePid);
       const batchToken = existingTo ? existingTo.batchToken : priorFrom.batchToken;
       if (existingTo && priorFrom.batchToken && priorFrom.batchToken !== batchToken) {
         for (const edge of promotedEdgeBySourcePid.values()) {
@@ -2095,11 +2233,23 @@ export function createParcelSyncCoordinator({
         }
       }
       const mergedPriorEdges = [
-        ...(Array.isArray(priorFrom.lineageEdges) ? priorFrom.lineageEdges : []),
-        ...(Array.isArray(existingTo?.lineageEdges) ? existingTo.lineageEdges : []),
+        ...(!fromRepSuperseded && Array.isArray(priorFrom.lineageEdges)
+          ? priorFrom.lineageEdges
+          : []),
+        ...(!existingToRep.prevRepSuperseded && Array.isArray(existingTo?.lineageEdges)
+          ? existingTo.lineageEdges
+          : []),
       ];
+      const rawMergedBaseline =
+        existingTo && !existingToRep.prevRepSuperseded
+          ? existingTo.baselineExpectedTs
+          : !fromRepSuperseded
+          ? priorFrom.baselineExpectedTs
+          : baseTs;
       toRec.pendingBatch = {
-        baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
+        baselineExpectedTs: clampVacatedBaselineTs(toPid, rootReplacePid, rawMergedBaseline),
+        originPid,
+        bouncedFromPid,
         rootReplacePid,
         replaceCausalSeq,
         sessionEpoch: existingTo ? existingTo.sessionEpoch : priorFrom.sessionEpoch,
@@ -2113,28 +2263,8 @@ export function createParcelSyncCoordinator({
     } else if (toRec.pendingBatch) {
       restampPendingBatch(toPid, toRec.pendingBatch);
     }
-    // Scrub superseded `fromPid` lineage/replace references from unsent pending batches on other
-    // roots (including when `fromPid` briefly detached via `enqueue(fromPid)` before retargeting).
-    const redirectedRoot = resolveLatestTargetPid(toPid) || toPid;
-    for (const [candPid, candRec] of recordsByParcelId.entries()) {
-      if (candPid === toPid || !candRec.pendingBatch) continue;
-      if ((resolveLatestTargetPid(candPid) || candPid) === redirectedRoot) continue;
-      const candRepPid = getBatchReplaceParcelId(candRec.pendingBatch);
-      const touchesFrom = Boolean(candRec.pendingBatch.touchedPids?.has(fromPid));
-      const repRedirected = Boolean(candRepPid && promotionPathReaches(candRepPid, fromPid));
-      if (!touchesFrom && !repRedirected) continue;
-      if (repRedirected) {
-        candRec.pendingBatch.rootReplacePid = "";
-        candRec.pendingBatch.replaceCausalSeq = 0;
-        delete candRec.pendingBatch.patchPayload.replace_parcel_id;
-        if (candRec.confirmedServerTs === null) {
-          candRec.pendingBatch.baselineExpectedTs = "";
-          candRec.serverTs = "";
-        }
-      }
-      restampPendingBatch(candPid, candRec.pendingBatch);
-    }
-    if (prevFromTarget && prevFromTarget !== toPid) {
+    const scrubbedAny = scrubRedirectedPendingBatches(fromPid, toPid);
+    if (scrubbedAny || anyMergedRepSuperseded || (prevFromTarget && prevFromTarget !== toPid)) {
       if (restoreMissingCommittedEdges(fromPid) > 0) {
         restampPendingBatch(toPid, toRec.pendingBatch);
       }
@@ -2150,45 +2280,43 @@ export function createParcelSyncCoordinator({
     const rec = getOrCreateRecord(pid);
     const prev = rec.pendingBatch;
     const mergedPatch = prev ? { ...prev.patchPayload, ...patchPayload } : { ...patchPayload };
-    const prevRepPid = getBatchReplaceParcelId(prev);
-    const validPrevRepPid =
-      prevRepPid &&
-      !isReplacePidSuperseded(prev, pid, prevRepPid) &&
-      !hasNewerRedirectedPath(prevRepPid, pid, prev?.replaceCausalSeq || 0)
-        ? prevRepPid
-        : "";
-    const rootReplacePid = validPrevRepPid || String(patchPayload.replace_parcel_id || "").trim();
+    const {
+      originPid,
+      bouncedFromPid,
+      rootReplacePid,
+      replaceCausalSeq,
+      prevRepSuperseded,
+    } = resolveBatchReplaceLineage(
+      pid,
+      pid,
+      prev,
+      patchPayload.replace_parcel_id,
+      _nextCausalSeq
+    );
     // Preserve the pre-debounce server lookup PK across chained <650ms CAMPUS:<SLUG> renames,
-    // while clearing any `replace_parcel_id` carried over from `prev.patchPayload` once superseded.
-    if (rootReplacePid) {
-      mergedPatch.replace_parcel_id = rootReplacePid;
-    } else {
-      delete mergedPatch.replace_parcel_id;
-    }
-    if (mergedPatch.replace_parcel_id === pid) {
-      delete mergedPatch.replace_parcel_id;
-    }
-    const replaceCausalSeq =
-      prev && getBatchReplaceParcelId(prev) === rootReplacePid && prev.replaceCausalSeq
-        ? prev.replaceCausalSeq
-        : rootReplacePid
-        ? promotedEdgeBySourcePid.get(rootReplacePid)?.seq || _nextCausalSeq
-        : 0;
+    // while clearing any `replace_parcel_id` carried over from `prev` once superseded or self-targeted.
+    syncPatchReplaceParcelId(mergedPatch, rootReplacePid);
     const detachedPrevOut = detachOutgoingPromotedEdge(pid);
     const batchSessionEpoch = _authSessionEpoch;
     const batchToken = prev ? prev.batchToken : Symbol("parcelBatch");
-    const rawBaselineTs = String(baselineExpectedTs || "").trim();
-    const cleanBaselineTs =
-      !rootReplacePid && rec.vacatedFloorTs && rawBaselineTs && rawBaselineTs <= rec.vacatedFloorTs
-        ? ""
-        : rawBaselineTs;
+    const cleanBaselineTs = clampVacatedBaselineTs(pid, rootReplacePid, baselineExpectedTs);
+    if (prevRepSuperseded) {
+      evictBatchUncommittedEdges(prev);
+      restoreMissingCommittedEdges(pid);
+      if (!rootReplacePid && rec.confirmedServerTs === null && !hasIncomingPromotedEdge(pid)) {
+        rec.serverTs = cleanBaselineTs;
+      }
+    }
     rec.pendingBatch = {
-      baselineExpectedTs: prev ? prev.baselineExpectedTs : cleanBaselineTs,
+      baselineExpectedTs:
+        prev && !prevRepSuperseded ? prev.baselineExpectedTs : cleanBaselineTs,
+      originPid,
+      bouncedFromPid,
       rootReplacePid,
       replaceCausalSeq,
       sessionEpoch: batchSessionEpoch,
       ...captureBatchLineageStamp(pid, batchToken, {
-        priorLineageEdges: prev?.lineageEdges,
+        priorLineageEdges: !prevRepSuperseded ? prev?.lineageEdges : null,
         rootReplacePid,
         patchReplacePid: mergedPatch.replace_parcel_id,
       }),
@@ -2286,6 +2414,9 @@ export function createParcelSyncCoordinator({
             omitReplacePid && batch.patchPayload?.replace_parcel_id
               ? (({ replace_parcel_id: _omitted, ...rest }) => rest)(batch.patchPayload)
               : batch.patchPayload;
+          const effectiveBatch = omitReplacePid
+            ? { ...batch, rootReplacePid: "", patchPayload: wirePatch, lineageEdges: [] }
+            : batch;
           const expectedTs = resolveBatchExpectedServerTs(pid, rec, batch);
           res = await sendDecisionRpc({
             parcelId: pid,
@@ -2302,15 +2433,18 @@ export function createParcelSyncCoordinator({
           if (res && res.ok && res.decision && res.decision.parcel_id) {
             const srvPid = String(res.decision.parcel_id).trim();
             const srvTs = String(res.decision.decided_at || "").trim();
+            if (omitReplacePid) {
+              evictBatchUncommittedEdges(batch);
+            }
             const lineageRoot = resolveLatestTargetPid(pid) || pid;
             commitLineageEdgesBeforeSeq(
               pid,
               srvPid,
               batch.causalSeq,
-              batch.lineageEdges,
+              effectiveBatch.lineageEdges,
               batch.batchToken
             );
-            reconcileCommittedBatchTimestamps(pid, srvPid, srvTs, lineageRoot, batch);
+            reconcileCommittedBatchTimestamps(pid, srvPid, srvTs, lineageRoot, effectiveBatch);
             const latestTargetPid = resolveLatestTargetPid(pid);
             const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
             const ownFollowUpQueued = hasNewerOverlappingBatch(
@@ -2326,7 +2460,7 @@ export function createParcelSyncCoordinator({
               });
             }
           } else if (res && res.conflict) {
-            reconcileConflictTimestamps(pid, batch, res.currentDecision);
+            reconcileConflictTimestamps(pid, effectiveBatch, res.currentDecision);
             settleCompletedBatch(false);
             if (typeof onConflict === "function") {
               onConflict(res);
