@@ -140,13 +140,13 @@ function resolveMonitoringStores(opts = {}) {
     hasExplicitStore,
     localStore:
       opts && "localStore" in opts
-        ? opts.localStore
+        ? opts.localStore ?? null
         : hasExplicitStore
         ? null
         : getSafeStorage("local"),
     sessionStore:
       opts && "sessionStore" in opts
-        ? opts.sessionStore
+        ? opts.sessionStore ?? null
         : hasExplicitStore
         ? null
         : getSafeStorage("session"),
@@ -187,10 +187,10 @@ export function canAccessStaffOnly(sessionOrOpts = null) {
  * Watchlist/Plat `localStorage` keys so signing out or switching `Staff -> Screener`
  * leaves zero private dossiers or `Staff_Only` notes on disk.
  */
-export function purgePrivateMonitoringStorage({
-  preserveEmail = "",
-  localStore = getSafeStorage("local"),
-} = {}) {
+export function purgePrivateMonitoringStorage(opts = {}) {
+  const preserveEmail = opts?.preserveEmail || "";
+  const localStore =
+    opts && "localStore" in opts ? opts.localStore ?? null : getSafeStorage("local");
   if (!localStore) return;
   const keepCacheKey = preserveEmail
     ? `${LS_AUTH_CACHE_PREFIX}${normalizeStaffEmail(preserveEmail)}`
@@ -218,22 +218,20 @@ export function purgePrivateMonitoringStorage({
 }
 
 export function ensureCleanUnauthenticatedStorageOnBoot(opts = {}) {
-  const sess = readActiveMonitoringSession(opts);
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
+  const sess = readActiveMonitoringSession({ localStore, sessionStore });
   if (!sess) {
-    purgePrivateMonitoringStorage(opts);
+    purgePrivateMonitoringStorage({ localStore });
     return null;
   }
   // Even when signed in, scrub pre-Phase-1 un-namespaced keys so all private state lives strictly in role-checked cache
-  purgePrivateMonitoringStorage({ ...opts, preserveEmail: sess.email });
+  purgePrivateMonitoringStorage({ localStore, preserveEmail: sess.email });
   return sess;
 }
 
-export function saveCachedMonitoringState(
-  email,
-  role,
-  rawState = {},
-  { localStore = getSafeStorage("local") } = {}
-) {
+export function saveCachedMonitoringState(email, role, rawState = {}, opts = {}) {
+  const localStore =
+    opts && "localStore" in opts ? opts.localStore ?? null : getSafeStorage("local");
   const normEmail = normalizeStaffEmail(email);
   if (!localStore || !normEmail) return false;
   const cleanRole = role === "screener" ? "screener" : "staff";
@@ -270,11 +268,9 @@ export function saveCachedMonitoringState(
   }
 }
 
-export function loadCachedMonitoringState(
-  email,
-  expectedRole,
-  { localStore = getSafeStorage("local") } = {}
-) {
+export function loadCachedMonitoringState(email, expectedRole, opts = {}) {
+  const localStore =
+    opts && "localStore" in opts ? opts.localStore ?? null : getSafeStorage("local");
   const normEmail = normalizeStaffEmail(email);
   if (!localStore || !normEmail) return null;
   try {
@@ -325,7 +321,9 @@ export function signOutMonitoringSession(opts = {}) {
     } catch (_e) {}
   }
   purgePrivateMonitoringStorage({ localStore });
-  clearLegacyMirrorOnSignOut(localStore);
+  if (localStore) {
+    clearLegacyMirrorOnSignOut(localStore);
+  }
   clearPendingAuthRetries();
   broadcastAuthEvent("sign_out", { role: "public", email: "" }, localStore);
 }
@@ -410,7 +408,9 @@ export async function verifyAndSignInMonitoring(opts = {}) {
   if (switchedAccountOrRole) {
     clearPendingAuthRetries();
     purgePrivateMonitoringStorage({ localStore });
-    clearLegacyMirrorOnSignOut(localStore);
+    if (localStore) {
+      clearLegacyMirrorOnSignOut(localStore);
+    }
   } else {
     if (!prevSession) {
       clearPendingAuthRetries();
@@ -481,7 +481,12 @@ function isRetryOwnedBySession(item, activeSession) {
 }
 
 export function clearPendingAuthRetries() {
-  _pendingAuthRetryQueue.length = 0;
+  const discarded = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
+  for (const item of discarded) {
+    if (typeof item.retryFn?.cancelQueuedRetry === "function") {
+      item.retryFn.cancelQueuedRetry();
+    }
+  }
 }
 
 export function queuePendingAuthRetry(retryFn, description = "", session = null) {
@@ -516,6 +521,9 @@ export async function replayPendingAuthRetries(opts = {}) {
   const results = [];
   for (const item of pending) {
     if (active && !isRetryOwnedBySession(item, active)) {
+      if (typeof item.retryFn?.cancelQueuedRetry === "function") {
+        item.retryFn.cancelQueuedRetry();
+      }
       continue;
     }
     try {
@@ -661,7 +669,10 @@ export function subscribeCrossTabAuthChanges(
       } else {
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
           if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], currentSession)) {
-            _pendingAuthRetryQueue.splice(i, 1);
+            const [removed] = _pendingAuthRetryQueue.splice(i, 1);
+            if (typeof removed?.retryFn?.cancelQueuedRetry === "function") {
+              removed.retryFn.cancelQueuedRetry();
+            }
           }
         }
       }
@@ -682,10 +693,10 @@ export function subscribeCrossTabAuthChanges(
   };
 }
 
-export function resolveConfiguredGoogleClientId({
-  explicitClientId = "",
-  localStore = getSafeStorage("local"),
-} = {}) {
+export function resolveConfiguredGoogleClientId(opts = {}) {
+  const explicitClientId = opts?.explicitClientId || "";
+  const localStore =
+    opts && "localStore" in opts ? opts.localStore ?? null : getSafeStorage("local");
   if (explicitClientId && String(explicitClientId).trim()) {
     return String(explicitClientId).trim();
   }
@@ -769,6 +780,8 @@ export function createParcelSyncCoordinator({
 } = {}) {
   const recordsByParcelId = new Map();
   const promotedTargetBySourcePid = new Map();
+  const activeBatchTickets = new Set();
+  let nextBatchSeq = 1;
   let generation = 0;
 
   function getOrCreateRecord(pid) {
@@ -778,8 +791,6 @@ export function createParcelSyncCoordinator({
         hasServerTs: false,
         serverTs: "",
         pendingBatch: null,
-        inFlightPromise: null,
-        queuedRetryCount: 0,
         timerId: null,
       };
       recordsByParcelId.set(pid, rec);
@@ -801,22 +812,34 @@ export function createParcelSyncCoordinator({
     return resolveLatestTargetPid(parcelId);
   }
 
-  function hasOwnActive(pid) {
-    const rec = recordsByParcelId.get(pid);
-    if (!rec) return false;
-    return Boolean(rec.pendingBatch || rec.inFlightPromise || rec.queuedRetryCount > 0);
+  function hasActiveTicket(pid) {
+    for (const t of activeBatchTickets) {
+      if (t.pid === pid) return true;
+    }
+    return false;
   }
 
-  function getBlockingInFlightPromise(pid) {
-    const ownRec = recordsByParcelId.get(pid);
-    if (ownRec && ownRec.inFlightPromise) return ownRec.inFlightPromise;
-    for (const srcPid of promotedTargetBySourcePid.keys()) {
-      if (resolveLatestTargetPid(srcPid) === pid) {
-        const srcRec = recordsByParcelId.get(srcPid);
-        if (srcRec && srcRec.inFlightPromise) return srcRec.inFlightPromise;
+  function hasOwnActive(pid) {
+    const rec = recordsByParcelId.get(pid);
+    return Boolean((rec && rec.pendingBatch) || hasActiveTicket(pid));
+  }
+
+  function getBlockingTicketPromise(pid, maxSeq = Infinity) {
+    for (const t of activeBatchTickets) {
+      if (t.seq < maxSeq && (t.pid === pid || resolveLatestTargetPid(t.pid) === pid)) {
+        return t.promise;
       }
     }
     return null;
+  }
+
+  function hasNewerActiveTicket(pid, minSeq) {
+    for (const t of activeBatchTickets) {
+      if (t.seq > minSeq && (t.pid === pid || resolveLatestTargetPid(t.pid) === pid)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function clearAll() {
@@ -825,6 +848,11 @@ export function createParcelSyncCoordinator({
       if (rec.timerId !== null) {
         cancelTimer(rec.timerId);
       }
+    }
+    const openTickets = Array.from(activeBatchTickets);
+    activeBatchTickets.clear();
+    for (const t of openTickets) {
+      t.resolve();
     }
     recordsByParcelId.clear();
     promotedTargetBySourcePid.clear();
@@ -948,43 +976,46 @@ export function createParcelSyncCoordinator({
     rec.timerId = scheduleTimer(async () => {
       if (capturedGen !== generation) return;
       rec.timerId = null;
-      for (
-        let blocking = getBlockingInFlightPromise(pid);
-        blocking;
-        blocking = getBlockingInFlightPromise(pid)
-      ) {
-        try {
-          await blocking;
-        } catch (_e) {}
-        if (capturedGen !== generation) return;
-      }
       const batch = rec.pendingBatch;
       if (!batch) return;
-      let countedAsQueued = false;
+      // Atomically transition pid from pendingBatch -> activeBatchTickets with zero microtask gap
+      rec.pendingBatch = null;
+      let settleBatchTicket;
+      const batchTicket = {
+        seq: nextBatchSeq++,
+        pid,
+        promise: new Promise((resolve) => {
+          settleBatchTicket = resolve;
+        }),
+        resolve: () => settleBatchTicket(),
+      };
+      activeBatchTickets.add(batchTicket);
+      const finishBatchTicket = () => {
+        if (activeBatchTickets.delete(batchTicket)) {
+          batchTicket.resolve();
+        }
+      };
+      let retryCancelled = false;
 
       const sendRpc = async () => {
-        if (capturedGen !== generation) {
+        if (capturedGen !== generation || retryCancelled) {
+          finishBatchTicket();
           return { ok: false, cancelled: true };
         }
         for (
-          let blocking = getBlockingInFlightPromise(pid);
+          let blocking = getBlockingTicketPromise(pid, batchTicket.seq);
           blocking;
-          blocking = getBlockingInFlightPromise(pid)
+          blocking = getBlockingTicketPromise(pid, batchTicket.seq)
         ) {
           try {
             await blocking;
           } catch (_e) {}
-          if (capturedGen !== generation) {
+          if (capturedGen !== generation || retryCancelled) {
+            finishBatchTicket();
             return { ok: false, cancelled: true };
           }
         }
-        const wasQueuedOnEntry = countedAsQueued;
         const expectedTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
-        let settleInFlight;
-        const inFlightToken = new Promise((resolve) => {
-          settleInFlight = resolve;
-        });
-        rec.inFlightPromise = inFlightToken;
         let res;
         try {
           res = await sendDecisionRpc({
@@ -993,17 +1024,9 @@ export function createParcelSyncCoordinator({
             patch: batch.patchPayload,
             retryFn: sendRpc,
           });
-          if (capturedGen !== generation) return res;
+          if (capturedGen !== generation || retryCancelled) return res;
           if (res && res.queuedForRetry) {
-            if (!wasQueuedOnEntry) {
-              countedAsQueued = true;
-              rec.queuedRetryCount += 1;
-            }
             return res;
-          }
-          if (wasQueuedOnEntry) {
-            countedAsQueued = false;
-            rec.queuedRetryCount = Math.max(0, rec.queuedRetryCount - 1);
           }
           if (res && res.ok && res.decision && res.decision.parcel_id) {
             const srvPid = String(res.decision.parcel_id).trim();
@@ -1023,7 +1046,9 @@ export function createParcelSyncCoordinator({
             }
             const latestTargetPid = resolveLatestTargetPid(pid);
             const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
-            const ownFollowUpQueued = Boolean(rec.pendingBatch || rec.queuedRetryCount > 0);
+            const ownFollowUpQueued = Boolean(
+              rec.pendingBatch || hasNewerActiveTicket(pid, batchTicket.seq)
+            );
             if (typeof onSuccess === "function") {
               onSuccess(res, {
                 hasNewerPendingEdit: isSuperseded || ownFollowUpQueued,
@@ -1044,22 +1069,17 @@ export function createParcelSyncCoordinator({
           }
           return res;
         } finally {
-          if (wasQueuedOnEntry && countedAsQueued && capturedGen === generation && !(res && res.queuedForRetry)) {
-            countedAsQueued = false;
-            rec.queuedRetryCount = Math.max(0, rec.queuedRetryCount - 1);
+          if (!(res && res.queuedForRetry && capturedGen === generation && !retryCancelled)) {
+            finishBatchTicket();
           }
-          for (const candRec of recordsByParcelId.values()) {
-            if (candRec.inFlightPromise === inFlightToken) {
-              candRec.inFlightPromise = null;
-            }
-          }
-          settleInFlight();
         }
       };
+      sendRpc.cancelQueuedRetry = () => {
+        retryCancelled = true;
+        finishBatchTicket();
+      };
 
-      // Atomically transition pid from pendingBatch -> inFlightPromise with zero microtask gap
-      rec.pendingBatch = null;
-      await sendRpc();
+      return await sendRpc();
     }, debounceMs);
   }
 

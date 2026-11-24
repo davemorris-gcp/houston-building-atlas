@@ -2844,8 +2844,8 @@ test("UT-P1-SyncCoord: createParcelSyncCoordinator coalesces debounced edits, pr
   coord.enqueue("0420090000088", { advocacy_status: "active_advocacy" }, coord.getServerTimestamp("0420090000088"));
   const [t4Id, t4Fn] = Array.from(scheduled.entries())[0];
   scheduled.delete(t4Id);
-  await t4Fn();
-  assert.equal(queuedRetries.length, 2);
+  const t4Promise = t4Fn();
+  assert.equal(queuedRetries.length, 1, "Follow-up timer on same parcel serializes behind queued retry ticket");
   assert.equal(coord.hasPendingOrInFlight("0420090000088"), true);
 
   coord.recordHydratedTimestamp("0420090000088", "2026-11-19T00:00:00.000Z", { fromCloud: true });
@@ -2855,10 +2855,11 @@ test("UT-P1-SyncCoord: createParcelSyncCoordinator coalesces debounced edits, pr
   midReplayProtected = false;
   const rA = await queuedRetries[0]();
   assert.equal(midReplayProtected, true, "hasPendingOrInFlight must stay true during in-flight replay");
-  assert.equal(coord.hasPendingOrInFlight("0420090000088"), true);
-  const rB = await queuedRetries[1]();
+  const rB = await t4Promise;
   assert.equal(rA.ok, true);
   assert.equal(rB.ok, true);
+  assert.equal(successCalls[2].meta.hasNewerPendingEdit, true);
+  assert.equal(successCalls[3].meta.hasNewerPendingEdit, false);
   assert.equal(coord.hasPendingOrInFlight("0420090000088"), false);
   assert.equal(successCalls.length, 4);
   assert.equal(rpcLog[rpcLog.length - 2].expectedUpdatedAt, "2026-11-23T12:00:02.000Z");
@@ -3161,112 +3162,361 @@ test("UT-P1-SyncCoord-ClearAllSignOutCancellation: clearAll cancels pending time
   assert.equal((await capturedRetry()).cancelled, true);
 });
 
-test("UT-P1-AuthClient-StorePrecedenceAndRetryIsolation: pullCloudMonitoringState honors sessionStore precedence and _pendingAuthRetryQueue isolates owners", async () => {
+test("UT-P1-SyncCoord-MultiParcelQueuedRetryFifoAndEviction: preserves FIFO order across multi-parcel replayPendingAuthRetries and releases tickets on retry eviction", async () => {
   clearPendingAuthRetries();
-  const validExpSec = Math.floor(Date.now() / 1000) + 3600;
-  const makeFakeJwt = (email) =>
-    [
-      Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url"),
-      Buffer.from(JSON.stringify({ email, exp: validExpSec })).toString("base64url"),
-      "sig",
-    ].join(".");
+  try {
+    const scheduled = new Map();
+    let nextTimerId = 1;
+    const dispatchedCalls = [];
+    const successCalls = [];
+    let deferredParcelAResolve = null;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const makeJwt = (email, expSec) =>
+      [
+        Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url"),
+        Buffer.from(JSON.stringify({ email, exp: expSec })).toString("base64url"),
+        "sig",
+      ].join(".");
 
-  // 1. pullCloudMonitoringState honors sessionStorage-only session AND tab-scoped screener precedence over localStorage staff
-  const screenerSessionStore = createMemoryStorage({
-    [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+    let currentSession = {
       authorized: true,
-      email: "screener@preservation.example.org",
-      role: "screener",
-      googleIdToken: makeFakeJwt("screener@preservation.example.org"),
-    }),
-  });
-  const staffLocalStore = createMemoryStorage({
-    [LS_ADMIN_SESSION_KEY]: JSON.stringify({
-      authorized: true,
-      email: "staff@preservation.example.org",
+      email: "staff.a@preservation.example.org",
       role: "staff",
-      googleIdToken: makeFakeJwt("staff@preservation.example.org"),
-    }),
-  });
-  const sentEmails = [];
-  const pullResp = await pullCloudMonitoringState({
-    webhookUrl: "https://example.org/exec",
-    localStore: staffLocalStore,
-    sessionStore: screenerSessionStore,
-    fetchImpl: async (_url, init) => {
-      const parsed = JSON.parse(init.body);
-      sentEmails.push(parsed.admin_email);
-      return {
-        ok: true,
-        json: async () => ({ ok: true, authorized: true, role: "screener", parcels: [], decisions: [] }),
-      };
-    },
-  });
-  assert.equal(pullResp.ok, true);
-  assert.equal(sentEmails[0], "screener@preservation.example.org", "sessionStore screener must take precedence over localStore staff");
+      googleIdToken: makeJwt("staff.a@preservation.example.org", nowSec - 120),
+    };
 
-  // 2. Cross-user / sessionStore / cross-tab isolation of _pendingAuthRetryQueue
-  let userARetryExecuted = false;
-  queuePendingAuthRetry(
-    async () => {
+    const coord = createParcelSyncCoordinator({
+      debounceMs: 650,
+      scheduleTimer: (fn) => {
+        const id = nextTimerId++;
+        scheduled.set(id, fn);
+        return id;
+      },
+      cancelTimer: (id) => scheduled.delete(id),
+      sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
+        await callMonitoringRpc({
+          webhookUrl: "https://example.org/exec",
+          action: "upsert_parcel_decision",
+          body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
+          session: currentSession,
+          retryFn,
+          fetchImpl: async (_url, init) => {
+            const parsed = JSON.parse(init.body);
+            dispatchedCalls.push(parsed);
+            if (parsed.parcel_id === "0420010000001") {
+              const payload = await new Promise((resolve) => {
+                deferredParcelAResolve = resolve;
+              });
+              return { ok: true, json: async () => payload };
+            }
+            const nextTs = `2026-11-23T17:00:0${dispatchedCalls.length}.000Z`;
+            return {
+              ok: true,
+              json: async () => ({
+                ok: true,
+                parcel: { parcel_id: parsed.parcel_id },
+                decision: { parcel_id: parsed.parcel_id, decided_at: nextTs },
+              }),
+            };
+          },
+        }),
+      onSuccess: (resp, meta) => successCalls.push({ resp, meta }),
+    });
+
+    // 1. Both Parcel A and Parcel B expire, queuing [retry_A1 (seq=1), retry_B1 (seq=2)]
+    coord.enqueue("0420010000001", { screening_notes: "A1" }, "2026-11-23T16:50:00.000Z");
+    const [a1Id, a1Fn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(a1Id);
+    await a1Fn();
+
+    coord.enqueue("0420010000002", { screening_notes: "B1" }, "2026-11-23T16:55:00.000Z");
+    const [b1Id, b1Fn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(b1Id);
+    await b1Fn();
+    assert.equal(getPendingAuthRetryCount(), 2);
+    assert.equal(coord.hasPendingOrInFlight("0420010000002"), true);
+
+    // 2. Re-authenticate and begin replayPendingAuthRetries(); while retry_A1 is mid-flight,
+    // promote 0420010000002 -> CAMPUS:DUPLEX_LOTS and fire its debounce timer (seq=3)!
+    currentSession = {
+      authorized: true,
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      googleIdToken: makeJwt("staff.a@preservation.example.org", nowSec + 3600),
+    };
+    const replayPromise = replayPendingAuthRetries({ session: currentSession });
+    assert.equal(dispatchedCalls.length, 1);
+    assert.equal(dispatchedCalls[0].parcel_id, "0420010000001");
+
+    const baseCampusTs = coord.promoteParcelKey(
+      "0420010000002",
+      "CAMPUS:DUPLEX_LOTS",
+      "2026-11-23T16:55:00.000Z"
+    );
+    coord.enqueue(
+      "CAMPUS:DUPLEX_LOTS",
+      {
+        parcel_id: "CAMPUS:DUPLEX_LOTS",
+        replace_parcel_id: "0420010000002",
+        screening_notes: "B2 promoted",
+      },
+      baseCampusTs
+    );
+    const [b2Id, b2Fn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(b2Id);
+    const b2TimerPromise = b2Fn();
+    assert.equal(
+      dispatchedCalls.length,
+      1,
+      "Promoted CAMPUS edit (seq=3) must wait behind unreplayed retry_B1 (seq=2)"
+    );
+
+    deferredParcelAResolve({
+      ok: true,
+      parcel: { parcel_id: "0420010000001" },
+      decision: { parcel_id: "0420010000001", decided_at: "2026-11-23T17:00:01.000Z" },
+    });
+    await replayPromise;
+    await b2TimerPromise;
+
+    assert.deepEqual(
+      dispatchedCalls.map((c) => c.parcel_id),
+      ["0420010000001", "0420010000002", "CAMPUS:DUPLEX_LOTS"]
+    );
+    assert.equal(dispatchedCalls[1].expected_updated_at, "2026-11-23T16:55:00.000Z");
+    assert.equal(
+      dispatchedCalls[2].expected_updated_at,
+      "2026-11-23T17:00:02.000Z",
+      "CAMPUS:DUPLEX_LOTS must chain onto retry_B1 server timestamp"
+    );
+    const b1Success = successCalls.find((s) => s.resp.decision.parcel_id === "0420010000002");
+    const b2Success = successCalls.find((s) => s.resp.decision.parcel_id === "CAMPUS:DUPLEX_LOTS");
+    assert.equal(b1Success.meta.hasNewerPendingEdit, true);
+    assert.equal(b2Success.meta.hasNewerPendingEdit, false);
+    assert.equal(coord.hasPendingOrInFlight("0420010000002"), false);
+    assert.equal(coord.hasPendingOrInFlight("CAMPUS:DUPLEX_LOTS"), false);
+
+    // 3. Evicting a queued retry without replaying it releases activeBatchTickets immediately
+    currentSession = {
+      authorized: true,
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      googleIdToken: makeJwt("staff.a@preservation.example.org", nowSec - 120),
+    };
+    coord.enqueue("0420010000009", { screening_notes: "Will be evicted" }, "");
+    const [evId, evFn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(evId);
+    await evFn();
+    assert.equal(coord.hasPendingOrInFlight("0420010000009"), true);
+    clearPendingAuthRetries();
+    assert.equal(
+      coord.hasPendingOrInFlight("0420010000009"),
+      false,
+      "Evicting queued retry must release coordinator batch ticket"
+    );
+  } finally {
+    clearPendingAuthRetries();
+  }
+});
+
+test("UT-P1-AuthClient-StorePrecedenceAndRetryIsolation: pullCloudMonitoringState honors sessionStore precedence, isolates explicit stores from ambient localStorage, and preserves surviving owner retries", async () => {
+  clearPendingAuthRetries();
+  const hadAmbientLocal = Object.prototype.hasOwnProperty.call(globalThis, "localStorage");
+  const prevAmbientLocal = globalThis.localStorage;
+  const ambientLocalStore = createMemoryStorage({
+    [`${LS_AUTH_CACHE_PREFIX}staff@preservation.example.org`]: '{"role":"staff"}',
+    "phpam:watchlist:v2": '{"legacy":true}',
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: ambientLocalStore,
+    configurable: true,
+    writable: true,
+  });
+
+  try {
+    const validExpSec = Math.floor(Date.now() / 1000) + 3600;
+    const makeFakeJwt = (email) =>
+      [
+        Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url"),
+        Buffer.from(JSON.stringify({ email, exp: validExpSec })).toString("base64url"),
+        "sig",
+      ].join(".");
+
+    // 1. Explicit sessionStore / { localStore: undefined, sessionStore } never mutates ambient globalThis.localStorage
+    const screenerSessionStore = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "screener@preservation.example.org",
+        role: "screener",
+        googleIdToken: makeFakeJwt("screener@preservation.example.org"),
+      }),
+    });
+    const bootSess = ensureCleanUnauthenticatedStorageOnBoot({ sessionStore: screenerSessionStore });
+    assert.equal(bootSess.role, "screener");
+    assert.equal(
+      ambientLocalStore.getItem(`${LS_AUTH_CACHE_PREFIX}staff@preservation.example.org`),
+      '{"role":"staff"}',
+      "ensureCleanUnauthenticatedStorageOnBoot({ sessionStore }) must not purge ambient localStorage"
+    );
+    assert.equal(ambientLocalStore.getItem("phpam:watchlist:v2"), '{"legacy":true}');
+
+    const unauthTabSessionStore = createMemoryStorage();
+    assert.equal(
+      ensureCleanUnauthenticatedStorageOnBoot({
+        localStore: undefined,
+        sessionStore: unauthTabSessionStore,
+      }),
+      null
+    );
+    signOutMonitoringSession({ localStore: undefined, sessionStore: unauthTabSessionStore });
+    assert.equal(
+      ambientLocalStore.getItem(`${LS_AUTH_CACHE_PREFIX}staff@preservation.example.org`),
+      '{"role":"staff"}',
+      "Explicit { localStore: undefined, sessionStore } must normalize localStore to null"
+    );
+
+    // 2. pullCloudMonitoringState honors sessionStorage-only session AND tab-scoped screener precedence over localStorage staff
+    const staffLocalStore = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "staff@preservation.example.org",
+        role: "staff",
+        googleIdToken: makeFakeJwt("staff@preservation.example.org"),
+      }),
+    });
+    const sentEmails = [];
+    const pullResp = await pullCloudMonitoringState({
+      webhookUrl: "https://example.org/exec",
+      localStore: staffLocalStore,
+      sessionStore: screenerSessionStore,
+      fetchImpl: async (_url, init) => {
+        const parsed = JSON.parse(init.body);
+        sentEmails.push(parsed.admin_email);
+        return {
+          ok: true,
+          json: async () => ({ ok: true, authorized: true, role: "screener", parcels: [], decisions: [] }),
+        };
+      },
+    });
+    assert.equal(pullResp.ok, true);
+    assert.equal(
+      sentEmails[0],
+      "screener@preservation.example.org",
+      "sessionStore screener must take precedence over localStore staff"
+    );
+
+    // 3. Cross-user / sessionStore / cross-tab isolation of _pendingAuthRetryQueue
+    let userARetryExecuted = false;
+    let userARetryCancelled = false;
+    const userARetryFn = async () => {
       userARetryExecuted = true;
       return { ok: true };
-    },
-    "upsert_watchlist_dossier",
-    { email: "staff.a@preservation.example.org", role: "staff", authorized: true }
-  );
-  assert.equal(getPendingAuthRetryCount(), 1);
-
-  const userBSessionStore = createMemoryStorage({
-    [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+    };
+    userARetryFn.cancelQueuedRetry = () => {
+      userARetryCancelled = true;
+    };
+    queuePendingAuthRetry(userARetryFn, "upsert_watchlist_dossier", {
+      email: "staff.a@preservation.example.org",
+      role: "staff",
       authorized: true,
+    });
+    assert.equal(getPendingAuthRetryCount(), 1);
+
+    const userBSessionStore = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "staff.b@preservation.example.org",
+        role: "staff",
+      }),
+    });
+    const replayRes = await replayPendingAuthRetries({ sessionStore: userBSessionStore });
+    assert.equal(replayRes.length, 0);
+    assert.equal(userARetryExecuted, false);
+    assert.equal(userARetryCancelled, true, "Owner-mismatch skip must invoke cancelQueuedRetry");
+    assert.equal(getPendingAuthRetryCount(), 0);
+
+    const executedOps = [];
+    let switchedOutCancelled = false;
+    const switchUserAFn = async () => {
+      executedOps.push("user_a_op");
+      return { ok: true };
+    };
+    switchUserAFn.cancelQueuedRetry = () => {
+      switchedOutCancelled = true;
+    };
+    queuePendingAuthRetry(switchUserAFn, "user_a_op", {
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      authorized: true,
+    });
+    queuePendingAuthRetry(
+      async () => {
+        executedOps.push("user_b_op");
+        return { ok: true };
+      },
+      "user_b_op",
+      {
+        email: "staff.b@preservation.example.org",
+        role: "staff",
+        authorized: true,
+      }
+    );
+    assert.equal(getPendingAuthRetryCount(), 2);
+
+    const userBLocalStore = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "staff.b@preservation.example.org",
+        role: "staff",
+      }),
+    });
+    let listener = null;
+    const unsubSwitch = subscribeCrossTabAuthChanges(
+      () => {},
+      {
+        addEventListener: (_type, fn) => {
+          listener = fn;
+        },
+        removeEventListener: () => {},
+      },
+      { localStore: userBLocalStore }
+    );
+    listener({ key: LS_ADMIN_SESSION_KEY });
+    unsubSwitch();
+    assert.equal(getPendingAuthRetryCount(), 1);
+    assert.equal(switchedOutCancelled, true);
+    await replayPendingAuthRetries({ localStore: userBLocalStore });
+    assert.deepEqual(executedOps, ["user_b_op"], "Only User B's retry must survive cross-tab switch");
+
+    queuePendingAuthRetry(async () => ({ ok: true }), "user_b_signout_op", {
       email: "staff.b@preservation.example.org",
       role: "staff",
-    }),
-  });
-  const replayRes = await replayPendingAuthRetries({ sessionStore: userBSessionStore });
-  assert.equal(replayRes.length, 0);
-  assert.equal(userARetryExecuted, false);
-  assert.equal(getPendingAuthRetryCount(), 0);
-
-  queuePendingAuthRetry(async () => ({ ok: true }), "user_a_op", {
-    email: "staff.a@preservation.example.org",
-    role: "staff",
-    authorized: true,
-  });
-  queuePendingAuthRetry(async () => ({ ok: true }), "user_b_op", {
-    email: "staff.b@preservation.example.org",
-    role: "staff",
-    authorized: true,
-  });
-  assert.equal(getPendingAuthRetryCount(), 2);
-  let listener = null;
-  const unsubSwitch = subscribeCrossTabAuthChanges(
-    () => {},
-    {
-      addEventListener: (_type, fn) => {
-        listener = fn;
+      authorized: true,
+    });
+    const emptyStore = createMemoryStorage();
+    const unsubOut = subscribeCrossTabAuthChanges(
+      () => {},
+      {
+        addEventListener: (_type, fn) => {
+          listener = fn;
+        },
+        removeEventListener: () => {},
       },
-      removeEventListener: () => {},
-    },
-    { localStore: userBSessionStore }
-  );
-  listener({ key: LS_ADMIN_SESSION_KEY });
-  unsubSwitch();
-  assert.equal(getPendingAuthRetryCount(), 1);
-
-  const emptyStore = createMemoryStorage();
-  const unsubOut = subscribeCrossTabAuthChanges(
-    () => {},
-    {
-      addEventListener: (_type, fn) => {
-        listener = fn;
-      },
-      removeEventListener: () => {},
-    },
-    { localStore: emptyStore }
-  );
-  listener({ key: LS_ADMIN_SESSION_KEY });
-  unsubOut();
-  assert.equal(getPendingAuthRetryCount(), 0);
+      { localStore: emptyStore }
+    );
+    listener({ key: LS_ADMIN_SESSION_KEY });
+    unsubOut();
+    assert.equal(getPendingAuthRetryCount(), 0);
+  } finally {
+    clearPendingAuthRetries();
+    if (hadAmbientLocal) {
+      Object.defineProperty(globalThis, "localStorage", {
+        value: prevAmbientLocal,
+        configurable: true,
+        writable: true,
+      });
+    } else {
+      delete globalThis.localStorage;
+    }
+  }
 });
