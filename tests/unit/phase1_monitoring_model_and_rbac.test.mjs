@@ -51,6 +51,7 @@ import {
   getPendingAuthRetryCount,
   isSessionTokenExpired,
   loadCachedMonitoringState,
+  pullCloudMonitoringState,
   purgePrivateMonitoringStorage,
   queuePendingAuthRetry,
   replayPendingAuthRetries,
@@ -91,6 +92,7 @@ import {
 } from "../../app/js/monitoringWorkbenchUi.js";
 
 const SHEET_COL_STATUS = 1;
+const SHEET_COL_HCAD = 2;
 const SHEET_COL_ADDRESS = 3;
 const SHEET_COL_YEAR_BUILT = 4;
 const SHEET_COL_ORIG_HCAD_YEAR = 5;
@@ -2552,7 +2554,11 @@ test("IT-P1-Moderation-ZeroSurveyAndInlineYearOverride: atomic Field_Surveys pro
     pendSheet
       .getDataRange()
       .getValues()
-      .findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000095" && r[0] === "Approved") + 1;
+      .findIndex(
+        (r) =>
+          String(r[SHEET_COL_HCAD - 1]).replace(/^'/, "") === "0621100000095" &&
+          r[SHEET_COL_STATUS - 1] === "Approved"
+      ) + 1;
   assert.equal(pendSheet.getRange(row915Idx, SHEET_COL_ALT_NAMES).getValue(), "Historic Cottage Alias");
   assert.equal(pendSheet.getRange(row915Idx, SHEET_COL_GEOMETRY_W).getValue(), polyGeo);
 
@@ -2595,7 +2601,11 @@ test("IT-P1-Moderation-ZeroSurveyAndInlineYearOverride: atomic Field_Surveys pro
     pendSheet
       .getDataRange()
       .getValues()
-      .findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000090" && r[0] === "Approved") + 1;
+      .findIndex(
+        (r) =>
+          String(r[SHEET_COL_HCAD - 1]).replace(/^'/, "") === "0621100000090" &&
+          r[SHEET_COL_STATUS - 1] === "Approved"
+      ) + 1;
   assert.equal(pendSheet.getRange(row916Idx, SHEET_COL_YEAR_BUILT).getValue(), 0);
   assert.equal(pendSheet.getRange(row916Idx, SHEET_COL_GEOMETRY_W).getValue(), "");
 
@@ -2668,7 +2678,11 @@ test("IT-P1-Moderation-ZeroSurveyAndInlineYearOverride: atomic Field_Surveys pro
     pendSheet
       .getDataRange()
       .getValues()
-      .findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000092" && r[0] === "Approved") + 1;
+      .findIndex(
+        (r) =>
+          String(r[SHEET_COL_HCAD - 1]).replace(/^'/, "") === "0621100000092" &&
+          r[SHEET_COL_STATUS - 1] === "Approved"
+      ) + 1;
   assert.equal(pendSheet.getRange(row920Idx, SHEET_COL_YEAR_BUILT).getValue(), 1928);
   assert.equal(pendSheet.getRange(row920Idx, SHEET_COL_GEOMETRY_W).getValue(), polyGeo);
 
@@ -2683,7 +2697,11 @@ test("IT-P1-Moderation-ZeroSurveyAndInlineYearOverride: atomic Field_Surveys pro
     pendSheet
       .getDataRange()
       .getValues()
-      .findIndex((r) => String(r[1]).replace(/^'/, "") === "0621100000091" && r[0] === "Approved") + 1;
+      .findIndex(
+        (r) =>
+          String(r[SHEET_COL_HCAD - 1]).replace(/^'/, "") === "0621100000091" &&
+          r[SHEET_COL_STATUS - 1] === "Approved"
+      ) + 1;
   assert.equal(pendSheet.getRange(row918Idx, SHEET_COL_YEAR_BUILT).getValue(), 0);
   assert.equal(pendSheet.getRange(row918Idx, SHEET_COL_GEOMETRY_W).getValue(), "");
 });
@@ -3018,19 +3036,51 @@ test("UT-P1-SyncCoord-ChainedCampusPromotion: preserves root replace_parcel_id a
     "Intermediate multi-hop campus record must not leak inFlightPromise"
   );
 
-  // Acyclic rename-back: CAMPUS:SECOND_CAMPUS -> CAMPUS:SECOND_LOT breaks prior outgoing edge
-  coord.promoteParcelKey("CAMPUS:SECOND_CAMPUS", "CAMPUS:SECOND_LOT", "");
-  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_CAMPUS"), "CAMPUS:SECOND_LOT");
-  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_LOT"), "CAMPUS:SECOND_LOT");
+  // Acyclic rename-back: CAMPUS:SECOND_CAMPUS -> CAMPUS:SECOND_LOT -> CAMPUS:SECOND_CAMPUS omits replace_parcel_id
+  coord.enqueue("CAMPUS:SECOND_CAMPUS", { parcel_id: "CAMPUS:SECOND_CAMPUS", screening_notes: "Start" }, "2026-11-23T16:10:00.000Z");
+  coord.promoteParcelKey("CAMPUS:SECOND_CAMPUS", "CAMPUS:SECOND_LOT", "2026-11-23T16:10:00.000Z");
+  coord.enqueue(
+    "CAMPUS:SECOND_LOT",
+    { parcel_id: "CAMPUS:SECOND_LOT", replace_parcel_id: "CAMPUS:SECOND_CAMPUS" },
+    "2026-11-23T16:10:00.000Z"
+  );
+  coord.promoteParcelKey("CAMPUS:SECOND_LOT", "CAMPUS:SECOND_CAMPUS", "2026-11-23T16:10:00.000Z");
+  coord.enqueue(
+    "CAMPUS:SECOND_CAMPUS",
+    { parcel_id: "CAMPUS:SECOND_CAMPUS", replace_parcel_id: "CAMPUS:SECOND_LOT", screening_notes: "Renamed back" },
+    "2026-11-23T16:10:00.000Z"
+  );
+  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_LOT"), "CAMPUS:SECOND_CAMPUS");
+  assert.equal(coord.getPromotedTarget("CAMPUS:SECOND_CAMPUS"), "CAMPUS:SECOND_CAMPUS");
+  const [rbId, rbFn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(rbId);
+  await rbFn();
+  const rbRpc = rpcLog[rpcLog.length - 1];
+  assert.equal(rbRpc.parcelId, "CAMPUS:SECOND_CAMPUS");
+  assert.equal("replace_parcel_id" in rbRpc.patch, false, "A -> B -> A rename-back within <650ms must omit replace_parcel_id");
 });
 
-test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates timers/retries, serializes in-flight replays, and isolates _pendingAuthRetryQueue across stores", async () => {
-  clearPendingAuthRetries();
+test("UT-P1-SyncCoord-ReplayAndAncestorSerialization: serializes concurrent timers behind both same-parcel and ancestor CAMPUS replays", async () => {
   const scheduled = new Map();
   let nextTimerId = 1;
-  let staleRetry = null;
-  let deferredReplayResolve = null;
-  const replayRpcLog = [];
+  const rpcLog = [];
+  let deferredAncestorReplay = null;
+  const responses = [
+    ({ retryFn }) => ({ retryFn, resp: { ok: false, tokenExpired: true, queuedForRetry: true } }),
+    () => ({
+      promise: new Promise((resolve) => {
+        deferredAncestorReplay = resolve;
+      }),
+    }),
+    ({ parcelId, patch }) => ({
+      resp: {
+        ok: true,
+        parcel: { parcel_id: parcelId, ...patch },
+        decision: { parcel_id: parcelId, ...patch, decided_at: "2026-11-23T16:20:00.000Z" },
+      },
+    }),
+  ];
+  let queuedAncestorRetry = null;
 
   const coord = createParcelSyncCoordinator({
     debounceMs: 650,
@@ -3041,47 +3091,62 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
     },
     cancelTimer: (id) => scheduled.delete(id),
     sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) => {
-      replayRpcLog.push({ parcelId, expectedUpdatedAt, patch });
-      if (!staleRetry) {
-        staleRetry = retryFn;
-        return { ok: false, tokenExpired: true, queuedForRetry: true };
-      }
-      if (!deferredReplayResolve) {
-        return await new Promise((resolve) => {
-          deferredReplayResolve = resolve;
-        });
-      }
-      return {
-        ok: true,
-        parcel: { parcel_id: parcelId, ...patch },
-        decision: { parcel_id: parcelId, ...patch, decided_at: "2026-11-23T16:20:00.000Z" },
-      };
+      rpcLog.push({ parcelId, expectedUpdatedAt, patch });
+      const step = responses.shift()({ parcelId, expectedUpdatedAt, patch, retryFn });
+      if (step.retryFn) queuedAncestorRetry = step.retryFn;
+      return step.promise ? await step.promise : step.resp;
     },
   });
 
-  // 1. Concurrent debounced edit firing while a queued retry is mid-flight waits for replay's server timestamp
-  coord.enqueue("0420090000050", { screening_notes: "Queued edit" }, "2026-11-23T16:00:00.000Z");
-  const [r1Id, r1Fn] = Array.from(scheduled.entries())[0];
-  scheduled.delete(r1Id);
-  await r1Fn();
-  const replayInFlight = staleRetry();
-  coord.enqueue("0420090000050", { screening_notes: "Concurrent edit during replay" }, "2026-11-23T16:00:00.000Z");
-  const [r2Id, r2Fn] = Array.from(scheduled.entries())[0];
-  scheduled.delete(r2Id);
-  const timerDuringReplay = r2Fn();
-  assert.equal(replayRpcLog.length, 2, "Concurrent timer must await in-flight replay before sending RPC #3");
-  deferredReplayResolve({
-    ok: true,
-    parcel: { parcel_id: "0420090000050" },
-    decision: { parcel_id: "0420090000050", decided_at: "2026-11-23T16:15:00.000Z" },
-  });
-  await replayInFlight;
-  await timerDuringReplay;
-  assert.equal(replayRpcLog.length, 3);
-  assert.equal(replayRpcLog[2].expectedUpdatedAt, "2026-11-23T16:15:00.000Z");
+  // Queue expired-token retry on 0420010000001, then promote 0420010000001 -> CAMPUS:PARISH
+  coord.enqueue("0420010000001", { screening_notes: "Expired single edit" }, "2026-11-23T16:00:00.000Z");
+  const [t1Id, t1Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t1Id);
+  await t1Fn();
+  const baseTs = coord.promoteParcelKey("0420010000001", "CAMPUS:PARISH", "2026-11-23T16:00:00.000Z");
+  coord.enqueue(
+    "CAMPUS:PARISH",
+    { parcel_id: "CAMPUS:PARISH", replace_parcel_id: "0420010000001", screening_notes: "Promoted campus" },
+    baseTs
+  );
 
-  // 2. clearAll() cancels pending timers and invalidates stale queued retries
-  staleRetry = null;
+  // Start replaying ancestor retry, then fire CAMPUS:PARISH debounce timer while replay is mid-flight!
+  const replayPromise = queuedAncestorRetry();
+  const [t2Id, t2Fn] = Array.from(scheduled.entries())[0];
+  scheduled.delete(t2Id);
+  const campusTimerPromise = t2Fn();
+  assert.equal(rpcLog.length, 2, "Promoted CAMPUS timer must await active ancestor replay before dispatching");
+  deferredAncestorReplay({
+    ok: true,
+    parcel: { parcel_id: "0420010000001" },
+    decision: { parcel_id: "0420010000001", decided_at: "2026-11-23T16:15:00.000Z" },
+  });
+  await replayPromise;
+  await campusTimerPromise;
+  assert.equal(rpcLog.length, 3);
+  assert.equal(rpcLog[2].parcelId, "CAMPUS:PARISH");
+  assert.equal(rpcLog[2].expectedUpdatedAt, "2026-11-23T16:15:00.000Z");
+});
+
+test("UT-P1-SyncCoord-ClearAllSignOutCancellation: clearAll cancels pending timers and invalidates pre-sign-out retry closures", async () => {
+  const scheduled = new Map();
+  let nextTimerId = 1;
+  let capturedRetry = null;
+
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: (fn) => {
+      const id = nextTimerId++;
+      scheduled.set(id, fn);
+      return id;
+    },
+    cancelTimer: (id) => scheduled.delete(id),
+    sendDecisionRpc: async ({ retryFn }) => {
+      capturedRetry = retryFn;
+      return { ok: false, tokenExpired: true, queuedForRetry: true };
+    },
+  });
+
   coord.enqueue("CAMPUS:PARISH_ASSEMBLAGE", { screening_notes: "Before sign-out" }, "2026-11-23T16:05:00.000Z");
   const [qId, qFn] = Array.from(scheduled.entries())[0];
   scheduled.delete(qId);
@@ -3093,10 +3158,54 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
   coord.clearAll();
   assert.equal(scheduled.size, 0);
   assert.equal(coord.hasPendingOrInFlight("CAMPUS:PARISH_ASSEMBLAGE"), false);
-  assert.equal((await staleRetry()).cancelled, true);
+  assert.equal((await capturedRetry()).cancelled, true);
+});
 
-  // 3. Cross-user / sessionStore / cross-tab isolation of module-global _pendingAuthRetryQueue
+test("UT-P1-AuthClient-StorePrecedenceAndRetryIsolation: pullCloudMonitoringState honors sessionStore precedence and _pendingAuthRetryQueue isolates owners", async () => {
   clearPendingAuthRetries();
+  const validExpSec = Math.floor(Date.now() / 1000) + 3600;
+  const makeFakeJwt = (email) =>
+    [
+      Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url"),
+      Buffer.from(JSON.stringify({ email, exp: validExpSec })).toString("base64url"),
+      "sig",
+    ].join(".");
+
+  // 1. pullCloudMonitoringState honors sessionStorage-only session AND tab-scoped screener precedence over localStorage staff
+  const screenerSessionStore = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+      authorized: true,
+      email: "screener@preservation.example.org",
+      role: "screener",
+      googleIdToken: makeFakeJwt("screener@preservation.example.org"),
+    }),
+  });
+  const staffLocalStore = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+      authorized: true,
+      email: "staff@preservation.example.org",
+      role: "staff",
+      googleIdToken: makeFakeJwt("staff@preservation.example.org"),
+    }),
+  });
+  const sentEmails = [];
+  const pullResp = await pullCloudMonitoringState({
+    webhookUrl: "https://example.org/exec",
+    localStore: staffLocalStore,
+    sessionStore: screenerSessionStore,
+    fetchImpl: async (_url, init) => {
+      const parsed = JSON.parse(init.body);
+      sentEmails.push(parsed.admin_email);
+      return {
+        ok: true,
+        json: async () => ({ ok: true, authorized: true, role: "screener", parcels: [], decisions: [] }),
+      };
+    },
+  });
+  assert.equal(pullResp.ok, true);
+  assert.equal(sentEmails[0], "screener@preservation.example.org", "sessionStore screener must take precedence over localStore staff");
+
+  // 2. Cross-user / sessionStore / cross-tab isolation of _pendingAuthRetryQueue
   let userARetryExecuted = false;
   queuePendingAuthRetry(
     async () => {
@@ -3108,7 +3217,6 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
   );
   assert.equal(getPendingAuthRetryCount(), 1);
 
-  // Replay under User B in sessionStore (with localStore = null) must NOT execute User A's queued closure
   const userBSessionStore = createMemoryStorage({
     [LS_ADMIN_SESSION_KEY]: JSON.stringify({
       authorized: true,
@@ -3116,12 +3224,11 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
       role: "staff",
     }),
   });
-  const replayRes = await replayPendingAuthRetries({ localStore: null, sessionStore: userBSessionStore });
+  const replayRes = await replayPendingAuthRetries({ sessionStore: userBSessionStore });
   assert.equal(replayRes.length, 0);
   assert.equal(userARetryExecuted, false);
   assert.equal(getPendingAuthRetryCount(), 0);
 
-  // Cross-tab storage account switch prunes User A's queued retry while keeping User B's retry
   queuePendingAuthRetry(async () => ({ ok: true }), "user_a_op", {
     email: "staff.a@preservation.example.org",
     role: "staff",
@@ -3142,13 +3249,12 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
       },
       removeEventListener: () => {},
     },
-    { localStore: userBSessionStore, sessionStore: null }
+    { localStore: userBSessionStore }
   );
   listener({ key: LS_ADMIN_SESSION_KEY });
   unsubSwitch();
   assert.equal(getPendingAuthRetryCount(), 1);
 
-  // Cross-tab sign-out clears remaining queued retry
   const emptyStore = createMemoryStorage();
   const unsubOut = subscribeCrossTabAuthChanges(
     () => {},
@@ -3158,7 +3264,7 @@ test("UT-P1-SyncCoord-ClearAllAndCrossTabRetryIsolation: clearAll invalidates ti
       },
       removeEventListener: () => {},
     },
-    { localStore: emptyStore, sessionStore: null }
+    { localStore: emptyStore }
   );
   listener({ key: LS_ADMIN_SESSION_KEY });
   unsubOut();

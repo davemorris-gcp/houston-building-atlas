@@ -132,22 +132,29 @@ export function normalizeMonitoringSession(raw) {
   };
 }
 
-export function readActiveMonitoringSession(opts = {}) {
+function resolveMonitoringStores(opts = {}) {
   const hasExplicitStore = Boolean(
     opts && ("localStore" in opts || "sessionStore" in opts)
   );
-  const localStore =
-    opts && "localStore" in opts
-      ? opts.localStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("local");
-  const sessionStore =
-    opts && "sessionStore" in opts
-      ? opts.sessionStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("session");
+  return {
+    hasExplicitStore,
+    localStore:
+      opts && "localStore" in opts
+        ? opts.localStore
+        : hasExplicitStore
+        ? null
+        : getSafeStorage("local"),
+    sessionStore:
+      opts && "sessionStore" in opts
+        ? opts.sessionStore
+        : hasExplicitStore
+        ? null
+        : getSafeStorage("session"),
+  };
+}
+
+export function readActiveMonitoringSession(opts = {}) {
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
   for (const store of [sessionStore, localStore]) {
     if (!store) continue;
     try {
@@ -305,10 +312,8 @@ function broadcastAuthEvent(eventType, meta = {}, localStore = getSafeStorage("l
   } catch (_e) {}
 }
 
-export function signOutMonitoringSession({
-  localStore = getSafeStorage("local"),
-  sessionStore = getSafeStorage("session"),
-} = {}) {
+export function signOutMonitoringSession(opts = {}) {
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
   if (sessionStore) {
     try {
       sessionStore.removeItem(LS_ADMIN_SESSION_KEY);
@@ -321,19 +326,19 @@ export function signOutMonitoringSession({
   }
   purgePrivateMonitoringStorage({ localStore });
   clearLegacyMirrorOnSignOut(localStore);
-  _pendingAuthRetryQueue.length = 0;
+  clearPendingAuthRetries();
   broadcastAuthEvent("sign_out", { role: "public", email: "" }, localStore);
 }
 
-export async function verifyAndSignInMonitoring({
-  webhookUrl = DEFAULT_SHEET_WEBHOOK_URL,
-  googleIdToken = "",
-  email = "",
-  passkey = "",
-  fetchImpl = null,
-  localStore = getSafeStorage("local"),
-  sessionStore = getSafeStorage("session"),
-} = {}) {
+export async function verifyAndSignInMonitoring(opts = {}) {
+  const {
+    webhookUrl = DEFAULT_SHEET_WEBHOOK_URL,
+    googleIdToken = "",
+    email = "",
+    passkey = "",
+    fetchImpl = null,
+  } = opts || {};
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
   const token = String(googleIdToken || "").trim();
   const cleanEmail = String(email || "").trim();
   const cleanPasskey = String(passkey || "").trim();
@@ -403,12 +408,12 @@ export async function verifyAndSignInMonitoring({
         prevSession.role !== resolvedRole)
   );
   if (switchedAccountOrRole) {
-    _pendingAuthRetryQueue.length = 0;
+    clearPendingAuthRetries();
     purgePrivateMonitoringStorage({ localStore });
     clearLegacyMirrorOnSignOut(localStore);
   } else {
     if (!prevSession) {
-      _pendingAuthRetryQueue.length = 0;
+      clearPendingAuthRetries();
     }
     purgePrivateMonitoringStorage({ preserveEmail: resolvedEmail, localStore });
   }
@@ -498,27 +503,13 @@ export function getPendingAuthRetryCount() {
 }
 
 export async function replayPendingAuthRetries(opts = {}) {
-  const hasExplicitStore = Boolean(
-    opts && ("localStore" in opts || "sessionStore" in opts)
-  );
-  const localStore =
-    opts && "localStore" in opts
-      ? opts.localStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("local");
-  const sessionStore =
-    opts && "sessionStore" in opts
-      ? opts.sessionStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("session");
+  const { hasExplicitStore, localStore, sessionStore } = resolveMonitoringStores(opts);
   const explicitSession = opts?.session || null;
   const hasSessionContext = Boolean(explicitSession || localStore || sessionStore || hasExplicitStore);
   const active =
     explicitSession || readActiveMonitoringSession({ localStore, sessionStore });
   if (hasSessionContext && (!active || !active.authorized)) {
-    _pendingAuthRetryQueue.length = 0;
+    clearPendingAuthRetries();
     return [];
   }
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
@@ -618,14 +609,16 @@ export async function callMonitoringRpc({
   }
 }
 
-export async function pullCloudMonitoringState({
-  webhookUrl = DEFAULT_SHEET_WEBHOOK_URL,
-  session = null,
-  fetchImpl = null,
-  localStore = getSafeStorage("local"),
-  onTokenExpired = null,
-} = {}) {
-  const activeSession = session || readActiveMonitoringSession({ localStore });
+export async function pullCloudMonitoringState(opts = {}) {
+  const {
+    webhookUrl = DEFAULT_SHEET_WEBHOOK_URL,
+    session = null,
+    fetchImpl = null,
+    onTokenExpired = null,
+  } = opts || {};
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
+  const activeSession =
+    session || readActiveMonitoringSession({ localStore, sessionStore });
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, signedOut: true };
   }
@@ -657,27 +650,13 @@ export function subscribeCrossTabAuthChanges(
   if (!win || typeof win.addEventListener !== "function") {
     return () => {};
   }
-  const hasExplicitStore = Boolean(
-    opts && ("localStore" in opts || "sessionStore" in opts)
-  );
-  const localStore =
-    opts && "localStore" in opts
-      ? opts.localStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("local");
-  const sessionStore =
-    opts && "sessionStore" in opts
-      ? opts.sessionStore
-      : hasExplicitStore
-      ? null
-      : getSafeStorage("session");
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
   const handler = (ev) => {
     if (!ev) return;
     if (ev.key === LS_ADMIN_SESSION_KEY || ev.key === LS_CROSS_TAB_BROADCAST_KEY || ev.key === null) {
       const currentSession = readActiveMonitoringSession({ localStore, sessionStore });
       if (!currentSession) {
-        _pendingAuthRetryQueue.length = 0;
+        clearPendingAuthRetries();
         purgePrivateMonitoringStorage({ localStore });
       } else {
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
@@ -828,6 +807,18 @@ export function createParcelSyncCoordinator({
     return Boolean(rec.pendingBatch || rec.inFlightPromise || rec.queuedRetryCount > 0);
   }
 
+  function getBlockingInFlightPromise(pid) {
+    const ownRec = recordsByParcelId.get(pid);
+    if (ownRec && ownRec.inFlightPromise) return ownRec.inFlightPromise;
+    for (const srcPid of promotedTargetBySourcePid.keys()) {
+      if (resolveLatestTargetPid(srcPid) === pid) {
+        const srcRec = recordsByParcelId.get(srcPid);
+        if (srcRec && srcRec.inFlightPromise) return srcRec.inFlightPromise;
+      }
+    }
+    return null;
+  }
+
   function clearAll() {
     generation += 1;
     for (const rec of recordsByParcelId.values()) {
@@ -909,7 +900,8 @@ export function createParcelSyncCoordinator({
       const priorFrom = fromRec.pendingBatch;
       fromRec.pendingBatch = null;
       const existingTo = toRec.pendingBatch;
-      const rootReplacePid = priorFrom.patchPayload?.replace_parcel_id || fromPid;
+      const rootReplacePid =
+        priorFrom.rootReplacePid || priorFrom.patchPayload?.replace_parcel_id || fromPid;
       const nextPatch = {
         ...priorFrom.patchPayload,
         ...(existingTo ? existingTo.patchPayload : {}),
@@ -920,11 +912,9 @@ export function createParcelSyncCoordinator({
       }
       toRec.pendingBatch = {
         baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
+        rootReplacePid,
         patchPayload: nextPatch,
       };
-    }
-    if (fromRec.inFlightPromise && !toRec.inFlightPromise) {
-      toRec.inFlightPromise = fromRec.inFlightPromise;
     }
     return toRec.serverTs;
   }
@@ -935,15 +925,19 @@ export function createParcelSyncCoordinator({
     const rec = getOrCreateRecord(pid);
     const prev = rec.pendingBatch;
     const mergedPatch = prev ? { ...prev.patchPayload, ...patchPayload } : { ...patchPayload };
+    const rootReplacePid = prev
+      ? prev.rootReplacePid || prev.patchPayload?.replace_parcel_id || ""
+      : String(patchPayload.replace_parcel_id || "").trim();
     // Preserve the pre-debounce server lookup PK across chained <650ms CAMPUS:<SLUG> renames.
-    if (prev?.patchPayload?.replace_parcel_id) {
-      mergedPatch.replace_parcel_id = prev.patchPayload.replace_parcel_id;
+    if (rootReplacePid) {
+      mergedPatch.replace_parcel_id = rootReplacePid;
     }
     if (mergedPatch.replace_parcel_id === pid) {
       delete mergedPatch.replace_parcel_id;
     }
     rec.pendingBatch = {
       baselineExpectedTs: prev ? prev.baselineExpectedTs : String(baselineExpectedTs || "").trim(),
+      rootReplacePid,
       patchPayload: mergedPatch,
     };
     if (rec.timerId !== null) {
@@ -954,9 +948,13 @@ export function createParcelSyncCoordinator({
     rec.timerId = scheduleTimer(async () => {
       if (capturedGen !== generation) return;
       rec.timerId = null;
-      while (rec.inFlightPromise) {
+      for (
+        let blocking = getBlockingInFlightPromise(pid);
+        blocking;
+        blocking = getBlockingInFlightPromise(pid)
+      ) {
         try {
-          await rec.inFlightPromise;
+          await blocking;
         } catch (_e) {}
         if (capturedGen !== generation) return;
       }
@@ -968,9 +966,13 @@ export function createParcelSyncCoordinator({
         if (capturedGen !== generation) {
           return { ok: false, cancelled: true };
         }
-        while (rec.inFlightPromise) {
+        for (
+          let blocking = getBlockingInFlightPromise(pid);
+          blocking;
+          blocking = getBlockingInFlightPromise(pid)
+        ) {
           try {
-            await rec.inFlightPromise;
+            await blocking;
           } catch (_e) {}
           if (capturedGen !== generation) {
             return { ok: false, cancelled: true };

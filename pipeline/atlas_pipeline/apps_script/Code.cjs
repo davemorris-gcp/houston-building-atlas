@@ -1243,7 +1243,9 @@ var PENDING_COL_ = {
   ALT_NAMES: 15,
   BLD_STYLE: 16,
   ARCHITECT: 17,
-  GEOMETRY_W: 22
+  ATO_R_WIDTH: 18,
+  GEOMETRY_W: 22,
+  WIDTH: 23
 };
 
 var FIELD_SURVEY_COL_ = {
@@ -1270,12 +1272,12 @@ var FIELD_SURVEY_COL_ = {
 
 function writePendingRowPreservingFormulas_(sheet, rowIdx, colsAtoR, colWGeom) {
   var row18 = [];
-  for (var i = 0; i < 18; i++) {
+  for (var i = 0; i < PENDING_COL_.ATO_R_WIDTH; i++) {
     row18.push(colsAtoR[i] !== undefined ? colsAtoR[i] : '');
   }
   // Write A:R (cols 1..18) and W (col 23) separately so S:V (cols 19..22) ARRAYFORMULAs are never touched!
-  sheet.getRange(rowIdx, 1, 1, 18).setValues([row18]);
-  sheet.getRange(rowIdx, 23, 1, 1).setValues([[colWGeom ? sanitizeSheetFormulaPrefix_(colWGeom) : '']]);
+  sheet.getRange(rowIdx, 1, 1, PENDING_COL_.ATO_R_WIDTH).setValues([row18]);
+  sheet.getRange(rowIdx, PENDING_COL_.GEOMETRY_W + 1, 1, 1).setValues([[colWGeom ? sanitizeSheetFormulaPrefix_(colWGeom) : '']]);
 }
 
 function openStaffOnlyWorkbookSafe_(env) {
@@ -1584,7 +1586,7 @@ function upsertApprovedPendingRow_(ss, env, payload, authLabel) {
   if (merged.effectiveStatus === 'Approved' && matchingApprovedRows.length) {
     targetRow = matchingApprovedRows[matchingApprovedRows.length - 1];
     for (var m = 0; m < matchingApprovedRows.length - 1; m++) {
-      sheet.getRange(matchingApprovedRows[m], 1, 1, 1).setValues([['Superseded']]);
+      sheet.getRange(matchingApprovedRows[m], PENDING_COL_.STATUS + 1, 1, 1).setValues([['Superseded']]);
     }
   }
   var writeRowIdx = targetRow > 0 ? targetRow : (lastRow + 1);
@@ -2431,7 +2433,7 @@ function handleModerateSubmissionAction_(ctx) {
 
   var pendSheet = ss.getSheetByName('Pending_Submissions');
   if (!pendSheet) return createJsonResponse_(env, { ok: false, error: 'Pending_Submissions tab not found.' });
-  var pRow = pendSheet.getRange(rowNum, 1, 1, 23).getValues()[0];
+  var pRow = pendSheet.getRange(rowNum, 1, 1, PENDING_COL_.WIDTH).getValues()[0];
   var existingHcad = stripLeadingSheetTick_(pRow[PENDING_COL_.HCAD]).trim();
   if (payload.expected_hcad_num) {
     if (normalizeHcadKeyServer_(existingHcad) !== normalizeHcadKeyServer_(payload.expected_hcad_num)) {
@@ -2470,7 +2472,7 @@ function handleModerateSubmissionAction_(ctx) {
 
   if (mergedMod.effectiveStatus === 'Approved') {
     for (var pa = 0; pa < priorApprovedIdxs.length; pa++) {
-      pendSheet.getRange(priorApprovedIdxs[pa], 1, 1, 1).setValues([['Superseded']]);
+      pendSheet.getRange(priorApprovedIdxs[pa], PENDING_COL_.STATUS + 1, 1, 1).setValues([['Superseded']]);
     }
   }
   writePendingRowPreservingFormulas_(pendSheet, rowNum, mergedMod.colsAtoR, mergedMod.geomGeoJsonStr);
