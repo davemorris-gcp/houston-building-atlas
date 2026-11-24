@@ -33,7 +33,10 @@ const _retryCausalSeq = new WeakMap();
 const _activeCoordinatorClearHooks = new Set();
 const _activeCrossTabSyncHooks = new Set();
 let _nextCausalSeq = 1;
+// Increments only on full retry-queue wipes (sign-out, clearPendingAuthRetries, account/role switch).
 let _authRetryClearGen = 0;
+// Increments on every _authRetryClearGen bump AND on cross-tab active identity/role transitions,
+// strictly dominating _authRetryClearGen so in-flight operations can guard against a single counter.
 let _authSessionEpoch = 0;
 let _gsiScriptPromise = null;
 
@@ -184,6 +187,11 @@ function readSessionFromStore(store) {
     }
   } catch (_e) {}
   return null;
+}
+
+function getSessionIdentityKey(session) {
+  if (!session || !session.authorized) return "";
+  return `${normalizeStaffEmail(session.email || "")}::${session.role || ""}`;
 }
 
 export function readActiveMonitoringSession(opts = {}) {
@@ -374,6 +382,9 @@ export async function verifyAndSignInMonitoring(opts = {}) {
   }
 
   const prevSession = readActiveMonitoringSession({ localStore, sessionStore });
+  const prevLocalIdentity = getSessionIdentityKey(readSessionFromStore(localStore));
+  const prevActiveIdentity = getSessionIdentityKey(prevSession);
+  const capturedSessionEpoch = _authSessionEpoch;
   const doFetch = fetchImpl || (typeof fetch === "function" ? fetch : null);
   const targetUrl = String(webhookUrl || "").trim();
 
@@ -409,6 +420,21 @@ export async function verifyAndSignInMonitoring(opts = {}) {
             "Access denied: Google account or passkey is not authorized.",
         };
       }
+      const liveLocalIdentity = getSessionIdentityKey(readSessionFromStore(localStore));
+      const liveActiveIdentity = getSessionIdentityKey(
+        readActiveMonitoringSession({ localStore, sessionStore })
+      );
+      if (
+        _authSessionEpoch !== capturedSessionEpoch ||
+        liveLocalIdentity !== prevLocalIdentity ||
+        liveActiveIdentity !== prevActiveIdentity
+      ) {
+        return {
+          ok: false,
+          cancelled: true,
+          error: "Authentication session changed while verification was in progress.",
+        };
+      }
       verifiedByWebhook = true;
       resolvedEmail = normalizeStaffEmail(verifyData.email || cleanEmail) || cleanEmail;
       resolvedRole = String(verifyData.role || "staff").toLowerCase() === "screener" ? "screener" : "staff";
@@ -425,10 +451,12 @@ export async function verifyAndSignInMonitoring(opts = {}) {
     }
   }
 
+  const effectivePrevSession =
+    readActiveMonitoringSession({ localStore, sessionStore }) || prevSession;
   const switchedAccountOrRole = Boolean(
-    prevSession &&
-      (normalizeStaffEmail(prevSession.email) !== normalizeStaffEmail(resolvedEmail) ||
-        prevSession.role !== resolvedRole)
+    effectivePrevSession &&
+      (normalizeStaffEmail(effectivePrevSession.email) !== normalizeStaffEmail(resolvedEmail) ||
+        effectivePrevSession.role !== resolvedRole)
   );
   if (switchedAccountOrRole) {
     clearPendingAuthRetries();
@@ -437,7 +465,7 @@ export async function verifyAndSignInMonitoring(opts = {}) {
       clearLegacyMirrorOnSignOut(localStore);
     }
   } else {
-    if (!prevSession) {
+    if (!effectivePrevSession) {
       clearPendingAuthRetries();
     }
     purgePrivateMonitoringStorage({ preserveEmail: resolvedEmail, localStore });
@@ -556,6 +584,7 @@ export function queuePendingAuthRetry(retryFn, description = "", session = null,
       description,
       causalSeq,
       clearGen: _authRetryClearGen,
+      sessionEpoch: _authSessionEpoch,
       ownerEmail: normalizeStaffEmail(owner?.email || ""),
       ownerRole: owner?.role || "",
       queuedAt: Date.now(),
@@ -582,40 +611,57 @@ export async function replayPendingAuthRetries(opts = {}) {
   const capturedSessionEpoch = _authSessionEpoch;
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
-  const isReplayInvalidated = () =>
-    _authRetryClearGen !== capturedClearGen || _authSessionEpoch !== capturedSessionEpoch;
+  const isReplayInvalidated = () => _authSessionEpoch !== capturedSessionEpoch;
   const abortInvalidatedReplay = (currentItem, nextIdx) => {
     const clearedAll = _authRetryClearGen !== capturedClearGen;
-    const latestActive = explicitSession
-      ? _authSessionEpoch === capturedSessionEpoch
-        ? explicitSession
-        : readActiveMonitoringSession({ localStore, sessionStore })
-      : readActiveMonitoringSession({ localStore, sessionStore });
+    const latestActive = readActiveMonitoringSession({ localStore, sessionStore });
     if (currentItem) {
       cancelQueuedRetryItem(currentItem);
-    }
-    for (let j = nextIdx; j < pending.length; j += 1) {
-      const rem = pending[j];
-      if (!clearedAll && latestActive && latestActive.authorized && isRetryOwnedBySession(rem, latestActive)) {
-        insertRetryOrdered(rem);
-      } else {
-        cancelQueuedRetryItem(rem);
-      }
     }
     for (let k = _pendingAuthRetryQueue.length - 1; k >= 0; k -= 1) {
       const cand = _pendingAuthRetryQueue[k];
       const rejectedByLiveSession = Boolean(
         latestActive && latestActive.authorized && !isRetryOwnedBySession(cand, latestActive)
       );
-      const matchesInvalidatedOwner = Boolean(active && isRetryOwnedBySession(cand, active));
+      const fromInvalidatedEpoch = Boolean(
+        cand.sessionEpoch <= capturedSessionEpoch &&
+          (!latestActive ||
+            !latestActive.authorized ||
+            !isRetryOwnedBySession(cand, latestActive) ||
+            (active && isRetryOwnedBySession(cand, active)))
+      );
+      const matchesInvalidatedWhileSignedOut = Boolean(
+        (!latestActive || !latestActive.authorized) &&
+          active &&
+          (cand.ownerEmail || cand.ownerRole) &&
+          isRetryOwnedBySession(cand, active)
+      );
       if (
         (clearedAll && cand.clearGen <= capturedClearGen) ||
         cand.retryFn === currentItem?.retryFn ||
+        fromInvalidatedEpoch ||
         rejectedByLiveSession ||
-        matchesInvalidatedOwner
+        matchesInvalidatedWhileSignedOut
       ) {
         const [stale] = _pendingAuthRetryQueue.splice(k, 1);
         cancelQueuedRetryItem(stale);
+      }
+    }
+    for (let j = nextIdx; j < pending.length; j += 1) {
+      const rem = pending[j];
+      const belongedToInvalidatedActive = Boolean(
+        active && isRetryOwnedBySession(rem, active)
+      );
+      if (
+        !clearedAll &&
+        !belongedToInvalidatedActive &&
+        latestActive &&
+        latestActive.authorized &&
+        isRetryOwnedBySession(rem, latestActive)
+      ) {
+        insertRetryOrdered(rem);
+      } else {
+        cancelQueuedRetryItem(rem);
       }
     }
   };
@@ -656,6 +702,37 @@ export async function replayPendingAuthRetries(opts = {}) {
     }
   }
   return results;
+}
+
+function captureInFlightSessionGuard(activeSession, explicitSession, opts, preResolvedLocalStore) {
+  const capturedEpoch = _authSessionEpoch;
+  const ownerIdentity = getSessionIdentityKey(activeSession);
+  const localStore =
+    preResolvedLocalStore !== undefined
+      ? preResolvedLocalStore
+      : resolveMonitoringStores(opts).localStore;
+  const effectiveAtStart = explicitSession ? readActiveMonitoringSession(opts) : activeSession;
+  const sessionBackedByStore =
+    !explicitSession || getSessionIdentityKey(effectiveAtStart) === ownerIdentity;
+  const backedByLocal =
+    sessionBackedByStore &&
+    getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity;
+  return () => {
+    if (_authSessionEpoch !== capturedEpoch) return false;
+    if (sessionBackedByStore) {
+      if (getSessionIdentityKey(readActiveMonitoringSession(opts)) !== ownerIdentity) {
+        return false;
+      }
+      if (
+        backedByLocal &&
+        getSessionIdentityKey(readSessionFromStore(localStore)) !== ownerIdentity
+      ) {
+        return false;
+      }
+      return true;
+    }
+    return Boolean(explicitSession && explicitSession.authorized);
+  };
 }
 
 /**
@@ -708,8 +785,7 @@ export async function callMonitoringRpc(opts = {}) {
     google_id_token: activeSession.googleIdToken || "",
   };
 
-  const capturedClearGen = _authRetryClearGen;
-  const capturedSessionEpoch = _authSessionEpoch;
+  const isStillOwned = captureInFlightSessionGuard(activeSession, session, opts);
   try {
     const res = await doFetch(targetUrl, {
       method: "POST",
@@ -725,25 +801,7 @@ export async function callMonitoringRpc(opts = {}) {
       data.authorized === false &&
       /expired|invalid.*token/i.test(String(data.error || ""))
     ) {
-      const latestSession = session
-        ? _authSessionEpoch === capturedSessionEpoch
-          ? session
-          : readActiveMonitoringSession(opts)
-        : readActiveMonitoringSession(opts);
-      const stillOwned = Boolean(
-        _authRetryClearGen === capturedClearGen &&
-          _authSessionEpoch === capturedSessionEpoch &&
-          latestSession &&
-          latestSession.authorized &&
-          isRetryOwnedBySession(
-            {
-              ownerEmail: normalizeStaffEmail(activeSession.email || ""),
-              ownerRole: activeSession.role || "",
-            },
-            latestSession
-          )
-      );
-      if (!stillOwned) {
+      if (!isStillOwned()) {
         return {
           ...data,
           ok: false,
@@ -778,12 +836,12 @@ export async function pullCloudMonitoringState(opts = {}) {
     fetchImpl = null,
     onTokenExpired = null,
   } = opts || {};
+  const { localStore } = resolveMonitoringStores(opts);
   const activeSession = session || readActiveMonitoringSession(opts);
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, signedOut: true };
   }
-  const capturedClearGen = _authRetryClearGen;
-  const capturedSessionEpoch = _authSessionEpoch;
+  const isStillOwned = captureInFlightSessionGuard(activeSession, session, opts, localStore);
   const resp = await callMonitoringRpc({
     ...opts,
     webhookUrl,
@@ -792,29 +850,19 @@ export async function pullCloudMonitoringState(opts = {}) {
     fetchImpl,
     onTokenExpired,
   });
-  const latestSession = session
-    ? _authSessionEpoch === capturedSessionEpoch
-      ? session
-      : null
-    : readActiveMonitoringSession(opts);
-  const stillOwned = Boolean(
-    _authRetryClearGen === capturedClearGen &&
-      _authSessionEpoch === capturedSessionEpoch &&
-      latestSession &&
-      latestSession.authorized &&
-      isRetryOwnedBySession(
-        {
-          ownerEmail: normalizeStaffEmail(activeSession.email || ""),
-          ownerRole: activeSession.role || "",
-        },
-        latestSession
-      )
-  );
-  if (!stillOwned) {
+  if (!isStillOwned()) {
     return { ok: false, authorized: false, cancelled: true };
   }
   if (resp && resp.ok) {
-    saveCachedMonitoringState(activeSession.email, resp.role || activeSession.role, resp, opts);
+    const rawRole = resp.role || activeSession.role || "staff";
+    const effectiveRole = String(rawRole).toLowerCase() === "screener" ? "screener" : "staff";
+    const localSess = readSessionFromStore(localStore);
+    if (
+      getSessionIdentityKey(localSess) ===
+      `${normalizeStaffEmail(activeSession.email || "")}::${effectiveRole}`
+    ) {
+      saveCachedMonitoringState(activeSession.email, effectiveRole, resp, opts);
+    }
   }
   return resp;
 }
@@ -833,20 +881,22 @@ export function subscribeCrossTabAuthChanges(
     return () => {};
   }
   const { localStore, sessionStore } = resolveMonitoringStores(opts);
-  const initialLocal = readSessionFromStore(localStore);
-  const initialActive = readActiveMonitoringSession({ localStore, sessionStore });
-  let lastLocalEmail = normalizeStaffEmail(initialLocal?.email || "");
-  let lastLocalRole = initialLocal?.role || "";
-  let lastActiveEmail = normalizeStaffEmail(initialActive?.email || "");
-  let lastActiveRole = initialActive?.role || "";
+  let lastLocalIdentity = getSessionIdentityKey(readSessionFromStore(localStore));
+  let lastActiveIdentity = getSessionIdentityKey(
+    readActiveMonitoringSession({ localStore, sessionStore })
+  );
+  // Browser `storage` events do not fire on the originating tab; refresh baselines after
+  // same-tab sign-in/sign-out writes (including sessionStore-only overrides) so cross-tab
+  // sign-outs recognize mirrored sessionStorage entries without clobbering tab overrides.
   const syncFromSameTabWrite = (writtenLocal, writtenSession) => {
-    if (writtenLocal === localStore && writtenSession === sessionStore) {
-      const curLocal = readSessionFromStore(localStore);
-      const curActive = readActiveMonitoringSession({ localStore, sessionStore });
-      lastLocalEmail = normalizeStaffEmail(curLocal?.email || "");
-      lastLocalRole = curLocal?.role || "";
-      lastActiveEmail = normalizeStaffEmail(curActive?.email || "");
-      lastActiveRole = curActive?.role || "";
+    const isSameTab = sessionStore
+      ? writtenSession === sessionStore
+      : !writtenSession && Boolean(localStore && writtenLocal === localStore);
+    if (isSameTab) {
+      lastLocalIdentity = getSessionIdentityKey(readSessionFromStore(localStore));
+      lastActiveIdentity = getSessionIdentityKey(
+        readActiveMonitoringSession({ localStore, sessionStore })
+      );
     }
   };
   _activeCrossTabSyncHooks.add(syncFromSameTabWrite);
@@ -854,38 +904,42 @@ export function subscribeCrossTabAuthChanges(
     if (!ev) return;
     if (ev.key === LS_ADMIN_SESSION_KEY || ev.key === LS_CROSS_TAB_BROADCAST_KEY || ev.key === null) {
       const localSess = readSessionFromStore(localStore);
-      const localEmail = normalizeStaffEmail(localSess?.email || "");
-      const localRole = localSess?.role || "";
+      const nextLocalIdentity = getSessionIdentityKey(localSess);
       if (localStore && sessionStore) {
         const tabSess = readSessionFromStore(sessionStore);
-        const tabEmail = normalizeStaffEmail(tabSess?.email || "");
-        const tabRole = tabSess?.role || "";
+        const tabIdentity = getSessionIdentityKey(tabSess);
         const tabMirroredPriorLocal =
-          Boolean(tabSess) &&
-          Boolean(lastLocalEmail || lastLocalRole) &&
-          tabEmail === lastLocalEmail &&
-          tabRole === lastLocalRole;
-        if (
-          tabMirroredPriorLocal &&
-          (!localSess || localEmail !== tabEmail || localRole !== tabRole)
-        ) {
+          Boolean(tabIdentity) &&
+          Boolean(lastLocalIdentity) &&
+          tabIdentity === lastLocalIdentity;
+        if (tabMirroredPriorLocal && nextLocalIdentity !== tabIdentity) {
           try {
             sessionStore.removeItem(LS_ADMIN_SESSION_KEY);
           } catch (_e) {}
         }
       }
-      lastLocalEmail = localEmail;
-      lastLocalRole = localRole;
+      const prevLocalIdentity = lastLocalIdentity;
+      lastLocalIdentity = nextLocalIdentity;
       const currentSession = readActiveMonitoringSession({ localStore, sessionStore });
-      const nextActiveEmail = normalizeStaffEmail(currentSession?.email || "");
-      const nextActiveRole = currentSession?.role || "";
+      const nextActiveIdentity = getSessionIdentityKey(currentSession);
       if (!currentSession) {
         clearPendingAuthRetries();
         purgePrivateMonitoringStorage({ localStore });
       } else {
-        if (lastActiveEmail !== nextActiveEmail || lastActiveRole !== nextActiveRole) {
+        if (lastActiveIdentity !== nextActiveIdentity) {
           _authSessionEpoch += 1;
           notifyCoordinatorClearHooks();
+        }
+        if (prevLocalIdentity !== nextLocalIdentity || lastActiveIdentity !== nextActiveIdentity) {
+          const sameEmailDowngraded = Boolean(
+            localSess &&
+              localSess.role === "screener" &&
+              prevLocalIdentity === `${normalizeStaffEmail(localSess.email || "")}::staff`
+          );
+          purgePrivateMonitoringStorage({
+            localStore,
+            preserveEmail: localSess && !sameEmailDowngraded ? localSess.email : "",
+          });
         }
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
           if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], currentSession)) {
@@ -894,8 +948,7 @@ export function subscribeCrossTabAuthChanges(
           }
         }
       }
-      lastActiveEmail = nextActiveEmail;
-      lastActiveRole = nextActiveRole;
+      lastActiveIdentity = nextActiveIdentity;
       if (typeof onAuthChanged === "function") {
         onAuthChanged({
           session: currentSession,
@@ -998,7 +1051,7 @@ export function createParcelSyncCoordinator({
 } = {}) {
   const recordsByParcelId = new Map();
   const promotedTargetBySourcePid = new Map();
-  const committedPromotedSourcePids = new Set();
+  const committedTargetBySourcePid = new Map();
   const activeBatchTickets = new Set();
   let generation = 0;
 
@@ -1024,6 +1077,19 @@ export function createParcelSyncCoordinator({
       cur = promotedTargetBySourcePid.get(cur);
     }
     return cur;
+  }
+
+  function promotionPathReaches(startPid, goalPid) {
+    let cur = String(startPid || "").trim();
+    const goal = String(goalPid || "").trim();
+    if (!cur || !goal) return false;
+    const seen = new Set();
+    while (cur && !seen.has(cur)) {
+      if (cur === goal) return true;
+      seen.add(cur);
+      cur = promotedTargetBySourcePid.get(cur) || "";
+    }
+    return false;
   }
 
   function getPromotedTarget(parcelId) {
@@ -1097,7 +1163,7 @@ export function createParcelSyncCoordinator({
     }
     recordsByParcelId.clear();
     promotedTargetBySourcePid.clear();
-    committedPromotedSourcePids.clear();
+    committedTargetBySourcePid.clear();
     _activeCoordinatorClearHooks.delete(clearAll);
   }
 
@@ -1298,9 +1364,15 @@ export function createParcelSyncCoordinator({
             const srvPid = String(res.decision.parcel_id).trim();
             const srvTs = String(res.decision.decided_at || "").trim();
             const lineageRoot = resolveLatestTargetPid(pid) || pid;
-            for (const [srcPid] of promotedTargetBySourcePid.entries()) {
-              if ((resolveLatestTargetPid(srcPid) || srcPid) === lineageRoot) {
-                committedPromotedSourcePids.add(srcPid);
+            if (!promotedTargetBySourcePid.has(srvPid)) {
+              committedTargetBySourcePid.delete(srvPid);
+            }
+            for (const [srcPid, targetPid] of promotedTargetBySourcePid.entries()) {
+              if (
+                promotionPathReaches(targetPid, srvPid) ||
+                promotionPathReaches(targetPid, pid)
+              ) {
+                committedTargetBySourcePid.set(srcPid, targetPid);
               }
             }
             const targetKeys = new Set([
@@ -1364,20 +1436,37 @@ export function createParcelSyncCoordinator({
             candRec.pendingBatch = null;
           }
         }
-        for (const [srcPid] of Array.from(promotedTargetBySourcePid.entries())) {
-          if (
-            (resolveLatestTargetPid(srcPid) || srcPid) === rootTarget &&
-            !committedPromotedSourcePids.has(srcPid)
-          ) {
-            promotedTargetBySourcePid.delete(srcPid);
-          }
-        }
         const toCancel = [];
         for (const t of activeBatchTickets) {
           const tRoot = resolveLatestTargetPid(t.pid) || t.pid;
           if (t === batchTicket || (t.seq > batchTicket.seq && tRoot === rootTarget)) {
             toCancel.push(t);
           }
+        }
+        const rollbackUpdates = [];
+        for (const [srcPid, curTarget] of promotedTargetBySourcePid.entries()) {
+          if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
+            const committedTarget = committedTargetBySourcePid.get(srcPid) || "";
+            if (committedTarget !== curTarget) {
+              rollbackUpdates.push([srcPid, committedTarget]);
+            }
+          }
+        }
+        for (const [srcPid, committedTarget] of rollbackUpdates) {
+          if (committedTarget && committedTarget !== srcPid) {
+            promotedTargetBySourcePid.set(srcPid, committedTarget);
+          } else {
+            promotedTargetBySourcePid.delete(srcPid);
+          }
+        }
+        const restoredForRoot = committedTargetBySourcePid.get(rootTarget) || "";
+        if (
+          restoredForRoot &&
+          restoredForRoot !== rootTarget &&
+          !promotedTargetBySourcePid.has(rootTarget) &&
+          !promotedTargetBySourcePid.has(restoredForRoot)
+        ) {
+          promotedTargetBySourcePid.set(rootTarget, restoredForRoot);
         }
         for (const t of toCancel) {
           t.markCancelled();
