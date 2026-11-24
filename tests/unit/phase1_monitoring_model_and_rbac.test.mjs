@@ -3667,6 +3667,7 @@ test("UT-P1-SyncCoord-TwoBatchEvictionAndUserSwitch: cascades cancellation to bl
     const scheduled = new Map();
     let nextTimerId = 1;
     const sentPayloads = [];
+    const successMeta = [];
     const nowSec = Math.floor(Date.now() / 1000);
 
     const sharedLocalStore = createMemoryStorage({
@@ -3690,6 +3691,7 @@ test("UT-P1-SyncCoord-TwoBatchEvictionAndUserSwitch: cascades cancellation to bl
         return id;
       },
       cancelTimer: (id) => scheduled.delete(id),
+      onSuccess: (_resp, meta) => successMeta.push(meta),
       sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
         await callMonitoringRpc({
           webhookUrl: "https://example.org/exec",
@@ -3785,6 +3787,71 @@ test("UT-P1-SyncCoord-TwoBatchEvictionAndUserSwitch: cascades cancellation to bl
     );
     assert.equal(coord.hasPendingOrInFlight("0420090000089"), false);
     assert.equal(coord.hasPendingOrInFlight("CAMPUS:PARISH"), false);
+    assert.equal(
+      coord.getPromotedTarget("0420090000089"),
+      "0420090000089",
+      "Uncommitted CAMPUS promotion from User A must roll back on account switch"
+    );
+
+    coord.enqueue("0420090000089", { screening_notes: "User B fresh single-parcel save" }, "");
+    const [ubId, ubFn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(ubId);
+    const ubRes = await ubFn();
+    assert.equal(ubRes.ok, true);
+    assert.deepEqual(successMeta[0], {
+      hasNewerPendingEdit: false,
+      supersededByParcelId: "",
+    });
+
+    // 3. Single-item owner-mismatch eviction via replayPendingAuthRetries rolls back uncommitted promotion while preserving committed ones
+    coord.promoteParcelKey("0420090000089", "CAMPUS:COMMITTED_PARISH", "");
+    coord.enqueue(
+      "CAMPUS:COMMITTED_PARISH",
+      { parcel_id: "CAMPUS:COMMITTED_PARISH", replace_parcel_id: "0420090000089", screening_notes: "Committed" },
+      ""
+    );
+    const [cmId, cmFn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(cmId);
+    await cmFn();
+    assert.equal(coord.getPromotedTarget("0420090000089"), "CAMPUS:COMMITTED_PARISH");
+
+    sharedSessionStore.removeItem(LS_ADMIN_SESSION_KEY);
+    sharedLocalStore.setItem(
+      LS_ADMIN_SESSION_KEY,
+      JSON.stringify({
+        authorized: true,
+        email: "staff.b@preservation.example.org",
+        role: "staff",
+        googleIdToken: makeSyntheticJwt({
+          email: "staff.b@preservation.example.org",
+          exp: nowSec - 120,
+        }),
+      })
+    );
+    coord.promoteParcelKey("0420090000095", "CAMPUS:UNCOMMITTED_EVICTED", "");
+    coord.enqueue(
+      "CAMPUS:UNCOMMITTED_EVICTED",
+      { parcel_id: "CAMPUS:UNCOMMITTED_EVICTED", replace_parcel_id: "0420090000095", screening_notes: "Will evict" },
+      ""
+    );
+    const [ueId, ueFn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(ueId);
+    await ueFn();
+    assert.equal(coord.getPromotedTarget("0420090000095"), "CAMPUS:UNCOMMITTED_EVICTED");
+
+    await replayPendingAuthRetries({
+      session: { email: "screener@preservation.example.org", role: "screener", authorized: true },
+    });
+    assert.equal(
+      coord.getPromotedTarget("0420090000095"),
+      "0420090000095",
+      "Single-item cancelQueuedRetry must roll back uncommitted promoteParcelKey edge"
+    );
+    assert.equal(
+      coord.getPromotedTarget("0420090000089"),
+      "CAMPUS:COMMITTED_PARISH",
+      "Single-item cancelQueuedRetry on unrelated parcel must preserve already-committed promotion"
+    );
   } finally {
     clearPendingAuthRetries();
   }
@@ -3998,7 +4065,7 @@ test("UT-P1-SyncCoord-ReExpiryArrivalOrderAndMultiHopLineage: prevents replay de
   }
 });
 
-test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in-flight HTTP server-expiry, valid-token debounce/blocked batches across session transitions, and mid-replay stale generations", async () => {
+test("UT-P1-SyncCoord-InFlightHttpAndPullTransition: cancels late HTTP server-expiry, valid-token coordinator batches, and in-flight Staff pulls across sign-out or account switch", async () => {
   clearPendingAuthRetries();
   try {
     const scheduled = new Map();
@@ -4062,7 +4129,7 @@ test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in
         }),
     });
 
-    // 1. Valid-token User A has in-flight HTTP Batch 1 + ticket-blocked Batch 2 + un-flushed Batch 3 when switching to User B
+    // 1. Valid-token User A has in-flight HTTP Batch 1 + ticket-blocked Batch 2 + un-flushed Batch 3 + in-flight Staff pull when switching to Screener
     deferredHttp1 = true;
     coord.enqueue("0420010000031", { screening_notes: "User A HTTP in-flight" }, "");
     const [f1Id, f1Fn] = Array.from(scheduled.entries())[0];
@@ -4076,12 +4143,25 @@ test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in
 
     coord.enqueue("0420010000032", { screening_notes: "User A debounce timer" }, "");
     assert.equal(scheduled.size, 1);
-    assert.equal(sentPayloads.length, 1);
+
+    let resolveInFlightStaffPull = null;
+    const staffPullPromise = pullCloudMonitoringState({
+      webhookUrl: "https://example.org/exec",
+      localStore: sharedLocalStore,
+      sessionStore: sharedSessionStore,
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () =>
+          await new Promise((resolve) => {
+            resolveInFlightStaffPull = resolve;
+          }),
+      }),
+    });
 
     await verifyAndSignInMonitoring({
       webhookUrl: "https://example.org/exec",
       googleIdToken: makeSyntheticJwt({
-        email: "staff.b@preservation.example.org",
+        email: "screener@preservation.example.org",
         exp: nowSec + 3600,
       }),
       localStore: sharedLocalStore,
@@ -4092,18 +4172,18 @@ test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in
         json: async () => ({
           ok: true,
           authorized: true,
-          email: "staff.b@preservation.example.org",
-          role: "staff",
+          email: "screener@preservation.example.org",
+          role: "screener",
           supportsRoamingSync: false,
           supportsPhase1Monitoring: true,
         }),
       }),
     });
 
-    assert.equal(scheduled.size, 0, "Account switch must cancel User A valid-token debounce timers");
+    assert.equal(scheduled.size, 0, "Account/role switch must cancel User A valid-token debounce timers");
     assert.equal((await f2Promise).cancelled, true);
 
-    // Late server token-expiry response from User A's in-flight HTTP must NOT queue retry or leak ticket!
+    // Late server token-expiry response from User A's in-flight HTTP must NOT queue retry or leak ticket
     deferredHttp1({ authorized: false, error: "Invalid or expired token" });
     const f1Res = await f1Promise;
     assert.equal(f1Res.queuedForRetry, false);
@@ -4114,32 +4194,245 @@ test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in
     assert.equal(
       sentPayloads.length,
       1,
-      "User A's blocked batch 2 and debounce timer must never execute under User B"
+      "User A's blocked batch 2 and debounce timer must never execute under Screener"
     );
 
-    // User B can now edit 0420010000031 immediately without deadlocking on a leaked ticket
-    coord.enqueue("0420010000031", { screening_notes: "User B fresh edit" }, "");
-    const [ubId, ubFn] = Array.from(scheduled.entries())[0];
-    scheduled.delete(ubId);
-    const ubRes = await ubFn();
-    assert.equal(ubRes.ok, true);
-    assert.equal(sentPayloads[1].admin_email, "staff.b@preservation.example.org");
+    // Late HTTP 200 Staff pull response must NOT write Staff cache after role switch to Screener
+    resolveInFlightStaffPull({
+      ok: true,
+      authorized: true,
+      role: "staff",
+      parcels: [{ parcel_id: "0152300000001" }],
+      staffOnly: { parcelStrategy: [{ parcel_id: "0152300000001", strategy_notes: "CONFIDENTIAL" }] },
+    });
+    const stalePullResp = await staffPullPromise;
+    assert.equal(stalePullResp.ok, false);
+    assert.equal(stalePullResp.cancelled, true);
+    assert.equal(
+      sharedLocalStore.getItem(`${LS_AUTH_CACHE_PREFIX}staff.a@preservation.example.org`),
+      null,
+      "Stale in-flight Staff pull must never repopulate localStorage after downgrade or sign-out"
+    );
 
-    // 2. Cross-tab account switch (staff.b -> screener) cancels valid-token debounce timer immediately
-    let storageListener = null;
-    const unsubCrossTab = subscribeCrossTabAuthChanges(
-      () => {},
+    // Screener can edit 0420010000031 immediately without deadlocking on a leaked ticket
+    coord.enqueue("0420010000031", { screening_notes: "Screener fresh edit" }, "");
+    const [scId, scFn] = Array.from(scheduled.entries())[0];
+    scheduled.delete(scId);
+    const scRes = await scFn();
+    assert.equal(scRes.ok, true);
+    assert.equal(sentPayloads[1].admin_email, "screener@preservation.example.org");
+  } finally {
+    clearPendingAuthRetries();
+  }
+});
+
+test("UT-P1-AuthClient-CrossTabMirrorRevocationAndOverridePreservation: revokes mirrored sessionStorage after same-tab sign-in while preserving intentional tab-scoped Screener overrides", async () => {
+  clearPendingAuthRetries();
+  try {
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // Mode A: Subscribe on an unauthenticated tab, sign in as Staff on the same tab, then sign out from Tab 2
+    const sharedLocalA = createMemoryStorage();
+    const tab1SessionA = createMemoryStorage();
+    const tab2SessionA = createMemoryStorage();
+    const modeAEvents = [];
+    let tab1Listener = null;
+    const unsubModeA = subscribeCrossTabAuthChanges(
+      (payload) => modeAEvents.push(payload),
       {
         addEventListener: (_type, fn) => {
-          storageListener = fn;
+          tab1Listener = fn;
         },
         removeEventListener: () => {},
       },
-      { localStore: sharedLocalStore, sessionStore: sharedSessionStore }
+      { localStore: sharedLocalA, sessionStore: tab1SessionA }
     );
-    coord.enqueue("0420010000033", { screening_notes: "User B pre-cross-tab-switch" }, "");
+
+    const signInTab1 = await verifyAndSignInMonitoring({
+      webhookUrl: "https://example.org/exec",
+      googleIdToken: makeSyntheticJwt({
+        email: "staff@preservation.example.org",
+        exp: nowSec + 3600,
+      }),
+      localStore: sharedLocalA,
+      sessionStore: tab1SessionA,
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ok: true,
+          authorized: true,
+          email: "staff@preservation.example.org",
+          role: "staff",
+          supportsRoamingSync: false,
+          supportsPhase1Monitoring: true,
+        }),
+      }),
+    });
+    assert.equal(signInTab1.ok, true);
+    assert.ok(tab1SessionA.getItem(LS_ADMIN_SESSION_KEY));
+
+    const scheduled = new Map();
+    const coordA = createParcelSyncCoordinator({
+      debounceMs: 650,
+      scheduleTimer: (fn) => {
+        scheduled.set(1, fn);
+        return 1;
+      },
+      cancelTimer: (id) => scheduled.delete(id),
+      sendDecisionRpc: async () => ({ ok: true }),
+    });
+    coordA.enqueue("0420010000033", { screening_notes: "Tab 1 pending before Tab 2 sign-out" }, "");
     assert.equal(scheduled.size, 1);
-    sharedLocalStore.setItem(
+
+    // Sibling Tab 2 signs out (clears sharedLocalA + tab2SessionA) and triggers Tab 1 storage event
+    signOutMonitoringSession({ localStore: sharedLocalA, sessionStore: tab2SessionA });
+    tab1Listener({ key: LS_CROSS_TAB_BROADCAST_KEY });
+    unsubModeA();
+
+    assert.equal(
+      tab1SessionA.getItem(LS_ADMIN_SESSION_KEY),
+      null,
+      "Mirrored sessionStore session written by same-tab sign-in must be evicted on cross-tab sign-out"
+    );
+    assert.equal(readActiveMonitoringSession({ localStore: sharedLocalA, sessionStore: tab1SessionA }), null);
+    assert.equal(modeAEvents.at(-1)?.signedOut, true);
+    assert.equal(modeAEvents.at(-1)?.role, "public");
+    assert.equal(scheduled.size, 0);
+
+    // Mode B: Intentional tab-scoped Screener override in sessionStore survives sibling-tab Staff refresh in localStore
+    const sharedLocalB = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "staff.a@preservation.example.org",
+        role: "staff",
+        googleIdToken: makeSyntheticJwt({
+          email: "staff.a@preservation.example.org",
+          exp: nowSec + 1800,
+        }),
+      }),
+    });
+    const screenerTabSessionB = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "screener@preservation.example.org",
+        role: "screener",
+        googleIdToken: makeSyntheticJwt({
+          email: "screener@preservation.example.org",
+          exp: nowSec + 3600,
+        }),
+      }),
+    });
+    const modeBEvents = [];
+    let tabBListener = null;
+    const unsubModeB = subscribeCrossTabAuthChanges(
+      (payload) => modeBEvents.push(payload),
+      {
+        addEventListener: (_type, fn) => {
+          tabBListener = fn;
+        },
+        removeEventListener: () => {},
+      },
+      { localStore: sharedLocalB, sessionStore: screenerTabSessionB }
+    );
+
+    // Sibling tab refreshes staff.a token in sharedLocalB
+    sharedLocalB.setItem(
+      LS_ADMIN_SESSION_KEY,
+      JSON.stringify({
+        authorized: true,
+        email: "staff.a@preservation.example.org",
+        role: "staff",
+        googleIdToken: makeSyntheticJwt({
+          email: "staff.a@preservation.example.org",
+          exp: nowSec + 7200,
+        }),
+      })
+    );
+    tabBListener({ key: LS_ADMIN_SESSION_KEY });
+    unsubModeB();
+
+    assert.ok(
+      screenerTabSessionB.getItem(LS_ADMIN_SESSION_KEY),
+      "Distinct tab-scoped Screener sessionStore override must never be deleted or escalated on sibling-tab Staff refresh"
+    );
+    assert.equal(modeBEvents.at(-1)?.role, "screener");
+    assert.equal(modeBEvents.at(-1)?.signedOut, false);
+  } finally {
+    clearPendingAuthRetries();
+  }
+});
+
+test("UT-P1-AuthClient-MidReplayEpochAndPostAwaitEviction: aborts spliced retries on cross-tab switch and evicts post-await child retries after clearPendingAuthRetries", async () => {
+  clearPendingAuthRetries();
+  try {
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // 1. Cross-tab switch (staff.a -> screener) while replayPendingAuthRetries is awaiting retry1 cancels staff.a's tail while preserving screener's retry
+    const sharedLocal = createMemoryStorage({
+      [LS_ADMIN_SESSION_KEY]: JSON.stringify({
+        authorized: true,
+        email: "staff.a@preservation.example.org",
+        role: "staff",
+        googleIdToken: makeSyntheticJwt({
+          email: "staff.a@preservation.example.org",
+          exp: nowSec + 3600,
+        }),
+      }),
+    });
+    const sharedSession = createMemoryStorage();
+    let crossTabListener = null;
+    const unsub = subscribeCrossTabAuthChanges(
+      () => {},
+      {
+        addEventListener: (_type, fn) => {
+          crossTabListener = fn;
+        },
+        removeEventListener: () => {},
+      },
+      { localStore: sharedLocal, sessionStore: sharedSession }
+    );
+
+    let resolveStaffA1 = null;
+    let staffA2Executed = false;
+    let staffA2Cancelled = false;
+    let screenerExecuted = false;
+
+    queuePendingAuthRetry(
+      async () =>
+        await new Promise((resolve) => {
+          resolveStaffA1 = resolve;
+        }),
+      "staff_a_1",
+      { email: "staff.a@preservation.example.org", role: "staff", authorized: true }
+    );
+    const staffA2Fn = async () => {
+      staffA2Executed = true;
+      return { ok: true };
+    };
+    staffA2Fn.cancelQueuedRetry = () => {
+      staffA2Cancelled = true;
+    };
+    queuePendingAuthRetry(staffA2Fn, "staff_a_2", {
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      authorized: true,
+    });
+    queuePendingAuthRetry(
+      async () => {
+        screenerExecuted = true;
+        return { ok: true };
+      },
+      "screener_op",
+      { email: "screener@preservation.example.org", role: "screener", authorized: true }
+    );
+
+    const replayInFlight = replayPendingAuthRetries({
+      localStore: sharedLocal,
+      sessionStore: sharedSession,
+    });
+
+    sharedLocal.setItem(
       LS_ADMIN_SESSION_KEY,
       JSON.stringify({
         authorized: true,
@@ -4151,99 +4444,68 @@ test("UT-P1-SyncCoord-InFlightHttpTransitionAndMidReplayGenIsolation: cancels in
         }),
       })
     );
-    storageListener({ key: LS_ADMIN_SESSION_KEY });
-    unsubCrossTab();
-    assert.equal(scheduled.size, 0);
-    assert.equal(coord.hasPendingOrInFlight("0420010000033"), false);
+    crossTabListener({ key: LS_ADMIN_SESSION_KEY });
+    unsub();
 
-    // 3. Mid-replay clearPendingAuthRetries() cancels invalidated generation tail & catch requeues while preserving newer-generation retries
-    let resolveMidReplayA = null;
-    let rejectMidReplayThrow = null;
-    let tailItemCancelled = false;
-    let staleRequeuedCancelled = false;
-    let newGenExecuted = false;
+    resolveStaffA1({ ok: true });
+    await replayInFlight;
+    assert.equal(staffA2Executed, false, "Staff A spliced tail retry must never execute after cross-tab switch to Screener");
+    assert.equal(staffA2Cancelled, true);
+    assert.equal(getPendingAuthRetryCount(), 1, "Screener's own retry in pending tail must be re-queued");
+    await replayPendingAuthRetries({ localStore: sharedLocal, sessionStore: sharedSession });
+    assert.equal(screenerExecuted, true);
 
-    const midReplayFnA = async () =>
-      await new Promise((resolve) => {
-        resolveMidReplayA = resolve;
-      });
-    const tailFnA = async () => ({ ok: true });
-    tailFnA.cancelQueuedRetry = () => {
-      tailItemCancelled = true;
+    // 2. Post-await finally child retry queued by invalidated staff.a closure is evicted in catch, while staff.b's new-generation retry survives
+    let rejectThrowingHead = null;
+    let staleChildCancelled = false;
+    let newGenBExecuted = false;
+    const staleChildFn = async () => ({ ok: true });
+    staleChildFn.cancelQueuedRetry = () => {
+      staleChildCancelled = true;
     };
-    queuePendingAuthRetry(midReplayFnA, "gen0_head", {
-      email: "staff.a@preservation.example.org",
-      role: "staff",
-      authorized: true,
-    });
-    queuePendingAuthRetry(tailFnA, "gen0_tail", {
-      email: "staff.a@preservation.example.org",
-      role: "staff",
-      authorized: true,
-    });
-
-    const midReplayPromise = replayPendingAuthRetries({
-      session: { email: "staff.a@preservation.example.org", role: "staff", authorized: true },
-    });
-    clearPendingAuthRetries();
     queuePendingAuthRetry(
       async () => {
-        newGenExecuted = true;
-        return { ok: true };
+        try {
+          await new Promise((_, reject) => {
+            rejectThrowingHead = reject;
+          });
+        } finally {
+          queuePendingAuthRetry(staleChildFn, "post_await_stale_child", {
+            email: "staff.a@preservation.example.org",
+            role: "staff",
+            authorized: true,
+          });
+        }
       },
-      "gen1_new_user_op",
-      { email: "staff.b@preservation.example.org", role: "staff", authorized: true }
-    );
-    resolveMidReplayA({ ok: true });
-    const midReplayResults = await midReplayPromise;
-    assert.equal(midReplayResults.length, 0);
-    assert.equal(tailItemCancelled, true);
-    assert.equal(getPendingAuthRetryCount(), 1, "New-generation retry must survive mid-replay clear");
-    await replayPendingAuthRetries({
-      session: { email: "staff.b@preservation.example.org", role: "staff", authorized: true },
-    });
-    assert.equal(newGenExecuted, true);
-
-    // Also verify catch-branch mid-replay clear evicts stale same-gen requeued item while keeping new-gen item
-    const staleRequeueFn = async () => ({ ok: true });
-    staleRequeueFn.cancelQueuedRetry = () => {
-      staleRequeuedCancelled = true;
-    };
-    let newGenAfterCatchSurvived = false;
-    queuePendingAuthRetry(
-      async () => {
-        queuePendingAuthRetry(staleRequeueFn, "gen_stale_requeued", {
-          email: "staff.a@preservation.example.org",
-          role: "staff",
-          authorized: true,
-        });
-        await new Promise((_, reject) => {
-          rejectMidReplayThrow = reject;
-        });
-      },
-      "gen_throwing_head",
+      "throwing_head_op",
       { email: "staff.a@preservation.example.org", role: "staff", authorized: true }
     );
+
     const catchReplayPromise = replayPendingAuthRetries({
       session: { email: "staff.a@preservation.example.org", role: "staff", authorized: true },
     });
     clearPendingAuthRetries();
     queuePendingAuthRetry(
       async () => {
-        newGenAfterCatchSurvived = true;
+        newGenBExecuted = true;
         return { ok: true };
       },
-      "gen_after_catch_op",
+      "gen_new_staff_b_op",
       { email: "staff.b@preservation.example.org", role: "staff", authorized: true }
     );
-    rejectMidReplayThrow(new Error("network abort"));
+    rejectThrowingHead(new Error("simulated network abort"));
     await catchReplayPromise;
-    assert.equal(staleRequeuedCancelled, true);
+
+    assert.equal(
+      staleChildCancelled,
+      true,
+      "Post-await child retry queued by invalidated Staff A closure must be evicted and cancelled"
+    );
     assert.equal(getPendingAuthRetryCount(), 1);
     await replayPendingAuthRetries({
       session: { email: "staff.b@preservation.example.org", role: "staff", authorized: true },
     });
-    assert.equal(newGenAfterCatchSurvived, true);
+    assert.equal(newGenBExecuted, true);
   } finally {
     clearPendingAuthRetries();
   }

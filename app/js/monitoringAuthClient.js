@@ -31,9 +31,27 @@ export const LEGACY_PRIVATE_STORAGE_PREFIXES = Object.freeze(["phpam:cycle:"]);
 const _pendingAuthRetryQueue = [];
 const _retryCausalSeq = new WeakMap();
 const _activeCoordinatorClearHooks = new Set();
+const _activeCrossTabSyncHooks = new Set();
 let _nextCausalSeq = 1;
 let _authRetryClearGen = 0;
+let _authSessionEpoch = 0;
 let _gsiScriptPromise = null;
+
+function notifyCoordinatorClearHooks() {
+  for (const cancelActive of Array.from(_activeCoordinatorClearHooks)) {
+    try {
+      cancelActive();
+    } catch (_e) {}
+  }
+}
+
+function notifySameTabSyncHooks(localStore, sessionStore) {
+  for (const syncHook of Array.from(_activeCrossTabSyncHooks)) {
+    try {
+      syncHook(localStore, sessionStore);
+    } catch (_e) {}
+  }
+}
 
 function getSafeStorage(kind = "local") {
   try {
@@ -331,6 +349,7 @@ export function signOutMonitoringSession(opts = {}) {
     clearLegacyMirrorOnSignOut(localStore);
   }
   clearPendingAuthRetries();
+  notifySameTabSyncHooks(localStore, sessionStore);
   broadcastAuthEvent("sign_out", { role: "public", email: "" }, localStore);
 }
 
@@ -468,6 +487,7 @@ export async function verifyAndSignInMonitoring(opts = {}) {
     }
   }
 
+  notifySameTabSyncHooks(localStore, sessionStore);
   broadcastAuthEvent("sign_in", { role: session.role, email: session.email }, localStore);
   return {
     ok: true,
@@ -511,11 +531,8 @@ function insertRetryOrdered(entry) {
 
 export function clearPendingAuthRetries() {
   _authRetryClearGen += 1;
-  for (const cancelActive of Array.from(_activeCoordinatorClearHooks)) {
-    try {
-      cancelActive();
-    } catch (_e) {}
-  }
+  _authSessionEpoch += 1;
+  notifyCoordinatorClearHooks();
   const discarded = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   for (const item of discarded) {
     cancelQueuedRetryItem(item);
@@ -562,18 +579,41 @@ export async function replayPendingAuthRetries(opts = {}) {
     return [];
   }
   const capturedClearGen = _authRetryClearGen;
+  const capturedSessionEpoch = _authSessionEpoch;
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
-  const cancelInvalidatedReplayTail = (currentItem, nextIdx) => {
+  const isReplayInvalidated = () =>
+    _authRetryClearGen !== capturedClearGen || _authSessionEpoch !== capturedSessionEpoch;
+  const abortInvalidatedReplay = (currentItem, nextIdx) => {
+    const clearedAll = _authRetryClearGen !== capturedClearGen;
+    const latestActive = explicitSession
+      ? _authSessionEpoch === capturedSessionEpoch
+        ? explicitSession
+        : readActiveMonitoringSession({ localStore, sessionStore })
+      : readActiveMonitoringSession({ localStore, sessionStore });
     if (currentItem) {
       cancelQueuedRetryItem(currentItem);
     }
     for (let j = nextIdx; j < pending.length; j += 1) {
-      cancelQueuedRetryItem(pending[j]);
+      const rem = pending[j];
+      if (!clearedAll && latestActive && latestActive.authorized && isRetryOwnedBySession(rem, latestActive)) {
+        insertRetryOrdered(rem);
+      } else {
+        cancelQueuedRetryItem(rem);
+      }
     }
     for (let k = _pendingAuthRetryQueue.length - 1; k >= 0; k -= 1) {
       const cand = _pendingAuthRetryQueue[k];
-      if (cand.clearGen <= capturedClearGen || cand.retryFn === currentItem?.retryFn) {
+      const rejectedByLiveSession = Boolean(
+        latestActive && latestActive.authorized && !isRetryOwnedBySession(cand, latestActive)
+      );
+      const matchesInvalidatedOwner = Boolean(active && isRetryOwnedBySession(cand, active));
+      if (
+        (clearedAll && cand.clearGen <= capturedClearGen) ||
+        cand.retryFn === currentItem?.retryFn ||
+        rejectedByLiveSession ||
+        matchesInvalidatedOwner
+      ) {
         const [stale] = _pendingAuthRetryQueue.splice(k, 1);
         cancelQueuedRetryItem(stale);
       }
@@ -581,8 +621,8 @@ export async function replayPendingAuthRetries(opts = {}) {
   };
   for (let i = 0; i < pending.length; i += 1) {
     const item = pending[i];
-    if (_authRetryClearGen !== capturedClearGen) {
-      cancelInvalidatedReplayTail(null, i);
+    if (isReplayInvalidated()) {
+      abortInvalidatedReplay(null, i);
       break;
     }
     if (active && !isRetryOwnedBySession(item, active)) {
@@ -591,8 +631,8 @@ export async function replayPendingAuthRetries(opts = {}) {
     }
     try {
       const result = await item.retryFn();
-      if (_authRetryClearGen !== capturedClearGen) {
-        cancelInvalidatedReplayTail(item, i + 1);
+      if (isReplayInvalidated()) {
+        abortInvalidatedReplay(item, i + 1);
         break;
       }
       results.push({ ok: true, result, description: item.description });
@@ -608,8 +648,8 @@ export async function replayPendingAuthRetries(opts = {}) {
         break;
       }
     } catch (err) {
-      if (_authRetryClearGen !== capturedClearGen) {
-        cancelInvalidatedReplayTail(item, i + 1);
+      if (isReplayInvalidated()) {
+        abortInvalidatedReplay(item, i + 1);
         break;
       }
       results.push({ ok: false, error: err?.message || String(err), description: item.description });
@@ -669,6 +709,7 @@ export async function callMonitoringRpc(opts = {}) {
   };
 
   const capturedClearGen = _authRetryClearGen;
+  const capturedSessionEpoch = _authSessionEpoch;
   try {
     const res = await doFetch(targetUrl, {
       method: "POST",
@@ -684,9 +725,14 @@ export async function callMonitoringRpc(opts = {}) {
       data.authorized === false &&
       /expired|invalid.*token/i.test(String(data.error || ""))
     ) {
-      const latestSession = session || readActiveMonitoringSession(opts);
+      const latestSession = session
+        ? _authSessionEpoch === capturedSessionEpoch
+          ? session
+          : readActiveMonitoringSession(opts)
+        : readActiveMonitoringSession(opts);
       const stillOwned = Boolean(
         _authRetryClearGen === capturedClearGen &&
+          _authSessionEpoch === capturedSessionEpoch &&
           latestSession &&
           latestSession.authorized &&
           isRetryOwnedBySession(
@@ -736,14 +782,37 @@ export async function pullCloudMonitoringState(opts = {}) {
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, signedOut: true };
   }
+  const capturedClearGen = _authRetryClearGen;
+  const capturedSessionEpoch = _authSessionEpoch;
   const resp = await callMonitoringRpc({
     ...opts,
     webhookUrl,
     action: "pull_monitoring_state",
-    session: activeSession,
+    session: session || null,
     fetchImpl,
     onTokenExpired,
   });
+  const latestSession = session
+    ? _authSessionEpoch === capturedSessionEpoch
+      ? session
+      : null
+    : readActiveMonitoringSession(opts);
+  const stillOwned = Boolean(
+    _authRetryClearGen === capturedClearGen &&
+      _authSessionEpoch === capturedSessionEpoch &&
+      latestSession &&
+      latestSession.authorized &&
+      isRetryOwnedBySession(
+        {
+          ownerEmail: normalizeStaffEmail(activeSession.email || ""),
+          ownerRole: activeSession.role || "",
+        },
+        latestSession
+      )
+  );
+  if (!stillOwned) {
+    return { ok: false, authorized: false, cancelled: true };
+  }
   if (resp && resp.ok) {
     saveCachedMonitoringState(activeSession.email, resp.role || activeSession.role, resp, opts);
   }
@@ -764,41 +833,59 @@ export function subscribeCrossTabAuthChanges(
     return () => {};
   }
   const { localStore, sessionStore } = resolveMonitoringStores(opts);
-  const initialSession = readActiveMonitoringSession({ localStore, sessionStore });
-  let lastEmail = normalizeStaffEmail(initialSession?.email || "");
-  let lastRole = initialSession?.role || "";
+  const initialLocal = readSessionFromStore(localStore);
+  const initialActive = readActiveMonitoringSession({ localStore, sessionStore });
+  let lastLocalEmail = normalizeStaffEmail(initialLocal?.email || "");
+  let lastLocalRole = initialLocal?.role || "";
+  let lastActiveEmail = normalizeStaffEmail(initialActive?.email || "");
+  let lastActiveRole = initialActive?.role || "";
+  const syncFromSameTabWrite = (writtenLocal, writtenSession) => {
+    if (writtenLocal === localStore && writtenSession === sessionStore) {
+      const curLocal = readSessionFromStore(localStore);
+      const curActive = readActiveMonitoringSession({ localStore, sessionStore });
+      lastLocalEmail = normalizeStaffEmail(curLocal?.email || "");
+      lastLocalRole = curLocal?.role || "";
+      lastActiveEmail = normalizeStaffEmail(curActive?.email || "");
+      lastActiveRole = curActive?.role || "";
+    }
+  };
+  _activeCrossTabSyncHooks.add(syncFromSameTabWrite);
   const handler = (ev) => {
     if (!ev) return;
     if (ev.key === LS_ADMIN_SESSION_KEY || ev.key === LS_CROSS_TAB_BROADCAST_KEY || ev.key === null) {
+      const localSess = readSessionFromStore(localStore);
+      const localEmail = normalizeStaffEmail(localSess?.email || "");
+      const localRole = localSess?.role || "";
       if (localStore && sessionStore) {
         const tabSess = readSessionFromStore(sessionStore);
-        const localSess = readSessionFromStore(localStore);
         const tabEmail = normalizeStaffEmail(tabSess?.email || "");
-        const localEmail = normalizeStaffEmail(localSess?.email || "");
-        const tabMirroredPrior =
-          Boolean(tabSess) && tabEmail === lastEmail && (tabSess.role || "") === lastRole;
+        const tabRole = tabSess?.role || "";
+        const tabMirroredPriorLocal =
+          Boolean(tabSess) &&
+          Boolean(lastLocalEmail || lastLocalRole) &&
+          tabEmail === lastLocalEmail &&
+          tabRole === lastLocalRole;
         if (
-          tabMirroredPrior &&
-          (!localSess || localEmail !== tabEmail || (localSess.role || "") !== (tabSess.role || ""))
+          tabMirroredPriorLocal &&
+          (!localSess || localEmail !== tabEmail || localRole !== tabRole)
         ) {
           try {
             sessionStore.removeItem(LS_ADMIN_SESSION_KEY);
           } catch (_e) {}
         }
       }
+      lastLocalEmail = localEmail;
+      lastLocalRole = localRole;
       const currentSession = readActiveMonitoringSession({ localStore, sessionStore });
-      const nextEmail = normalizeStaffEmail(currentSession?.email || "");
-      const nextRole = currentSession?.role || "";
+      const nextActiveEmail = normalizeStaffEmail(currentSession?.email || "");
+      const nextActiveRole = currentSession?.role || "";
       if (!currentSession) {
         clearPendingAuthRetries();
         purgePrivateMonitoringStorage({ localStore });
       } else {
-        if (lastEmail !== nextEmail || lastRole !== nextRole) {
-          for (const cancelActive of Array.from(_activeCoordinatorClearHooks)) {
-            try {
-              cancelActive();
-            } catch (_e) {}
-          }
+        if (lastActiveEmail !== nextActiveEmail || lastActiveRole !== nextActiveRole) {
+          _authSessionEpoch += 1;
+          notifyCoordinatorClearHooks();
         }
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
           if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], currentSession)) {
@@ -807,8 +894,8 @@ export function subscribeCrossTabAuthChanges(
           }
         }
       }
-      lastEmail = nextEmail;
-      lastRole = nextRole;
+      lastActiveEmail = nextActiveEmail;
+      lastActiveRole = nextActiveRole;
       if (typeof onAuthChanged === "function") {
         onAuthChanged({
           session: currentSession,
@@ -820,6 +907,7 @@ export function subscribeCrossTabAuthChanges(
   };
   win.addEventListener("storage", handler);
   return () => {
+    _activeCrossTabSyncHooks.delete(syncFromSameTabWrite);
     try {
       win.removeEventListener("storage", handler);
     } catch (_e) {}
@@ -910,6 +998,7 @@ export function createParcelSyncCoordinator({
 } = {}) {
   const recordsByParcelId = new Map();
   const promotedTargetBySourcePid = new Map();
+  const committedPromotedSourcePids = new Set();
   const activeBatchTickets = new Set();
   let generation = 0;
 
@@ -973,23 +1062,24 @@ export function createParcelSyncCoordinator({
     return false;
   }
 
-  function hasAnyScheduledOrActiveWork() {
-    if (activeBatchTickets.size > 0) return true;
-    for (const rec of recordsByParcelId.values()) {
-      if (rec.timerId !== null || rec.pendingBatch !== null) return true;
-    }
-    return false;
+  function hasAnyCoordinatorState() {
+    return (
+      activeBatchTickets.size > 0 ||
+      recordsByParcelId.size > 0 ||
+      promotedTargetBySourcePid.size > 0
+    );
   }
 
   function syncClearHookRegistration() {
-    if (hasAnyScheduledOrActiveWork()) {
-      _activeCoordinatorClearHooks.add(cancelActiveWork);
+    if (hasAnyCoordinatorState()) {
+      _activeCoordinatorClearHooks.add(clearAll);
     } else {
-      _activeCoordinatorClearHooks.delete(cancelActiveWork);
+      _activeCoordinatorClearHooks.delete(clearAll);
     }
   }
 
-  function cancelActiveWork() {
+  function clearAll() {
+    generation += 1;
     for (const rec of recordsByParcelId.values()) {
       if (rec.timerId !== null) {
         cancelTimer(rec.timerId);
@@ -1005,14 +1095,10 @@ export function createParcelSyncCoordinator({
     for (const t of openTickets) {
       t.resolve();
     }
-    _activeCoordinatorClearHooks.delete(cancelActiveWork);
-  }
-
-  function clearAll() {
-    generation += 1;
-    cancelActiveWork();
     recordsByParcelId.clear();
     promotedTargetBySourcePid.clear();
+    committedPromotedSourcePids.clear();
+    _activeCoordinatorClearHooks.delete(clearAll);
   }
 
   function hasPendingOrInFlight(parcelId) {
@@ -1050,6 +1136,7 @@ export function createParcelSyncCoordinator({
       rec.hasServerTs = true;
       rec.serverTs = incTs;
     }
+    syncClearHookRegistration();
   }
 
   function captureBaselineExpectedTs(parcelId, fallbackDecidedAt = "") {
@@ -1060,6 +1147,7 @@ export function createParcelSyncCoordinator({
       rec.hasServerTs = true;
       rec.serverTs = String(fallbackDecidedAt || "").trim();
     }
+    syncClearHookRegistration();
     return rec.serverTs;
   }
 
@@ -1099,7 +1187,7 @@ export function createParcelSyncCoordinator({
       toRec.pendingBatch = {
         baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
         rootReplacePid,
-        clearGen: existingTo ? existingTo.clearGen : priorFrom.clearGen,
+        sessionEpoch: existingTo ? existingTo.sessionEpoch : priorFrom.sessionEpoch,
         patchPayload: nextPatch,
       };
     }
@@ -1123,11 +1211,11 @@ export function createParcelSyncCoordinator({
     if (mergedPatch.replace_parcel_id === pid) {
       delete mergedPatch.replace_parcel_id;
     }
-    const batchClearGen = _authRetryClearGen;
+    const batchSessionEpoch = _authSessionEpoch;
     rec.pendingBatch = {
       baselineExpectedTs: prev ? prev.baselineExpectedTs : String(baselineExpectedTs || "").trim(),
       rootReplacePid,
-      clearGen: batchClearGen,
+      sessionEpoch: batchSessionEpoch,
       patchPayload: mergedPatch,
     };
     if (rec.timerId !== null) {
@@ -1136,19 +1224,21 @@ export function createParcelSyncCoordinator({
     }
     const capturedGen = generation;
     rec.timerId = scheduleTimer(async () => {
-      if (capturedGen !== generation || batchClearGen !== _authRetryClearGen) {
+      if (capturedGen !== generation || batchSessionEpoch !== _authSessionEpoch) {
         syncClearHookRegistration();
         return { ok: false, cancelled: true };
       }
       rec.timerId = null;
       const batch = rec.pendingBatch;
-      if (!batch || batch.clearGen !== _authRetryClearGen) {
+      if (!batch || batch.sessionEpoch !== _authSessionEpoch) {
         syncClearHookRegistration();
         return { ok: false, cancelled: true };
       }
       // Atomically transition pid from pendingBatch -> activeBatchTickets with zero microtask gap
       rec.pendingBatch = null;
       let retryCancelled = false;
+      const isBatchCancelled = () =>
+        capturedGen !== generation || retryCancelled || batch.sessionEpoch !== _authSessionEpoch;
       let settleBatchTicket;
       const batchTicket = {
         seq: _nextCausalSeq++,
@@ -1172,7 +1262,7 @@ export function createParcelSyncCoordinator({
       const finishBatchTicket = () => batchTicket.finish();
 
       const sendRpc = async () => {
-        if (capturedGen !== generation || retryCancelled || batch.clearGen !== _authRetryClearGen) {
+        if (isBatchCancelled()) {
           finishBatchTicket();
           return { ok: false, cancelled: true };
         }
@@ -1184,7 +1274,7 @@ export function createParcelSyncCoordinator({
           try {
             await blocking;
           } catch (_e) {}
-          if (capturedGen !== generation || retryCancelled || batch.clearGen !== _authRetryClearGen) {
+          if (isBatchCancelled()) {
             finishBatchTicket();
             return { ok: false, cancelled: true };
           }
@@ -1198,7 +1288,7 @@ export function createParcelSyncCoordinator({
             patch: batch.patchPayload,
             retryFn: sendRpc,
           });
-          if (capturedGen !== generation || retryCancelled || batch.clearGen !== _authRetryClearGen) {
+          if (isBatchCancelled()) {
             return res;
           }
           if (res && res.queuedForRetry) {
@@ -1208,6 +1298,11 @@ export function createParcelSyncCoordinator({
             const srvPid = String(res.decision.parcel_id).trim();
             const srvTs = String(res.decision.decided_at || "").trim();
             const lineageRoot = resolveLatestTargetPid(pid) || pid;
+            for (const [srcPid] of promotedTargetBySourcePid.entries()) {
+              if ((resolveLatestTargetPid(srcPid) || srcPid) === lineageRoot) {
+                committedPromotedSourcePids.add(srcPid);
+              }
+            }
             const targetKeys = new Set([
               srvPid,
               pid,
@@ -1252,15 +1347,7 @@ export function createParcelSyncCoordinator({
           }
           return res;
         } finally {
-          if (
-            !(
-              res &&
-              res.queuedForRetry &&
-              capturedGen === generation &&
-              !retryCancelled &&
-              batch.clearGen === _authRetryClearGen
-            )
-          ) {
+          if (!(res && res.queuedForRetry && !isBatchCancelled())) {
             finishBatchTicket();
           }
         }
@@ -1275,6 +1362,14 @@ export function createParcelSyncCoordinator({
               candRec.timerId = null;
             }
             candRec.pendingBatch = null;
+          }
+        }
+        for (const [srcPid] of Array.from(promotedTargetBySourcePid.entries())) {
+          if (
+            (resolveLatestTargetPid(srcPid) || srcPid) === rootTarget &&
+            !committedPromotedSourcePids.has(srcPid)
+          ) {
+            promotedTargetBySourcePid.delete(srcPid);
           }
         }
         const toCancel = [];
