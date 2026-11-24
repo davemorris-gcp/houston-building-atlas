@@ -6312,11 +6312,13 @@ test("UT-P1-SyncCoord-EvictedStandaloneEnqueueRestoresPriorCommittedPromotion: r
   assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
 });
 
-test("UT-P1-SyncCoord-IntermediateStandaloneSaveBypassesUpstreamMultiHopLineage: preserves upstream A->C resolution when intermediate B in committed A->B->C saves standalone", async (t) => {
+test("UT-P1-SyncCoord-IntermediateStandaloneSaveBypassesUpstreamMultiHopLineage: persists upstream A->C in committed lineage when intermediate B saves standalone", async (t) => {
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
-  const { timers, coord } = createLineageCoordinatorTestRig(t);
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: (callNum) => (callNum === 3 ? { ok: false, status: 500 } : null),
+  });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
   coord.promoteParcelKey(LOT_B, PARISH_C, "");
@@ -6324,38 +6326,68 @@ test("UT-P1-SyncCoord-IntermediateStandaloneSaveBypassesUpstreamMultiHopLineage:
   await timers.popNextTimer()();
   coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
   await timers.popNextTimer()();
+  coord.enqueue(PARCEL_A, { screening_notes: "Failing standalone A" }, "");
+  const failedRes = await timers.popNextTimer()();
 
+  assert.equal(failedRes.ok, false);
   assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
   assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
 });
 
-test("UT-P1-SyncCoord-PromotionConflictSettlesTicketRollsBackLineageAndUpdatesSourceTimestamp: settles ticket, rolls back A->B promotion, and updates source timestamp before invoking onConflict", async (t) => {
+test("UT-P1-SyncCoord-PromotionConflictSettlesTicketRollsBackLineageAndUpdatesSourceTimestamp: settles ticket, clears uncreated target timestamp, and sends subsequent older parcel baseline on follow-up promotion", async (t) => {
   const PARCEL_A = "0420010000001";
+  const PARCEL_Z = "0420010000099";
   const LOT_B = "CAMPUS:LOT_B";
   const INITIAL_TS = "2026-11-24T00:00:00.000Z";
-  const CONFLICT_TS = "2026-11-24T01:00:00.000Z";
+  const OLDER_Z_TS = "2026-11-24T01:00:00.000Z";
+  const CONFLICT_TS = "2026-11-24T06:00:00.000Z";
+  const seenRequests = [];
   let stateDuringConflict = null;
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async () => ({
-      ok: true,
-      json: async () => ({
-        ok: false,
-        conflict: true,
-        currentDecision: { parcel_id: PARCEL_A, decided_at: CONFLICT_TS },
-      }),
-    }),
+    onFetchParcel: async (callNum, parsed) => {
+      seenRequests.push(parsed);
+      if (callNum === 1) {
+        return {
+          ok: true,
+          json: async () => ({
+            ok: false,
+            conflict: true,
+            currentDecision: { parcel_id: PARCEL_A, decided_at: CONFLICT_TS },
+          }),
+        };
+      }
+      if (callNum === 3) {
+        return {
+          ok: true,
+          json: async () => ({
+            ok: false,
+            conflict: true,
+            currentDecision: { parcel_id: LOT_B, decided_at: "   " },
+          }),
+        };
+      }
+      return null;
+    },
     onConflict: () => {
-      stateDuringConflict = {
-        pendingA: coord.hasPendingOrInFlight(PARCEL_A),
-        pendingB: coord.hasPendingOrInFlight(LOT_B),
-        targetA: coord.getPromotedTarget(PARCEL_A),
-        serverTsA: coord.getServerTimestamp(PARCEL_A),
-      };
+      if (!stateDuringConflict) {
+        stateDuringConflict = {
+          pendingA: coord.hasPendingOrInFlight(PARCEL_A),
+          pendingB: coord.hasPendingOrInFlight(LOT_B),
+          targetA: coord.getPromotedTarget(PARCEL_A),
+          serverTsA: coord.getServerTimestamp(PARCEL_A),
+          serverTsB: coord.getServerTimestamp(LOT_B),
+        };
+      }
     },
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, INITIAL_TS);
   coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Conflicting A->B" }, INITIAL_TS);
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(PARCEL_Z, LOT_B, OLDER_Z_TS);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_Z, screening_notes: "Valid Z->B" }, OLDER_Z_TS);
+  await timers.popNextTimer()();
+  coord.enqueue(LOT_B, { screening_notes: "Deleted row conflict" }, OLDER_Z_TS);
   await timers.popNextTimer()();
 
   assert.deepEqual(stateDuringConflict, {
@@ -6363,7 +6395,10 @@ test("UT-P1-SyncCoord-PromotionConflictSettlesTicketRollsBackLineageAndUpdatesSo
     pendingB: false,
     targetA: PARCEL_A,
     serverTsA: CONFLICT_TS,
+    serverTsB: "",
   });
+  assert.equal(seenRequests[1].expected_updated_at, OLDER_Z_TS);
+  assert.equal(coord.getServerTimestamp(LOT_B), "");
 });
 
 test("UT-P1-SyncCoord-DebouncedDetachedSourceReportsPendingForNewUpstreamParcel: reports hasPendingOrInFlight for Z->A while detached A->C batch is still in its debounce window", (t) => {
@@ -6394,4 +6429,97 @@ test("UT-P1-SyncCoord-FailedStandaloneRpcRestoresPriorCommittedEdge: restores co
 
   assert.equal(failedRes.ok, false);
   assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
+});
+
+test("UT-P1-SyncCoord-DetachedUncommittedMultiHopRevertsToCommittedIntermediateOnFailure: reverts bypassed A->C edge back to committed B when B->C fails after standalone B detach", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: (callNum) => (callNum === 2 ? { ok: false, status: 500 } : null),
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "Failing B->C" }, "");
+  const batchCPromise = timers.popNextTimer()();
+  coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
+  const batchBPromise = timers.popNextTimer()();
+  const [resC, resB] = await Promise.all([batchCPromise, batchBPromise]);
+
+  assert.equal(resC.ok, false);
+  assert.equal(resB.ok, true);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+});
+
+test("UT-P1-SyncCoord-UnenqueuedStagedPromotionDoesNotBypassUpstreamCommittedEdge: keeps committed A->B edge when un-enqueued promoteParcelKey(B, C) is abandoned by standalone B save", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const { timers, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
+  await timers.popNextTimer()();
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+});
+
+test("UT-P1-SyncCoord-RetargetedReversePromotionRestoresDetachedCommittedEdgeOnCommit: restores detached A->B committed edge when uncommitted reverse C->A is retargeted to C->D and commits", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const { timers, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B->C" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(PARISH_C, PARCEL_A, "");
+  coord.promoteParcelKey(PARISH_C, NEW_D, "");
+  const targetRightAfterRetarget = coord.getPromotedTarget(PARCEL_A);
+  coord.enqueue(NEW_D, { replace_parcel_id: PARISH_C, screening_notes: "Commit C->D" }, "");
+  await timers.popNextTimer()();
+
+  assert.equal(targetRightAfterRetarget, NEW_D);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), NEW_D);
+});
+
+test("UT-P1-SyncCoord-OnSuccessDetectsDetachedTouchedPidsFollowUpBatch: reports hasNewerPendingEdit true on B when detached B->C batch still overlaps B via touchedPids", async (t) => {
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const batch1Gate = createDeferred();
+  const successEvents = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (callNum) => {
+      if (callNum === 1) await batch1Gate.promise;
+      return null;
+    },
+    onSuccess: (_res, meta) => successEvents.push(meta),
+  });
+
+  coord.enqueue(LOT_B, { screening_notes: "In-flight B" }, "");
+  const batch1Promise = timers.popNextTimer()();
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "Follow-up B->C" }, "");
+  coord.promoteParcelKey(ANNEX_Z, LOT_B, "");
+  batch1Gate.resolve();
+  await batch1Promise;
+  const pendingOnBAfterBatch1 = coord.hasPendingOrInFlight(LOT_B);
+  await timers.popNextTimer()();
+
+  assert.equal(pendingOnBAfterBatch1, true);
+  assert.deepEqual(successEvents[0], {
+    hasNewerPendingEdit: true,
+    supersededByParcelId: "",
+  });
 });
