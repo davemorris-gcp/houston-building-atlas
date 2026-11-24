@@ -5512,10 +5512,9 @@ test("UT-P1-AuthClient-ExplicitUnauthorizedSessionRejectedAcrossEntryPoints: rej
   assert.equal(pullRes.signedOut, true);
 });
 
-test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: restores intermediate A->B edge in committed A->B->C chain when uncommitted C->A then C->D promotions are evicted", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
+function createLineageCoordinatorTestRig(t, { onFetchParcel = null, getSession = null } = {}) {
   const timers = createManualTimerQueue();
+  let callNum = 0;
   const store = createMemoryStorage({
     [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
       email: "staff.a@preservation.example.org",
@@ -5532,28 +5531,44 @@ test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: res
         webhookUrl: "https://example.org/exec",
         action: "upsert_parcel_decision",
         body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
+        session: getSession ? getSession() : null,
         localStore: store,
         retryFn,
         fetchImpl: async (_url, init) => {
+          callNum += 1;
           const parsed = JSON.parse(init.body);
+          if (onFetchParcel) await onFetchParcel(callNum, parsed);
           return {
             ok: true,
             json: async () => ({
               ok: true,
               parcel: { parcel_id: parsed.parcel_id },
-              decision: { parcel_id: parsed.parcel_id, decided_at: "2026-11-23T23:30:00.000Z" },
+              decision: {
+                parcel_id: parsed.parcel_id,
+                decided_at: `2026-11-24T02:00:0${callNum}.000Z`,
+              },
             }),
           };
         },
       }),
   });
   t.after(() => coord.clearAll());
+  return { timers, store, coord };
+}
 
-  coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
-  coord.promoteParcelKey("CAMPUS:LOT_B", "CAMPUS:PARISH_C", "");
-  coord.enqueue("CAMPUS:PARISH_C", { screening_notes: "Committed A->B->C" }, "");
+test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: restores intermediate A->B edge in committed A->B->C chain when uncommitted C->A then C->D promotions are evicted", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { screening_notes: "Committed A->B->C" }, "");
   await timers.popNextTimer()();
-
   store.setItem(
     LS_ADMIN_SESSION_KEY,
     makeSerializedSession({
@@ -5562,18 +5577,18 @@ test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: res
       expOffsetSec: -120,
     })
   );
-  coord.promoteParcelKey("CAMPUS:PARISH_C", "0420010000001", "");
-  coord.promoteParcelKey("CAMPUS:PARISH_C", "CAMPUS:NEW_D", "");
-  coord.enqueue("CAMPUS:NEW_D", { screening_notes: "Uncommitted C->D" }, "");
+  coord.promoteParcelKey(PARISH_C, PARCEL_A, "");
+  coord.promoteParcelKey(PARISH_C, NEW_D, "");
+  coord.enqueue(NEW_D, { screening_notes: "Uncommitted C->D" }, "");
   await timers.popNextTimer()();
   await replayPendingAuthRetries({
     session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
     localStore: null,
   });
 
-  assert.equal(coord.getPromotedTarget("0420010000001"), "CAMPUS:PARISH_C");
-  assert.equal(coord.getPromotedTarget("CAMPUS:LOT_B"), "CAMPUS:PARISH_C");
-  assert.equal(coord.getPromotedTarget("CAMPUS:PARISH_C"), "CAMPUS:PARISH_C");
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+  assert.equal(coord.getPromotedTarget(LOT_B), PARISH_C);
+  assert.equal(coord.getPromotedTarget(PARISH_C), PARISH_C);
 });
 
 test("UT-P1-AuthClient-PurgeInfersActiveScreenerRole: evicts leftover Staff_Only cache when preserveRole is omitted and active session is Screener", (t) => {
@@ -5798,57 +5813,22 @@ test("UT-P1-AuthClient-SaveCacheEmptyAndUnknownRoleFailsClosed: defaults empty o
 test("UT-P1-SyncCoord-ReverseMergeWithConcurrentPromotionRemainsAcyclic: keeps committed and promoted lineage cycle-free when reverse B->A commits during uncommitted A->D promotion", async (t) => {
   clearPendingAuthRetries();
   t.after(() => clearPendingAuthRetries());
-  const timers = createManualTimerQueue();
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const NEW_D = "CAMPUS:NEW_D";
   const batch2Gate = createDeferred();
-  let callNum = 0;
-  const store = createMemoryStorage({
-    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
-      email: "staff.a@preservation.example.org",
-      role: "staff",
-      expOffsetSec: 3600,
-    }),
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (callNum) => {
+      if (callNum === 2) await batch2Gate.promise;
+    },
   });
-  const coord = createParcelSyncCoordinator({
-    debounceMs: 650,
-    scheduleTimer: timers.scheduleTimer,
-    cancelTimer: timers.cancelTimer,
-    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
-      await callMonitoringRpc({
-        webhookUrl: "https://example.org/exec",
-        action: "upsert_parcel_decision",
-        body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
-        localStore: store,
-        retryFn,
-        fetchImpl: async (_url, init) => {
-          callNum += 1;
-          const parsed = JSON.parse(init.body);
-          if (callNum === 2) {
-            await batch2Gate.promise;
-          }
-          return {
-            ok: true,
-            json: async () => ({
-              ok: true,
-              parcel: { parcel_id: parsed.parcel_id },
-              decision: {
-                parcel_id: parsed.parcel_id,
-                decided_at: `2026-11-24T01:10:0${callNum}.000Z`,
-              },
-            }),
-          };
-        },
-      }),
-  });
-  t.after(() => coord.clearAll());
 
-  coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
-  coord.enqueue("CAMPUS:LOT_B", { screening_notes: "Commit 1 A->B" }, "");
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { screening_notes: "Commit 1 A->B" }, "");
   await timers.popNextTimer()();
-
-  coord.promoteParcelKey("CAMPUS:LOT_B", "0420010000001", "");
-  coord.enqueue("0420010000001", { screening_notes: "Batch 2 reverse B->A" }, "");
+  coord.promoteParcelKey(LOT_B, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { screening_notes: "Batch 2 reverse B->A" }, "");
   const batch2Promise = timers.popNextTimer()();
-
   store.setItem(
     LS_ADMIN_SESSION_KEY,
     makeSerializedSession({
@@ -5857,12 +5837,11 @@ test("UT-P1-SyncCoord-ReverseMergeWithConcurrentPromotionRemainsAcyclic: keeps c
       expOffsetSec: -120,
     })
   );
-  coord.promoteParcelKey("0420010000001", "CAMPUS:NEW_D", "");
-  coord.enqueue("CAMPUS:NEW_D", { screening_notes: "Batch 3 uncommitted A->D" }, "");
+  coord.promoteParcelKey(PARCEL_A, NEW_D, "");
+  coord.enqueue(NEW_D, { screening_notes: "Batch 3 uncommitted A->D" }, "");
   // Batch 3 serializes behind in-flight Batch 2 via getBlockingTicketPromise; resolve Batch 2
   // while store remains expired so Batch 2 commits B->A and unblocked Batch 3 queues for retry.
   const batch3Promise = timers.popNextTimer()();
-
   batch2Gate.resolve();
   await Promise.all([batch2Promise, batch3Promise]);
   await replayPendingAuthRetries({
@@ -5870,8 +5849,8 @@ test("UT-P1-SyncCoord-ReverseMergeWithConcurrentPromotionRemainsAcyclic: keeps c
     localStore: null,
   });
 
-  assert.equal(coord.getPromotedTarget("CAMPUS:LOT_B"), "0420010000001");
-  assert.equal(coord.getPromotedTarget("0420010000001"), "0420010000001");
+  assert.equal(coord.getPromotedTarget(LOT_B), PARCEL_A);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARCEL_A);
 });
 
 test("UT-P1-AuthClient-ExplicitStaffPullDowngradeCancelsCoordinatorBatch: cancels active Staff coordinator batches when explicit-session pull observes server-side Screener downgrade", async (t) => {
@@ -5985,54 +5964,19 @@ test("UT-P1-AuthClient-StaffPullPaddedAndWhitespaceRoleNormalized: normalizes pa
 test("UT-P1-SyncCoord-ChainedReverseAndForwardPromotionPersistsAllHops: preserves reverse B->A hop across chained B->A->C commit when subsequent C->D promotion is evicted", async (t) => {
   clearPendingAuthRetries();
   t.after(() => clearPendingAuthRetries());
-  const timers = createManualTimerQueue();
-  let callNum = 0;
-  const store = createMemoryStorage({
-    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
-      email: "staff.a@preservation.example.org",
-      role: "staff",
-      expOffsetSec: 3600,
-    }),
-  });
-  const coord = createParcelSyncCoordinator({
-    debounceMs: 650,
-    scheduleTimer: timers.scheduleTimer,
-    cancelTimer: timers.cancelTimer,
-    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
-      await callMonitoringRpc({
-        webhookUrl: "https://example.org/exec",
-        action: "upsert_parcel_decision",
-        body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
-        localStore: store,
-        retryFn,
-        fetchImpl: async (_url, init) => {
-          callNum += 1;
-          const parsed = JSON.parse(init.body);
-          return {
-            ok: true,
-            json: async () => ({
-              ok: true,
-              parcel: { parcel_id: parsed.parcel_id },
-              decision: {
-                parcel_id: parsed.parcel_id,
-                decided_at: `2026-11-24T02:00:0${callNum}.000Z`,
-              },
-            }),
-          };
-        },
-      }),
-  });
-  t.after(() => coord.clearAll());
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t);
 
-  coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
-  coord.enqueue("CAMPUS:LOT_B", { screening_notes: "Commit 1 A->B" }, "");
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { screening_notes: "Commit 1 A->B" }, "");
   await timers.popNextTimer()();
-
-  coord.promoteParcelKey("CAMPUS:LOT_B", "0420010000001", "");
-  coord.promoteParcelKey("0420010000001", "CAMPUS:PARISH_C", "");
-  coord.enqueue("CAMPUS:PARISH_C", { screening_notes: "Commit 2 B->A->C" }, "");
+  coord.promoteParcelKey(LOT_B, PARCEL_A, "");
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, "");
+  coord.enqueue(PARISH_C, { screening_notes: "Commit 2 B->A->C" }, "");
   await timers.popNextTimer()();
-
   store.setItem(
     LS_ADMIN_SESSION_KEY,
     makeSerializedSession({
@@ -6041,15 +5985,199 @@ test("UT-P1-SyncCoord-ChainedReverseAndForwardPromotionPersistsAllHops: preserve
       expOffsetSec: -120,
     })
   );
-  coord.promoteParcelKey("CAMPUS:PARISH_C", "CAMPUS:NEW_D", "");
-  coord.enqueue("CAMPUS:NEW_D", { screening_notes: "Uncommitted C->D" }, "");
+  coord.promoteParcelKey(PARISH_C, NEW_D, "");
+  coord.enqueue(NEW_D, { screening_notes: "Uncommitted C->D" }, "");
   await timers.popNextTimer()();
   await replayPendingAuthRetries({
     session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
     localStore: null,
   });
 
-  assert.equal(coord.getPromotedTarget("CAMPUS:LOT_B"), "CAMPUS:PARISH_C");
-  assert.equal(coord.getPromotedTarget("0420010000001"), "CAMPUS:PARISH_C");
-  assert.equal(coord.getPromotedTarget("CAMPUS:PARISH_C"), "CAMPUS:PARISH_C");
+  assert.equal(coord.getPromotedTarget(LOT_B), PARISH_C);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+  assert.equal(coord.getPromotedTarget(PARISH_C), PARISH_C);
+});
+
+test("UT-P1-SyncCoord-InFlightCommitSurvivesConcurrentReverseOverwrite: restores server-committed A->C hop when concurrent uncommitted C->A->D overwrite is evicted", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const PARCEL_A = "0420010000001";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const NEW_D = "CAMPUS:NEW_D";
+  const batch1Gate = createDeferred();
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (callNum) => {
+      if (callNum === 1) await batch1Gate.promise;
+    },
+  });
+
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, "");
+  coord.enqueue(PARISH_C, { screening_notes: "In-flight Batch 1 A->C" }, "");
+  const batch1Promise = timers.popNextTimer()();
+  store.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: -120,
+    })
+  );
+  coord.promoteParcelKey(PARISH_C, PARCEL_A, "");
+  coord.promoteParcelKey(PARCEL_A, NEW_D, "");
+  coord.enqueue(NEW_D, { screening_notes: "Batch 2 uncommitted C->A->D" }, "");
+  const batch2Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  await Promise.all([batch1Promise, batch2Promise]);
+  await replayPendingAuthRetries({
+    session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
+    localStore: null,
+  });
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+  assert.equal(coord.getPromotedTarget(PARISH_C), PARISH_C);
+});
+
+test("UT-P1-SyncCoord-UnrelatedInFlightBatchDoesNotCommitBridgedUnsentHop: does not commit unsent A->B hop when post-batch uncommitted B->C bridges into in-flight C", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const batch1Gate = createDeferred();
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (callNum) => {
+      if (callNum === 1) await batch1Gate.promise;
+    },
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(PARISH_C, { screening_notes: "Standalone Batch 1 on C" }, "");
+  const batch1Promise = timers.popNextTimer()();
+  store.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: -120,
+    })
+  );
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { screening_notes: "Uncommitted Batch 2 bridging B->C" }, "");
+  const batch2Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  await Promise.all([batch1Promise, batch2Promise]);
+  await replayPendingAuthRetries({
+    session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
+    localStore: null,
+  });
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARCEL_A);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+});
+
+test("UT-P1-SyncCoord-ForeignEvictionDoesNotReattachActiveParcelCommittedEdge: keeps active reverse target A standalone when evicting an unrelated foreign retry", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const OTHER_X = "0420010000098";
+  const OTHER_Y = "CAMPUS:OTHER_Y";
+  let explicitSession = null;
+  const { timers, store, coord } = createLineageCoordinatorTestRig(t, {
+    getSession: () => explicitSession,
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { screening_notes: "Staff A commits A->B" }, "");
+  await timers.popNextTimer()();
+  explicitSession = JSON.parse(
+    makeSerializedSession({
+      email: "bob@preservation.example.org",
+      role: "staff",
+      expOffsetSec: -120,
+    })
+  );
+  coord.promoteParcelKey(OTHER_X, OTHER_Y, "");
+  coord.enqueue(OTHER_Y, { screening_notes: "Bob expired retry X->Y" }, "");
+  await timers.popNextTimer()();
+  explicitSession = null;
+  coord.promoteParcelKey(ANNEX_Z, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { screening_notes: "Staff A active Z->A" }, "");
+  await replayPendingAuthRetries({ localStore: store });
+  await timers.popNextTimer()();
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARCEL_A);
+  assert.equal(coord.getPromotedTarget(ANNEX_Z), PARCEL_A);
+  assert.equal(coord.getPromotedTarget(OTHER_X), OTHER_X);
+});
+
+test("UT-P1-AuthClient-AmbientDefaultStoresReconcileMidFlightDivergence: evicts mirrored ambient sessionStorage and cancels 200 OK RPC when ambient localStorage diverges mid-flight", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const hadAmbientLocal = Object.prototype.hasOwnProperty.call(globalThis, "localStorage");
+  const prevAmbientLocal = globalThis.localStorage;
+  const hadAmbientSession = Object.prototype.hasOwnProperty.call(globalThis, "sessionStorage");
+  const prevAmbientSession = globalThis.sessionStorage;
+  const staffSerialized = makeSerializedSession({
+    email: "staff.a@preservation.example.org",
+    role: "staff",
+    expOffsetSec: 3600,
+  });
+  const ambientLocal = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+  const ambientSession = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: ambientLocal,
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(globalThis, "sessionStorage", {
+    value: ambientSession,
+    configurable: true,
+    writable: true,
+  });
+  t.after(() => {
+    if (hadAmbientLocal) {
+      Object.defineProperty(globalThis, "localStorage", {
+        value: prevAmbientLocal,
+        configurable: true,
+        writable: true,
+      });
+    } else {
+      delete globalThis.localStorage;
+    }
+    if (hadAmbientSession) {
+      Object.defineProperty(globalThis, "sessionStorage", {
+        value: prevAmbientSession,
+        configurable: true,
+        writable: true,
+      });
+    } else {
+      delete globalThis.sessionStorage;
+    }
+  });
+  const rpcGate = createDeferred();
+
+  const rpcPromise = callMonitoringRpc({
+    webhookUrl: "https://example.org/exec",
+    action: "list_pending_moderation",
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => await rpcGate.promise,
+    }),
+  });
+  ambientLocal.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "screener@preservation.example.org",
+      role: "screener",
+      expOffsetSec: 3600,
+    })
+  );
+  rpcGate.resolve({ ok: true, items: [{ row_index: 2, secret_note: "STAFF_ONLY" }] });
+  const rpcRes = await rpcPromise;
+
+  assert.equal(rpcRes.ok, false);
+  assert.equal(rpcRes.cancelled, true);
+  assert.equal(ambientSession.getItem(LS_ADMIN_SESSION_KEY), null);
 });

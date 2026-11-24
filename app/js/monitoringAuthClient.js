@@ -785,10 +785,11 @@ export async function replayPendingAuthRetries(opts = {}) {
   return results;
 }
 
-function captureInFlightSessionGuard(activeSession, explicitSession, storeOpts = {}) {
+function captureInFlightSessionGuard(activeSession, explicitSession, opts = {}) {
   const capturedEpoch = _authSessionEpoch;
   const ownerIdentity = getSessionIdentityKey(activeSession);
-  const { localStore = null, sessionStore = null } = storeOpts;
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
+  const storeOpts = { localStore, sessionStore };
   const effectiveAtStart = explicitSession
     ? readActiveMonitoringSession(storeOpts)
     : activeSession;
@@ -804,12 +805,13 @@ function captureInFlightSessionGuard(activeSession, explicitSession, storeOpts =
       getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity
   );
   const reconcileDivergence = () => {
+    if (!backedByLocal) return false;
     // Microtask continuations resume before the browser's queued cross-tab `storage` macrotask;
     // evict the stale mirrored sessionStore copy and advance `_authSessionEpoch` now, but do NOT
     // call `notifySameTabSyncHooks` so `subscribeCrossTabAuthChanges` still observes the
     // `lastActiveIdentity !== nextActiveIdentity` transition when the `storage` event fires.
-    const localLatest = readSessionFromStore(localStore);
-    const diverged = backedByLocal && getSessionIdentityKey(localLatest) !== ownerIdentity;
+    const diverged =
+      getSessionIdentityKey(readSessionFromStore(localStore)) !== ownerIdentity;
     if (
       diverged &&
       sessionStore &&
@@ -832,14 +834,8 @@ function captureInFlightSessionGuard(activeSession, explicitSession, storeOpts =
     }
     if (!activeSession) return true;
     if (sessionBackedByStore) {
-      if (getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) !== ownerIdentity) {
-        reconcileDivergence();
-        return false;
-      }
-      if (reconcileDivergence()) {
-        return false;
-      }
-      return true;
+      if (reconcileDivergence()) return false;
+      return getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) === ownerIdentity;
     }
     return Boolean(explicitSession && explicitSession.authorized);
   };
@@ -1234,7 +1230,7 @@ export function createParcelSyncCoordinator({
 
   const recordsByParcelId = new Map();
   const promotedEdgeBySourcePid = new Map();
-  const committedTargetBySourcePid = new Map();
+  const committedLineageByPid = new Map();
   const activeBatchTickets = new Set();
   let generation = 0;
 
@@ -1260,59 +1256,53 @@ export function createParcelSyncCoordinator({
   }
 
   function committedPathReaches(startPid, goalPid) {
-    return lineagePathReaches(startPid, goalPid, (cur) => committedTargetBySourcePid.get(cur));
+    return lineagePathReaches(
+      startPid,
+      goalPid,
+      (cur) => committedLineageByPid.get(cur)?.targetPid
+    );
   }
 
-  function commitLineageEdgesBeforeSeq(pid, srvPid, maxCausalSeq) {
-    const srvOutEdge = promotedEdgeBySourcePid.get(srvPid);
-    if (!srvOutEdge || srvOutEdge.seq >= maxCausalSeq) {
-      committedTargetBySourcePid.delete(srvPid);
+  function promotionPathReaches(startPid, goalPid) {
+    return lineagePathReaches(
+      startPid,
+      goalPid,
+      (cur) => promotedEdgeBySourcePid.get(cur)?.targetPid
+    );
+  }
+
+  function promotionPathReachesBeforeSeq(startPid, goalPid, maxCausalSeq) {
+    return lineagePathReaches(startPid, goalPid, (cur) => {
+      const nextEdge = promotedEdgeBySourcePid.get(cur);
+      return nextEdge && nextEdge.seq < maxCausalSeq ? nextEdge.targetPid : "";
+    });
+  }
+
+  function resolveLatestTargetPid(startPid) {
+    let cur = String(startPid || "").trim();
+    const seen = new Set();
+    while (cur && promotedEdgeBySourcePid.has(cur) && !seen.has(cur)) {
+      seen.add(cur);
+      cur = promotedEdgeBySourcePid.get(cur).targetPid;
     }
-    const eligibleEdges = [];
+    return cur;
+  }
+
+  function snapshotLineageEdges(targetPid, maxCausalSeq) {
+    const snapshot = [];
     for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
       if (
         edge.seq < maxCausalSeq &&
-        (promotionPathReaches(edge.targetPid, srvPid) ||
-          promotionPathReaches(edge.targetPid, pid))
+        promotionPathReachesBeforeSeq(edge.targetPid, targetPid, maxCausalSeq)
       ) {
-        eligibleEdges.push([srcPid, edge.targetPid]);
+        snapshot.push([srcPid, edge.targetPid]);
       }
     }
-    for (const [srcPid] of eligibleEdges) {
-      committedTargetBySourcePid.delete(srcPid);
-    }
-    for (const [srcPid, targetPid] of eligibleEdges) {
-      if (!committedPathReaches(targetPid, srcPid)) {
-        committedTargetBySourcePid.set(srcPid, targetPid);
-      }
-    }
+    return snapshot;
   }
 
-  function rollbackUncommittedLineageEdges(rootTarget) {
-    const uncommittedSources = [];
-    for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
-      if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
-        const committedTarget = committedTargetBySourcePid.get(srcPid) || "";
-        if (committedTarget !== edge.targetPid) {
-          uncommittedSources.push(srcPid);
-        }
-      }
-    }
-    for (const srcPid of uncommittedSources) {
-      deletePromotedEdge(srcPid);
-    }
-    // Restore server-committed edges evicted above (or cleared earlier by `promoteParcelKey(..., toPid)`)
-    // whenever doing so keeps the active promotion graph cycle-free.
-    for (const [srcPid, committedTarget] of committedTargetBySourcePid.entries()) {
-      if (
-        committedTarget &&
-        committedTarget !== srcPid &&
-        !promotedEdgeBySourcePid.has(srcPid) &&
-        !promotionPathReaches(committedTarget, srcPid)
-      ) {
-        setPromotedEdge(srcPid, committedTarget, COMMITTED_EDGE_SEQ);
-      }
-    }
+  function getPromotedTarget(parcelId) {
+    return resolveLatestTargetPid(parcelId);
   }
 
   function getOrCreateRecord(pid) {
@@ -1329,28 +1319,6 @@ export function createParcelSyncCoordinator({
     return rec;
   }
 
-  function resolveLatestTargetPid(startPid) {
-    let cur = String(startPid || "").trim();
-    const seen = new Set();
-    while (cur && promotedEdgeBySourcePid.has(cur) && !seen.has(cur)) {
-      seen.add(cur);
-      cur = promotedEdgeBySourcePid.get(cur).targetPid;
-    }
-    return cur;
-  }
-
-  function promotionPathReaches(startPid, goalPid) {
-    return lineagePathReaches(
-      startPid,
-      goalPid,
-      (cur) => promotedEdgeBySourcePid.get(cur)?.targetPid
-    );
-  }
-
-  function getPromotedTarget(parcelId) {
-    return resolveLatestTargetPid(parcelId);
-  }
-
   function hasActiveTicket(pid) {
     for (const t of activeBatchTickets) {
       if (t.pid === pid) return true;
@@ -1361,6 +1329,19 @@ export function createParcelSyncCoordinator({
   function hasOwnActive(pid) {
     const rec = recordsByParcelId.get(pid);
     return Boolean((rec && rec.pendingBatch) || hasActiveTicket(pid));
+  }
+
+  function hasPendingOrInFlight(parcelId) {
+    const pid = String(parcelId || "").trim();
+    if (!pid) return false;
+    const targetPid = resolveLatestTargetPid(pid) || pid;
+    if (hasOwnActive(pid) || hasOwnActive(targetPid)) return true;
+    for (const srcPid of promotedEdgeBySourcePid.keys()) {
+      if ((resolveLatestTargetPid(srcPid) || srcPid) === targetPid && hasOwnActive(srcPid)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function getBlockingTicketPromise(pid, maxSeq = Infinity) {
@@ -1383,12 +1364,90 @@ export function createParcelSyncCoordinator({
     return false;
   }
 
+  function commitLineageEdgesBeforeSeq(pid, srvPid, maxCausalSeq, batchLineageEdges = []) {
+    const eligibleBySrc = new Map(batchLineageEdges);
+    if (srvPid && srvPid !== pid) {
+      for (const [srcPid, targetPid] of snapshotLineageEdges(srvPid, maxCausalSeq)) {
+        eligibleBySrc.set(srcPid, targetPid);
+      }
+    }
+    eligibleBySrc.delete(srvPid);
+    const nextTargetByPid = new Map();
+    for (const [srcPid, targetPid] of eligibleBySrc.entries()) {
+      if (
+        srcPid &&
+        targetPid &&
+        srcPid !== targetPid &&
+        (committedLineageByPid.get(srcPid)?.seq || 0) < maxCausalSeq
+      ) {
+        nextTargetByPid.set(srcPid, targetPid);
+      }
+    }
+    const srvOutEdge = srvPid ? promotedEdgeBySourcePid.get(srvPid) : null;
+    if (
+      srvPid &&
+      (!srvOutEdge || srvOutEdge.seq >= maxCausalSeq) &&
+      (committedLineageByPid.get(srvPid)?.seq || 0) < maxCausalSeq
+    ) {
+      nextTargetByPid.set(srvPid, "");
+    }
+    if (pid && pid !== srvPid && !eligibleBySrc.has(pid)) {
+      const pidOutEdge = promotedEdgeBySourcePid.get(pid);
+      if (
+        (!pidOutEdge || pidOutEdge.seq >= maxCausalSeq) &&
+        (committedLineageByPid.get(pid)?.seq || 0) < maxCausalSeq
+      ) {
+        nextTargetByPid.set(pid, "");
+      }
+    }
+    // Clear stale outgoing targets for all updated nodes before checking cycle-freedom:
+    // `Map` iterates in insertion order rather than topological order, so updating in a
+    // single pass would reject reversed hops (e.g. B->A->C after prior A->B) as false cycles
+    // against pre-batch committed edges that this commit is overwriting.
+    for (const nodePid of nextTargetByPid.keys()) {
+      committedLineageByPid.set(nodePid, { targetPid: "", seq: maxCausalSeq });
+    }
+    for (const [srcPid, targetPid] of nextTargetByPid.entries()) {
+      if (targetPid && !committedPathReaches(targetPid, srcPid)) {
+        committedLineageByPid.set(srcPid, { targetPid, seq: maxCausalSeq });
+      }
+    }
+  }
+
+  function rollbackUncommittedLineageEdges(rootTarget) {
+    const uncommittedSources = [];
+    for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
+      if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
+        const committedTarget = committedLineageByPid.get(srcPid)?.targetPid || "";
+        if (committedTarget !== edge.targetPid) {
+          uncommittedSources.push(srcPid);
+        }
+      }
+    }
+    for (const srcPid of uncommittedSources) {
+      deletePromotedEdge(srcPid);
+    }
+    // Restore server-committed edges evicted above (or cleared earlier by `promoteParcelKey(..., toPid)`)
+    // whenever the source parcel has no active pending/in-flight batch and restoring keeps the graph cycle-free.
+    for (const [srcPid, { targetPid: committedTarget }] of committedLineageByPid.entries()) {
+      if (
+        committedTarget &&
+        committedTarget !== srcPid &&
+        !promotedEdgeBySourcePid.has(srcPid) &&
+        !hasPendingOrInFlight(srcPid) &&
+        !promotionPathReaches(committedTarget, srcPid)
+      ) {
+        setPromotedEdge(srcPid, committedTarget, COMMITTED_EDGE_SEQ);
+      }
+    }
+  }
+
   function hasAnyCoordinatorState() {
     return (
       activeBatchTickets.size > 0 ||
       recordsByParcelId.size > 0 ||
       promotedEdgeBySourcePid.size > 0 ||
-      committedTargetBySourcePid.size > 0
+      committedLineageByPid.size > 0
     );
   }
 
@@ -1419,21 +1478,8 @@ export function createParcelSyncCoordinator({
     }
     recordsByParcelId.clear();
     promotedEdgeBySourcePid.clear();
-    committedTargetBySourcePid.clear();
+    committedLineageByPid.clear();
     _activeCoordinatorClearHooks.delete(clearAll);
-  }
-
-  function hasPendingOrInFlight(parcelId) {
-    const pid = String(parcelId || "").trim();
-    if (!pid) return false;
-    const targetPid = resolveLatestTargetPid(pid) || pid;
-    if (hasOwnActive(pid) || hasOwnActive(targetPid)) return true;
-    for (const srcPid of promotedEdgeBySourcePid.keys()) {
-      if ((resolveLatestTargetPid(srcPid) || srcPid) === targetPid && hasOwnActive(srcPid)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   function getServerTimestamp(parcelId) {
@@ -1506,13 +1552,19 @@ export function createParcelSyncCoordinator({
       if (nextPatch.replace_parcel_id === toPid) {
         delete nextPatch.replace_parcel_id;
       }
+      const batchCausalSeq = _nextCausalSeq++;
       toRec.pendingBatch = {
         baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
         rootReplacePid,
         sessionEpoch: existingTo ? existingTo.sessionEpoch : priorFrom.sessionEpoch,
-        causalSeq: _nextCausalSeq++,
+        causalSeq: batchCausalSeq,
+        lineageEdges: snapshotLineageEdges(toPid, batchCausalSeq),
         patchPayload: nextPatch,
       };
+    } else if (toRec.pendingBatch) {
+      const batchCausalSeq = _nextCausalSeq++;
+      toRec.pendingBatch.causalSeq = batchCausalSeq;
+      toRec.pendingBatch.lineageEdges = snapshotLineageEdges(toPid, batchCausalSeq);
     }
     syncClearHookRegistration();
     return toRec.serverTs;
@@ -1535,11 +1587,13 @@ export function createParcelSyncCoordinator({
       delete mergedPatch.replace_parcel_id;
     }
     const batchSessionEpoch = _authSessionEpoch;
+    const batchCausalSeq = _nextCausalSeq++;
     rec.pendingBatch = {
       baselineExpectedTs: prev ? prev.baselineExpectedTs : String(baselineExpectedTs || "").trim(),
       rootReplacePid,
       sessionEpoch: batchSessionEpoch,
-      causalSeq: _nextCausalSeq++,
+      causalSeq: batchCausalSeq,
+      lineageEdges: snapshotLineageEdges(pid, batchCausalSeq),
       patchPayload: mergedPatch,
     };
     if (rec.timerId !== null) {
@@ -1622,7 +1676,7 @@ export function createParcelSyncCoordinator({
             const srvPid = String(res.decision.parcel_id).trim();
             const srvTs = String(res.decision.decided_at || "").trim();
             const lineageRoot = resolveLatestTargetPid(pid) || pid;
-            commitLineageEdgesBeforeSeq(pid, srvPid, batch.causalSeq);
+            commitLineageEdgesBeforeSeq(pid, srvPid, batch.causalSeq, batch.lineageEdges);
             const targetKeys = new Set([
               srvPid,
               pid,
@@ -1694,13 +1748,13 @@ export function createParcelSyncCoordinator({
             toCancel.push(t);
           }
         }
-        rollbackUncommittedLineageEdges(rootTarget);
         for (const t of toCancel) {
           t.markCancelled();
         }
         for (const t of toCancel) {
           t.finish();
         }
+        rollbackUncommittedLineageEdges(rootTarget);
         syncClearHookRegistration();
       };
 
