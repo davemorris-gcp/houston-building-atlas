@@ -132,14 +132,16 @@ export function isSessionTokenExpired(session, nowMs = Date.now(), bufferSec = 4
   return expMs <= nowMs + bufferSec * 1000;
 }
 
-function normalizeRoleString(val) {
-  return String(val || "staff").trim().toLowerCase() === "screener" ? "screener" : "staff";
+function normalizeRoleString(val, emptyFallback = "screener") {
+  const cleaned = String(val ?? "").trim().toLowerCase();
+  if (!cleaned) return emptyFallback;
+  return cleaned === "staff" ? "staff" : "screener";
 }
 
 export function normalizeMonitoringSession(raw) {
   if (!raw || typeof raw !== "object" || !raw.authorized) return null;
   const email = normalizeStaffEmail(raw.email || "");
-  const role = normalizeRoleString(raw.role);
+  const role = normalizeRoleString(raw.role, "staff");
   return {
     authorized: true,
     verifiedByWebhook: Boolean(raw.verifiedByWebhook),
@@ -230,15 +232,20 @@ export function purgePrivateMonitoringStorage(opts = {}) {
   const preserveEmail = opts?.preserveEmail || "";
   const { localStore, sessionStore } = resolveMonitoringStores(opts);
   if (!localStore) return;
+  const normPreserveEmail = normalizeStaffEmail(preserveEmail);
+  const activeSess =
+    opts?.preserveRole === undefined && normPreserveEmail
+      ? readActiveMonitoringSession({ localStore, sessionStore })
+      : null;
   const inferredRole =
     opts?.preserveRole !== undefined
       ? opts.preserveRole
-      : readActiveMonitoringSession({ localStore, sessionStore })?.role || "";
-  const preserveRole = String(inferredRole || "").trim().toLowerCase();
-  let keepCacheKey = preserveEmail
-    ? `${LS_AUTH_CACHE_PREFIX}${normalizeStaffEmail(preserveEmail)}`
-    : "";
-  // Fail-closed: only an explicitly preserved "staff" session may retain `staffOnly` caches.
+      : activeSess && normalizeStaffEmail(activeSess.email || "") === normPreserveEmail
+      ? activeSess.role
+      : "";
+  const preserveRole = normalizeRoleString(inferredRole);
+  let keepCacheKey = normPreserveEmail ? `${LS_AUTH_CACHE_PREFIX}${normPreserveEmail}` : "";
+  // Fail-closed: only an explicitly preserved (or active same-email) "staff" session may retain `staffOnly` caches.
   if (keepCacheKey && preserveRole !== "staff") {
     try {
       const parsed = JSON.parse(localStore.getItem(keepCacheKey) || "null");
@@ -334,8 +341,7 @@ export function loadCachedMonitoringState(email, expectedRole, opts = {}) {
   const { localStore } = resolveMonitoringStores(opts);
   const normEmail = normalizeStaffEmail(email);
   if (!localStore || !normEmail) return null;
-  const cleanExpectedRole =
-    String(expectedRole || "").trim().toLowerCase() === "staff" ? "staff" : "screener";
+  const cleanExpectedRole = normalizeRoleString(expectedRole);
   try {
     const raw = localStore.getItem(`${LS_AUTH_CACHE_PREFIX}${normEmail}`);
     if (!raw) return null;
@@ -469,7 +475,7 @@ export async function verifyAndSignInMonitoring(opts = {}) {
       }
       verifiedByWebhook = true;
       resolvedEmail = normalizeStaffEmail(verifyData.email || cleanEmail) || cleanEmail;
-      resolvedRole = normalizeRoleString(verifyData.role);
+      resolvedRole = normalizeRoleString(verifyData.role, "staff");
       if (verifyData.googleClientId && localStore) {
         try {
           localStore.setItem(LS_CONFIGURED_GOOGLE_CLIENT_ID_KEY, String(verifyData.googleClientId));
@@ -502,12 +508,7 @@ export async function verifyAndSignInMonitoring(opts = {}) {
       clearLegacyMirrorOnSignOut(localStore);
     }
     const resolvedOwner = { email: resolvedEmail, role: resolvedRole, authorized: true };
-    for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i -= 1) {
-      if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], resolvedOwner)) {
-        const [removed] = _pendingAuthRetryQueue.splice(i, 1);
-        cancelQueuedRetryItem(removed);
-      }
-    }
+    evictQueuedRetriesWhere((cand) => !isRetryOwnedBySession(cand, resolvedOwner));
     purgePrivateMonitoringStorage({
       preserveEmail: resolvedEmail,
       preserveRole: resolvedRole,
@@ -584,6 +585,15 @@ function cancelQueuedRetryItem(item) {
       item.retryFn.cancelQueuedRetry();
     } catch (_e) {
       // Isolate per-item cancellation callback errors so sibling tickets and sign-out complete cleanly.
+    }
+  }
+}
+
+function evictQueuedRetriesWhere(shouldEvict) {
+  for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i -= 1) {
+    if (shouldEvict(_pendingAuthRetryQueue[i])) {
+      const [removed] = _pendingAuthRetryQueue.splice(i, 1);
+      cancelQueuedRetryItem(removed);
     }
   }
 }
@@ -695,57 +705,26 @@ export async function replayPendingAuthRetries(opts = {}) {
   }
   const capturedClearGen = _authRetryClearGen;
   const capturedSessionEpoch = _authSessionEpoch;
-  const activeIdentity = getSessionIdentityKey(active);
-  const replayBackedByLocal = Boolean(
-    active &&
-      getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) === activeIdentity &&
-      getSessionIdentityKey(readSessionFromStore(localStore)) === activeIdentity
-  );
-  const isStillOwned = active
-    ? captureInFlightSessionGuard(active, explicitSession, storeOpts, localStore)
-    : () => _authSessionEpoch === capturedSessionEpoch;
+  const isStillOwned = captureInFlightSessionGuard(active, explicitSession, storeOpts, localStore);
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
   const isReplayInvalidated = () => !isStillOwned();
   const abortInvalidatedReplay = (currentItem, nextIdx) => {
     const clearedAll = _authRetryClearGen !== capturedClearGen;
-    const localLatest = readSessionFromStore(localStore);
-    const localDiverged =
-      replayBackedByLocal && getSessionIdentityKey(localLatest) !== activeIdentity;
-    if (
-      localDiverged &&
-      sessionStore &&
-      getSessionIdentityKey(readSessionFromStore(sessionStore)) === activeIdentity
-    ) {
-      try {
-        sessionStore.removeItem(LS_ADMIN_SESSION_KEY);
-      } catch (_e) {}
-    }
-    if (localDiverged && _authSessionEpoch === capturedSessionEpoch) {
-      _authSessionEpoch += 1;
-      notifyCoordinatorClearHooks();
-    }
-    const latestActive = localDiverged
-      ? localLatest
-      : readActiveMonitoringSession(storeOpts);
+    const { diverged, localLatest } = isStillOwned.reconcileDivergence();
+    const latestActive = diverged ? localLatest : readActiveMonitoringSession(storeOpts);
     if (currentItem) {
       cancelQueuedRetryItem(currentItem);
     }
-    for (let k = _pendingAuthRetryQueue.length - 1; k >= 0; k -= 1) {
-      const cand = _pendingAuthRetryQueue[k];
-      if (
-        shouldEvictQueuedRetryOnAbort(
-          cand,
-          currentItem,
-          capturedSessionEpoch,
-          active,
-          latestActive
-        )
-      ) {
-        const [stale] = _pendingAuthRetryQueue.splice(k, 1);
-        cancelQueuedRetryItem(stale);
-      }
-    }
+    evictQueuedRetriesWhere((cand) =>
+      shouldEvictQueuedRetryOnAbort(
+        cand,
+        currentItem,
+        capturedSessionEpoch,
+        active,
+        latestActive
+      )
+    );
     for (let j = nextIdx; j < pending.length; j += 1) {
       const rem = pending[j];
       const belongedToInvalidatedActive = Boolean(
@@ -809,35 +788,63 @@ function captureInFlightSessionGuard(activeSession, explicitSession, opts, preRe
   const resolvedStores = resolveMonitoringStores(opts);
   const localStore =
     preResolvedLocalStore !== undefined ? preResolvedLocalStore : resolvedStores.localStore;
-  const storeOpts = { localStore, sessionStore: resolvedStores.sessionStore };
+  const sessionStore = resolvedStores.sessionStore;
+  const storeOpts = { localStore, sessionStore };
   const effectiveAtStart = explicitSession
     ? readActiveMonitoringSession(storeOpts)
     : activeSession;
-  const sessionBackedByStore =
-    !explicitSession || getSessionIdentityKey(effectiveAtStart) === ownerIdentity;
+  const sessionBackedByStore = Boolean(
+    activeSession && (!explicitSession || getSessionIdentityKey(effectiveAtStart) === ownerIdentity)
+  );
   // When localStore also matched at RPC start (normal mirrored sign-in rather than an intentional
   // tab-scoped sessionStore override), re-verify localStore directly after await so a sibling-tab
   // sign-out or role downgrade invalidates in-flight RPCs even before the browser's queued
   // `storage` event fires to evict the mirrored sessionStore copy.
-  const backedByLocal =
+  const backedByLocal = Boolean(
     sessionBackedByStore &&
-    getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity;
-  return () => {
+      getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity
+  );
+  const hasLocalStoreDiverged = () =>
+    backedByLocal && getSessionIdentityKey(readSessionFromStore(localStore)) !== ownerIdentity;
+  const reconcileDivergence = () => {
+    // Microtask continuations resume before the browser's queued cross-tab `storage` macrotask;
+    // evict the stale mirrored sessionStore copy and advance `_authSessionEpoch` now, but do NOT
+    // call `notifySameTabSyncHooks` so `subscribeCrossTabAuthChanges` still observes the
+    // `lastActiveIdentity !== nextActiveIdentity` transition when the `storage` event fires.
+    const localLatest = readSessionFromStore(localStore);
+    const diverged = backedByLocal && getSessionIdentityKey(localLatest) !== ownerIdentity;
+    if (
+      diverged &&
+      sessionStore &&
+      getSessionIdentityKey(readSessionFromStore(sessionStore)) === ownerIdentity
+    ) {
+      try {
+        sessionStore.removeItem(LS_ADMIN_SESSION_KEY);
+      } catch (_e) {}
+    }
+    if (diverged && _authSessionEpoch === capturedEpoch) {
+      _authSessionEpoch += 1;
+      notifyCoordinatorClearHooks();
+    }
+    return { diverged, localLatest };
+  };
+  const isStillOwned = () => {
     if (_authSessionEpoch !== capturedEpoch) return false;
+    if (!activeSession) return true;
     if (sessionBackedByStore) {
       if (getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) !== ownerIdentity) {
         return false;
       }
-      if (
-        backedByLocal &&
-        getSessionIdentityKey(readSessionFromStore(localStore)) !== ownerIdentity
-      ) {
+      if (hasLocalStoreDiverged()) {
         return false;
       }
       return true;
     }
     return Boolean(explicitSession && explicitSession.authorized);
   };
+  isStillOwned.hasLocalStoreDiverged = hasLocalStoreDiverged;
+  isStillOwned.reconcileDivergence = reconcileDivergence;
+  return isStillOwned;
 }
 
 /**
@@ -855,7 +862,9 @@ export async function callMonitoringRpc(opts = {}) {
     onTokenExpired = null,
     retryFn = null,
   } = opts || {};
-  const { explicitSession, activeSession } = resolveEffectiveSession(session, opts);
+  const { localStore, sessionStore } = resolveMonitoringStores(opts);
+  const storeOpts = { localStore, sessionStore };
+  const { explicitSession, activeSession } = resolveEffectiveSession(session, storeOpts);
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, error: "Sign-in required." };
   }
@@ -890,7 +899,12 @@ export async function callMonitoringRpc(opts = {}) {
     google_id_token: activeSession.googleIdToken || "",
   };
 
-  const isStillOwned = captureInFlightSessionGuard(activeSession, explicitSession, opts);
+  const isStillOwned = captureInFlightSessionGuard(
+    activeSession,
+    explicitSession,
+    storeOpts,
+    localStore
+  );
   try {
     const res = await doFetch(targetUrl, {
       method: "POST",
@@ -898,6 +912,10 @@ export async function callMonitoringRpc(opts = {}) {
       body: JSON.stringify(reqPayload),
     });
     if (!res || !res.ok) {
+      if (!isStillOwned()) {
+        isStillOwned.reconcileDivergence();
+        return { ok: false, authorized: false, cancelled: true };
+      }
       return { ok: false, error: `Monitoring RPC HTTP ${res ? res.status : "network_error"}` };
     }
     const data = await res.json();
@@ -907,6 +925,7 @@ export async function callMonitoringRpc(opts = {}) {
       /expired|invalid.*token/i.test(String(data.error || ""))
     ) {
       if (!isStillOwned()) {
+        isStillOwned.reconcileDivergence();
         return {
           ...data,
           ok: false,
@@ -928,10 +947,69 @@ export async function callMonitoringRpc(opts = {}) {
         queuedForRetry: typeof retryFn === "function",
       };
     }
+    if (!isStillOwned()) {
+      isStillOwned.reconcileDivergence();
+      return { ok: false, authorized: false, cancelled: true };
+    }
     return data;
   } catch (err) {
+    if (!isStillOwned()) {
+      isStillOwned.reconcileDivergence();
+      return { ok: false, authorized: false, cancelled: true };
+    }
     return { ok: false, error: err?.message || String(err) };
   }
+}
+
+function reconcileScreenerPullDowngrade({
+  activeSession,
+  normActiveEmail,
+  localStore,
+  sessionStore,
+}) {
+  purgePrivateMonitoringStorage({
+    localStore,
+    preserveEmail: activeSession.email,
+    preserveRole: "screener",
+  });
+  let downgraded = false;
+  for (const store of [sessionStore, localStore]) {
+    const sess = readSessionFromStore(store);
+    if (
+      !store ||
+      !sess ||
+      normalizeStaffEmail(sess.email || "") !== normActiveEmail ||
+      sess.role === "screener"
+    ) {
+      continue;
+    }
+    downgraded = true;
+    try {
+      store.setItem(
+        LS_ADMIN_SESSION_KEY,
+        JSON.stringify({ ...sess, role: "screener", displayLabel: "Screener" })
+      );
+    } catch (_e) {
+      try {
+        store.removeItem(LS_ADMIN_SESSION_KEY);
+      } catch (_e2) {}
+    }
+  }
+  if (downgraded || activeSession.role !== "screener") {
+    _authSessionEpoch += 1;
+    notifyCoordinatorClearHooks();
+  }
+  if (downgraded) {
+    notifySameTabSyncHooks(localStore, sessionStore);
+  }
+  const updatedSession = downgraded
+    ? readActiveMonitoringSession({ localStore, sessionStore })
+    : { email: normActiveEmail, role: "screener", authorized: true };
+  evictQueuedRetriesWhere((cand) =>
+    downgraded
+      ? !updatedSession || !isRetryOwnedBySession(cand, updatedSession)
+      : cand.ownerEmail === normActiveEmail && !isRetryOwnedBySession(cand, updatedSession)
+  );
 }
 
 export async function pullCloudMonitoringState(opts = {}) {
@@ -962,63 +1040,21 @@ export async function pullCloudMonitoringState(opts = {}) {
     onTokenExpired,
   });
   if (!isStillOwned()) {
+    isStillOwned.reconcileDivergence();
     return { ok: false, authorized: false, cancelled: true };
   }
   if (resp && resp.ok) {
-    const effectiveRole = normalizeRoleString(resp.role || activeSession.role);
-    const localSess = readSessionFromStore(localStore);
-    const tabSess = readSessionFromStore(sessionStore);
+    const effectiveRole = normalizeRoleString(resp.role, activeSession.role);
     const normActiveEmail = normalizeStaffEmail(activeSession.email || "");
     if (effectiveRole === "screener") {
       delete resp.staffOnly;
       delete resp.pendingModerationCount;
-      purgePrivateMonitoringStorage({
+      reconcileScreenerPullDowngrade({
+        activeSession,
+        normActiveEmail,
         localStore,
-        preserveEmail: activeSession.email,
-        preserveRole: "screener",
+        sessionStore,
       });
-      let downgradedStoredSession = false;
-      for (const [store, sess] of [
-        [sessionStore, tabSess],
-        [localStore, localSess],
-      ]) {
-        if (
-          store &&
-          sess &&
-          normalizeStaffEmail(sess.email || "") === normActiveEmail &&
-          sess.role !== "screener"
-        ) {
-          downgradedStoredSession = true;
-          try {
-            store.setItem(
-              LS_ADMIN_SESSION_KEY,
-              JSON.stringify({ ...sess, role: "screener", displayLabel: "Screener" })
-            );
-          } catch (_e) {
-            try {
-              store.removeItem(LS_ADMIN_SESSION_KEY);
-            } catch (_e2) {}
-          }
-        }
-      }
-      if (downgradedStoredSession) {
-        _authSessionEpoch += 1;
-        notifyCoordinatorClearHooks();
-        notifySameTabSyncHooks(localStore, sessionStore);
-      }
-      const updatedSession = downgradedStoredSession
-        ? readActiveMonitoringSession(storeOpts)
-        : { email: normActiveEmail, role: "screener", authorized: true };
-      for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i -= 1) {
-        const cand = _pendingAuthRetryQueue[i];
-        const shouldEvict = downgradedStoredSession
-          ? !updatedSession || !isRetryOwnedBySession(cand, updatedSession)
-          : cand.ownerEmail === normActiveEmail && !isRetryOwnedBySession(cand, updatedSession);
-        if (shouldEvict) {
-          const [removed] = _pendingAuthRetryQueue.splice(i, 1);
-          cancelQueuedRetryItem(removed);
-        }
-      }
     }
     const refreshedLocalSess = readSessionFromStore(localStore);
     const sameLocalEmail =
@@ -1106,12 +1142,7 @@ export function subscribeCrossTabAuthChanges(
             preserveRole: localSess ? localSess.role : "",
           });
         }
-        for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
-          if (!isRetryOwnedBySession(_pendingAuthRetryQueue[i], currentSession)) {
-            const [removed] = _pendingAuthRetryQueue.splice(i, 1);
-            cancelQueuedRetryItem(removed);
-          }
-        }
+        evictQueuedRetriesWhere((cand) => !isRetryOwnedBySession(cand, currentSession));
       }
       lastActiveIdentity = nextActiveIdentity;
       if (typeof onAuthChanged === "function") {
@@ -1214,6 +1245,9 @@ export function createParcelSyncCoordinator({
   scheduleTimer = (fn, ms) => setTimeout(fn, ms),
   cancelTimer = (id) => clearTimeout(id),
 } = {}) {
+  // Sentinel causalSeq (< _nextCausalSeq starting at 1) marking already server-committed edges.
+  const COMMITTED_EDGE_SEQ = 0;
+
   const recordsByParcelId = new Map();
   const promotedEdgeBySourcePid = new Map();
   const committedTargetBySourcePid = new Map();
@@ -1226,6 +1260,72 @@ export function createParcelSyncCoordinator({
 
   function deletePromotedEdge(srcPid) {
     promotedEdgeBySourcePid.delete(srcPid);
+  }
+
+  function committedPathReaches(startPid, goalPid) {
+    let cur = String(startPid || "").trim();
+    const goal = String(goalPid || "").trim();
+    if (!cur || !goal) return false;
+    const seen = new Set();
+    while (cur && !seen.has(cur)) {
+      if (cur === goal) return true;
+      seen.add(cur);
+      cur = committedTargetBySourcePid.get(cur) || "";
+    }
+    return false;
+  }
+
+  function commitLineageEdgesBeforeSeq(pid, srvPid, maxCausalSeq) {
+    const srvOutEdge = promotedEdgeBySourcePid.get(srvPid);
+    if (!srvOutEdge || srvOutEdge.seq >= maxCausalSeq) {
+      committedTargetBySourcePid.delete(srvPid);
+    }
+    for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
+      if (
+        edge.seq < maxCausalSeq &&
+        (promotionPathReaches(edge.targetPid, srvPid) ||
+          promotionPathReaches(edge.targetPid, pid)) &&
+        !committedPathReaches(edge.targetPid, srcPid)
+      ) {
+        committedTargetBySourcePid.set(srcPid, edge.targetPid);
+      }
+    }
+  }
+
+  function rollbackUncommittedLineageEdges(rootTarget) {
+    const rollbackUpdates = [];
+    for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
+      if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
+        const committedTarget = committedTargetBySourcePid.get(srcPid) || "";
+        if (committedTarget !== edge.targetPid) {
+          rollbackUpdates.push([srcPid, committedTarget]);
+        }
+      }
+    }
+    for (const [srcPid] of rollbackUpdates) {
+      deletePromotedEdge(srcPid);
+    }
+    for (const [srcPid, committedTarget] of rollbackUpdates) {
+      if (
+        committedTarget &&
+        committedTarget !== srcPid &&
+        !promotionPathReaches(committedTarget, srcPid)
+      ) {
+        setPromotedEdge(srcPid, committedTarget, COMMITTED_EDGE_SEQ);
+      }
+    }
+    // `promoteParcelKey(..., toPid)` deletes `toPid`'s outgoing edge to prevent cycles;
+    // restore any missing server-committed outgoing edges that do not introduce a cycle.
+    for (const [srcPid, committedTarget] of committedTargetBySourcePid.entries()) {
+      if (
+        committedTarget &&
+        committedTarget !== srcPid &&
+        !promotedEdgeBySourcePid.has(srcPid) &&
+        !promotionPathReaches(committedTarget, srcPid)
+      ) {
+        setPromotedEdge(srcPid, committedTarget, COMMITTED_EDGE_SEQ);
+      }
+    }
   }
 
   function getOrCreateRecord(pid) {
@@ -1540,18 +1640,7 @@ export function createParcelSyncCoordinator({
             const srvPid = String(res.decision.parcel_id).trim();
             const srvTs = String(res.decision.decided_at || "").trim();
             const lineageRoot = resolveLatestTargetPid(pid) || pid;
-            if (!promotedEdgeBySourcePid.has(srvPid)) {
-              committedTargetBySourcePid.delete(srvPid);
-            }
-            for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
-              if (
-                edge.seq < batch.causalSeq &&
-                (promotionPathReaches(edge.targetPid, srvPid) ||
-                  promotionPathReaches(edge.targetPid, pid))
-              ) {
-                committedTargetBySourcePid.set(srcPid, edge.targetPid);
-              }
-            }
+            commitLineageEdgesBeforeSeq(pid, srvPid, batch.causalSeq);
             const targetKeys = new Set([
               srvPid,
               pid,
@@ -1623,34 +1712,7 @@ export function createParcelSyncCoordinator({
             toCancel.push(t);
           }
         }
-        const rollbackUpdates = [];
-        for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
-          if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
-            const committedTarget = committedTargetBySourcePid.get(srcPid) || "";
-            if (committedTarget !== edge.targetPid) {
-              rollbackUpdates.push([srcPid, committedTarget]);
-            }
-          }
-        }
-        for (const [srcPid, committedTarget] of rollbackUpdates) {
-          if (committedTarget && committedTarget !== srcPid) {
-            setPromotedEdge(srcPid, committedTarget, 0);
-          } else {
-            deletePromotedEdge(srcPid);
-          }
-        }
-        // `promoteParcelKey(..., toPid)` deletes `toPid`'s outgoing edge to prevent cycles;
-        // restore any missing server-committed outgoing edges that do not introduce a cycle.
-        for (const [srcPid, committedTarget] of committedTargetBySourcePid.entries()) {
-          if (
-            committedTarget &&
-            committedTarget !== srcPid &&
-            !promotedEdgeBySourcePid.has(srcPid) &&
-            !promotionPathReaches(committedTarget, srcPid)
-          ) {
-            setPromotedEdge(srcPid, committedTarget, 0);
-          }
-        }
+        rollbackUncommittedLineageEdges(rootTarget);
         for (const t of toCancel) {
           t.markCancelled();
         }

@@ -5360,6 +5360,7 @@ test("UT-P1-SyncCoord-ExpiredPrePromotionBatchDoesNotCommitSubsequentMerge: roll
         fetchImpl: async (_url, init) => {
           const parsed = JSON.parse(init.body);
           sentPayloads.push(parsed);
+          // Re-expire stored token as batch1 resolves so unblocked batch2 queues into _pendingAuthRetryQueue.
           store.setItem(
             LS_ADMIN_SESSION_KEY,
             makeSerializedSession({
@@ -5379,6 +5380,7 @@ test("UT-P1-SyncCoord-ExpiredPrePromotionBatchDoesNotCommitSubsequentMerge: roll
         },
       }),
   });
+  t.after(() => coord.clearAll());
 
   coord.enqueue("CAMPUS:ST_THOMAS", { screening_notes: "Campus note before merge" }, "");
   await timers.popNextTimer()();
@@ -5545,6 +5547,7 @@ test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: res
         },
       }),
   });
+  t.after(() => coord.clearAll());
 
   coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
   coord.promoteParcelKey("CAMPUS:LOT_B", "CAMPUS:PARISH_C", "");
@@ -5619,4 +5622,315 @@ test("UT-P1-AuthClient-CacheHelpersNormalizePaddedScreenerRole: strips staffOnly
   assert.equal(loaded.role, "screener");
   assert.equal("staffOnly" in loaded, false);
   assert.equal("pendingModerationCount" in loaded, false);
+});
+
+test("UT-P1-AuthClient-InFlightRpc200CancelledOnSignOut: rejects 200 OK Staff RPC response when signOutMonitoringSession runs mid-flight", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const rpcGate = createDeferred();
+  const staffSerialized = makeSerializedSession({
+    email: "staff.a@preservation.example.org",
+    role: "staff",
+    expOffsetSec: 3600,
+  });
+  const localStore = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+  const sessionStore = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+
+  const rpcPromise = callMonitoringRpc({
+    webhookUrl: "https://example.org/exec",
+    action: "list_pending_moderation",
+    localStore,
+    sessionStore,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => await rpcGate.promise,
+    }),
+  });
+  signOutMonitoringSession({ localStore, sessionStore });
+  rpcGate.resolve({
+    ok: true,
+    items: [{ row_index: 2, hcad_num: "0152300000001", secret_note: "STAFF_ONLY" }],
+  });
+  const rpcRes = await rpcPromise;
+
+  assert.equal(rpcRes.ok, false);
+  assert.equal(rpcRes.authorized, false);
+  assert.equal(rpcRes.cancelled, true);
+  assert.equal("items" in rpcRes, false);
+});
+
+test("UT-P1-SyncCoord-InFlight200CancelledOnPreStorageCrossTabDowngrade: aborts 200 OK coordinator commit and evicts mirrored sessionStore when sibling tab downgrades localStore before storage macrotask", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const timers = createManualTimerQueue();
+  const rpcGate = createDeferred();
+  const staffSerialized = makeSerializedSession({
+    email: "staff.a@preservation.example.org",
+    role: "staff",
+    expOffsetSec: 3600,
+  });
+  const sharedLocal = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+  const tabSession = createMemoryStorage({ [LS_ADMIN_SESSION_KEY]: staffSerialized });
+  let onSuccessCalls = 0;
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: timers.scheduleTimer,
+    cancelTimer: timers.cancelTimer,
+    onSuccess: () => {
+      onSuccessCalls += 1;
+    },
+    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
+      await callMonitoringRpc({
+        webhookUrl: "https://example.org/exec",
+        action: "upsert_parcel_decision",
+        body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
+        localStore: sharedLocal,
+        sessionStore: tabSession,
+        retryFn,
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => await rpcGate.promise,
+        }),
+      }),
+  });
+  t.after(() => coord.clearAll());
+
+  coord.enqueue("0420010000077", { screening_notes: "Mirrored Staff edit" }, "");
+  const batchPromise = timers.popNextTimer()();
+  sharedLocal.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "screener@preservation.example.org",
+      role: "screener",
+      expOffsetSec: 3600,
+    })
+  );
+  rpcGate.resolve({
+    ok: true,
+    parcel: { parcel_id: "0420010000077" },
+    decision: { parcel_id: "0420010000077", decided_at: "2026-11-24T01:00:00.000Z" },
+  });
+  const batchRes = await batchPromise;
+
+  assert.equal(batchRes.ok, false);
+  assert.equal(batchRes.cancelled, true);
+  assert.equal(onSuccessCalls, 0);
+  assert.equal(tabSession.getItem(LS_ADMIN_SESSION_KEY), null);
+  assert.equal(coord.hasPendingOrInFlight("0420010000077"), false);
+});
+
+test("UT-P1-AuthClient-ScreenerPullWhitespaceRoleFailsClosed: preserves Screener role and strips staffOnly when server returns whitespace-only role", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const localStore = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
+      email: "screener@preservation.example.org",
+      role: "screener",
+      expOffsetSec: 3600,
+    }),
+  });
+
+  const resp = await pullCloudMonitoringState({
+    webhookUrl: "https://example.org/exec",
+    localStore,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        authorized: true,
+        role: "   ",
+        parcels: [{ parcel_id: "0152300000001" }],
+        staffOnly: { parcelStrategy: [{ strategy_notes: "SECRET" }] },
+        pendingModerationCount: 5,
+      }),
+    }),
+  });
+  const cached = loadCachedMonitoringState(
+    "screener@preservation.example.org",
+    "screener",
+    { localStore }
+  );
+
+  assert.equal(resp.ok, true);
+  assert.equal("staffOnly" in resp, false);
+  assert.equal("pendingModerationCount" in resp, false);
+  assert.equal(cached.role, "screener");
+  assert.equal("staffOnly" in cached, false);
+});
+
+test("UT-P1-AuthClient-SaveCacheEmptyAndUnknownRoleFailsClosed: defaults empty or unknown role strings to screener in saveCachedMonitoringState", (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const localStore = createMemoryStorage();
+
+  saveCachedMonitoringState(
+    "user@preservation.example.org",
+    "",
+    {
+      staffOnly: { parcelStrategy: [{ strategy_notes: "SECRET_EMPTY" }] },
+      pendingModerationCount: 2,
+    },
+    { localStore }
+  );
+  const emptyRoleCache = JSON.parse(
+    localStore.getItem(`${LS_AUTH_CACHE_PREFIX}user@preservation.example.org`)
+  );
+  saveCachedMonitoringState(
+    "user@preservation.example.org",
+    "readonly",
+    {
+      staffOnly: { parcelStrategy: [{ strategy_notes: "SECRET_UNKNOWN" }] },
+      pendingModerationCount: 2,
+    },
+    { localStore }
+  );
+  const unknownRoleCache = JSON.parse(
+    localStore.getItem(`${LS_AUTH_CACHE_PREFIX}user@preservation.example.org`)
+  );
+
+  assert.equal(emptyRoleCache.role, "screener");
+  assert.equal("staffOnly" in emptyRoleCache, false);
+  assert.equal(unknownRoleCache.role, "screener");
+  assert.equal("staffOnly" in unknownRoleCache, false);
+});
+
+test("UT-P1-SyncCoord-ReverseMergeWithConcurrentPromotionRemainsAcyclic: keeps committed and promoted lineage cycle-free when reverse B->A commits during uncommitted A->D promotion", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const timers = createManualTimerQueue();
+  const batch2Gate = createDeferred();
+  let callNum = 0;
+  const store = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: 3600,
+    }),
+  });
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: timers.scheduleTimer,
+    cancelTimer: timers.cancelTimer,
+    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
+      await callMonitoringRpc({
+        webhookUrl: "https://example.org/exec",
+        action: "upsert_parcel_decision",
+        body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
+        localStore: store,
+        retryFn,
+        fetchImpl: async (_url, init) => {
+          callNum += 1;
+          const parsed = JSON.parse(init.body);
+          if (callNum === 2) {
+            await batch2Gate.promise;
+          }
+          return {
+            ok: true,
+            json: async () => ({
+              ok: true,
+              parcel: { parcel_id: parsed.parcel_id },
+              decision: {
+                parcel_id: parsed.parcel_id,
+                decided_at: `2026-11-24T01:10:0${callNum}.000Z`,
+              },
+            }),
+          };
+        },
+      }),
+  });
+  t.after(() => coord.clearAll());
+
+  coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
+  coord.enqueue("CAMPUS:LOT_B", { screening_notes: "Commit 1 A->B" }, "");
+  await timers.popNextTimer()();
+
+  coord.promoteParcelKey("CAMPUS:LOT_B", "0420010000001", "");
+  coord.enqueue("0420010000001", { screening_notes: "Batch 2 reverse B->A" }, "");
+  const batch2Promise = timers.popNextTimer()();
+
+  store.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: -120,
+    })
+  );
+  coord.promoteParcelKey("0420010000001", "CAMPUS:NEW_D", "");
+  coord.enqueue("CAMPUS:NEW_D", { screening_notes: "Batch 3 uncommitted A->D" }, "");
+  // Batch 3 serializes behind in-flight Batch 2 via getBlockingTicketPromise; resolve Batch 2
+  // while store remains expired so Batch 2 commits B->A and unblocked Batch 3 queues for retry.
+  const batch3Promise = timers.popNextTimer()();
+
+  batch2Gate.resolve();
+  await Promise.all([batch2Promise, batch3Promise]);
+  await replayPendingAuthRetries({
+    session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
+    localStore: null,
+  });
+
+  assert.equal(coord.getPromotedTarget("CAMPUS:LOT_B"), "0420010000001");
+  assert.equal(coord.getPromotedTarget("0420010000001"), "0420010000001");
+});
+
+test("UT-P1-AuthClient-ExplicitStaffPullDowngradeCancelsCoordinatorBatch: cancels active Staff coordinator batches when explicit-session pull observes server-side Screener downgrade", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const timers = createManualTimerQueue();
+  const nowSec = Math.floor(Date.now() / 1000);
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: timers.scheduleTimer,
+    cancelTimer: timers.cancelTimer,
+    sendDecisionRpc: async () => ({ ok: true }),
+  });
+  t.after(() => coord.clearAll());
+
+  coord.enqueue("0420010000081", { screening_notes: "Pending Staff edit" }, "");
+  await pullCloudMonitoringState({
+    webhookUrl: "https://example.org/exec",
+    session: {
+      authorized: true,
+      email: "user@preservation.example.org",
+      role: "staff",
+      googleIdToken: makeSyntheticJwt({
+        email: "user@preservation.example.org",
+        exp: nowSec + 3600,
+      }),
+    },
+    localStore: null,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        authorized: true,
+        role: "screener",
+        parcels: [],
+      }),
+    }),
+  });
+
+  assert.equal(timers.scheduled.size, 0);
+  assert.equal(coord.hasPendingOrInFlight("0420010000081"), false);
+});
+
+test("UT-P1-AuthClient-PurgeForeignPreserveEmailDoesNotInheritActiveStaffRole: evicts foreign staffOnly cache when preserveRole is omitted and another Staff user is active", (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const bobCacheKey = `${LS_AUTH_CACHE_PREFIX}bob@preservation.example.org`;
+  const localStore = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
+      email: "alice@preservation.example.org",
+      role: "staff",
+      expOffsetSec: 3600,
+    }),
+    [bobCacheKey]: '{"role":"staff","staffOnly":{"parcelStrategy":[{"strategy_notes":"BOB_SECRET"}]}}',
+  });
+
+  purgePrivateMonitoringStorage({
+    localStore,
+    preserveEmail: "bob@preservation.example.org",
+  });
+
+  assert.equal(localStore.getItem(bobCacheKey), null);
 });
