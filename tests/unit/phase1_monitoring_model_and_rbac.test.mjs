@@ -6203,7 +6203,8 @@ test("UT-P1-SyncCoord-FailedPromotionRpcEvictsUncommittedHopBeforeStandaloneFoll
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: (callNum) => (callNum === 1 ? { ok: false, status: 500 } : null),
+    onFetchParcel: (_callNum, parsed) =>
+      parsed.screening_notes === "Failing A->B" ? { ok: false, status: 500 } : null,
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
@@ -6218,7 +6219,7 @@ test("UT-P1-SyncCoord-FailedPromotionRpcEvictsUncommittedHopBeforeStandaloneFoll
   assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
 });
 
-test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializes Z->A batch behind in-flight A->C batch and propagates server timestamp", async (t) => {
+test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializes Z->A batch behind vacating in-flight A->C batch and preserves unreviewed Z baseline", async (t) => {
   const PARCEL_A = "0420010000001";
   const PARISH_C = "CAMPUS:PARISH_C";
   const ANNEX_Z = "CAMPUS:ANNEX_Z";
@@ -6226,9 +6227,9 @@ test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializ
   const batch1Gate = createDeferred();
   const seenRequests = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum, parsed) => {
+    onFetchParcel: async (_callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) {
+      if (parsed.parcel_id === PARISH_C) {
         await batch1Gate.promise;
         return {
           ok: true,
@@ -6257,7 +6258,7 @@ test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializ
 
   assert.equal(callsWhileBatch1InFlight, 1);
   assert.equal(seenRequests.length, 2);
-  assert.equal(seenRequests[1].expected_updated_at, BATCH_1_DECIDED_AT);
+  assert.equal(seenRequests[1].expected_updated_at, "");
 });
 
 test("UT-P1-SyncCoord-StandaloneEnqueueAfterCommittedPromotionClearsSupersededLineage: clears prior A->B outgoing lineage and reports settled non-superseded onSuccess when standalone A commits", async (t) => {
@@ -6317,7 +6318,8 @@ test("UT-P1-SyncCoord-IntermediateStandaloneSaveBypassesUpstreamMultiHopLineage:
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: (callNum) => (callNum === 3 ? { ok: false, status: 500 } : null),
+    onFetchParcel: (_callNum, parsed) =>
+      parsed.parcel_id === PARCEL_A ? { ok: false, status: 500 } : null,
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
@@ -6344,9 +6346,9 @@ test("UT-P1-SyncCoord-PromotionConflictSettlesTicketRollsBackLineageAndUpdatesSo
   const seenRequests = [];
   let stateDuringConflict = null;
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum, parsed) => {
+    onFetchParcel: async (_callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) {
+      if (parsed.screening_notes === "Conflicting A->B") {
         return {
           ok: true,
           json: async () => ({
@@ -6427,7 +6429,8 @@ test("UT-P1-SyncCoord-FailedStandaloneRpcRestoresPriorCommittedEdge: restores co
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: (callNum) => (callNum === 2 ? { ok: false, status: 500 } : null),
+    onFetchParcel: (_callNum, parsed) =>
+      parsed.parcel_id === PARCEL_A ? { ok: false, status: 500 } : null,
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
@@ -6445,7 +6448,8 @@ test("UT-P1-SyncCoord-DetachedUncommittedMultiHopRevertsToCommittedIntermediateO
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: (callNum) => (callNum === 2 ? { ok: false, status: 500 } : null),
+    onFetchParcel: (_callNum, parsed) =>
+      parsed.parcel_id === PARISH_C ? { ok: false, status: 500 } : null,
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
@@ -6512,9 +6516,9 @@ test("UT-P1-SyncCoord-OnSuccessDetectsDetachedTouchedPidsFollowUpBatch: reports 
   const seenRequests = [];
   const successEvents = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum, parsed) => {
+    onFetchParcel: async (_callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) {
+      if (parsed.parcel_id === LOT_B) {
         await batch1Gate.promise;
         return {
           ok: true,
@@ -6558,9 +6562,9 @@ test("UT-P1-SyncCoord-InFlightStandaloneCommitDoesNotConfirmQueuedDownstreamProm
   const batch1Gate = createDeferred();
   const seenRequests = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum, parsed) => {
+    onFetchParcel: async (_callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) {
+      if (parsed.parcel_id === PARCEL_A) {
         await batch1Gate.promise;
         return {
           ok: true,
@@ -6571,7 +6575,7 @@ test("UT-P1-SyncCoord-InFlightStandaloneCommitDoesNotConfirmQueuedDownstreamProm
           }),
         };
       }
-      if (callNum === 2) return { ok: false, status: 500 };
+      if (parsed.screening_notes === "Failing A->B") return { ok: false, status: 500 };
       return null;
     },
   });
@@ -6604,9 +6608,9 @@ test("UT-P1-SyncCoord-VacatingPromotionCommitPreservesConcurrentIncomingSourceBa
   const batch1Gate = createDeferred();
   const seenRequests = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum, parsed) => {
+    onFetchParcel: async (_callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) {
+      if (parsed.parcel_id === PARISH_C) {
         await batch1Gate.promise;
         return {
           ok: true,
@@ -6661,8 +6665,12 @@ test("UT-P1-SyncCoord-UnenqueuedOutgoingPromotionPreservesConfirmedTargetTimesta
 test("UT-P1-SyncCoord-CoalescedEnqueuePreservesDetachedLineageAcrossFailedStandaloneSource: retains snapshotted B->C lineage across coalesced C edit when detached standalone B fails", async (t) => {
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
+  const seenRequests = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: (callNum) => (callNum === 1 ? { ok: false, status: 500 } : null),
+    onFetchParcel: (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return parsed.parcel_id === LOT_B ? { ok: false, status: 500 } : null;
+    },
   });
 
   coord.promoteParcelKey(LOT_B, PARISH_C, "");
@@ -6675,6 +6683,9 @@ test("UT-P1-SyncCoord-CoalescedEnqueuePreservesDetachedLineageAcrossFailedStanda
   assert.equal(resB.ok, false);
   assert.equal(resC.ok, true);
   assert.equal(coord.getPromotedTarget(LOT_B), PARISH_C);
+  const committedCReq = seenRequests.find((req) => req.parcel_id === PARISH_C);
+  assert.equal(committedCReq?.replace_parcel_id, LOT_B);
+  assert.equal(committedCReq?.screening_notes, "v2");
 });
 
 test("UT-P1-SyncCoord-CompositeUncommittedOwnerSetEvictsWhenSecondHopFailsAfterFirstCommits: retains second batch token on bypassed A->C edge after A->B commits and reverts to B when B->C fails", async (t) => {
@@ -6683,9 +6694,9 @@ test("UT-P1-SyncCoord-CompositeUncommittedOwnerSetEvictsWhenSecondHopFailsAfterF
   const PARISH_C = "CAMPUS:PARISH_C";
   const batch1Gate = createDeferred();
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum) => {
-      if (callNum === 1) await batch1Gate.promise;
-      if (callNum === 2) return { ok: false, status: 500 };
+    onFetchParcel: async (_callNum, parsed) => {
+      if (parsed.screening_notes === "Batch 1 A->B") await batch1Gate.promise;
+      if (parsed.parcel_id === PARISH_C) return { ok: false, status: 500 };
       return null;
     },
   });
@@ -6714,8 +6725,8 @@ test("UT-P1-SyncCoord-CompositeUncommittedOwnerSetEvictsWhenFirstHopFails: evict
   const PARISH_C = "CAMPUS:PARISH_C";
   const batch1Gate = createDeferred();
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onFetchParcel: async (callNum) => {
-      if (callNum === 1) {
+    onFetchParcel: async (_callNum, parsed) => {
+      if (parsed.screening_notes === "Failing Batch 1 A->B") {
         await batch1Gate.promise;
         return { ok: false, status: 500 };
       }
@@ -6758,4 +6769,259 @@ test("UT-P1-SyncCoord-RetargetRestoreSkipsActiveDetachedCommittedIntermediate: r
 
   assert.equal(coord.getPromotedTarget(PARCEL_A), NEW_D);
   assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+});
+
+test("UT-P1-SyncCoord-CoalescedDownstreamEditDoesNotClobberDetachedStandaloneCommit: preserves committed standalone B target and timestamp when coalesced C edit commits later", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const T_B = "2026-11-24T04:00:00.000Z";
+  const T_C = "2026-11-24T07:00:00.000Z";
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        parcel: { parcel_id: parsed.parcel_id },
+        decision: {
+          parcel_id: parsed.parcel_id,
+          decided_at: parsed.parcel_id === LOT_B ? T_B : T_C,
+        },
+      }),
+    }),
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "1" }, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "2" }, "");
+  coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
+  coord.enqueue(PARISH_C, { screening_notes: "2b" }, "");
+  const resB = await timers.popNextTimer()();
+  const resC = await timers.popNextTimer()();
+
+  assert.equal(resB.ok, true);
+  assert.equal(resC.ok, true);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+  assert.equal(coord.getServerTimestamp(LOT_B), T_B);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+});
+
+test("UT-P1-SyncCoord-NewerSourcePromotionPreservesConfirmedTargetBaseline: sends confirmed target expected_updated_at even when incoming promoted source has a newer timestamp", async (t) => {
+  const PARCEL_Z = "0420010000099";
+  const LOT_B = "CAMPUS:LOT_B";
+  const CONFIRMED_B_TS = "2026-11-24T02:00:00.000Z";
+  const NEWER_Z_TS = "2026-11-24T05:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(LOT_B, CONFIRMED_B_TS, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_Z, LOT_B, NEWER_Z_TS);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_Z, screening_notes: "Merge newer Z" }, NEWER_Z_TS);
+  await timers.popNextTimer()();
+
+  assert.equal(seenRequests[0].expected_updated_at, CONFIRMED_B_TS);
+});
+
+test("UT-P1-SyncCoord-EmptyBaselineCaptureDoesNotMarkTargetConfirmed: leaves uncreated target unconfirmed after empty captureBaselineExpectedTs so incoming promotion uses source timestamp", async (t) => {
+  const PARCEL_Z = "0420010000099";
+  const LOT_B = "CAMPUS:LOT_B";
+  const SOURCE_Z_TS = "2026-11-24T03:00:00.000Z";
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      return null;
+    },
+  });
+
+  coord.captureBaselineExpectedTs(LOT_B, "");
+  coord.recordHydratedTimestamp(LOT_B, "", { fromCloud: true });
+  coord.promoteParcelKey(PARCEL_Z, LOT_B, SOURCE_Z_TS);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_Z, screening_notes: "Merge Z into uncreated B" }, SOURCE_Z_TS);
+  await timers.popNextTimer()();
+
+  assert.equal(seenRequests[0].expected_updated_at, SOURCE_Z_TS);
+});
+
+test("UT-P1-SyncCoord-VacatingCommitPreservesIncomingEnqueueBaselineWhenPromoteFallbackEmpty: preserves incoming Z->A enqueue baseline instead of vacating A->C server timestamp when promote fallback is empty", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const PARCEL_Z = "0420010000099";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const T_Z_ENQUEUE = "2026-11-24T00:45:00.000Z";
+  const T_C = "2026-11-24T06:00:00.000Z";
+  const batch1Gate = createDeferred();
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      if (parsed.parcel_id === PARISH_C) {
+        await batch1Gate.promise;
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            parcel: { parcel_id: PARISH_C },
+            decision: { parcel_id: PARISH_C, decided_at: T_C },
+          }),
+        };
+      }
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, T_A);
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Batch 1 A->C" }, T_A);
+  const batch1Promise = timers.popNextTimer()();
+  coord.promoteParcelKey(PARCEL_Z, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { replace_parcel_id: PARCEL_Z, screening_notes: "Batch 2 Z->A" }, T_Z_ENQUEUE);
+  const batch2Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  await Promise.all([batch1Promise, batch2Promise]);
+
+  assert.equal(seenRequests[1].expected_updated_at, T_Z_ENQUEUE);
+});
+
+test("UT-P1-SyncCoord-FailedVacatingBatchPreservesConfirmedTargetBaselineForQueuedIncomingPromotion: sends A's still-confirmed server timestamp on Z->A when vacating A->C batch fails with HTTP 500", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const T_A = "2026-11-24T01:00:00.000Z";
+  const batch1Gate = createDeferred();
+  const seenRequests = [];
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      seenRequests.push(parsed);
+      if (parsed.parcel_id === PARISH_C) {
+        await batch1Gate.promise;
+        return { ok: false, status: 500 };
+      }
+      return null;
+    },
+  });
+  coord.recordHydratedTimestamp(PARCEL_A, T_A, { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, T_A);
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Failing A->C" }, T_A);
+  const batch1Promise = timers.popNextTimer()();
+  coord.promoteParcelKey(ANNEX_Z, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { replace_parcel_id: ANNEX_Z, screening_notes: "Batch 2 Z->A" }, "");
+  const batch2Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  await Promise.all([batch1Promise, batch2Promise]);
+
+  assert.equal(seenRequests[1].expected_updated_at, T_A);
+});
+
+test("UT-P1-SyncCoord-RetargetRestoresIdleCommittedSourceInDownstreamTouchedPids: restores committed A->B->C path when Z->A retargets to Z->D while B->C is pending", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const NEW_D = "CAMPUS:NEW_D";
+  const { timers, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "Pending B->C" }, "");
+  coord.promoteParcelKey(ANNEX_Z, PARCEL_A, "");
+  coord.promoteParcelKey(ANNEX_Z, NEW_D, "");
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+});
+
+test("UT-P1-SyncCoord-RetargetRestoreRespectsUnenqueuedStagedIncomingPromotion: skips resurrecting B->C when B has an un-enqueued incoming Z->B promotion", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const NEW_D = "CAMPUS:NEW_D";
+  const { timers, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B->C" }, "");
+  await timers.popNextTimer()();
+  coord.promoteParcelKey(PARISH_C, PARCEL_A, "");
+  coord.promoteParcelKey(ANNEX_Z, LOT_B, "");
+  coord.promoteParcelKey(PARISH_C, NEW_D, "");
+
+  assert.equal(coord.getPromotedTarget(ANNEX_Z), LOT_B);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), NEW_D);
+});
+
+test("UT-P1-SyncCoord-MergedPendingBatchMigratesCompositeOwnerTokensForRollback: migrates composite ownerTokens when B.pendingBatch merges into existing C.pendingBatch so C failure reverts X->A", async (t) => {
+  const ANNEX_X = "0420010000088";
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const batch1Gate = createDeferred();
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async (_callNum, parsed) => {
+      if (parsed.screening_notes === "Batch 1 X->A") await batch1Gate.promise;
+      if (parsed.parcel_id === PARISH_C) return { ok: false, status: 500 };
+      return null;
+    },
+  });
+
+  coord.promoteParcelKey(ANNEX_X, PARCEL_A, "");
+  coord.enqueue(PARCEL_A, { replace_parcel_id: ANNEX_X, screening_notes: "Batch 1 X->A" }, "");
+  const batch1Promise = timers.popNextTimer()();
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Pending A->B" }, "");
+  coord.enqueue(PARCEL_A, { screening_notes: "Batch 2 Standalone A" }, "");
+  coord.enqueue(PARISH_C, { screening_notes: "Existing C" }, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: LOT_B, screening_notes: "Merged B->C" }, "");
+  const batch2Promise = timers.popNextTimer()();
+  const batch3Promise = timers.popNextTimer()();
+  batch1Gate.resolve();
+  const [res1, res2, res3] = await Promise.all([batch1Promise, batch2Promise, batch3Promise]);
+
+  assert.equal(res1.ok, true);
+  assert.equal(res2.ok, true);
+  assert.equal(res3.ok, false);
+  assert.equal(coord.getPromotedTarget(ANNEX_X), PARCEL_A);
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARCEL_A);
+});
+
+test("UT-P1-SyncCoord-WhitespaceConflictClearsCurrentDecisionAndLineageEdgeTimestamps: clears matched currentDecision parcel and intermediate lineageEdges timestamps on blank-decided_at 409 conflict", async (t) => {
+  const MATCHED_HCAD = "0420010000077";
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: false,
+        conflict: true,
+        currentDecision: { parcel_id: MATCHED_HCAD, decided_at: "   " },
+      }),
+    }),
+  });
+  coord.recordHydratedTimestamp(MATCHED_HCAD, "2026-11-24T01:00:00.000Z", { fromCloud: true });
+  coord.recordHydratedTimestamp(PARCEL_A, "2026-11-24T02:00:00.000Z", { fromCloud: true });
+  coord.recordHydratedTimestamp(LOT_B, "2026-11-24T03:00:00.000Z", { fromCloud: true });
+  coord.recordHydratedTimestamp(PARISH_C, "2026-11-24T04:00:00.000Z", { fromCloud: true });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "2026-11-24T02:00:00.000Z");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "2026-11-24T03:00:00.000Z");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, hcad_num: MATCHED_HCAD }, "");
+  await timers.popNextTimer()();
+
+  assert.equal(coord.getServerTimestamp(MATCHED_HCAD), "");
+  assert.equal(coord.getServerTimestamp(PARCEL_A), "");
+  assert.equal(coord.getServerTimestamp(LOT_B), "");
+  assert.equal(coord.getServerTimestamp(PARISH_C), "");
 });
