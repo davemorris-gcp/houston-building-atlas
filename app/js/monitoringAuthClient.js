@@ -190,8 +190,9 @@ function readSessionFromStore(store) {
 }
 
 function getSessionIdentityKey(session) {
-  if (!session || !session.authorized) return "";
-  return `${normalizeStaffEmail(session.email || "")}::${session.role || ""}`;
+  const norm = normalizeMonitoringSession(session);
+  if (!norm) return "";
+  return `${normalizeStaffEmail(norm.email || "")}::${norm.role}`;
 }
 
 export function readActiveMonitoringSession(opts = {}) {
@@ -224,11 +225,27 @@ export function canAccessStaffOnly(sessionOrOpts = null) {
  */
 export function purgePrivateMonitoringStorage(opts = {}) {
   const preserveEmail = opts?.preserveEmail || "";
+  const preserveRole = String(opts?.preserveRole || "").toLowerCase();
   const { localStore } = resolveMonitoringStores(opts);
   if (!localStore) return;
-  const keepCacheKey = preserveEmail
+  let keepCacheKey = preserveEmail
     ? `${LS_AUTH_CACHE_PREFIX}${normalizeStaffEmail(preserveEmail)}`
     : "";
+  if (keepCacheKey && preserveRole === "screener") {
+    try {
+      const parsed = JSON.parse(localStore.getItem(keepCacheKey) || "null");
+      if (
+        !parsed ||
+        parsed.role !== "screener" ||
+        "staffOnly" in parsed ||
+        "pendingModerationCount" in parsed
+      ) {
+        keepCacheKey = "";
+      }
+    } catch (_e) {
+      keepCacheKey = "";
+    }
+  }
 
   for (const k of LEGACY_PRIVATE_STORAGE_KEYS) {
     try {
@@ -259,7 +276,11 @@ export function ensureCleanUnauthenticatedStorageOnBoot(opts = {}) {
     return null;
   }
   // Even when signed in, scrub pre-Phase-1 un-namespaced keys so all private state lives strictly in role-checked cache
-  purgePrivateMonitoringStorage({ localStore, preserveEmail: sess.email });
+  purgePrivateMonitoringStorage({
+    localStore,
+    preserveEmail: sess.email,
+    preserveRole: sess.role,
+  });
   return sess;
 }
 
@@ -381,8 +402,9 @@ export async function verifyAndSignInMonitoring(opts = {}) {
     };
   }
 
+  const prevLocalSession = readSessionFromStore(localStore);
   const prevSession = readActiveMonitoringSession({ localStore, sessionStore });
-  const prevLocalIdentity = getSessionIdentityKey(readSessionFromStore(localStore));
+  const prevLocalIdentity = getSessionIdentityKey(prevLocalSession);
   const prevActiveIdentity = getSessionIdentityKey(prevSession);
   const capturedSessionEpoch = _authSessionEpoch;
   const doFetch = fetchImpl || (typeof fetch === "function" ? fetch : null);
@@ -451,12 +473,10 @@ export async function verifyAndSignInMonitoring(opts = {}) {
     }
   }
 
-  const effectivePrevSession =
-    readActiveMonitoringSession({ localStore, sessionStore }) || prevSession;
-  const switchedAccountOrRole = Boolean(
-    effectivePrevSession &&
-      (normalizeStaffEmail(effectivePrevSession.email) !== normalizeStaffEmail(resolvedEmail) ||
-        effectivePrevSession.role !== resolvedRole)
+  const resolvedIdentity = `${normalizeStaffEmail(resolvedEmail)}::${resolvedRole}`;
+  const switchedAccountOrRole = Boolean(prevActiveIdentity && prevActiveIdentity !== resolvedIdentity);
+  const localSwitchedAccountOrRole = Boolean(
+    prevLocalIdentity && prevLocalIdentity !== resolvedIdentity
   );
   if (switchedAccountOrRole) {
     clearPendingAuthRetries();
@@ -465,10 +485,17 @@ export async function verifyAndSignInMonitoring(opts = {}) {
       clearLegacyMirrorOnSignOut(localStore);
     }
   } else {
-    if (!effectivePrevSession) {
+    if (!prevSession) {
       clearPendingAuthRetries();
     }
-    purgePrivateMonitoringStorage({ preserveEmail: resolvedEmail, localStore });
+    if (localSwitchedAccountOrRole && localStore) {
+      clearLegacyMirrorOnSignOut(localStore);
+    }
+    purgePrivateMonitoringStorage({
+      preserveEmail: resolvedEmail,
+      preserveRole: resolvedRole,
+      localStore,
+    });
   }
 
   const session = normalizeMonitoringSession({
@@ -573,7 +600,8 @@ export function clearPendingAuthRetries() {
  */
 export function queuePendingAuthRetry(retryFn, description = "", session = null, opts = {}) {
   if (typeof retryFn === "function") {
-    const owner = session || readActiveMonitoringSession(opts);
+    const owner =
+      (session ? normalizeMonitoringSession(session) : null) || readActiveMonitoringSession(opts);
     let causalSeq = _retryCausalSeq.get(retryFn);
     if (!causalSeq) {
       causalSeq = _nextCausalSeq++;
@@ -583,7 +611,6 @@ export function queuePendingAuthRetry(retryFn, description = "", session = null,
       retryFn,
       description,
       causalSeq,
-      clearGen: _authRetryClearGen,
       sessionEpoch: _authSessionEpoch,
       ownerEmail: normalizeStaffEmail(owner?.email || ""),
       ownerRole: owner?.role || "",
@@ -597,12 +624,37 @@ export function getPendingAuthRetryCount() {
   return _pendingAuthRetryQueue.length;
 }
 
+function shouldEvictQueuedRetryOnAbort(
+  cand,
+  currentItem,
+  capturedSessionEpoch,
+  active,
+  latestActive
+) {
+  if (cand.retryFn === currentItem?.retryFn) return true;
+  const liveAuthorized = Boolean(latestActive && latestActive.authorized);
+  if (liveAuthorized && !isRetryOwnedBySession(cand, latestActive)) return true;
+  const ownedByInvalidatedActive = Boolean(active && isRetryOwnedBySession(cand, active));
+  if (cand.sessionEpoch <= capturedSessionEpoch && (!liveAuthorized || ownedByInvalidatedActive)) {
+    return true;
+  }
+  return Boolean(
+    !liveAuthorized && ownedByInvalidatedActive && (cand.ownerEmail || cand.ownerRole)
+  );
+}
+
 export async function replayPendingAuthRetries(opts = {}) {
   const { hasExplicitStore, localStore, sessionStore } = resolveMonitoringStores(opts);
-  const explicitSession = opts?.session || null;
-  const hasSessionContext = Boolean(explicitSession || localStore || sessionStore || hasExplicitStore);
-  const active =
-    explicitSession || readActiveMonitoringSession({ localStore, sessionStore });
+  const hasExplicitSession = Boolean(
+    opts && opts.session !== undefined && opts.session !== null
+  );
+  const explicitSession = hasExplicitSession ? normalizeMonitoringSession(opts.session) : null;
+  const hasSessionContext = Boolean(
+    hasExplicitSession || localStore || sessionStore || hasExplicitStore
+  );
+  const active = hasExplicitSession
+    ? explicitSession
+    : readActiveMonitoringSession({ localStore, sessionStore });
   if (hasSessionContext && (!active || !active.authorized)) {
     clearPendingAuthRetries();
     return [];
@@ -620,28 +672,14 @@ export async function replayPendingAuthRetries(opts = {}) {
     }
     for (let k = _pendingAuthRetryQueue.length - 1; k >= 0; k -= 1) {
       const cand = _pendingAuthRetryQueue[k];
-      const rejectedByLiveSession = Boolean(
-        latestActive && latestActive.authorized && !isRetryOwnedBySession(cand, latestActive)
-      );
-      const fromInvalidatedEpoch = Boolean(
-        cand.sessionEpoch <= capturedSessionEpoch &&
-          (!latestActive ||
-            !latestActive.authorized ||
-            !isRetryOwnedBySession(cand, latestActive) ||
-            (active && isRetryOwnedBySession(cand, active)))
-      );
-      const matchesInvalidatedWhileSignedOut = Boolean(
-        (!latestActive || !latestActive.authorized) &&
-          active &&
-          (cand.ownerEmail || cand.ownerRole) &&
-          isRetryOwnedBySession(cand, active)
-      );
       if (
-        (clearedAll && cand.clearGen <= capturedClearGen) ||
-        cand.retryFn === currentItem?.retryFn ||
-        fromInvalidatedEpoch ||
-        rejectedByLiveSession ||
-        matchesInvalidatedWhileSignedOut
+        shouldEvictQueuedRetryOnAbort(
+          cand,
+          currentItem,
+          capturedSessionEpoch,
+          active,
+          latestActive
+        )
       ) {
         const [stale] = _pendingAuthRetryQueue.splice(k, 1);
         cancelQueuedRetryItem(stale);
@@ -707,20 +745,26 @@ export async function replayPendingAuthRetries(opts = {}) {
 function captureInFlightSessionGuard(activeSession, explicitSession, opts, preResolvedLocalStore) {
   const capturedEpoch = _authSessionEpoch;
   const ownerIdentity = getSessionIdentityKey(activeSession);
+  const resolvedStores = resolveMonitoringStores(opts);
   const localStore =
-    preResolvedLocalStore !== undefined
-      ? preResolvedLocalStore
-      : resolveMonitoringStores(opts).localStore;
-  const effectiveAtStart = explicitSession ? readActiveMonitoringSession(opts) : activeSession;
+    preResolvedLocalStore !== undefined ? preResolvedLocalStore : resolvedStores.localStore;
+  const storeOpts = { localStore, sessionStore: resolvedStores.sessionStore };
+  const effectiveAtStart = explicitSession
+    ? readActiveMonitoringSession(storeOpts)
+    : activeSession;
   const sessionBackedByStore =
     !explicitSession || getSessionIdentityKey(effectiveAtStart) === ownerIdentity;
+  // When localStore also matched at RPC start (normal mirrored sign-in rather than an intentional
+  // tab-scoped sessionStore override), re-verify localStore directly after await so a sibling-tab
+  // sign-out or role downgrade invalidates in-flight RPCs even before the browser's queued
+  // `storage` event fires to evict the mirrored sessionStore copy.
   const backedByLocal =
     sessionBackedByStore &&
     getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity;
   return () => {
     if (_authSessionEpoch !== capturedEpoch) return false;
     if (sessionBackedByStore) {
-      if (getSessionIdentityKey(readActiveMonitoringSession(opts)) !== ownerIdentity) {
+      if (getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) !== ownerIdentity) {
         return false;
       }
       if (
@@ -750,7 +794,8 @@ export async function callMonitoringRpc(opts = {}) {
     onTokenExpired = null,
     retryFn = null,
   } = opts || {};
-  const activeSession = session || readActiveMonitoringSession(opts);
+  const normalizedExplicit = session ? normalizeMonitoringSession(session) : null;
+  const activeSession = session ? normalizedExplicit : readActiveMonitoringSession(opts);
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, error: "Sign-in required." };
   }
@@ -785,7 +830,7 @@ export async function callMonitoringRpc(opts = {}) {
     google_id_token: activeSession.googleIdToken || "",
   };
 
-  const isStillOwned = captureInFlightSessionGuard(activeSession, session, opts);
+  const isStillOwned = captureInFlightSessionGuard(activeSession, normalizedExplicit, opts);
   try {
     const res = await doFetch(targetUrl, {
       method: "POST",
@@ -837,16 +882,22 @@ export async function pullCloudMonitoringState(opts = {}) {
     onTokenExpired = null,
   } = opts || {};
   const { localStore } = resolveMonitoringStores(opts);
-  const activeSession = session || readActiveMonitoringSession(opts);
+  const normalizedExplicit = session ? normalizeMonitoringSession(session) : null;
+  const activeSession = session ? normalizedExplicit : readActiveMonitoringSession(opts);
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, signedOut: true };
   }
-  const isStillOwned = captureInFlightSessionGuard(activeSession, session, opts, localStore);
+  const isStillOwned = captureInFlightSessionGuard(
+    activeSession,
+    normalizedExplicit,
+    opts,
+    localStore
+  );
   const resp = await callMonitoringRpc({
     ...opts,
     webhookUrl,
     action: "pull_monitoring_state",
-    session: session || null,
+    session: normalizedExplicit,
     fetchImpl,
     onTokenExpired,
   });
@@ -857,9 +908,12 @@ export async function pullCloudMonitoringState(opts = {}) {
     const rawRole = resp.role || activeSession.role || "staff";
     const effectiveRole = String(rawRole).toLowerCase() === "screener" ? "screener" : "staff";
     const localSess = readSessionFromStore(localStore);
+    const normActiveEmail = normalizeStaffEmail(activeSession.email || "");
     if (
-      getSessionIdentityKey(localSess) ===
-      `${normalizeStaffEmail(activeSession.email || "")}::${effectiveRole}`
+      getSessionIdentityKey(localSess) === `${normActiveEmail}::${effectiveRole}` ||
+      (effectiveRole === "screener" &&
+        localSess &&
+        normalizeStaffEmail(localSess.email || "") === normActiveEmail)
     ) {
       saveCachedMonitoringState(activeSession.email, effectiveRole, resp, opts);
     }
@@ -939,6 +993,7 @@ export function subscribeCrossTabAuthChanges(
           purgePrivateMonitoringStorage({
             localStore,
             preserveEmail: localSess && !sameEmailDowngraded ? localSess.email : "",
+            preserveRole: localSess ? localSess.role : "",
           });
         }
         for (let i = _pendingAuthRetryQueue.length - 1; i >= 0; i--) {
@@ -1052,6 +1107,7 @@ export function createParcelSyncCoordinator({
   const recordsByParcelId = new Map();
   const promotedTargetBySourcePid = new Map();
   const committedTargetBySourcePid = new Map();
+  const promotionSeqBySourcePid = new Map();
   const activeBatchTickets = new Set();
   let generation = 0;
 
@@ -1132,7 +1188,8 @@ export function createParcelSyncCoordinator({
     return (
       activeBatchTickets.size > 0 ||
       recordsByParcelId.size > 0 ||
-      promotedTargetBySourcePid.size > 0
+      promotedTargetBySourcePid.size > 0 ||
+      committedTargetBySourcePid.size > 0
     );
   }
 
@@ -1164,6 +1221,7 @@ export function createParcelSyncCoordinator({
     recordsByParcelId.clear();
     promotedTargetBySourcePid.clear();
     committedTargetBySourcePid.clear();
+    promotionSeqBySourcePid.clear();
     _activeCoordinatorClearHooks.delete(clearAll);
   }
 
@@ -1231,7 +1289,9 @@ export function createParcelSyncCoordinator({
       toRec.serverTs = baseTs;
     }
     promotedTargetBySourcePid.delete(toPid);
+    promotionSeqBySourcePid.delete(toPid);
     promotedTargetBySourcePid.set(fromPid, toPid);
+    promotionSeqBySourcePid.set(fromPid, _nextCausalSeq++);
     if (fromRec.timerId !== null) {
       cancelTimer(fromRec.timerId);
       fromRec.timerId = null;
@@ -1346,6 +1406,7 @@ export function createParcelSyncCoordinator({
           }
         }
         const expectedTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
+        const attemptSeq = _nextCausalSeq++;
         let res;
         try {
           res = await sendDecisionRpc({
@@ -1369,8 +1430,9 @@ export function createParcelSyncCoordinator({
             }
             for (const [srcPid, targetPid] of promotedTargetBySourcePid.entries()) {
               if (
-                promotionPathReaches(targetPid, srvPid) ||
-                promotionPathReaches(targetPid, pid)
+                (promotionSeqBySourcePid.get(srcPid) || 0) < attemptSeq &&
+                (promotionPathReaches(targetPid, srvPid) ||
+                  promotionPathReaches(targetPid, pid))
               ) {
                 committedTargetBySourcePid.set(srcPid, targetPid);
               }
@@ -1426,6 +1488,9 @@ export function createParcelSyncCoordinator({
       };
       _retryCausalSeq.set(sendRpc, batchTicket.seq);
       sendRpc.cancelQueuedRetry = () => {
+        if (capturedGen !== generation) {
+          return;
+        }
         const rootTarget = resolveLatestTargetPid(pid) || pid;
         for (const [recPid, candRec] of recordsByParcelId.entries()) {
           if ((resolveLatestTargetPid(recPid) || recPid) === rootTarget) {
@@ -1455,18 +1520,23 @@ export function createParcelSyncCoordinator({
         for (const [srcPid, committedTarget] of rollbackUpdates) {
           if (committedTarget && committedTarget !== srcPid) {
             promotedTargetBySourcePid.set(srcPid, committedTarget);
+            promotionSeqBySourcePid.set(srcPid, 0);
           } else {
             promotedTargetBySourcePid.delete(srcPid);
+            promotionSeqBySourcePid.delete(srcPid);
           }
         }
+        // `promoteParcelKey(..., rootTarget)` deletes `rootTarget`'s outgoing edge to prevent cycles;
+        // restore its last server-committed outgoing edge if doing so does not introduce a cycle.
         const restoredForRoot = committedTargetBySourcePid.get(rootTarget) || "";
         if (
           restoredForRoot &&
           restoredForRoot !== rootTarget &&
           !promotedTargetBySourcePid.has(rootTarget) &&
-          !promotedTargetBySourcePid.has(restoredForRoot)
+          !promotionPathReaches(restoredForRoot, rootTarget)
         ) {
           promotedTargetBySourcePid.set(rootTarget, restoredForRoot);
+          promotionSeqBySourcePid.set(rootTarget, 0);
         }
         for (const t of toCancel) {
           t.markCancelled();
