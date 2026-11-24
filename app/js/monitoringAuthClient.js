@@ -1413,15 +1413,38 @@ export function createParcelSyncCoordinator({
   function captureBatchLineageStamp(
     targetPid,
     batchToken,
-    { inheritedTokens = null, rootReplacePid = "", patchReplacePid = "" } = {}
+    {
+      inheritedTokens = null,
+      priorLineageEdges = null,
+      rootReplacePid = "",
+      patchReplacePid = "",
+    } = {}
   ) {
     const causalSeq = _nextCausalSeq++;
-    const lineageEdges = claimAndSnapshotLineageEdges(
+    const bySrc = new Map();
+    if (Array.isArray(priorLineageEdges)) {
+      for (const edge of priorLineageEdges) {
+        if (!edge?.srcPid || !edge?.targetPid || edge.srcPid === targetPid) continue;
+        const hopTarget =
+          edge.targetPid === targetPid || promotionPathReaches(edge.targetPid, targetPid)
+            ? edge.targetPid
+            : targetPid;
+        bySrc.set(edge.srcPid, {
+          srcPid: edge.srcPid,
+          targetPid: hopTarget,
+          seq: edge.seq,
+        });
+      }
+    }
+    for (const edge of claimAndSnapshotLineageEdges(
       targetPid,
       causalSeq,
       batchToken,
       inheritedTokens
-    );
+    )) {
+      bySrc.set(edge.srcPid, edge);
+    }
+    const lineageEdges = Array.from(bySrc.values());
     return {
       batchToken,
       causalSeq,
@@ -1607,8 +1630,7 @@ export function createParcelSyncCoordinator({
         if (
           liveEdge &&
           liveEdge.seq === edgeSeq &&
-          (liveEdge.targetPid === targetPid ||
-            Boolean(batch.batchToken && liveEdge.ownerTokens.has(batch.batchToken))) &&
+          liveEdge.targetPid === targetPid &&
           !isEdgeCommitted(srcPid, liveEdge.targetPid)
         ) {
           deletePromotedEdge(srcPid);
@@ -1627,6 +1649,9 @@ export function createParcelSyncCoordinator({
     }
   }
 
+  // If `srcPid`'s direct committed target is currently pending or in-flight as a standalone save
+  // (`!promotedEdgeBySourcePid.has(target)`), step past it to its downstream committed target so
+  // `srcPid` does not reattach onto an intermediate parcel that is actively detaching itself.
   function resolveRestorableCommittedTarget(srcPid) {
     let target = committedLineageByPid.get(srcPid)?.targetPid || "";
     const seen = new Set([srcPid]);
@@ -1729,12 +1754,37 @@ export function createParcelSyncCoordinator({
     return rec && rec.hasServerTs ? rec.serverTs : "";
   }
 
-  function advanceRecordServerTs(targetPid, rawTs, { force = false, confirmed = true } = {}) {
+  function clearRecordServerTs(targetRec, { clearConfirmed = true } = {}) {
+    if (!targetRec) return;
+    targetRec.hasServerTs = false;
+    targetRec.serverTs = "";
+    if (clearConfirmed) {
+      targetRec.confirmedServerTs = null;
+    }
+  }
+
+  function advanceRecordServerTs(
+    targetPid,
+    rawTs,
+    {
+      force = false,
+      confirmed = true,
+      invalidateConfirmed = false,
+      keepExistingProvisional = false,
+    } = {}
+  ) {
     if (!targetPid) return;
     const cleanTs = String(rawTs || "").trim();
     const targetRec = getOrCreateRecord(targetPid);
+    if (invalidateConfirmed) {
+      targetRec.confirmedServerTs = null;
+      if (keepExistingProvisional && targetRec.hasServerTs && targetRec.serverTs) {
+        return;
+      }
+    }
     if (
       force ||
+      invalidateConfirmed ||
       !targetRec.hasServerTs ||
       !targetRec.serverTs ||
       (cleanTs && cleanTs >= targetRec.serverTs)
@@ -1757,13 +1807,36 @@ export function createParcelSyncCoordinator({
         continue;
       }
       if (candRec.confirmedServerTs === null) {
-        candRec.hasServerTs = false;
-        candRec.serverTs = "";
+        clearRecordServerTs(candRec, { clearConfirmed: false });
       } else {
-        candRec.hasServerTs = true;
-        candRec.serverTs = candRec.confirmedServerTs;
+        advanceRecordServerTs(recPid, candRec.confirmedServerTs, {
+          force: true,
+          confirmed: false,
+        });
       }
     }
+  }
+
+  function resolveBatchExpectedServerTs(pid, rec, batch) {
+    const baseTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
+    if (rec.confirmedServerTs !== null) {
+      return !baseTs || rec.confirmedServerTs > baseTs ? rec.confirmedServerTs : baseTs;
+    }
+    const lookupReplacePid =
+      batch.rootReplacePid || String(batch.patchPayload?.replace_parcel_id || "").trim();
+    const replaceRec =
+      lookupReplacePid && lookupReplacePid !== pid
+        ? recordsByParcelId.get(lookupReplacePid)
+        : null;
+    if (
+      replaceRec &&
+      replaceRec.hasServerTs &&
+      replaceRec.serverTs &&
+      (!baseTs || replaceRec.confirmedServerTs !== null || replaceRec.serverTs >= baseTs)
+    ) {
+      return replaceRec.serverTs;
+    }
+    return baseTs;
   }
 
   function recordHydratedTimestamp(parcelId, decidedAt, { fromCloud = false } = {}) {
@@ -1801,11 +1874,16 @@ export function createParcelSyncCoordinator({
     const baseTs = captureBaselineExpectedTs(fromPid, fallbackDecidedAt);
     const fromRec = getOrCreateRecord(fromPid);
     const toRec = getOrCreateRecord(toPid);
-    const toHadOutgoing = promotedEdgeBySourcePid.has(toPid);
-    if (toHadOutgoing && baseTs) {
-      toRec.confirmedServerTs = null;
-      advanceRecordServerTs(toPid, baseTs, { force: true, confirmed: false });
-    } else if (!toRec.hasServerTs || toRec.confirmedServerTs === null) {
+    // Seed `toPid`'s provisional expected timestamp from `fromPid` when `toPid` has no confirmed
+    // server row yet or an enqueued/committed outgoing promotion is actively vacating `toPid`
+    // (preserving `toRec.confirmedServerTs` until a server commit actually vacates `toPid`).
+    const prevToOut = promotedEdgeBySourcePid.get(toPid);
+    const toVacatingOnServer = Boolean(
+      prevToOut &&
+        (isEdgeCommitted(toPid, prevToOut.targetPid) ||
+          !prevToOut.ownerTokens.has(UNCLAIMED_EDGE))
+    );
+    if (toVacatingOnServer || !toRec.hasServerTs || toRec.confirmedServerTs === null) {
       advanceRecordServerTs(toPid, baseTs, { force: true, confirmed: false });
     } else if (baseTs) {
       advanceRecordServerTs(toPid, baseTs, { confirmed: false });
@@ -1817,6 +1895,16 @@ export function createParcelSyncCoordinator({
       cancelTimer(fromRec.timerId);
       fromRec.timerId = null;
     }
+    const restampToBatch = () => {
+      Object.assign(
+        toRec.pendingBatch,
+        captureBatchLineageStamp(toPid, toRec.pendingBatch.batchToken, {
+          priorLineageEdges: toRec.pendingBatch.lineageEdges,
+          rootReplacePid: toRec.pendingBatch.rootReplacePid,
+          patchReplacePid: toRec.pendingBatch.patchPayload?.replace_parcel_id,
+        })
+      );
+    };
     if (fromRec.pendingBatch) {
       const priorFrom = fromRec.pendingBatch;
       fromRec.pendingBatch = null;
@@ -1834,35 +1922,30 @@ export function createParcelSyncCoordinator({
       const batchToken = existingTo ? existingTo.batchToken : priorFrom.batchToken;
       const inheritedTokens = new Set([priorFrom.batchToken]);
       if (existingTo?.batchToken) inheritedTokens.add(existingTo.batchToken);
+      const mergedPriorEdges = [
+        ...(Array.isArray(priorFrom.lineageEdges) ? priorFrom.lineageEdges : []),
+        ...(Array.isArray(existingTo?.lineageEdges) ? existingTo.lineageEdges : []),
+      ];
       toRec.pendingBatch = {
         baselineExpectedTs: existingTo ? existingTo.baselineExpectedTs : priorFrom.baselineExpectedTs,
         rootReplacePid,
         sessionEpoch: existingTo ? existingTo.sessionEpoch : priorFrom.sessionEpoch,
         ...captureBatchLineageStamp(toPid, batchToken, {
           inheritedTokens,
+          priorLineageEdges: mergedPriorEdges,
           rootReplacePid,
           patchReplacePid: nextPatch.replace_parcel_id,
         }),
         patchPayload: nextPatch,
       };
     } else if (toRec.pendingBatch) {
-      Object.assign(
-        toRec.pendingBatch,
-        captureBatchLineageStamp(toPid, toRec.pendingBatch.batchToken, {
-          rootReplacePid: toRec.pendingBatch.rootReplacePid,
-          patchReplacePid: toRec.pendingBatch.patchPayload?.replace_parcel_id,
-        })
-      );
+      restampToBatch();
     }
     if (prevFromTarget && prevFromTarget !== toPid) {
+      // Run after migrating/re-stamping `toRec.pendingBatch` so `prevFromTarget` is released from
+      // `touchedPids` first, then re-stamp if a newly restored committed edge now feeds into `toPid`.
       if (restoreMissingCommittedEdges(fromPid) > 0 && toRec.pendingBatch) {
-        Object.assign(
-          toRec.pendingBatch,
-          captureBatchLineageStamp(toPid, toRec.pendingBatch.batchToken, {
-            rootReplacePid: toRec.pendingBatch.rootReplacePid,
-            patchReplacePid: toRec.pendingBatch.patchPayload?.replace_parcel_id,
-          })
-        );
+        restampToBatch();
       }
       reconcileIdleRecordTimestamps();
     }
@@ -1887,9 +1970,6 @@ export function createParcelSyncCoordinator({
       delete mergedPatch.replace_parcel_id;
     }
     const detachedPrevOut = detachOutgoingPromotedEdge(pid);
-    if (detachedPrevOut) {
-      restoreMissingCommittedEdges(pid);
-    }
     const batchSessionEpoch = _authSessionEpoch;
     const batchToken = prev ? prev.batchToken : Symbol("parcelBatch");
     rec.pendingBatch = {
@@ -1897,12 +1977,25 @@ export function createParcelSyncCoordinator({
       rootReplacePid,
       sessionEpoch: batchSessionEpoch,
       ...captureBatchLineageStamp(pid, batchToken, {
+        priorLineageEdges: prev?.lineageEdges,
         rootReplacePid,
         patchReplacePid: mergedPatch.replace_parcel_id,
       }),
       patchPayload: mergedPatch,
     };
     if (detachedPrevOut) {
+      // Run after assigning `rec.pendingBatch` so `hasPendingOrInFlight(pid)` is already true when
+      // `resolveRestorableCommittedTarget` checks whether `pid` is actively detaching standalone.
+      if (restoreMissingCommittedEdges(pid) > 0 && rec.pendingBatch) {
+        Object.assign(
+          rec.pendingBatch,
+          captureBatchLineageStamp(pid, batchToken, {
+            priorLineageEdges: rec.pendingBatch.lineageEdges,
+            rootReplacePid,
+            patchReplacePid: mergedPatch.replace_parcel_id,
+          })
+        );
+      }
       reconcileIdleRecordTimestamps();
     }
     if (rec.timerId !== null) {
@@ -1983,7 +2076,7 @@ export function createParcelSyncCoordinator({
               return { ok: false, cancelled: true };
             }
           }
-          const expectedTs = rec.hasServerTs ? rec.serverTs : batch.baselineExpectedTs;
+          const expectedTs = resolveBatchExpectedServerTs(pid, rec, batch);
           res = await sendDecisionRpc({
             parcelId: pid,
             expectedUpdatedAt: expectedTs,
@@ -2022,14 +2115,31 @@ export function createParcelSyncCoordinator({
                 targetKeys.add(candPid);
               }
             }
+            const vacatedByBatch = new Set();
+            for (const candVacated of [
+              pid,
+              batch.rootReplacePid,
+              String(batch.patchPayload?.replace_parcel_id || "").trim(),
+              ...batch.lineageEdges.map((e) => e.srcPid),
+            ]) {
+              if (
+                candVacated &&
+                candVacated !== srvPid &&
+                (committedLineageByPid.get(candVacated)?.seq || 0) <= batch.causalSeq
+              ) {
+                vacatedByBatch.add(candVacated);
+              }
+            }
             for (const keyPid of targetKeys) {
               if (!keyPid) continue;
-              const targetRec = getOrCreateRecord(keyPid);
-              const vacatedOnServer = promotedEdgeBySourcePid.has(keyPid);
-              if (vacatedOnServer) {
-                targetRec.confirmedServerTs = null;
-              }
-              advanceRecordServerTs(keyPid, srvTs, { confirmed: !vacatedOnServer });
+              const isVacated = vacatedByBatch.has(keyPid);
+              const confirmedOnServer =
+                keyPid === srvPid && !committedLineageByPid.get(srvPid)?.targetPid;
+              advanceRecordServerTs(keyPid, srvTs, {
+                confirmed: !isVacated && confirmedOnServer,
+                invalidateConfirmed: isVacated,
+                keepExistingProvisional: isVacated && hasIncomingPromotedEdge(keyPid),
+              });
             }
             const latestTargetPid = resolveLatestTargetPid(pid);
             const isSuperseded = Boolean(latestTargetPid && latestTargetPid !== pid);
@@ -2058,12 +2168,7 @@ export function createParcelSyncCoordinator({
               ]);
               for (const clearKey of clearKeys) {
                 if (!clearKey) continue;
-                const cRec = recordsByParcelId.get(clearKey);
-                if (cRec) {
-                  cRec.hasServerTs = false;
-                  cRec.serverTs = "";
-                  cRec.confirmedServerTs = null;
-                }
+                clearRecordServerTs(recordsByParcelId.get(clearKey));
               }
             }
             settleCompletedBatch(false);
