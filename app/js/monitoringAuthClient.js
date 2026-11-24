@@ -132,9 +132,13 @@ export function isSessionTokenExpired(session, nowMs = Date.now(), bufferSec = 4
   return expMs <= nowMs + bufferSec * 1000;
 }
 
+// Fail closed to "screener" by default; session/verify parsers explicitly pass "staff" only for
+// backward compatibility with pre-Phase-1 admin sessions and webhook payloads that omit `role`.
 function normalizeRoleString(val, emptyFallback = "screener") {
   const cleaned = String(val ?? "").trim().toLowerCase();
-  if (!cleaned) return emptyFallback;
+  if (!cleaned) {
+    return String(emptyFallback ?? "").trim().toLowerCase() === "staff" ? "staff" : "screener";
+  }
   return cleaned === "staff" ? "staff" : "screener";
 }
 
@@ -705,14 +709,13 @@ export async function replayPendingAuthRetries(opts = {}) {
   }
   const capturedClearGen = _authRetryClearGen;
   const capturedSessionEpoch = _authSessionEpoch;
-  const isStillOwned = captureInFlightSessionGuard(active, explicitSession, storeOpts, localStore);
+  const isStillOwned = captureInFlightSessionGuard(active, explicitSession, storeOpts);
   const pending = _pendingAuthRetryQueue.splice(0, _pendingAuthRetryQueue.length);
   const results = [];
   const isReplayInvalidated = () => !isStillOwned();
   const abortInvalidatedReplay = (currentItem, nextIdx) => {
     const clearedAll = _authRetryClearGen !== capturedClearGen;
-    const { diverged, localLatest } = isStillOwned.reconcileDivergence();
-    const latestActive = diverged ? localLatest : readActiveMonitoringSession(storeOpts);
+    const latestActive = readActiveMonitoringSession(storeOpts);
     if (currentItem) {
       cancelQueuedRetryItem(currentItem);
     }
@@ -782,14 +785,10 @@ export async function replayPendingAuthRetries(opts = {}) {
   return results;
 }
 
-function captureInFlightSessionGuard(activeSession, explicitSession, opts, preResolvedLocalStore) {
+function captureInFlightSessionGuard(activeSession, explicitSession, storeOpts = {}) {
   const capturedEpoch = _authSessionEpoch;
   const ownerIdentity = getSessionIdentityKey(activeSession);
-  const resolvedStores = resolveMonitoringStores(opts);
-  const localStore =
-    preResolvedLocalStore !== undefined ? preResolvedLocalStore : resolvedStores.localStore;
-  const sessionStore = resolvedStores.sessionStore;
-  const storeOpts = { localStore, sessionStore };
+  const { localStore = null, sessionStore = null } = storeOpts;
   const effectiveAtStart = explicitSession
     ? readActiveMonitoringSession(storeOpts)
     : activeSession;
@@ -804,8 +803,6 @@ function captureInFlightSessionGuard(activeSession, explicitSession, opts, preRe
     sessionBackedByStore &&
       getSessionIdentityKey(readSessionFromStore(localStore)) === ownerIdentity
   );
-  const hasLocalStoreDiverged = () =>
-    backedByLocal && getSessionIdentityKey(readSessionFromStore(localStore)) !== ownerIdentity;
   const reconcileDivergence = () => {
     // Microtask continuations resume before the browser's queued cross-tab `storage` macrotask;
     // evict the stale mirrored sessionStore copy and advance `_authSessionEpoch` now, but do NOT
@@ -826,25 +823,26 @@ function captureInFlightSessionGuard(activeSession, explicitSession, opts, preRe
       _authSessionEpoch += 1;
       notifyCoordinatorClearHooks();
     }
-    return { diverged, localLatest };
+    return diverged;
   };
-  const isStillOwned = () => {
-    if (_authSessionEpoch !== capturedEpoch) return false;
+  return () => {
+    if (_authSessionEpoch !== capturedEpoch) {
+      reconcileDivergence();
+      return false;
+    }
     if (!activeSession) return true;
     if (sessionBackedByStore) {
       if (getSessionIdentityKey(readActiveMonitoringSession(storeOpts)) !== ownerIdentity) {
+        reconcileDivergence();
         return false;
       }
-      if (hasLocalStoreDiverged()) {
+      if (reconcileDivergence()) {
         return false;
       }
       return true;
     }
     return Boolean(explicitSession && explicitSession.authorized);
   };
-  isStillOwned.hasLocalStoreDiverged = hasLocalStoreDiverged;
-  isStillOwned.reconcileDivergence = reconcileDivergence;
-  return isStillOwned;
 }
 
 /**
@@ -899,12 +897,7 @@ export async function callMonitoringRpc(opts = {}) {
     google_id_token: activeSession.googleIdToken || "",
   };
 
-  const isStillOwned = captureInFlightSessionGuard(
-    activeSession,
-    explicitSession,
-    storeOpts,
-    localStore
-  );
+  const isStillOwned = captureInFlightSessionGuard(activeSession, explicitSession, storeOpts);
   try {
     const res = await doFetch(targetUrl, {
       method: "POST",
@@ -913,7 +906,6 @@ export async function callMonitoringRpc(opts = {}) {
     });
     if (!res || !res.ok) {
       if (!isStillOwned()) {
-        isStillOwned.reconcileDivergence();
         return { ok: false, authorized: false, cancelled: true };
       }
       return { ok: false, error: `Monitoring RPC HTTP ${res ? res.status : "network_error"}` };
@@ -925,7 +917,6 @@ export async function callMonitoringRpc(opts = {}) {
       /expired|invalid.*token/i.test(String(data.error || ""))
     ) {
       if (!isStillOwned()) {
-        isStillOwned.reconcileDivergence();
         return {
           ...data,
           ok: false,
@@ -948,13 +939,11 @@ export async function callMonitoringRpc(opts = {}) {
       };
     }
     if (!isStillOwned()) {
-      isStillOwned.reconcileDivergence();
       return { ok: false, authorized: false, cancelled: true };
     }
     return data;
   } catch (err) {
     if (!isStillOwned()) {
-      isStillOwned.reconcileDivergence();
       return { ok: false, authorized: false, cancelled: true };
     }
     return { ok: false, error: err?.message || String(err) };
@@ -1025,12 +1014,7 @@ export async function pullCloudMonitoringState(opts = {}) {
   if (!activeSession || !activeSession.authorized) {
     return { ok: false, authorized: false, signedOut: true };
   }
-  const isStillOwned = captureInFlightSessionGuard(
-    activeSession,
-    explicitSession,
-    storeOpts,
-    localStore
-  );
+  const isStillOwned = captureInFlightSessionGuard(activeSession, explicitSession, storeOpts);
   const resp = await callMonitoringRpc({
     ...opts,
     webhookUrl,
@@ -1040,11 +1024,11 @@ export async function pullCloudMonitoringState(opts = {}) {
     onTokenExpired,
   });
   if (!isStillOwned()) {
-    isStillOwned.reconcileDivergence();
     return { ok: false, authorized: false, cancelled: true };
   }
   if (resp && resp.ok) {
     const effectiveRole = normalizeRoleString(resp.role, activeSession.role);
+    resp.role = effectiveRole;
     const normActiveEmail = normalizeStaffEmail(activeSession.email || "");
     if (effectiveRole === "screener") {
       delete resp.staffOnly;
@@ -1262,7 +1246,7 @@ export function createParcelSyncCoordinator({
     promotedEdgeBySourcePid.delete(srcPid);
   }
 
-  function committedPathReaches(startPid, goalPid) {
+  function lineagePathReaches(startPid, goalPid, getNextPid) {
     let cur = String(startPid || "").trim();
     const goal = String(goalPid || "").trim();
     if (!cur || !goal) return false;
@@ -1270,9 +1254,13 @@ export function createParcelSyncCoordinator({
     while (cur && !seen.has(cur)) {
       if (cur === goal) return true;
       seen.add(cur);
-      cur = committedTargetBySourcePid.get(cur) || "";
+      cur = getNextPid(cur) || "";
     }
     return false;
+  }
+
+  function committedPathReaches(startPid, goalPid) {
+    return lineagePathReaches(startPid, goalPid, (cur) => committedTargetBySourcePid.get(cur));
   }
 
   function commitLineageEdgesBeforeSeq(pid, srvPid, maxCausalSeq) {
@@ -1280,42 +1268,41 @@ export function createParcelSyncCoordinator({
     if (!srvOutEdge || srvOutEdge.seq >= maxCausalSeq) {
       committedTargetBySourcePid.delete(srvPid);
     }
+    const eligibleEdges = [];
     for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
       if (
         edge.seq < maxCausalSeq &&
         (promotionPathReaches(edge.targetPid, srvPid) ||
-          promotionPathReaches(edge.targetPid, pid)) &&
-        !committedPathReaches(edge.targetPid, srcPid)
+          promotionPathReaches(edge.targetPid, pid))
       ) {
-        committedTargetBySourcePid.set(srcPid, edge.targetPid);
+        eligibleEdges.push([srcPid, edge.targetPid]);
+      }
+    }
+    for (const [srcPid] of eligibleEdges) {
+      committedTargetBySourcePid.delete(srcPid);
+    }
+    for (const [srcPid, targetPid] of eligibleEdges) {
+      if (!committedPathReaches(targetPid, srcPid)) {
+        committedTargetBySourcePid.set(srcPid, targetPid);
       }
     }
   }
 
   function rollbackUncommittedLineageEdges(rootTarget) {
-    const rollbackUpdates = [];
+    const uncommittedSources = [];
     for (const [srcPid, edge] of promotedEdgeBySourcePid.entries()) {
       if ((resolveLatestTargetPid(srcPid) || srcPid) === rootTarget) {
         const committedTarget = committedTargetBySourcePid.get(srcPid) || "";
         if (committedTarget !== edge.targetPid) {
-          rollbackUpdates.push([srcPid, committedTarget]);
+          uncommittedSources.push(srcPid);
         }
       }
     }
-    for (const [srcPid] of rollbackUpdates) {
+    for (const srcPid of uncommittedSources) {
       deletePromotedEdge(srcPid);
     }
-    for (const [srcPid, committedTarget] of rollbackUpdates) {
-      if (
-        committedTarget &&
-        committedTarget !== srcPid &&
-        !promotionPathReaches(committedTarget, srcPid)
-      ) {
-        setPromotedEdge(srcPid, committedTarget, COMMITTED_EDGE_SEQ);
-      }
-    }
-    // `promoteParcelKey(..., toPid)` deletes `toPid`'s outgoing edge to prevent cycles;
-    // restore any missing server-committed outgoing edges that do not introduce a cycle.
+    // Restore server-committed edges evicted above (or cleared earlier by `promoteParcelKey(..., toPid)`)
+    // whenever doing so keeps the active promotion graph cycle-free.
     for (const [srcPid, committedTarget] of committedTargetBySourcePid.entries()) {
       if (
         committedTarget &&
@@ -1353,16 +1340,11 @@ export function createParcelSyncCoordinator({
   }
 
   function promotionPathReaches(startPid, goalPid) {
-    let cur = String(startPid || "").trim();
-    const goal = String(goalPid || "").trim();
-    if (!cur || !goal) return false;
-    const seen = new Set();
-    while (cur && !seen.has(cur)) {
-      if (cur === goal) return true;
-      seen.add(cur);
-      cur = promotedEdgeBySourcePid.get(cur)?.targetPid || "";
-    }
-    return false;
+    return lineagePathReaches(
+      startPid,
+      goalPid,
+      (cur) => promotedEdgeBySourcePid.get(cur)?.targetPid
+    );
   }
 
   function getPromotedTarget(parcelId) {

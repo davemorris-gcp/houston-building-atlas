@@ -5752,6 +5752,7 @@ test("UT-P1-AuthClient-ScreenerPullWhitespaceRoleFailsClosed: preserves Screener
   );
 
   assert.equal(resp.ok, true);
+  assert.equal(resp.role, "screener");
   assert.equal("staffOnly" in resp, false);
   assert.equal("pendingModerationCount" in resp, false);
   assert.equal(cached.role, "screener");
@@ -5933,4 +5934,122 @@ test("UT-P1-AuthClient-PurgeForeignPreserveEmailDoesNotInheritActiveStaffRole: e
   });
 
   assert.equal(localStore.getItem(bobCacheKey), null);
+});
+
+test("UT-P1-AuthClient-StaffPullPaddedAndWhitespaceRoleNormalized: normalizes padded and whitespace resp.role to staff for active Staff pulls", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const localStore = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: 3600,
+    }),
+  });
+
+  const paddedResp = await pullCloudMonitoringState({
+    webhookUrl: "https://example.org/exec",
+    localStore,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        authorized: true,
+        role: " Staff ",
+        staffOnly: { parcelStrategy: [{ parcel_id: "0152300000001", strategy_notes: "KEEP_ME" }] },
+        pendingModerationCount: 3,
+      }),
+    }),
+  });
+  const whitespaceResp = await pullCloudMonitoringState({
+    webhookUrl: "https://example.org/exec",
+    localStore,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        authorized: true,
+        role: "   ",
+        staffOnly: { parcelStrategy: [{ parcel_id: "0152300000001", strategy_notes: "KEEP_ME_TOO" }] },
+        pendingModerationCount: 4,
+      }),
+    }),
+  });
+
+  assert.equal(paddedResp.role, "staff");
+  assert.equal(paddedResp.staffOnly.parcelStrategy.length, 1);
+  assert.equal(whitespaceResp.role, "staff");
+  assert.equal(whitespaceResp.staffOnly.parcelStrategy.length, 1);
+});
+
+test("UT-P1-SyncCoord-ChainedReverseAndForwardPromotionPersistsAllHops: preserves reverse B->A hop across chained B->A->C commit when subsequent C->D promotion is evicted", async (t) => {
+  clearPendingAuthRetries();
+  t.after(() => clearPendingAuthRetries());
+  const timers = createManualTimerQueue();
+  let callNum = 0;
+  const store = createMemoryStorage({
+    [LS_ADMIN_SESSION_KEY]: makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: 3600,
+    }),
+  });
+  const coord = createParcelSyncCoordinator({
+    debounceMs: 650,
+    scheduleTimer: timers.scheduleTimer,
+    cancelTimer: timers.cancelTimer,
+    sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
+      await callMonitoringRpc({
+        webhookUrl: "https://example.org/exec",
+        action: "upsert_parcel_decision",
+        body: { parcel_id: parcelId, expected_updated_at: expectedUpdatedAt, ...patch },
+        localStore: store,
+        retryFn,
+        fetchImpl: async (_url, init) => {
+          callNum += 1;
+          const parsed = JSON.parse(init.body);
+          return {
+            ok: true,
+            json: async () => ({
+              ok: true,
+              parcel: { parcel_id: parsed.parcel_id },
+              decision: {
+                parcel_id: parsed.parcel_id,
+                decided_at: `2026-11-24T02:00:0${callNum}.000Z`,
+              },
+            }),
+          };
+        },
+      }),
+  });
+  t.after(() => coord.clearAll());
+
+  coord.promoteParcelKey("0420010000001", "CAMPUS:LOT_B", "");
+  coord.enqueue("CAMPUS:LOT_B", { screening_notes: "Commit 1 A->B" }, "");
+  await timers.popNextTimer()();
+
+  coord.promoteParcelKey("CAMPUS:LOT_B", "0420010000001", "");
+  coord.promoteParcelKey("0420010000001", "CAMPUS:PARISH_C", "");
+  coord.enqueue("CAMPUS:PARISH_C", { screening_notes: "Commit 2 B->A->C" }, "");
+  await timers.popNextTimer()();
+
+  store.setItem(
+    LS_ADMIN_SESSION_KEY,
+    makeSerializedSession({
+      email: "staff.a@preservation.example.org",
+      role: "staff",
+      expOffsetSec: -120,
+    })
+  );
+  coord.promoteParcelKey("CAMPUS:PARISH_C", "CAMPUS:NEW_D", "");
+  coord.enqueue("CAMPUS:NEW_D", { screening_notes: "Uncommitted C->D" }, "");
+  await timers.popNextTimer()();
+  await replayPendingAuthRetries({
+    session: { authorized: true, email: "screener@preservation.example.org", role: "screener" },
+    localStore: null,
+  });
+
+  assert.equal(coord.getPromotedTarget("CAMPUS:LOT_B"), "CAMPUS:PARISH_C");
+  assert.equal(coord.getPromotedTarget("0420010000001"), "CAMPUS:PARISH_C");
+  assert.equal(coord.getPromotedTarget("CAMPUS:PARISH_C"), "CAMPUS:PARISH_C");
 });
