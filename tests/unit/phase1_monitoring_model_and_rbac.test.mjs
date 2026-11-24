@@ -5514,8 +5514,9 @@ test("UT-P1-AuthClient-ExplicitUnauthorizedSessionRejectedAcrossEntryPoints: rej
 
 function createLineageCoordinatorTestRig(
   t,
-  { onFetchParcel = null, getSession = null, onSuccess = null } = {}
+  { onFetchParcel = null, getSession = null, onSuccess = null, onConflict = null } = {}
 ) {
+  clearPendingAuthRetries();
   const timers = createManualTimerQueue();
   let callNum = 0;
   const store = createMemoryStorage({
@@ -5530,6 +5531,7 @@ function createLineageCoordinatorTestRig(
     scheduleTimer: timers.scheduleTimer,
     cancelTimer: timers.cancelTimer,
     onSuccess,
+    onConflict,
     sendDecisionRpc: async ({ parcelId, expectedUpdatedAt, patch, retryFn }) =>
       await callMonitoringRpc({
         webhookUrl: "https://example.org/exec",
@@ -5557,13 +5559,14 @@ function createLineageCoordinatorTestRig(
         },
       }),
   });
-  t.after(() => coord.clearAll());
+  t.after(() => {
+    coord.clearAll();
+    clearPendingAuthRetries();
+  });
   return { timers, store, coord };
 }
 
 test("UT-P1-SyncCoord-NonRootCycleEvictionRestoresIntermediateCommittedEdge: restores intermediate A->B edge in committed A->B->C chain when uncommitted C->A then C->D promotions are evicted", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
@@ -5816,8 +5819,6 @@ test("UT-P1-AuthClient-SaveCacheEmptyAndUnknownRoleFailsClosed: defaults empty o
 });
 
 test("UT-P1-SyncCoord-ReverseMergeWithConcurrentPromotionRemainsAcyclic: keeps committed and promoted lineage cycle-free when reverse B->A commits during uncommitted A->D promotion", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const NEW_D = "CAMPUS:NEW_D";
@@ -5967,8 +5968,6 @@ test("UT-P1-AuthClient-StaffPullPaddedAndWhitespaceRoleNormalized: normalizes pa
 });
 
 test("UT-P1-SyncCoord-ChainedReverseAndForwardPromotionPersistsAllHops: preserves reverse B->A hop across chained B->A->C commit when subsequent C->D promotion is evicted", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
@@ -6004,8 +6003,6 @@ test("UT-P1-SyncCoord-ChainedReverseAndForwardPromotionPersistsAllHops: preserve
 });
 
 test("UT-P1-SyncCoord-InFlightCommitSurvivesConcurrentReverseOverwrite: restores server-committed A->C hop when concurrent uncommitted C->A->D overwrite is evicted", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const PARISH_C = "CAMPUS:PARISH_C";
   const NEW_D = "CAMPUS:NEW_D";
@@ -6043,8 +6040,6 @@ test("UT-P1-SyncCoord-InFlightCommitSurvivesConcurrentReverseOverwrite: restores
 });
 
 test("UT-P1-SyncCoord-UnrelatedInFlightBatchDoesNotCommitBridgedUnsentHop: does not commit unsent A->B hop when post-batch uncommitted B->C bridges into in-flight C", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
@@ -6081,8 +6076,6 @@ test("UT-P1-SyncCoord-UnrelatedInFlightBatchDoesNotCommitBridgedUnsentHop: does 
 });
 
 test("UT-P1-SyncCoord-ForeignEvictionDoesNotReattachActiveParcelCommittedEdge: keeps active reverse target A standalone when evicting an unrelated foreign retry", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const ANNEX_Z = "CAMPUS:ANNEX_Z";
@@ -6176,8 +6169,6 @@ test("UT-P1-AuthClient-AmbientDefaultStoresReconcileMidFlightDivergence: evicts 
 });
 
 test("UT-P1-SyncCoord-DetachedForeignChainEvictsUpstreamHopWithoutPollutingActiveTarget: evicts upstream A->B hop from detached foreign A->B->C retry without committing it into Staff Z->B batch", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const PARISH_C = "CAMPUS:PARISH_C";
@@ -6209,8 +6200,6 @@ test("UT-P1-SyncCoord-DetachedForeignChainEvictsUpstreamHopWithoutPollutingActiv
 });
 
 test("UT-P1-SyncCoord-FailedPromotionRpcEvictsUncommittedHopBeforeStandaloneFollowUp: rolls back uncommitted A->B hop on HTTP 500 so subsequent standalone B save leaves A standalone", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
@@ -6230,17 +6219,27 @@ test("UT-P1-SyncCoord-FailedPromotionRpcEvictsUncommittedHopBeforeStandaloneFoll
 });
 
 test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializes Z->A batch behind in-flight A->C batch and propagates server timestamp", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const PARISH_C = "CAMPUS:PARISH_C";
   const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const BATCH_1_DECIDED_AT = "2026-11-24T02:00:01.000Z";
   const batch1Gate = createDeferred();
   const seenRequests = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
     onFetchParcel: async (callNum, parsed) => {
       seenRequests.push(parsed);
-      if (callNum === 1) await batch1Gate.promise;
+      if (callNum === 1) {
+        await batch1Gate.promise;
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            parcel: { parcel_id: parsed.parcel_id },
+            decision: { parcel_id: parsed.parcel_id, decided_at: BATCH_1_DECIDED_AT },
+          }),
+        };
+      }
+      return null;
     },
   });
   coord.recordHydratedTimestamp(PARCEL_A, "2026-11-24T01:00:00.000Z", { fromCloud: true });
@@ -6251,23 +6250,26 @@ test("UT-P1-SyncCoord-DetachedInFlightSourceSerializesOverlappingBatch: serializ
   coord.promoteParcelKey(ANNEX_Z, PARCEL_A, "");
   coord.enqueue(PARCEL_A, { replace_parcel_id: ANNEX_Z, screening_notes: "Batch 2 Z->A" }, "");
   const batch2Promise = timers.popNextTimer()();
+  await Promise.resolve();
   const callsWhileBatch1InFlight = seenRequests.length;
   batch1Gate.resolve();
   await Promise.all([batch1Promise, batch2Promise]);
 
   assert.equal(callsWhileBatch1InFlight, 1);
   assert.equal(seenRequests.length, 2);
-  assert.equal(seenRequests[1].expected_updated_at, "2026-11-24T02:00:01.000Z");
+  assert.equal(seenRequests[1].expected_updated_at, BATCH_1_DECIDED_AT);
 });
 
-test("UT-P1-SyncCoord-StandaloneEnqueueAfterCommittedPromotionClearsSupersededLineage: clears prior A->B outgoing lineage and reports non-superseded onSuccess when standalone A commits", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
+test("UT-P1-SyncCoord-StandaloneEnqueueAfterCommittedPromotionClearsSupersededLineage: clears prior A->B outgoing lineage and reports settled non-superseded onSuccess when standalone A commits", async (t) => {
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const successEvents = [];
   const { timers, coord } = createLineageCoordinatorTestRig(t, {
-    onSuccess: (_res, meta) => successEvents.push(meta),
+    onSuccess: (_res, meta) =>
+      successEvents.push({
+        ...meta,
+        inFlightDuringCallback: coord.hasPendingOrInFlight(PARCEL_A),
+      }),
   });
 
   coord.promoteParcelKey(PARCEL_A, LOT_B, "");
@@ -6280,12 +6282,11 @@ test("UT-P1-SyncCoord-StandaloneEnqueueAfterCommittedPromotionClearsSupersededLi
   assert.deepEqual(successEvents[1], {
     hasNewerPendingEdit: false,
     supersededByParcelId: "",
+    inFlightDuringCallback: false,
   });
 });
 
 test("UT-P1-SyncCoord-EvictedStandaloneEnqueueRestoresPriorCommittedPromotion: restores committed A->B lineage when expired standalone A edit is evicted", async (t) => {
-  clearPendingAuthRetries();
-  t.after(() => clearPendingAuthRetries());
   const PARCEL_A = "0420010000001";
   const LOT_B = "CAMPUS:LOT_B";
   const { timers, store, coord } = createLineageCoordinatorTestRig(t);
@@ -6308,5 +6309,89 @@ test("UT-P1-SyncCoord-EvictedStandaloneEnqueueRestoresPriorCommittedPromotion: r
     localStore: null,
   });
 
+  assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
+});
+
+test("UT-P1-SyncCoord-IntermediateStandaloneSaveBypassesUpstreamMultiHopLineage: preserves upstream A->C resolution when intermediate B in committed A->B->C saves standalone", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const { timers, coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.promoteParcelKey(LOT_B, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B->C" }, "");
+  await timers.popNextTimer()();
+  coord.enqueue(LOT_B, { screening_notes: "Standalone B" }, "");
+  await timers.popNextTimer()();
+
+  assert.equal(coord.getPromotedTarget(PARCEL_A), PARISH_C);
+  assert.equal(coord.getPromotedTarget(LOT_B), LOT_B);
+});
+
+test("UT-P1-SyncCoord-PromotionConflictSettlesTicketRollsBackLineageAndUpdatesSourceTimestamp: settles ticket, rolls back A->B promotion, and updates source timestamp before invoking onConflict", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const INITIAL_TS = "2026-11-24T00:00:00.000Z";
+  const CONFLICT_TS = "2026-11-24T01:00:00.000Z";
+  let stateDuringConflict = null;
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: async () => ({
+      ok: true,
+      json: async () => ({
+        ok: false,
+        conflict: true,
+        currentDecision: { parcel_id: PARCEL_A, decided_at: CONFLICT_TS },
+      }),
+    }),
+    onConflict: () => {
+      stateDuringConflict = {
+        pendingA: coord.hasPendingOrInFlight(PARCEL_A),
+        pendingB: coord.hasPendingOrInFlight(LOT_B),
+        targetA: coord.getPromotedTarget(PARCEL_A),
+        serverTsA: coord.getServerTimestamp(PARCEL_A),
+      };
+    },
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, INITIAL_TS);
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Conflicting A->B" }, INITIAL_TS);
+  await timers.popNextTimer()();
+
+  assert.deepEqual(stateDuringConflict, {
+    pendingA: false,
+    pendingB: false,
+    targetA: PARCEL_A,
+    serverTsA: CONFLICT_TS,
+  });
+});
+
+test("UT-P1-SyncCoord-DebouncedDetachedSourceReportsPendingForNewUpstreamParcel: reports hasPendingOrInFlight for Z->A while detached A->C batch is still in its debounce window", (t) => {
+  const PARCEL_A = "0420010000001";
+  const PARISH_C = "CAMPUS:PARISH_C";
+  const ANNEX_Z = "CAMPUS:ANNEX_Z";
+  const { coord } = createLineageCoordinatorTestRig(t);
+
+  coord.promoteParcelKey(PARCEL_A, PARISH_C, "");
+  coord.enqueue(PARISH_C, { replace_parcel_id: PARCEL_A, screening_notes: "Debounced A->C" }, "");
+  coord.promoteParcelKey(ANNEX_Z, PARCEL_A, "");
+
+  assert.equal(coord.hasPendingOrInFlight(ANNEX_Z), true);
+});
+
+test("UT-P1-SyncCoord-FailedStandaloneRpcRestoresPriorCommittedEdge: restores committed A->B lineage when standalone A edit fails with HTTP 500", async (t) => {
+  const PARCEL_A = "0420010000001";
+  const LOT_B = "CAMPUS:LOT_B";
+  const { timers, coord } = createLineageCoordinatorTestRig(t, {
+    onFetchParcel: (callNum) => (callNum === 2 ? { ok: false, status: 500 } : null),
+  });
+
+  coord.promoteParcelKey(PARCEL_A, LOT_B, "");
+  coord.enqueue(LOT_B, { replace_parcel_id: PARCEL_A, screening_notes: "Commit A->B" }, "");
+  await timers.popNextTimer()();
+  coord.enqueue(PARCEL_A, { screening_notes: "Failing standalone A" }, "");
+  const failedRes = await timers.popNextTimer()();
+
+  assert.equal(failedRes.ok, false);
   assert.equal(coord.getPromotedTarget(PARCEL_A), LOT_B);
 });
