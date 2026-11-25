@@ -2061,12 +2061,14 @@ export function createParcelSyncCoordinator({
 
   function clearRecordServerTs(
     targetPid,
-    { clearConfirmed = true, clearVacatedFloor = true } = {}
+    { clearConfirmed = true, clearVacatedFloor = true, clearBouncedFrom = true } = {}
   ) {
     const targetRec = targetPid ? recordsByParcelId.get(targetPid) : null;
     if (!targetRec) return;
     targetRec.serverTs = null;
-    targetRec.bouncedFromPid = "";
+    if (clearBouncedFrom) {
+      targetRec.bouncedFromPid = "";
+    }
     if (clearConfirmed) {
       targetRec.confirmedServerTs = null;
     }
@@ -2146,7 +2148,11 @@ export function createParcelSyncCoordinator({
         if (hasCommittedOutEdge) {
           candRec.serverTs = "";
         } else {
-          clearRecordServerTs(recPid, { clearConfirmed: false, clearVacatedFloor: false });
+          clearRecordServerTs(recPid, {
+            clearConfirmed: false,
+            clearVacatedFloor: false,
+            clearBouncedFrom: false,
+          });
         }
       } else {
         advanceRecordServerTs(recPid, candRec.confirmedServerTs, {
@@ -2213,6 +2219,29 @@ export function createParcelSyncCoordinator({
     }
   }
 
+  function deriveSurvivingBatchBaselineTs(candBatch) {
+    if (!candBatch) return "";
+    const repPid = getBatchReplaceParcelId(candBatch);
+    if (repPid) {
+      if (!hasServerBackedRow(repPid)) return "";
+      const repRec = recordsByParcelId.get(repPid);
+      return repRec?.confirmedServerTs ?? repRec?.serverTs ?? "";
+    }
+    let survivingTs = "";
+    if (Array.isArray(candBatch.lineageEdges)) {
+      for (const edge of candBatch.lineageEdges) {
+        const srcRec = recordsByParcelId.get(edge.srcPid);
+        const srcTs = hasServerBackedRow(edge.srcPid)
+          ? srcRec?.confirmedServerTs ?? srcRec?.serverTs ?? ""
+          : "";
+        if (srcTs && (!survivingTs || srcTs > survivingTs)) {
+          survivingTs = srcTs;
+        }
+      }
+    }
+    return survivingTs;
+  }
+
   function reconcileConflictTimestamps(pid, batch, currentDecision) {
     const conflictPid = String(currentDecision?.parcel_id || "").trim();
     const conflictTs = String(currentDecision?.decided_at || "").trim();
@@ -2220,33 +2249,78 @@ export function createParcelSyncCoordinator({
       advanceRecordServerTs(conflictPid || pid, conflictTs, { force: true, confirmed: true });
       return;
     }
-    for (const clearKey of new Set([
-      pid,
-      conflictPid,
-      getBatchReplaceParcelId(batch),
-      ...batch.lineageEdges.map((e) => e.srcPid),
-    ])) {
-      if (!clearKey) continue;
+    const clearedKeys = new Set(
+      [
+        pid,
+        conflictPid,
+        getBatchReplaceParcelId(batch),
+        ...batch.lineageEdges.map((e) => e.srcPid),
+      ].filter(Boolean)
+    );
+    for (const clearKey of clearedKeys) {
       clearRecordServerTs(clearKey);
-      const clearRec = recordsByParcelId.get(clearKey);
-      if (clearRec?.pendingBatch && !getBatchReplaceParcelId(clearRec.pendingBatch)) {
-        clearRec.pendingBatch.baselineExpectedTs = "";
-      }
-      for (const t of activeBatchTickets) {
-        if (t.pid === clearKey && t.batch && !getBatchReplaceParcelId(t.batch)) {
-          t.batch.baselineExpectedTs = "";
-        }
-      }
     }
     if (conflictPid) {
       // Blank-timestamp 409s leave `confirmedServerTs` null; record `hasServerRow` without
-      // advancing `seq` so `hasServerBackedRow` holds while concurrent promotions stay valid.
+      // advancing `seq` (and bypass upstream committed pointers when clearing `prevTarget`) so
+      // `hasServerBackedRow` holds while concurrent promotions and multi-hop chains stay valid.
       const prevCommitted = committedLineageByPid.get(conflictPid);
-      committedLineageByPid.set(conflictPid, {
-        targetPid: "",
-        seq: prevCommitted?.seq ?? COMMITTED_EDGE_SEQ,
-        hasServerRow: true,
-      });
+      const prevTarget = prevCommitted?.targetPid || "";
+      if (!prevTarget || (prevCommitted?.seq || 0) <= (batch?.causalSeq || 0)) {
+        if (prevTarget) {
+          for (const [upPid, upEntry] of committedLineageByPid.entries()) {
+            if (
+              upEntry.targetPid === conflictPid &&
+              upPid !== prevTarget &&
+              !committedPathReaches(prevTarget, upPid)
+            ) {
+              committedLineageByPid.set(upPid, {
+                targetPid: prevTarget,
+                seq: Math.max(upEntry.seq || 0, prevCommitted?.seq || 0),
+                hasServerRow: false,
+              });
+            }
+          }
+        }
+        committedLineageByPid.set(conflictPid, {
+          targetPid: "",
+          seq: prevCommitted?.seq ?? COMMITTED_EDGE_SEQ,
+          hasServerRow: true,
+        });
+      }
+    }
+    const batchTouchesClearedKey = (candPid, candBatch) => {
+      if (!candBatch) return false;
+      const repPid = getBatchReplaceParcelId(candBatch);
+      return (
+        clearedKeys.has(candPid) ||
+        Boolean(repPid && clearedKeys.has(repPid)) ||
+        Boolean(candBatch.lineageEdges?.some((e) => clearedKeys.has(e.srcPid)))
+      );
+    };
+    for (const t of activeBatchTickets) {
+      const tRec = recordsByParcelId.get(t.pid);
+      if ((tRec?.confirmedServerTs ?? null) === null && batchTouchesClearedKey(t.pid, t.batch)) {
+        const nextBaseTs = deriveSurvivingBatchBaselineTs(t.batch);
+        t.batch.baselineExpectedTs = nextBaseTs;
+        if (tRec && !tRec.pendingBatch) {
+          tRec.serverTs = nextBaseTs;
+        }
+      }
+    }
+    for (const [candPid, candRec] of recordsByParcelId.entries()) {
+      if (candRec.confirmedServerTs !== null) continue;
+      if (batchTouchesClearedKey(candPid, candRec.pendingBatch)) {
+        const nextBaseTs = deriveSurvivingBatchBaselineTs(candRec.pendingBatch);
+        candRec.pendingBatch.baselineExpectedTs = nextBaseTs;
+        candRec.serverTs = nextBaseTs;
+      } else if (
+        !candRec.pendingBatch &&
+        !hasInFlightTicketForPid(candPid) &&
+        Array.from(clearedKeys).some((k) => promotionPathReaches(k, candPid))
+      ) {
+        candRec.serverTs = "";
+      }
     }
   }
 
@@ -2382,7 +2456,7 @@ export function createParcelSyncCoordinator({
         const hop = batch.lineageEdges?.find((e) => e.srcPid === cur);
         const cand = hop?.targetPid || (getBatchReplaceParcelId(batch) === cur ? batchPid : "");
         if (!cand || seen.has(cand)) continue;
-        if (cand === fromPid || promotionPathReaches(cand, fromPid)) {
+        if (cand === fromPid) {
           nextHop = fromPid;
           break;
         }
@@ -2390,8 +2464,7 @@ export function createParcelSyncCoordinator({
       }
       if (!nextHop) break;
       rewindTarget = nextHop;
-      if (rewindTarget === fromPid || promotionPathReaches(rewindTarget, fromPid)) {
-        rewindTarget = fromPid;
+      if (rewindTarget === fromPid) {
         break;
       }
       seen.add(rewindTarget);
@@ -2496,22 +2569,8 @@ export function createParcelSyncCoordinator({
         );
       }
       restampPendingBatch(candPid, candRec.pendingBatch);
-      if (
-        !repRedirected &&
-        lineageRedirected &&
-        !candRepPid &&
-        candRec.confirmedServerTs === null
-      ) {
-        let survivingTs = "";
-        for (const edge of candRec.pendingBatch.lineageEdges) {
-          const srcRec = recordsByParcelId.get(edge.srcPid);
-          const srcTs = hasServerBackedRow(edge.srcPid)
-            ? srcRec?.confirmedServerTs ?? srcRec?.serverTs ?? ""
-            : "";
-          if (srcTs && (!survivingTs || srcTs > survivingTs)) {
-            survivingTs = srcTs;
-          }
-        }
+      if (!repRedirected && lineageRedirected && candRec.confirmedServerTs === null) {
+        const survivingTs = deriveSurvivingBatchBaselineTs(candRec.pendingBatch);
         candRec.pendingBatch.baselineExpectedTs = survivingTs;
         candRec.serverTs = survivingTs;
       }
@@ -2673,21 +2732,22 @@ export function createParcelSyncCoordinator({
           ? existingTo.lineageEdges
           : []),
       ];
-      const clearEvictedUncreatedBaseline = Boolean(
+      const recomputeEvictedUncreatedBaseline = Boolean(
         evictedBounceHop &&
-          !rootReplacePid &&
           (!existingTo || existingToRep.prevRepSuperseded) &&
-          toRec.confirmedServerTs === null &&
-          !hasUncommittedIncomingPromotedEdge(toPid)
+          toRec.confirmedServerTs === null
       );
-      if (clearEvictedUncreatedBaseline) {
-        toRec.serverTs = "";
+      const survivingEvictedBaseline = recomputeEvictedUncreatedBaseline
+        ? deriveSurvivingBatchBaselineTs({ rootReplacePid, lineageEdges: mergedPriorEdges })
+        : "";
+      if (recomputeEvictedUncreatedBaseline) {
+        toRec.serverTs = survivingEvictedBaseline;
       }
       const rawMergedBaseline =
         existingTo && !existingToRep.prevRepSuperseded
           ? existingTo.baselineExpectedTs
-          : clearEvictedUncreatedBaseline
-          ? ""
+          : recomputeEvictedUncreatedBaseline
+          ? survivingEvictedBaseline
           : !fromRepSuperseded
           ? priorFrom.baselineExpectedTs
           : baseTs;
