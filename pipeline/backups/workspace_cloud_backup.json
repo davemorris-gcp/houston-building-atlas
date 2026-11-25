@@ -2,9 +2,25 @@
   "schemaVersion": "2.0",
   "description": "Public Approved_Edits historical map overrides backup (private monitoring and Staff-Only snapshots are stored separately in the restricted Google Drive Atlas_Monitoring_Backups vault).",
   "counts": {
-    "approvedOverrides": 150
+    "approvedOverrides": 157
   },
   "approvedOverrides": {
+    "0031860000004": {
+      "hcad_num": "0031860000004",
+      "address": "1808 CHESTNUT ST",
+      "year_built": "0",
+      "original_hcad_year": "1930",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [BUILDING NAME / HISTORICAL ALIAS]: 1808 Chestnut St (c. 1930 Historic Residence) | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished between 2019 and 2022 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.776526,-95.358816&zoom=20&basemap=satellite",
+      "building_name": "1808 Chestnut St (c. 1930 Historic Residence)",
+      "alt_names": "",
+      "bld_style": "",
+      "architect": "",
+      "geometry_geojson": ""
+    },
     "0050060000015": {
       "hcad_num": "0050060000015",
       "address": "801 ANDREWS ST",
@@ -69,6 +85,22 @@
       "architect": "",
       "geometry_geojson": ""
     },
+    "0192080000017": {
+      "hcad_num": "0192080000017",
+      "address": "3716 SAINT CHARLES ST",
+      "year_built": "0",
+      "original_hcad_year": "1930",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished prior to 2007 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.730581,-95.367077&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
+      "architect": "",
+      "geometry_geojson": ""
+    },
     "0201360000032": {
       "hcad_num": "0201360000032",
       "address": "1548 HEIGHTS BLVD",
@@ -130,6 +162,22 @@
       "building_name": "Episcopal High School",
       "alt_names": "",
       "bld_style": "Educational Campus",
+      "architect": "",
+      "geometry_geojson": ""
+    },
+    "0381770000024": {
+      "hcad_num": "0381770000024",
+      "address": "5603 BACHER ST",
+      "year_built": "0",
+      "original_hcad_year": "1933",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished prior to 2019 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.812303,-95.277669&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
       "architect": "",
       "geometry_geojson": ""
     },
@@ -1477,6 +1525,22 @@
       "architect": "",
       "geometry_geojson": ""
     },
+    "0511060080010": {
+      "hcad_num": "0511060080010",
+      "address": "5412 FLOYD ST",
+      "year_built": "0",
+      "original_hcad_year": "1932",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished between 2022 and 2026 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.768414,-95.416877&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
+      "architect": "",
+      "geometry_geojson": ""
+    },
     "0530970000001": {
       "hcad_num": "0530970000001",
       "address": "9701 MANCHESTER ST",
@@ -1618,6 +1682,38 @@
       "building_name": "Margaret Long Wisdom High School (HISD)",
       "alt_names": "",
       "bld_style": "Mid-Century Educational Campus",
+      "architect": "",
+      "geometry_geojson": ""
+    },
+    "0780850010001": {
+      "hcad_num": "0780850010001",
+      "address": "134 W  LITTLE YORK RD",
+      "year_built": "0",
+      "original_hcad_year": "1970",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished between 2020 and 2022 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.870131,-95.400306&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
+      "architect": "",
+      "geometry_geojson": ""
+    },
+    "0790770030013": {
+      "hcad_num": "0790770030013",
+      "address": "7859 BOY ST",
+      "year_built": "0",
+      "original_hcad_year": "1955",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished prior to 2008 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.818730,-95.284746&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
       "architect": "",
       "geometry_geojson": ""
     },
@@ -2338,6 +2434,22 @@
       "building_name": "Levit Green Life Sciences District Phase I",
       "alt_names": "",
       "bld_style": "Contemporary Life Sciences Research Building",
+      "architect": "",
+      "geometry_geojson": ""
+    },
+    "1483440010001": {
+      "hcad_num": "1483440010001",
+      "address": "2602 ENGELKE ST",
+      "year_built": "0",
+      "original_hcad_year": "1936",
+      "historic_district": "",
+      "contributing": "",
+      "source_type": "Footprint Issue: Building demolished - lot currently vacant",
+      "source_citation": "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT] | [FOOTPRINT / SHAPE ISSUE - Building demolished - lot currently vacant]: Demolished  between 2019 and 2022 (Google StreetView)",
+      "source_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.758253,-95.342872&zoom=20&basemap=satellite",
+      "building_name": "",
+      "alt_names": "",
+      "bld_style": "",
       "architect": "",
       "geometry_geojson": ""
     },
