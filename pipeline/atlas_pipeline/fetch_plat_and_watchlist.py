@@ -4970,6 +4970,37 @@ def _restore_unpublished_outline_metadata(cyc_data: dict, prev_cyc: dict) -> Non
             )
 
 
+def _restore_rotated_public_hearing_notices(cyc_data: dict, prev_cyc: dict) -> None:
+    """Preserve previously captured Public Hearing Notice PDFs and Notice-only items after COH rotates past notices off commiss_plan.html."""
+    if prev_cyc.get("minutesPdfUrl") and not cyc_data.get("minutesPdfUrl"):
+        cyc_data["minutesPdfUrl"] = prev_cyc["minutesPdfUrl"]
+    prev_items = [x for x in (prev_cyc.get("items") or []) if isinstance(x, dict) and x.get("app")]
+    prev_by_app = {str(x["app"]): x for x in prev_items}
+    cur_apps = {str(it.get("app") or "") for it in cyc_data.get("items") or []}
+    for it in cyc_data.get("items") or []:
+        p_match = prev_by_app.get(str(it.get("app") or ""))
+        if not p_match or not p_match.get("noticePdf"):
+            continue
+        for carry_k in ("noticePdf", "hearingDateIso", "hearingDate", "noticeLocation"):
+            if p_match.get(carry_k) and not it.get(carry_k):
+                it[carry_k] = p_match[carry_k]
+        it["_c"] = classify_item(it, cyc_data.get("reviews", {}).get(it["app"]))
+    prev_revs = prev_cyc.get("reviews") if isinstance(prev_cyc.get("reviews"), dict) else {}
+    for p_it in prev_items:
+        p_app = str(p_it.get("app") or "")
+        if p_app in cur_apps or not p_it.get("noticePdf"):
+            continue
+        cyc_data["items"].append(copy.deepcopy(p_it))
+        cur_apps.add(p_app)
+        p_rev = prev_revs.get(p_app)
+        if isinstance(p_rev, dict):
+            cyc_data.setdefault("reviews", {})[p_app] = merge_plat_review_overlay(
+                cyc_data.get("reviews", {}).get(p_app),
+                p_rev,
+                cyc_data["items"][-1],
+            )
+
+
 def build_plat_agenda_dataset(
     idx: dict,
     scraped_multi: dict,
@@ -5037,6 +5068,8 @@ def build_plat_agenda_dataset(
             and prev_cyc.get("sourceSpreadsheetUrl") == cyc_data.get("sourceSpreadsheetUrl")
         ):
             _restore_unpublished_outline_metadata(cyc_data, prev_cyc)
+        elif isinstance(prev_cyc, dict) and cyc_data.get("items"):
+            _restore_rotated_public_hearing_notices(cyc_data, prev_cyc)
         items_by_app = {it["app"]: it for it in cyc_data["items"]}
         # Apply any cloud-synced staff reviews for this cycle using safe machine-vs-human overlay rules (DF-1)
         if cloud_plat_reviews:
