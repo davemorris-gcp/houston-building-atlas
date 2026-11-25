@@ -229,6 +229,7 @@ def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_po
         return ""
 
     with (
+        mock.patch.object(fpw, "DATA_DIR", tmp_path / "data"),
         mock.patch.object(fpw, "PLAT_CACHE_DIR", tmp_path / "plat_cache"),
         mock.patch.object(fpw, "fetch_bytes", side_effect=fake_fetch_bytes),
         mock.patch.object(fpw, "pdf_to_text", side_effect=fake_pdf_to_text),

@@ -5115,7 +5115,13 @@ def build_plat_agenda_dataset(
             and prev_cyc.get("sourceSpreadsheetUrl") == cyc_data.get("sourceSpreadsheetUrl")
         ):
             _restore_unpublished_outline_metadata(cyc_data, prev_cyc)
-        elif isinstance(prev_cyc, dict) and cyc_data.get("items"):
+        elif (
+            isinstance(prev_cyc, dict)
+            and not all_cycles_scraped[c_iso].get("is_early_gis_cycle")
+            and cyc_data.get("items")
+            and bool(cyc_data.get("sourceSpreadsheetUrl"))
+            and prev_cyc.get("sourceSpreadsheetUrl") == cyc_data.get("sourceSpreadsheetUrl")
+        ):
             _restore_rotated_public_hearing_notices(cyc_data, prev_cyc)
         items_by_app = {it["app"]: it for it in cyc_data["items"]}
         # Apply any cloud-synced staff reviews for this cycle using safe machine-vs-human overlay rules (DF-1)
