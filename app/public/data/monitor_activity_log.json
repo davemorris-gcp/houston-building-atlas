@@ -1,18 +1,17 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-24T22:04:11Z",
-  "lastSweepAt": "2026-11-24T21:51:24Z",
+  "generatedAt": "2026-11-25T21:12:53Z",
+  "lastSweepAt": "2026-11-25T20:58:58Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-27",
+  "retentionFloorDate": "2026-08-28",
   "lastSweepHealth": {
-    "timestamp": "2026-11-24T21:51:24Z",
+    "timestamp": "2026-11-25T20:58:58Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
-    "succeededAgencies": 6,
+    "succeededAgencies": 7,
     "failedAgencies": [
-      "chk-10",
-      "chk-15"
+      "chk-10"
     ],
     "skippedAgencies": [],
     "allOk": false,
@@ -45,7 +44,7 @@
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "error": "TDLR TABS (3605 FARMER): HTTP request failed or timed out; TDLR TABS (3617 FARMER): HTTP request failed or timed out; TDLR TABS (2531 KUESTER): HTTP request failed or timed out; TDLR TABS (2015 SHELDON): HTTP request failed or timed out"
+        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out; TDLR TABS (2501 CANAL): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -60,28 +59,48 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "error": ""
       }
     }
   },
   "summary": {
-    "totalEvents": 796,
-    "criticalCount": 428,
+    "totalEvents": 812,
+    "criticalCount": 444,
     "warningCount": 228,
     "infoCount": 140,
     "byStream": {
       "watchlist": 0,
       "agenda": 291,
       "staff": 0,
-      "permits": 505
+      "permits": 521
     },
-    "operationalNoticeCount": 20,
+    "operationalNoticeCount": 21,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-25",
+      "lastRunAt": "2026-11-25T21:12:53Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-10"
+      ],
+      "allOk": false,
+      "eventCount": 17,
+      "adverseEventCount": 17,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 17
+      }
+    },
     {
       "date": "2026-11-24",
       "lastRunAt": "2026-11-24T22:04:11Z",
@@ -1798,28 +1817,1134 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-27",
-      "lastRunAt": "2026-08-27T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 1,
-      "adverseEventCount": 1,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 1
-      }
     }
   ],
   "events": [
+    {
+      "id": "permit:dshs:1035350000010:2026006555",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-24",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026006555): 514 ANDREWS ST",
+      "summary": "514 ANDREWS ST (Built 1974): DSHS Notification #2026006555 filed 2026-11-24 (scheduled 2026-11-24 to 2026-12-07) by BROCK SERVICES LLC.",
+      "address": "514 ANDREWS ST",
+      "hcad": "1035350000010",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_003344",
+      "lat": 29.75605,
+      "lng": -95.373848,
+      "yearBuilt": 1974,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006555",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463069"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237379"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "514 ANDREWS ST",
+        "address": "514 ANDREWS ST",
+        "hcad_num": "1035350000010",
+        "related_hcads": [
+          "1035350000010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_003344",
+        "year_built": 1974,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "E",
+        "neighborhood": "Southern Downtown Houston",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "CENTRIO ENERGY SOUTH LLC",
+        "lat": 29.75605,
+        "lng": -95.373848,
+        "record": {
+          "notification_number": "2026006555",
+          "start_date": "2026-11-24",
+          "end_date": "2026-12-07",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463069",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237379",
+          "filing_date": "2026-11-24",
+          "work_type": "Abatement",
+          "abatement_contractor": "BROCK SERVICES LLC"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0912600000269:2026006556",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-24",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement/Demolition Filing (#2026006556): 823 LYNGROVE DR",
+      "summary": "823 LYNGROVE DR (Built 1964): DSHS Notification #2026006556 filed 2026-11-24 (scheduled 2026-12-21 to 2026-12-30) by RED RIVER REMEDIATION MANAGEMENT,.",
+      "address": "823 LYNGROVE DR",
+      "hcad": "0912600000269",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0912600000269",
+      "lat": 29.89851,
+      "lng": -95.41617,
+      "yearBuilt": 1964,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006556",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463078"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237380"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "823 LYNGROVE DR",
+        "address": "823 LYNGROVE DR",
+        "hcad_num": "0912600000269",
+        "related_hcads": [
+          "0912600000269"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0912600000269",
+        "year_built": 1964,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.89851,
+        "lng": -95.41617,
+        "record": {
+          "notification_number": "2026006556",
+          "start_date": "2026-12-21",
+          "end_date": "2026-12-30",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463078",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237380",
+          "filing_date": "2026-11-24",
+          "work_type": "Abatement/Demolition",
+          "abatement_contractor": "RED RIVER REMEDIATION MANAGEMENT,"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0912600000268:2026006554",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-24",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement/Demolition Filing (#2026006554): 819 LYNGROVE DR",
+      "summary": "819 LYNGROVE DR (Built 1962): DSHS Notification #2026006554 filed 2026-11-24 (scheduled 2026-12-08 to 2026-12-22) by RED RIVER REMEDIATION MANAGEMENT,.",
+      "address": "819 LYNGROVE DR",
+      "hcad": "0912600000268",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0912600000268",
+      "lat": 29.89852,
+      "lng": -95.41598,
+      "yearBuilt": 1962,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006554",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463068"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237378"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "819 LYNGROVE DR",
+        "address": "819 LYNGROVE DR",
+        "hcad_num": "0912600000268",
+        "related_hcads": [
+          "0912600000268"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0912600000268",
+        "year_built": 1962,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.89852,
+        "lng": -95.41598,
+        "record": {
+          "notification_number": "2026006554",
+          "start_date": "2026-12-08",
+          "end_date": "2026-12-22",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463068",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237378",
+          "filing_date": "2026-11-24",
+          "work_type": "Abatement/Demolition",
+          "abatement_contractor": "RED RIVER REMEDIATION MANAGEMENT,"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0221400000005:2026006579",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "TX DSHS Demolition Filing (#2026006579): 3422 FRANCIS ST",
+      "summary": "3422 FRANCIS ST (Built 1950): DSHS Notification #2026006579 filed 2026-11-25 (scheduled 2026-12-10 to 2026-12-14).",
+      "address": "3422 FRANCIS ST",
+      "hcad": "0221400000005",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0221400000005",
+      "lat": 29.72795,
+      "lng": -95.35294,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006579",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463480"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237456"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "3422 FRANCIS ST",
+        "address": "3422 FRANCIS ST",
+        "hcad_num": "0221400000005",
+        "related_hcads": [
+          "0221400000005"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0221400000005",
+        "year_built": 1950,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.72795,
+        "lng": -95.35294,
+        "record": {
+          "notification_number": "2026006579",
+          "start_date": "2026-12-10",
+          "end_date": "2026-12-14",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463480",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237456",
+          "filing_date": "2026-11-25",
+          "work_type": "Demolition"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0191510000005:2026006580",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement/Demolition Filing (#2026006580): 3217 DELANO ST",
+      "summary": "3217 DELANO ST (Built 1940): DSHS Notification #2026006580 filed 2026-11-25 (scheduled 2026-12-10 to 2026-12-17).",
+      "address": "3217 DELANO ST",
+      "hcad": "0191510000005",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0191510000005#b2",
+      "lat": 29.731585,
+      "lng": -95.361731,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006580",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463482"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237458"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "3217 DELANO ST",
+        "address": "3217 DELANO ST",
+        "hcad_num": "0191510000005",
+        "related_hcads": [
+          "0191510000005"
+        ],
+        "watchlist_id": "",
+        "building_id": "0191510000005#b2",
+        "year_built": 1940,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "Third Ward",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "BATTEAU BRAD J",
+        "lat": 29.731585,
+        "lng": -95.361731,
+        "record": {
+          "notification_number": "2026006580",
+          "start_date": "2026-12-10",
+          "end_date": "2026-12-17",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2463482",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=237458",
+          "filing_date": "2026-11-25",
+          "work_type": "Abatement/Demolition"
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0943060000006:26104235",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Garage / Accessory Demolition Permit (#26104235): 5311 S BRAESWOOD BLVD",
+      "summary": "5311 S BRAESWOOD BLVD (Built 1964): DEMO RES/SEWER DISC (NO SD REQ'D)' GARAGE ONLY issued 2026-11-25.",
+      "address": "5311 S BRAESWOOD BLVD",
+      "hcad": "0943060000006",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0943060000006",
+      "lat": 29.67677,
+      "lng": -95.4745,
+      "yearBuilt": 1964,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "5311 S BRAESWOOD BLVD",
+        "address": "5311 S BRAESWOOD BLVD",
+        "hcad_num": "0943060000006",
+        "related_hcads": [
+          "0943060000006"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0943060000006",
+        "year_built": 1964,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.67677,
+        "lng": -95.4745,
+        "record": {
+          "project_no": "26104235",
+          "date": "2026-11-25",
+          "permit_type": "SD",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "use_desc": "DEMO RES/SEWER DISC (NO SD REQ'D)' GARAGE ONLY",
+          "owner_occupant": "LYONS              DEREK & SARA",
+          "buyer": "",
+          "is_sewer_disconnect": false,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0900420000013:26102001",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26102001): 150 PLANTATION RD",
+      "summary": "150 PLANTATION RD (Built 1960): RES DEMO/SEWER DISC issued 2026-11-25.",
+      "address": "150 PLANTATION RD",
+      "hcad": "0900420000013",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0900420000013",
+      "lat": 29.75754,
+      "lng": -95.54133,
+      "yearBuilt": 1960,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "150 PLANTATION RD",
+        "address": "150 PLANTATION RD",
+        "hcad_num": "0900420000013",
+        "related_hcads": [
+          "0900420000013"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0900420000013",
+        "year_built": 1960,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.75754,
+        "lng": -95.54133,
+        "record": {
+          "project_no": "26102001",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "RES DEMO/SEWER DISC",
+          "owner_occupant": "ALLBRITTON         MRS JEAN",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0861730000010:26104195",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104195): 9766 WESTVIEW DR",
+      "summary": "9766 WESTVIEW DR (Built 1956): DEMO RES/ SEWER DISC issued 2026-11-25.",
+      "address": "9766 WESTVIEW DR",
+      "hcad": "0861730000010",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0861730000010",
+      "lat": 29.79247,
+      "lng": -95.5335,
+      "yearBuilt": 1956,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "9766 WESTVIEW DR",
+        "address": "9766 WESTVIEW DR",
+        "hcad_num": "0861730000010",
+        "related_hcads": [
+          "0861730000010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0861730000010",
+        "year_built": 1956,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.79247,
+        "lng": -95.5335,
+        "record": {
+          "project_no": "26104195",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/ SEWER DISC",
+          "owner_occupant": "*PRISCO PROPERTIES LLC",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0820090000231:26101340",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26101340): 6267 CHEVY CHASE DR",
+      "summary": "6267 CHEVY CHASE DR (Built 1955): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "6267 CHEVY CHASE DR",
+      "hcad": "0820090000231",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0820090000231",
+      "lat": 29.74458,
+      "lng": -95.49527,
+      "yearBuilt": 1955,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "6267 CHEVY CHASE DR",
+        "address": "6267 CHEVY CHASE DR",
+        "hcad_num": "0820090000231",
+        "related_hcads": [
+          "0820090000231"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0820090000231",
+        "year_built": 1955,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.74458,
+        "lng": -95.49527,
+        "record": {
+          "project_no": "26101340",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "REEVES             DOUGLAS E MRS",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0813590000041:26103938",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26103938): 1614 WYCLIFFE DR",
+      "summary": "1614 WYCLIFFE DR (Built 1958): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "1614 WYCLIFFE DR",
+      "hcad": "0813590000041",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0813590000041",
+      "lat": 29.79571,
+      "lng": -95.57431,
+      "yearBuilt": 1958,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "1614 WYCLIFFE DR",
+        "address": "1614 WYCLIFFE DR",
+        "hcad_num": "0813590000041",
+        "related_hcads": [
+          "0813590000041"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0813590000041",
+        "year_built": 1958,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.79571,
+        "lng": -95.57431,
+        "record": {
+          "project_no": "26103938",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*****",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0772800610032:26103793",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26103793): 8411 BOTANY LN",
+      "summary": "8411 BOTANY LN (Built 1950): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "8411 BOTANY LN",
+      "hcad": "0772800610032",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0772800610032",
+      "lat": 29.63117,
+      "lng": -95.26882,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "8411 BOTANY LN",
+        "address": "8411 BOTANY LN",
+        "hcad_num": "0772800610032",
+        "related_hcads": [
+          "0772800610032"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0772800610032",
+        "year_built": 1950,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.63117,
+        "lng": -95.26882,
+        "record": {
+          "project_no": "26103793",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "CARBONO            NUBIA ESTHER",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0751070020007:26104071",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104071): 4013 W ALABAMA ST",
+      "summary": "4013 W ALABAMA ST (Built 1950): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "4013 W ALABAMA ST",
+      "hcad": "0751070020007",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0751070020007",
+      "lat": 29.73794,
+      "lng": -95.44615,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "4013 W ALABAMA ST",
+        "address": "4013 W ALABAMA ST",
+        "hcad_num": "0751070020007",
+        "related_hcads": [
+          "0751070020007"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0751070020007",
+        "year_built": 1950,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.73794,
+        "lng": -95.44615,
+        "record": {
+          "project_no": "26104071",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*HORACE HOMES LLC",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0741770000010:26104228",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104228): 10626 EXETER ST",
+      "summary": "10626 EXETER ST (Built 1946): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "10626 EXETER ST",
+      "hcad": "0741770000010",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0741770000010",
+      "lat": 29.86877,
+      "lng": -95.35652,
+      "yearBuilt": 1946,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "10626 EXETER ST",
+        "address": "10626 EXETER ST",
+        "hcad_num": "0741770000010",
+        "related_hcads": [
+          "0741770000010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0741770000010",
+        "year_built": 1946,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.86877,
+        "lng": -95.35652,
+        "record": {
+          "project_no": "26104228",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*LA VILLA PRPOERTIES & INVESTMENTS",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0741770000010:26104227",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104227): 10626 EXETER ST",
+      "summary": "10626 EXETER ST (Built 1946): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "10626 EXETER ST",
+      "hcad": "0741770000010",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0741770000010",
+      "lat": 29.86877,
+      "lng": -95.35652,
+      "yearBuilt": 1946,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "10626 EXETER ST",
+        "address": "10626 EXETER ST",
+        "hcad_num": "0741770000010",
+        "related_hcads": [
+          "0741770000010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0741770000010",
+        "year_built": 1946,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.86877,
+        "lng": -95.35652,
+        "record": {
+          "project_no": "26104227",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*LA VILLA PRPOERTIES & INVESTMENTS",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0730990100016:26103906",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26103906): 1311 DU BARRY LN",
+      "summary": "1311 DU BARRY LN (Built 1950): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "1311 DU BARRY LN",
+      "hcad": "0730990100016",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0730990100016",
+      "lat": 29.82084,
+      "lng": -95.43335,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "1311 DU BARRY LN",
+        "address": "1311 DU BARRY LN",
+        "hcad_num": "0730990100016",
+        "related_hcads": [
+          "0730990100016"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0730990100016",
+        "year_built": 1950,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.82084,
+        "lng": -95.43335,
+        "record": {
+          "project_no": "26103906",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "CELINDA            LARA",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0590250060010:26102000",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26102000): 3604 LOCKWOOD DR",
+      "summary": "3604 LOCKWOOD DR (Built 1940): DEMO RES/SEWER DISC issued 2026-11-25.",
+      "address": "3604 LOCKWOOD DR",
+      "hcad": "0590250060010",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0590250060010",
+      "lat": 29.79189,
+      "lng": -95.31593,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "3604 LOCKWOOD DR",
+        "address": "3604 LOCKWOOD DR",
+        "hcad_num": "0590250060010",
+        "related_hcads": [
+          "0590250060010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0590250060010",
+        "year_built": 1940,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.79189,
+        "lng": -95.31593,
+        "record": {
+          "project_no": "26102000",
+          "date": "2026-11-25",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "LAWRENCE           CATHERINE",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0171590000002:26098697",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T21:12:53Z",
+      "discoveredAt": "2026-11-25T21:12:53Z",
+      "loggedAt": "",
+      "title": "Building Demolition Permit (2 of 2) (#26098697): 3511 DREW ST",
+      "summary": "3511 DREW ST (Built 1940): COH DEMO/RESIDENTIAL/2026 DAP LIST/CONTRACT #4600017396/MAIN issued 2026-11-25.",
+      "address": "3511 DREW ST",
+      "hcad": "0171590000002",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0171590000002",
+      "lat": 29.73145,
+      "lng": -95.34871,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "3511 DREW ST",
+        "address": "3511 DREW ST",
+        "hcad_num": "0171590000002",
+        "related_hcads": [
+          "0171590000002"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0171590000002",
+        "year_built": 1940,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.73145,
+        "lng": -95.34871,
+        "record": {
+          "project_no": "26098697",
+          "date": "2026-11-25",
+          "permit_type": "4D",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
+          "use_desc": "COH DEMO/RESIDENTIAL/2026 DAP LIST/CONTRACT #4600017396/MAIN",
+          "owner_occupant": "*CITY OF HOUSTON",
+          "buyer": "",
+          "is_sewer_disconnect": false,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-25:degraded:chk-10",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-25",
+      "localDate": "2026-11-25",
+      "timestamp": "2026-11-25T20:58:58Z",
+      "discoveredAt": "2026-11-25T20:58:58Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TDLR Architectural Barriers (TABS) (TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out; TDLR TABS (2501 CANAL): HTTP request failed or timed out). Verify affected checks manually if time-sensitive.",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:coh:1010370000002:26098709",
       "stream": "permits",
@@ -2496,7 +3621,7 @@
       "discoveredAt": "2026-11-23T23:19:39Z",
       "loggedAt": "",
       "title": "New Section K DPV Added (2026-12-03): 1323 South Boulevard",
-      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | The applicant is requesting To allow a 0’ building line in lieu of the 10’ building line along Bissonnet St, a major collector, for a 10’ high CMU wall..",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | The applicant is requesting To allow a 0\u2019 building line in lieu of the 10\u2019 building line along Bissonnet St, a major collector, for a 10\u2019 high CMU wall..",
       "address": "1323 SOUTH BLVD",
       "hcad": "0530390000003",
       "checkId": "",
@@ -2527,7 +3652,7 @@
       "discoveredAt": "2026-11-23T23:19:39Z",
       "loggedAt": "",
       "title": "New Agenda Item Added (2026-12-03): Bonita Grand replat no 1 and extension (2026-1866)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 1938 | The applicant is requesting a variance not to dedicate 5’ of widening to Live Oak Street and to allow a 0' dual building line for an existing structure..",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 1938 | The applicant is requesting a variance not to dedicate 5\u2019 of widening to Live Oak Street and to allow a 0' dual building line for an existing structure..",
       "address": "15 LIVE OAK ALY; 2501 COMMERCE ST; 30 N SAINT CHARLES ST; 25 LIVE OAK ALLEY",
       "hcad": "0230990000001, 0230990000021, 0230990000015, 1498900010001",
       "checkId": "",
@@ -3125,7 +4250,7 @@
       "discoveredAt": "2026-11-23T23:19:39Z",
       "loggedAt": "",
       "title": "New Agenda Item Added (2026-10-29): Bonita Grand replat no 1 and extension (2026-1866)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 1938 | The applicant is requesting a variance not to dedicate 5’ of widening to Live Oak Street and to allow a 0' dual building line for an existing structure..",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 1938 | The applicant is requesting a variance not to dedicate 5\u2019 of widening to Live Oak Street and to allow a 0' dual building line for an existing structure..",
       "address": "15 LIVE OAK ALY; 2501 COMMERCE ST; 30 N SAINT CHARLES ST; 25 LIVE OAK ALLEY",
       "hcad": "0230990000001, 0230990000021, 0230990000015, 1498900010001",
       "checkId": "",
@@ -3304,181 +4429,6 @@
       ]
     },
     {
-      "id": "agenda:item:2026-10-15:2026-1454:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
-      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
-      "address": "1334 BRITTMOORE RD",
-      "hcad": "1190740010012, 1190740010013",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1454",
-      "occKey": "2026-10-15::2026-1454",
-      "buildingId": "",
-      "lat": 29.79562,
-      "lng": -95.56825,
-      "yearBuilt": 2018,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-01:2026-1454:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-01",
-      "localDate": "2026-10-01",
-      "timestamp": "2026-10-01T12:00:00Z",
-      "discoveredAt": "2026-10-01T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
-      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
-      "address": "1334 BRITTMOORE RD",
-      "hcad": "1190740010012, 1190740010013",
-      "checkId": "",
-      "cycleKey": "2026-10-01",
-      "appNo": "2026-1454",
-      "occKey": "2026-10-01::2026-1454",
-      "buildingId": "",
-      "lat": 29.79562,
-      "lng": -95.56825,
-      "yearBuilt": 2018,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1454:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
-      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
-      "address": "1334 BRITTMOORE RD",
-      "hcad": "1190740010012, 1190740010013",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1454",
-      "occKey": "2026-09-14::2026-1454",
-      "buildingId": "",
-      "lat": 29.79562,
-      "lng": -95.56825,
-      "yearBuilt": 2018,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93740/OriginalFiles/26-0515_1334_BRITTMOORE_ROAD_PLAT-SHEET_1.pdf?sv=2021-08-06&se=2051-09-04T19%3A37%3A07Z&sr=b&sp=r&sig=jlHl9pE9jhA4m5sKTD53%2BPlOp6f3TuNeE50gmIAv7yk%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1204:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Liberty Green (2026-1204)",
-      "summary": "Official Public Hearing Notice PDF posted for Liberty Green (Hearing 2026-12-03).",
-      "address": "4705 LIBERTY RD",
-      "hcad": "0040570000008",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1204",
-      "occKey": "2026-09-03::2026-1204",
-      "buildingId": "",
-      "lat": 29.78786,
-      "lng": -95.32275,
-      "yearBuilt": 1925,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93433/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-07-24T21%3A35%3A56Z&sr=b&sp=r&sig=8TOCcY0JcNnW1ghHe%2BNEIfwpCgj0nuoqJANb1CqMh8c%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://houstontx.gov/sites/default/files/planning/2026/2026-1524-Liberty-Green.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1071:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Cruz Auto Shop (2026-1071)",
-      "summary": "Official Public Hearing Notice PDF posted for Cruz Auto Shop (Hearing 2026-12-03).",
-      "address": "954 SALTER DR",
-      "hcad": "0902600000527",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1071",
-      "occKey": "2026-09-03::2026-1071",
-      "buildingId": "",
-      "lat": 29.94325,
-      "lng": -95.3762,
-      "yearBuilt": 2013,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93162/OriginalFiles/4689-PLAT.pdf?sv=2021-08-06&se=2051-06-19T19%3A52%3A00Z&sr=b&sp=r&sig=05GoxCcmsvUvaSuGR4pkLfffU%2FNKJsPbQSJa96YT7z0%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://houstontx.gov/sites/default/files/planning/2026/2026-1614_Cruz-Auto-Shop_PHS.pdf"
-        }
-      ]
-    },
-    {
       "id": "agenda:item:2026-12-03:2026-1845:added",
       "stream": "agenda",
       "kind": "agenda_item_added",
@@ -3490,7 +4440,7 @@
       "discoveredAt": "2026-11-23T23:19:39Z",
       "loggedAt": "",
       "title": "New Agenda Item Added (2026-12-03): Winged Oaks (2026-1845)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 2018 | The applicant is requesting a variance to allow the 20 single-family lots to take access to Brittmoore Road through recorded access easements across Unrestricted Reserve “A”, instead of platted Type 2 permanent access easements..",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 2018 | The applicant is requesting a variance to allow the 20 single-family lots to take access to Brittmoore Road through recorded access easements across Unrestricted Reserve \u201cA\u201d, instead of platted Type 2 permanent access easements..",
       "address": "1334 BRITTMOORE RD",
       "hcad": "1190740010012, 1190740010013",
       "checkId": "",
@@ -3968,7 +4918,7 @@
       "discoveredAt": "2026-11-23T23:19:39Z",
       "loggedAt": "",
       "title": "New Agenda Item Added (2026-10-29): Winged Oaks (2026-1845)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 2018 | The applicant is requesting a variance to allow the 20 single-family lots to take access to Brittmoore Road through recorded access easements across Unrestricted Reserve “A”, instead of platted Type 2 permanent access easements..",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 17, 2026) | Built 2018 | The applicant is requesting a variance to allow the 20 single-family lots to take access to Brittmoore Road through recorded access easements across Unrestricted Reserve \u201cA\u201d, instead of platted Type 2 permanent access easements..",
       "address": "1334 BRITTMOORE RD",
       "hcad": "1190740010012, 1190740010013",
       "checkId": "",
@@ -4597,506 +5547,6 @@
       }
     },
     {
-      "id": "agenda:item:2026-09-03:2026-1398:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "critical",
-      "adverse": true,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Reserve at Spring Branch (2026-1398)",
-      "summary": "Class 3 subdivision preliminary replat (C3R) in B. Replats | Built 1950.",
-      "address": "1817 LAVERNE ST; 1839 LAVERNE ST",
-      "hcad": "0651040000027, 0651040000025",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1398",
-      "occKey": "2026-09-03::2026-1398",
-      "buildingId": "",
-      "lat": 29.8046,
-      "lng": -95.51271,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93661/OriginalFiles/RESERVE_AT_SPRING_BRANCH_8-22-2026_PDF.pdf?sv=2021-08-06&se=2051-08-24T00%3A12%3A29Z&sr=b&sp=r&sig=fjIrbw13GaD8ewY5SsTudWDYSieVfXl7yqmPlQqdywc%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1294:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "critical",
-      "adverse": true,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Townhomes at 21st Street (2026-1294)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
-      "address": "946 W 21ST ST",
-      "hcad": "0610190040006",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1294",
-      "occKey": "2026-09-03::2026-1294",
-      "buildingId": "",
-      "lat": 29.80456,
-      "lng": -95.41634,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93543/OriginalFiles/261053125-Model.pdf?sv=2021-08-06&se=2051-08-07T17%3A26%3A29Z&sr=b&sp=r&sig=C5TreL1CY%2FkvnQngrtbiM7ea4R2JreYCHA6rX2OS7qw%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1407:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Esplanade on Live Oak replat no 1 (2026-1407)",
-      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1936.",
-      "address": "2602 ENGELKE ST",
-      "hcad": "0321950000001",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1407",
-      "occKey": "2026-09-03::2026-1407",
-      "buildingId": "",
-      "lat": 29.758219,
-      "lng": -95.342882,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93589/OriginalFiles/Esplanade_On_Live_Oak_Replat_No_1.pdf?sv=2021-08-06&se=2051-08-24T12%3A58%3A09Z&sr=b&sp=r&sig=yOpu%2F%2FOQ4YIjfiTkZJqN8Sq4nF3Z0Eg%2FOGBWvnnbCic%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1397:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Floyd Street Views (2026-1397)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1932.",
-      "address": "5412 FLOYD ST",
-      "hcad": "0511060080010",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1397",
-      "occKey": "2026-09-03::2026-1397",
-      "buildingId": "",
-      "lat": 29.7684,
-      "lng": -95.41689,
-      "yearBuilt": 1932,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93657/OriginalFiles/FLOYD_STREET_VIEWS_8-21-2026_PDF.pdf?sv=2021-08-06&se=2051-08-24T00%3A04%3A04Z&sr=b&sp=r&sig=vxaUttUSuEcVN4jReoU984LeHKfMFi4UdKDTF03XIs8%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1396:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Oakcliff Park Residences (2026-1396)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1925.",
-      "address": "2715 OAKCLIFF ST",
-      "hcad": "0600580000198",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1396",
-      "occKey": "2026-09-03::2026-1396",
-      "buildingId": "",
-      "lat": 29.71142,
-      "lng": -95.31879,
-      "yearBuilt": 1925,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93639/OriginalFiles/OAKCLIFF_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T20%3A23%3A02Z&sr=b&sp=r&sig=WSGG2v6h4HfGPmyqRMdbB8cxUbcC4P9gFzoWGHM21BQ%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1394:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Napoleon Park Residences (2026-1394)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
-      "address": "3009 NAPOLEON ST",
-      "hcad": "0171520000005",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1394",
-      "occKey": "2026-09-03::2026-1394",
-      "buildingId": "",
-      "lat": 29.72976,
-      "lng": -95.35039,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93641/OriginalFiles/NAPOLEON_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A57%3A48Z&sr=b&sp=r&sig=CCdpXDCT4bFs7aOQ72xgniVwkj%2F%2BSfAK8wmwPonVq2g%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1393:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Farmer Park Residences (2026-1393)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1926.",
-      "address": "3605 FARMER ST; 3617 FARMER ST",
-      "hcad": "0140790000008, 0140790000009",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1393",
-      "occKey": "2026-09-03::2026-1393",
-      "buildingId": "",
-      "lat": 29.77523,
-      "lng": -95.33356,
-      "yearBuilt": 1926,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93643/OriginalFiles/FARMER_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A11%3A25Z&sr=b&sp=r&sig=WuiEfyyjG35Ywnfa5ctpS2KRfzvTNicjlPOG2wWecIw%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1316:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): MS Cube Dewberry Development (2026-1316)",
-      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1940.",
-      "address": "4608 DEWBERRY ST",
-      "hcad": "0691060090004",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1316",
-      "occKey": "2026-09-03::2026-1316",
-      "buildingId": "",
-      "lat": 29.69551,
-      "lng": -95.34688,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93568/OriginalFiles/Mahavir-__Dewberry_PLAT_1.pdf?sv=2021-08-06&se=2051-08-10T03%3A29%3A08Z&sr=b&sp=r&sig=55EAxDNUwI%2B9ExEUpYtOQNBVNW1w8YjAyYbwozFvKiM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1314:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Jutland Homes (2026-1314)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-29.",
-      "address": "",
-      "hcad": "0770330040011",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1314",
-      "occKey": "2026-09-03::2026-1314",
-      "buildingId": "",
-      "lat": 29.66236,
-      "lng": -95.35181,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93565/OriginalFiles/Jutland_Homes.pdf?sv=2021-08-06&se=2051-08-10T01%3A56%3A27Z&sr=b&sp=r&sig=3AeyFQgz5gVfYgaGvxHFdd5RmJ6jpXTik7yg5tHRfps%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1284:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): OST Acres Second Addition partial replat no 2 (2026-1284)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
-      "address": "3009 NAPOLEON ST",
-      "hcad": "0171520000005",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1284",
-      "occKey": "2026-09-03::2026-1284",
-      "buildingId": "",
-      "lat": 29.72976,
-      "lng": -95.35039,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1284/OriginalFiles/25-0046-001_PLAT1.pdf?sv=2021-08-06&se=2051-08-27T19%3A05%3A13Z&sr=b&sp=r&sig=vGCzbD57iu4KGi9MV3QJWUqR%2BI3pEmOVjKmLiRvhh80%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1274:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Upper Brays Bayou Wastewater Treatment Plant (2026-1274)",
-      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1940.",
-      "address": "13315 OLD WESTHEIMER",
-      "hcad": "0250460000324",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1274",
-      "occKey": "2026-09-03::2026-1274",
-      "buildingId": "",
-      "lat": 29.718649,
-      "lng": -95.590939,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93375/OriginalFiles/Upper_Brays_Bayou_WWTP_FINAL_PLAT.pdf?sv=2021-08-06&se=2051-08-03T14%3A59%3A24Z&sr=b&sp=r&sig=2rsxzqZLYNg24bTCxvBOmLf18eLhEMYFYM5PVstk4yA%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1215:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Alabama Commons (2026-1215)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1940.",
-      "address": "2412 ALABAMA ST",
-      "hcad": "0611460000004",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1215",
-      "occKey": "2026-09-03::2026-1215",
-      "buildingId": "",
-      "lat": 29.73011,
-      "lng": -95.36756,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93443/OriginalFiles/ALABAMA_COMMONS_7-24-2026_PDF.pdf?sv=2021-08-06&se=2051-07-26T18%3A28%3A27Z&sr=b&sp=r&sig=cam2MY9fBUJsoA%2BXnzxUE%2BYaXPAblcCj55ED4TX0zuQ%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1204:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Liberty Green (2026-1204)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1925.",
-      "address": "4705 LIBERTY RD",
-      "hcad": "0040570000008",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1204",
-      "occKey": "2026-09-03::2026-1204",
-      "buildingId": "",
-      "lat": 29.78786,
-      "lng": -95.32275,
-      "yearBuilt": 1925,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93433/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-07-24T21%3A35%3A56Z&sr=b&sp=r&sig=8TOCcY0JcNnW1ghHe%2BNEIfwpCgj0nuoqJANb1CqMh8c%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1069:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Enclave at Saint Charles (2026-1069)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1930.",
-      "address": "3716 SAINT CHARLES ST",
-      "hcad": "0192080000017, 0192080000010",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1069",
-      "occKey": "2026-09-03::2026-1069",
-      "buildingId": "bld_013383",
-      "lat": 29.7306,
-      "lng": -95.36708,
-      "yearBuilt": 1930,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1069/OriginalFiles/Enclave_at_St_Charles_1-10.pdf?sv=2021-08-06&se=2051-08-19T19%3A47%3A44Z&sr=b&sp=r&sig=rq7fhQlULEC6R6mtGiFtmjX7MUP9jNhqAQyLGfdo2%2FM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1020:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Maxroys Corner (2026-1020)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1928.",
-      "address": "5936 PETTY ST",
-      "hcad": "0102420000654",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1020",
-      "occKey": "2026-09-03::2026-1020",
-      "buildingId": "",
-      "lat": 29.7807,
-      "lng": -95.43091,
-      "yearBuilt": 1928,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1020/OriginalFiles/45-2630_PLAT-Layout1_REVISED.pdf?sv=2021-08-06&se=2051-08-27T18%3A02%3A51Z&sr=b&sp=r&sig=6CYmknvFwddu5JvPgZ5mW70b3GvnseA01U4j%2BYqIKQo%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:cycle:2026-09-03",
-      "stream": "agenda",
-      "kind": "agenda_cycle_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Planning Commission Agenda Posted: 2026-09-03",
-      "summary": "Ingested 122 agenda items (61 flagged for historic review, 0 Section K Development Plat Variance(s), 25 Public Hearing Notice(s)).",
-      "address": "",
-      "hcad": "",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "",
-      "occKey": "",
-      "buildingId": "",
-      "lat": null,
-      "lng": null,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Agenda Spreadsheet (.xlsx)",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-09-03-2026.xlsx"
-        }
-      ]
-    },
-    {
       "id": "agenda:item:2026-10-29:2026-1701:plat_pdf",
       "stream": "agenda",
       "kind": "agenda_item_plat_pdf",
@@ -5303,161 +5753,6 @@
         {
           "label": "Public Hearing Notice PDF",
           "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1211:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Sul Ross Views (2026-1211)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950.",
-      "address": "2038 SUL ROSS ST",
-      "hcad": "0561210000025",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1211",
-      "occKey": "2026-09-03::2026-1211",
-      "buildingId": "",
-      "lat": 29.73792,
-      "lng": -95.40969,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93439/OriginalFiles/SUL_ROSS_VIEWS_7-24-2026_PDF.pdf?sv=2021-08-06&se=2051-07-25T21%3A05%3A31Z&sr=b&sp=r&sig=rzhTa9C1%2BD9A9eos3spnRkAyVp5%2FgXhHPQ6PNGBKlxU%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1120:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Westheimer Subdivision partial replat no 1 (2026-1120)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 2017.",
-      "address": "2531 KUESTER ST",
-      "hcad": "1211140020001",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1120",
-      "occKey": "2026-09-03::2026-1120",
-      "buildingId": "",
-      "lat": 29.74344,
-      "lng": -95.40029,
-      "yearBuilt": 2017,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1097:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Eleanor Enclave (2026-1097)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1949.",
-      "address": "407 ELEANOR ST",
-      "hcad": "0660640410042",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1097",
-      "occKey": "2026-09-03::2026-1097",
-      "buildingId": "",
-      "lat": 29.81258,
-      "lng": -95.36659,
-      "yearBuilt": 1949,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93283/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-07-10T15%3A02%3A10Z&sr=b&sp=r&sig=J%2FkrTFGxMp%2BClg9iyv57mjtkKPAnFK%2FltQzsNZtH%2BSA%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1083:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Ali Plaza (2026-1083)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1955.",
-      "address": "7859 BOY ST",
-      "hcad": "0790770030013",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1083",
-      "occKey": "2026-09-03::2026-1083",
-      "buildingId": "",
-      "lat": 29.81872,
-      "lng": -95.28476,
-      "yearBuilt": 1955,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1083/OriginalFiles/Ali_Plaza-Replat-25ftBL.pdf?sv=2021-08-06&se=2051-08-11T18%3A21%3A03Z&sr=b&sp=r&sig=30LV52%2BBXdxJDyvR0hacpjkvKzIpVyOzfxmwZV6oLH8%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-03:2026-1045:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-03",
-      "localDate": "2026-09-03",
-      "timestamp": "2026-09-03T12:00:00Z",
-      "discoveredAt": "2026-09-03T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-03): Schurmier Residences (2026-1045)",
-      "summary": "Class 3 subdivision preliminary replat (C3R) in F. Reconsideration Of Req | Built 1950.",
-      "address": "5025 SCHURMIER RD",
-      "hcad": "0261200000288",
-      "checkId": "",
-      "cycleKey": "2026-09-03",
-      "appNo": "2026-1045",
-      "occKey": "2026-09-03::2026-1045",
-      "buildingId": "",
-      "lat": 29.60841,
-      "lng": -95.33642,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1045/OriginalFiles/REV_SCHURMIER_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-24T18%3A26%3A51Z&sr=b&sp=r&sig=IDfF7yN834V%2FUOj2ewprlYnilUL%2BNkoO%2F7V%2BjnySsTY%3D"
         }
       ]
     },
@@ -8463,72 +8758,6 @@
       "links": []
     },
     {
-      "id": "agenda:item:2026-09-14:2026-1442:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "critical",
-      "adverse": true,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): E Street at Forest Green (2026-1442)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1968 | Hearing 2026-11-12.",
-      "address": "8802 FOREST HOLLOW ST; 8803 FOREST HOLLOW ST; 8805 FOREST HOLLOW ST; 8806 FOREST HOLLOW ST; 8810 FOREST HOLLOW ST; 8812 FOREST HOLLOW ST; 8816 FOREST HOLLOW ST; 8820 FOREST HOLLOW ST; 8822 FOREST HOLLOW ST; 8826 FOREST HOLLOW ST; 8828 FOREST HOLLOW ST; 8830 FOREST HOLLOW ST; 8833 FOREST HOLLOW ST; 8835 FOREST HOLLOW ST; 8838 FOREST HOLLOW ST; 8840 FOREST HOLLOW ST; 8844 FOREST HOLLOW ST; 8850 FOREST HOLLOW ST; 8854 FOREST HOLLOW ST; 8856 FOREST HOLLOW ST; 8858 FOREST HOLLOW ST; 8862 FOREST HOLLOW ST; 8864 FOREST HOLLOW ST; 8868 FOREST HOLLOW ST; 8872 FOREST HOLLOW ST; 8876 FOREST HOLLOW ST; 8880 FOREST HOLLOW ST; 8884 FOREST HOLLOW ST; 8886 FOREST HOLLOW ST; 8888 FOREST HOLLOW ST; 8892 FOREST HOLLOW ST; 8894 FOREST HOLLOW ST; 8898 FOREST HOLLOW ST; 8900 FOREST HOLLOW ST; 8902 FOREST HOLLOW ST; 8904 FOREST HOLLOW ST; 8908 FOREST HOLLOW ST; 8910 FOREST HOLLOW ST; 8912 FOREST HOLLOW ST; 8916 FOREST HOLLOW ST; 8920 FOREST HOLLOW ST; 8924 FOREST HOLLOW ST; 8930 FOREST HOLLOW ST; 8956 FOREST HOLLOW ST; 8960 FOREST HOLLOW ST; 8966 FOREST HOLLOW ST; 8972 FOREST HOLLOW ST; 8976 FOREST HOLLOW ST; 8807 FOREST HOLLOW ST; 8809 FOREST HOLLOW ST; 8813 FOREST HOLLOW ST; 8815 FOREST HOLLOW ST; 8819 FOREST HOLLOW ST; 8825 FOREST HOLLOW ST; 8829 FOREST HOLLOW ST; 8936 FOREST HOLLOW ST; 8938 FOREST HOLLOW ST; 8944 FOREST HOLLOW ST; 8950 FOREST HOLLOW ST; 8954 FOREST HOLLOW ST",
-      "hcad": "1023520000084, 1023520000085, 1023520000086, 1023520000082, 1023520000080, 1023520000079, 1023520000078, 1023520000076, 1023520000075, 1023520000073, 1023520000072, 1023520000071, 1023520000098, 1023520000099, 1023520000069, 1023520000068, 1023520000066, 1023520000063, 1023520000062, 1023520000061, 1023520000060, 1023520000058, 1023520000057, 1023520000055, 1023520000053, 1023520000051, 1023520000049, 1023520000047, 1023520000046, 1023520000045, 1023520000043, 1023520000042, 1023520000040, 1023520000039, 1023520000038, 1023520000037, 1023520000035, 1023520000034, 1023520000033, 1023520000031, 1023520000029, 1023520000027, 1023520000024, 1023520000011, 1023520000009, 1023520000006, 1023520000003, 1023520000001, 1023520000087, 1023520000088, 1023520000090, 1023520000091, 1023520000093, 1023520000094, 1023520000096, 1023520000021, 1023520000020, 1023520000017, 1023520000014, 1023520000012",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1442",
-      "occKey": "2026-09-14::2026-1442",
-      "buildingId": "",
-      "lat": 29.86458,
-      "lng": -95.26207,
-      "yearBuilt": 1968,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93626/OriginalFiles/20260806-PLAT-E_STREET_AT_FOREST_GREEN-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-08-21T14%3A35%3A35Z&sr=b&sp=r&sig=aA2lbKBY67n81jmixDjVHV9MWaeEQnS2t%2BCJHhrSgRY%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1317:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "critical",
-      "adverse": true,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Park Enclave at St Augustine (2026-1317)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1949.",
-      "address": "6807 SAINT AUGUSTINE ST",
-      "hcad": "0332220310003",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1317",
-      "occKey": "2026-09-14::2026-1317",
-      "buildingId": "",
-      "lat": 29.69071,
-      "lng": -95.35899,
-      "yearBuilt": 1949,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1317/OriginalFiles/PARK_ENCLAVE_AT_ST_AUGUSTINE-Layout1.pdf?sv=2021-08-06&se=2051-08-14T22%3A53%3A46Z&sr=b&sp=r&sig=4WIt4HZh2FQjJZMyKmw%2Fn7JWvCEw%2B3%2BMpId6Kp7wRSY%3D"
-        }
-      ]
-    },
-    {
       "id": "agenda:item:2026-12-17:2026-1866:added",
       "stream": "agenda",
       "kind": "agenda_item_added",
@@ -9054,704 +9283,6 @@
       ]
     },
     {
-      "id": "agenda:item:2026-10-15:DPV-26073533:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: 801 McGowen Street (DPV-26073533)",
-      "summary": "Official Public Hearing Notice PDF posted for 801 McGowen Street (Hearing 2026-10-15).",
-      "address": "801 MCGOWEN ST",
-      "hcad": "0132680000011",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "DPV-26073533",
-      "occKey": "2026-10-15::DPV-26073533",
-      "buildingId": "",
-      "lat": 29.74964,
-      "lng": -95.38182,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-15:2026-1570:notice_pdf",
-      "stream": "agenda",
-      "kind": "agenda_item_notice_pdf",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "Public Hearing Notice PDF Posted: Bacher Manor (2026-1570)",
-      "summary": "Official Public Hearing Notice PDF posted for Bacher Manor (Hearing 2026-10-15).",
-      "address": "5603 BACHER ST",
-      "hcad": "0381770000024",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1570",
-      "occKey": "2026-10-15::2026-1570",
-      "buildingId": "",
-      "lat": 29.81229,
-      "lng": -95.27768,
-      "yearBuilt": 1933,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-15:2026-1569:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "New Agenda Item Added (2026-10-15): Kafi Commons (2026-1569)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1955.",
-      "address": "4710 W ALABAMA ST",
-      "hcad": "0410170020150",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1569",
-      "occKey": "2026-10-15::2026-1569",
-      "buildingId": "",
-      "lat": 29.73812,
-      "lng": -95.45692,
-      "yearBuilt": 1955,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-15:2026-1520:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "New Agenda Item Added (2026-10-15): Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1 (2026-1520)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1958.",
-      "address": "54 PATTI LYNN LN",
-      "hcad": "0912960000011",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1520",
-      "occKey": "2026-10-15::2026-1520",
-      "buildingId": "",
-      "lat": 29.75224,
-      "lng": -95.5344,
-      "yearBuilt": 1958,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-15:2026-1502:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "New Agenda Item Added (2026-10-15): Sevilla Commercial (2026-1502)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1950.",
-      "address": "8017 HOMESTEAD RD",
-      "hcad": "0731100150467",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1502",
-      "occKey": "2026-10-15::2026-1502",
-      "buildingId": "",
-      "lat": 29.8356,
-      "lng": -95.30232,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-10-01:2026-1570:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-10-01",
-      "localDate": "2026-10-01",
-      "timestamp": "2026-10-01T12:00:00Z",
-      "discoveredAt": "2026-10-01T12:00:00Z",
-      "loggedAt": "",
-      "title": "New Agenda Item Added (2026-10-01): Bacher Manor (2026-1570)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 15, 2026) | Built 1933 | The applicant is requesting a variance for a 5’ side building line on the south side of the property, along an undeveloped local street..",
-      "address": "5603 BACHER ST",
-      "hcad": "0381770000024",
-      "checkId": "",
-      "cycleKey": "2026-10-01",
-      "appNo": "2026-1570",
-      "occKey": "2026-10-01::2026-1570",
-      "buildingId": "",
-      "lat": 29.81229,
-      "lng": -95.27768,
-      "yearBuilt": 1933,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1502:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Sevilla Commercial (2026-1502)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950 | Hearing 2026-10-29.",
-      "address": "8017 HOMESTEAD RD",
-      "hcad": "0731100150467",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1502",
-      "occKey": "2026-09-14::2026-1502",
-      "buildingId": "",
-      "lat": 29.8356,
-      "lng": -95.30232,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1481:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Jutland Homes (2026-1481)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-29.",
-      "address": "4941 ANGLETON ST",
-      "hcad": "0770330040011",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1481",
-      "occKey": "2026-09-14::2026-1481",
-      "buildingId": "",
-      "lat": 29.665282,
-      "lng": -95.349103,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93754/OriginalFiles/Jutland_Homes.pdf?sv=2021-08-06&se=2051-09-08T03%3A20%3A37Z&sr=b&sp=r&sig=jfXOYQ7M659GmIQYp8Llcwr%2FgV1fMPS94YVKLwtTxig%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1480:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Tabor Residences (2026-1480)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1935.",
-      "address": "206 TABOR ST",
-      "hcad": "0330800000004",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1480",
-      "occKey": "2026-09-14::2026-1480",
-      "buildingId": "",
-      "lat": 29.79256,
-      "lng": -95.37683,
-      "yearBuilt": 1935,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93699/OriginalFiles/TABOR_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-08T02%3A48%3A03Z&sr=b&sp=r&sig=fRTkgvPQdj6h2HMaUpzpU6ITxnPNhlN4iL0c4PslksA%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1477:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Brookfield Residences Park (2026-1477)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
-      "address": "5802 BROOKFIELD DR",
-      "hcad": "0681350000411",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1477",
-      "occKey": "2026-09-14::2026-1477",
-      "buildingId": "",
-      "lat": 29.61521,
-      "lng": -95.47009,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93704/OriginalFiles/BROOKFIELD_RESIDENCES_PARK-Layout1.pdf?sv=2021-08-06&se=2051-09-08T01%3A06%3A37Z&sr=b&sp=r&sig=yOZzcQqysUYbPu%2FvKJxqDwcglHq8YoNKMn7PNewoIwM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1472:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Residences at Sheldon Park (2026-1472)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1920.",
-      "address": "2015 SHELDON ST",
-      "hcad": "0121720000001",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1472",
-      "occKey": "2026-09-14::2026-1472",
-      "buildingId": "",
-      "lat": 29.80523,
-      "lng": -95.38957,
-      "yearBuilt": 1920,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93723/OriginalFiles/RESIDENCES_AT_SHELDON_PARK-Layout1.pdf?sv=2021-08-06&se=2051-09-07T23%3A58%3A02Z&sr=b&sp=r&sig=ReNH96NtUP2iuVnKh0m0Otnm5IuuZJfkUR%2BLb8dP3%2BQ%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1466:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Chestnut Estates (2026-1466)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1930.",
-      "address": "1808 CHESTNUT ST",
-      "hcad": "0031860000004",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1466",
-      "occKey": "2026-09-14::2026-1466",
-      "buildingId": "",
-      "lat": 29.77651,
-      "lng": -95.35883,
-      "yearBuilt": 1930,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93750/OriginalFiles/CHESTNUT_ESTATES_SHARED_DRIVE_REPLAT_PDF.pdf?sv=2021-08-06&se=2051-09-07T15%3A15%3A33Z&sr=b&sp=r&sig=h709NXbvMz5eIjDw0fim9O9WChYbu8ncSWdbVaQwbTM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1446:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): YDM Beggs (2026-1446)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1939.",
-      "address": "4110 BEGGS ST",
-      "hcad": "0211770500005",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1446",
-      "occKey": "2026-09-14::2026-1446",
-      "buildingId": "",
-      "lat": 29.79756,
-      "lng": -95.36532,
-      "yearBuilt": 1939,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93599/OriginalFiles/PRELIM_SUBDIVISION_PLAT.pdf?sv=2021-08-06&se=2051-09-01T19%3A38%3A56Z&sr=b&sp=r&sig=mmYYD8%2FJqxtKDtK49xlu2NHvcm7lT97FzYd%2FVtdMqPw%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1445:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Citadel on Delano (2026-1445)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1935.",
-      "address": "2710 DELANO ST",
-      "hcad": "0190490000007",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1445",
-      "occKey": "2026-09-14::2026-1445",
-      "buildingId": "bld_003670",
-      "lat": 29.73528,
-      "lng": -95.35958,
-      "yearBuilt": 1935,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1445/OriginalFiles/SUBDIVISION_PLAT-Layout1.pdf?sv=2021-08-06&se=2051-09-09T19%3A22%3A37Z&sr=b&sp=r&sig=X6qawZwuU4Z74Q8RMeLen%2FbqQ2R5VRJuZT%2FY%2FDRbjCI%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1436:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Alabama Reserve (2026-1436)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1926.",
-      "address": "1516 W ALABAMA ST",
-      "hcad": "0522220000015",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1436",
-      "occKey": "2026-09-14::2026-1436",
-      "buildingId": "",
-      "lat": 29.73893,
-      "lng": -95.39847,
-      "yearBuilt": 1926,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93728/OriginalFiles/CS_26212_ALABAMA_RESERVE_09-03-26.pdf?sv=2021-08-06&se=2051-09-04T04%3A08%3A07Z&sr=b&sp=r&sig=Oolhr7sLPO4y38DB%2FLRELn2UMWt6BjmmsQIlViFihV8%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1435:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Enterprise Houston Downtown (2026-1435)",
-      "summary": "Class 2 subdivision plat (C2) in A. Consent | Built 1935.",
-      "address": "2101 TRAVIS ST",
-      "hcad": "0021600000009",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1435",
-      "occKey": "2026-09-14::2026-1435",
-      "buildingId": "",
-      "lat": 29.74901,
-      "lng": -95.37227,
-      "yearBuilt": 1935,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93729/OriginalFiles/CS_26068_ENTERPRISE_HOUSTON_DOWNTOWN_9-3-26.pdf?sv=2021-08-06&se=2051-09-04T04%3A35%3A55Z&sr=b&sp=r&sig=7qQf%2BciRwLb5NFyBtnSLTOYUlE3reJ9fTuYWGt8mhv8%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1394:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Napoleon Park Residences (2026-1394)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
-      "address": "3009 NAPOLEON ST",
-      "hcad": "0171520000005",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1394",
-      "occKey": "2026-09-14::2026-1394",
-      "buildingId": "",
-      "lat": 29.72976,
-      "lng": -95.35039,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93641/OriginalFiles/NAPOLEON_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A57%3A48Z&sr=b&sp=r&sig=CCdpXDCT4bFs7aOQ72xgniVwkj%2F%2BSfAK8wmwPonVq2g%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1284:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): OST Acres Second Addition partial replat no 2 (2026-1284)",
-      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
-      "address": "3009 NAPOLEON ST",
-      "hcad": "0171520000005",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1284",
-      "occKey": "2026-09-14::2026-1284",
-      "buildingId": "",
-      "lat": 29.72976,
-      "lng": -95.35039,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1284/OriginalFiles/25-0046-001_PLAT1.pdf?sv=2021-08-06&se=2051-08-27T19%3A05%3A13Z&sr=b&sp=r&sig=vGCzbD57iu4KGi9MV3QJWUqR%2BI3pEmOVjKmLiRvhh80%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1239:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Cresmere Place partial replat no 5 (2026-1239)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1940.",
-      "address": "2024 MILFORD ST",
-      "hcad": "0660390070001",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1239",
-      "occKey": "2026-09-14::2026-1239",
-      "buildingId": "",
-      "lat": 29.72896,
-      "lng": -95.40819,
-      "yearBuilt": 1940,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93468/OriginalFiles/Cresmere_Place_Partial_Replat_No_5.pdf?sv=2021-08-06&se=2051-07-27T14%3A01%3A24Z&sr=b&sp=r&sig=xo%2B7xXWLoiQibNtzxsfUymAOwpfepiEXwW91cq5J4uI%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1175:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Riverside Terrace Sec 6 partial replat no 4 (2026-1175)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1936.",
-      "address": "2220 MACGREGOR WAY",
-      "hcad": "0611270360001, 0611270360035, 0611270360002",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1175",
-      "occKey": "2026-09-14::2026-1175",
-      "buildingId": "",
-      "lat": 29.71575,
-      "lng": -95.38015,
-      "yearBuilt": 1936,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93407/OriginalFiles/26-0013-001.pdf?sv=2021-08-06&se=2051-07-24T14%3A39%3A33Z&sr=b&sp=r&sig=%2FB%2FAYrcxuFws%2FjAR668D2SVDSG6WFOeo4aoP8Sy%2F%2F%2BM%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1020:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Maxroys Corner (2026-1020)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1928.",
-      "address": "5936 PETTY ST",
-      "hcad": "0102420000654",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1020",
-      "occKey": "2026-09-14::2026-1020",
-      "buildingId": "",
-      "lat": 29.7807,
-      "lng": -95.43091,
-      "yearBuilt": 1928,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1020/OriginalFiles/45-2630_PLAT-Layout1_REV2.pdf?sv=2021-08-06&se=2051-09-14T14%3A56%3A06Z&sr=b&sp=r&sig=HrgiGd%2BkaY20825Y3O8UDZAnCnaDBYwS60lEsLUhOY4%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-0955:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Charlesmont Corner (2026-0955)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
-      "address": "8005 CHARLESMONT ST",
-      "hcad": "0810960000228",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-0955",
-      "occKey": "2026-09-14::2026-0955",
-      "buildingId": "",
-      "lat": 29.860017,
-      "lng": -95.279084,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-0955/OriginalFiles/CHARLESMONT_CORNER_PLAT_31.07.26-Model.pdf?sv=2021-08-06&se=2051-08-13T15%3A58%3A39Z&sr=b&sp=r&sig=aPCub0hA0smw6AakwFQoiCChZT1MiqeoN5TcWe%2FCUp4%3D"
-        },
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf"
-        }
-      ]
-    },
-    {
       "id": "agenda:cycle:2026-12-17",
       "stream": "agenda",
       "kind": "agenda_cycle_added",
@@ -9776,37 +9307,6 @@
       "yearBuilt": null,
       "designation": "",
       "links": []
-    },
-    {
-      "id": "agenda:cycle:2026-09-14",
-      "stream": "agenda",
-      "kind": "agenda_cycle_added",
-      "severity": "warning",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Planning Commission Agenda Posted: 2026-09-14",
-      "summary": "Ingested 122 agenda items (72 flagged for historic review, 0 Section K Development Plat Variance(s), 25 Public Hearing Notice(s)).",
-      "address": "",
-      "hcad": "",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "",
-      "occKey": "",
-      "buildingId": "",
-      "lat": null,
-      "lng": null,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Agenda Spreadsheet (.xlsx)",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-09-14-2026.xlsx"
-        }
-      ]
     },
     {
       "id": "agenda:item:2026-10-29:PH-138:added",
@@ -9926,161 +9426,6 @@
       "yearBuilt": null,
       "designation": "",
       "links": []
-    },
-    {
-      "id": "agenda:item:2026-10-15:2026-1554:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-10-15",
-      "localDate": "2026-10-15",
-      "timestamp": "2026-10-15T12:00:00Z",
-      "discoveredAt": "2026-10-15T12:00:00Z",
-      "loggedAt": "",
-      "title": "New Agenda Item Added (2026-10-15): Richland Drive Villas (2026-1554)",
-      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026).",
-      "address": "8202 RICHLAND DR",
-      "hcad": "0760410040102",
-      "checkId": "",
-      "cycleKey": "2026-10-15",
-      "appNo": "2026-1554",
-      "occKey": "2026-10-15::2026-1554",
-      "buildingId": "",
-      "lat": 29.837756,
-      "lng": -95.276653,
-      "yearBuilt": null,
-      "designation": "",
-      "links": [
-        {
-          "label": "Public Hearing Notice PDF",
-          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1441:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Eleanor Enclave (2026-1441)",
-      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1949.",
-      "address": "407 ELEANOR ST",
-      "hcad": "0660640410042",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1441",
-      "occKey": "2026-09-14::2026-1441",
-      "buildingId": "",
-      "lat": 29.81258,
-      "lng": -95.36659,
-      "yearBuilt": 1949,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93736/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-09-04T15%3A39%3A32Z&sr=b&sp=r&sig=j0wIh%2FTdoykQZm4%2FdXKTRr2vvPNLSqG7zzhhL1DEzPA%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1302:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Reserves at Park Place (2026-1302)",
-      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950.",
-      "address": "3827 BROADWAY ST",
-      "hcad": "0283120000009",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1302",
-      "occKey": "2026-09-14::2026-1302",
-      "buildingId": "",
-      "lat": 29.68685,
-      "lng": -95.27657,
-      "yearBuilt": 1950,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93552/OriginalFiles/RESERVES_AT_PARK_PLACE_PLAT_080726.pdf?sv=2021-08-06&se=2051-08-08T00%3A01%3A05Z&sr=b&sp=r&sig=pJJS0HHyI3E1b0v8W5CB6tg4EQvyn%2BlRpp8jNjjrn3g%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1276:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Midline GP (2026-1276)",
-      "summary": "General plan (GP) in D. Variances | Built 1961.",
-      "address": "2400 W BAY AREA BLVD",
-      "hcad": "0402100000223, 0402100000259",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1276",
-      "occKey": "2026-09-14::2026-1276",
-      "buildingId": "",
-      "lat": 29.533144,
-      "lng": -95.152958,
-      "yearBuilt": 1961,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93395/OriginalFiles/3293-10037_Midline_General_Plan_07-24-26.pdf?sv=2021-08-06&se=2051-07-27T16%3A01%3A04Z&sr=b&sp=r&sig=gihWQ5C0kFMo6JCT%2BUGsGHs6LiBUBfdA%2FQV1ROacoiI%3D"
-        }
-      ]
-    },
-    {
-      "id": "agenda:item:2026-09-14:2026-1120:added",
-      "stream": "agenda",
-      "kind": "agenda_item_added",
-      "severity": "info",
-      "adverse": false,
-      "date": "2026-09-14",
-      "localDate": "2026-09-14",
-      "timestamp": "2026-09-14T12:00:00Z",
-      "discoveredAt": "2026-09-14T12:00:00Z",
-      "loggedAt": "",
-      "title": "Notable Plat Filing (2026-09-14): Westheimer Subdivision partial replat no 1 (2026-1120)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 2017.",
-      "address": "2531 KUESTER ST",
-      "hcad": "1211140020001",
-      "checkId": "",
-      "cycleKey": "2026-09-14",
-      "appNo": "2026-1120",
-      "occKey": "2026-09-14::2026-1120",
-      "buildingId": "",
-      "lat": 29.74344,
-      "lng": -95.40029,
-      "yearBuilt": 2017,
-      "designation": "",
-      "links": [
-        {
-          "label": "Plat PDF",
-          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
-        }
-      ]
     },
     {
       "id": "permit:coh:1487630010001:26100083",
@@ -18250,7 +17595,7 @@
       "discoveredAt": "2026-11-09T21:53:32Z",
       "loggedAt": "",
       "title": "Section K DPV Filed (2026-11-12): 1323 South Boulevard",
-      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | Hearing 2026-12-03 | The applicant is requesting To allow a 0’ building line in lieu of the 10’ building line along Bissonnet St, a major collector, for a 10’ high CMU wall..",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | Hearing 2026-12-03 | The applicant is requesting To allow a 0\u2019 building line in lieu of the 10\u2019 building line along Bissonnet St, a major collector, for a 10\u2019 high CMU wall..",
       "address": "1323 SOUTH BLVD",
       "hcad": "0530390000003",
       "checkId": "",
@@ -19264,7 +18609,7 @@
       "discoveredAt": "2026-11-07T17:18:49Z",
       "loggedAt": "",
       "title": "New Section K DPV Added (2026-10-29): 1323 South Boulevard",
-      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | The applicant is requesting To allow a 0’ building line in lieu of the 10’ building line along Bissonnet St, a major collector, for a 10’ high CMU wall..",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | The applicant is requesting To allow a 0\u2019 building line in lieu of the 10\u2019 building line along Bissonnet St, a major collector, for a 10\u2019 high CMU wall..",
       "address": "1323 SOUTH BLVD",
       "hcad": "0530390000003",
       "checkId": "",
@@ -35137,6 +34482,37 @@
       "links": []
     },
     {
+      "id": "agenda:item:2026-10-15:DPV-26073533:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: 801 McGowen Street (DPV-26073533)",
+      "summary": "Official Public Hearing Notice PDF posted for 801 McGowen Street (Hearing 2026-10-15).",
+      "address": "801 MCGOWEN ST",
+      "hcad": "0132680000011",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "DPV-26073533",
+      "occKey": "2026-10-15::DPV-26073533",
+      "buildingId": "",
+      "lat": 29.74964,
+      "lng": -95.38182,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf"
+        }
+      ]
+    },
+    {
       "id": "agenda:item:2026-10-15:DPV-26073533:dpv",
       "stream": "agenda",
       "kind": "agenda_item_dpv",
@@ -35323,6 +34699,72 @@
       ]
     },
     {
+      "id": "agenda:item:2026-10-15:2026-1570:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Bacher Manor (2026-1570)",
+      "summary": "Official Public Hearing Notice PDF posted for Bacher Manor (Hearing 2026-10-15).",
+      "address": "5603 BACHER ST",
+      "hcad": "0381770000024",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1570",
+      "occKey": "2026-10-15::2026-1570",
+      "buildingId": "",
+      "lat": 29.81229,
+      "lng": -95.27768,
+      "yearBuilt": 1933,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1569:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-15): Kafi Commons (2026-1569)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1955.",
+      "address": "4710 W ALABAMA ST",
+      "hcad": "0410170020150",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1569",
+      "occKey": "2026-10-15::2026-1569",
+      "buildingId": "",
+      "lat": 29.73812,
+      "lng": -95.45692,
+      "yearBuilt": 1955,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf"
+        }
+      ]
+    },
+    {
       "id": "agenda:item:2026-10-15:2026-1562:notice_pdf",
       "stream": "agenda",
       "kind": "agenda_item_notice_pdf",
@@ -35381,6 +34823,103 @@
         {
           "label": "Public Hearing Notice PDF",
           "url": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1520:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-15): Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1 (2026-1520)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1958.",
+      "address": "54 PATTI LYNN LN",
+      "hcad": "0912960000011",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1520",
+      "occKey": "2026-10-15::2026-1520",
+      "buildingId": "",
+      "lat": 29.75224,
+      "lng": -95.5344,
+      "yearBuilt": 1958,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1502:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-15): Sevilla Commercial (2026-1502)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026) | Built 1950.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1502",
+      "occKey": "2026-10-15::2026-1502",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1454:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
+      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
+      "address": "1334 BRITTMOORE RD",
+      "hcad": "1190740010012, 1190740010013",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1454",
+      "occKey": "2026-10-15::2026-1454",
+      "buildingId": "",
+      "lat": 29.79562,
+      "lng": -95.56825,
+      "yearBuilt": 2018,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
         }
       ]
     },
@@ -35447,6 +34986,37 @@
         {
           "label": "PC Draft Agenda Outline (PDF)",
           "url": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/2026/PC-Draft-Agenda-Outline-101526.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1554:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-15",
+      "localDate": "2026-10-15",
+      "timestamp": "2026-10-15T12:00:00Z",
+      "discoveredAt": "2026-10-15T12:00:00Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-15): Richland Drive Villas (2026-1554)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026).",
+      "address": "8202 RICHLAND DR",
+      "hcad": "0760410040102",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1554",
+      "occKey": "2026-10-15::2026-1554",
+      "buildingId": "",
+      "lat": 29.837756,
+      "lng": -95.276653,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf"
         }
       ]
     },
@@ -38548,6 +38118,37 @@
       "links": []
     },
     {
+      "id": "agenda:item:2026-10-01:2026-1570:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-01",
+      "localDate": "2026-10-01",
+      "timestamp": "2026-10-01T12:00:00Z",
+      "discoveredAt": "2026-10-01T12:00:00Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Bacher Manor (2026-1570)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 15, 2026) | Built 1933 | The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street..",
+      "address": "5603 BACHER ST",
+      "hcad": "0381770000024",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1570",
+      "occKey": "2026-10-01::2026-1570",
+      "buildingId": "",
+      "lat": 29.81229,
+      "lng": -95.27768,
+      "yearBuilt": 1933,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
+        }
+      ]
+    },
+    {
       "id": "agenda:item:2026-10-01:2026-1569:notice_pdf",
       "stream": "agenda",
       "kind": "agenda_item_notice_pdf",
@@ -38699,6 +38300,41 @@
         {
           "label": "Public Hearing Notice PDF",
           "url": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1454:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-01",
+      "localDate": "2026-10-01",
+      "timestamp": "2026-10-01T12:00:00Z",
+      "discoveredAt": "2026-10-01T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
+      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
+      "address": "1334 BRITTMOORE RD",
+      "hcad": "1190740010012, 1190740010013",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1454",
+      "occKey": "2026-10-01::2026-1454",
+      "buildingId": "",
+      "lat": 29.79562,
+      "lng": -95.56825,
+      "yearBuilt": 2018,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
         }
       ]
     },
@@ -39547,7 +39183,7 @@
       "discoveredAt": "2026-09-21T12:00:00Z",
       "loggedAt": "",
       "title": "Notable Plat Filing (2026-10-29): Bacher Manor (2026-1570)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1933 | Hearing 2026-10-15 | The applicant is requesting a variance for a 5’ side building line on the south side of the property, along an undeveloped local street..",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1933 | Hearing 2026-10-15 | The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street..",
       "address": "5603 BACHER ST",
       "hcad": "0381770000024",
       "checkId": "",
@@ -39617,7 +39253,7 @@
       "discoveredAt": "2026-09-21T12:00:00Z",
       "loggedAt": "",
       "title": "Notable Plat Filing (2026-10-15): Bacher Manor (2026-1570)",
-      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1933 | Hearing 2026-10-15 | The applicant is requesting a variance for a 5’ side building line on the south side of the property, along an undeveloped local street..",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1933 | Hearing 2026-10-15 | The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street..",
       "address": "5603 BACHER ST",
       "hcad": "0381770000024",
       "checkId": "",
@@ -40490,6 +40126,770 @@
           "is_structural_demo": true
         }
       }
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1442:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): E Street at Forest Green (2026-1442)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1968 | Hearing 2026-11-12.",
+      "address": "8802 FOREST HOLLOW ST; 8803 FOREST HOLLOW ST; 8805 FOREST HOLLOW ST; 8806 FOREST HOLLOW ST; 8810 FOREST HOLLOW ST; 8812 FOREST HOLLOW ST; 8816 FOREST HOLLOW ST; 8820 FOREST HOLLOW ST; 8822 FOREST HOLLOW ST; 8826 FOREST HOLLOW ST; 8828 FOREST HOLLOW ST; 8830 FOREST HOLLOW ST; 8833 FOREST HOLLOW ST; 8835 FOREST HOLLOW ST; 8838 FOREST HOLLOW ST; 8840 FOREST HOLLOW ST; 8844 FOREST HOLLOW ST; 8850 FOREST HOLLOW ST; 8854 FOREST HOLLOW ST; 8856 FOREST HOLLOW ST; 8858 FOREST HOLLOW ST; 8862 FOREST HOLLOW ST; 8864 FOREST HOLLOW ST; 8868 FOREST HOLLOW ST; 8872 FOREST HOLLOW ST; 8876 FOREST HOLLOW ST; 8880 FOREST HOLLOW ST; 8884 FOREST HOLLOW ST; 8886 FOREST HOLLOW ST; 8888 FOREST HOLLOW ST; 8892 FOREST HOLLOW ST; 8894 FOREST HOLLOW ST; 8898 FOREST HOLLOW ST; 8900 FOREST HOLLOW ST; 8902 FOREST HOLLOW ST; 8904 FOREST HOLLOW ST; 8908 FOREST HOLLOW ST; 8910 FOREST HOLLOW ST; 8912 FOREST HOLLOW ST; 8916 FOREST HOLLOW ST; 8920 FOREST HOLLOW ST; 8924 FOREST HOLLOW ST; 8930 FOREST HOLLOW ST; 8956 FOREST HOLLOW ST; 8960 FOREST HOLLOW ST; 8966 FOREST HOLLOW ST; 8972 FOREST HOLLOW ST; 8976 FOREST HOLLOW ST; 8807 FOREST HOLLOW ST; 8809 FOREST HOLLOW ST; 8813 FOREST HOLLOW ST; 8815 FOREST HOLLOW ST; 8819 FOREST HOLLOW ST; 8825 FOREST HOLLOW ST; 8829 FOREST HOLLOW ST; 8936 FOREST HOLLOW ST; 8938 FOREST HOLLOW ST; 8944 FOREST HOLLOW ST; 8950 FOREST HOLLOW ST; 8954 FOREST HOLLOW ST",
+      "hcad": "1023520000084, 1023520000085, 1023520000086, 1023520000082, 1023520000080, 1023520000079, 1023520000078, 1023520000076, 1023520000075, 1023520000073, 1023520000072, 1023520000071, 1023520000098, 1023520000099, 1023520000069, 1023520000068, 1023520000066, 1023520000063, 1023520000062, 1023520000061, 1023520000060, 1023520000058, 1023520000057, 1023520000055, 1023520000053, 1023520000051, 1023520000049, 1023520000047, 1023520000046, 1023520000045, 1023520000043, 1023520000042, 1023520000040, 1023520000039, 1023520000038, 1023520000037, 1023520000035, 1023520000034, 1023520000033, 1023520000031, 1023520000029, 1023520000027, 1023520000024, 1023520000011, 1023520000009, 1023520000006, 1023520000003, 1023520000001, 1023520000087, 1023520000088, 1023520000090, 1023520000091, 1023520000093, 1023520000094, 1023520000096, 1023520000021, 1023520000020, 1023520000017, 1023520000014, 1023520000012",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1442",
+      "occKey": "2026-09-14::2026-1442",
+      "buildingId": "",
+      "lat": 29.86458,
+      "lng": -95.26207,
+      "yearBuilt": 1968,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93626/OriginalFiles/20260806-PLAT-E_STREET_AT_FOREST_GREEN-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-08-21T14%3A35%3A35Z&sr=b&sp=r&sig=aA2lbKBY67n81jmixDjVHV9MWaeEQnS2t%2BCJHhrSgRY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1317:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Park Enclave at St Augustine (2026-1317)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1949.",
+      "address": "6807 SAINT AUGUSTINE ST",
+      "hcad": "0332220310003",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1317",
+      "occKey": "2026-09-14::2026-1317",
+      "buildingId": "",
+      "lat": 29.69071,
+      "lng": -95.35899,
+      "yearBuilt": 1949,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1317/OriginalFiles/PARK_ENCLAVE_AT_ST_AUGUSTINE-Layout1.pdf?sv=2021-08-06&se=2051-08-14T22%3A53%3A46Z&sr=b&sp=r&sig=4WIt4HZh2FQjJZMyKmw%2Fn7JWvCEw%2B3%2BMpId6Kp7wRSY%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1502:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Sevilla Commercial (2026-1502)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950 | Hearing 2026-10-29.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1502",
+      "occKey": "2026-09-14::2026-1502",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1481:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Jutland Homes (2026-1481)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-29.",
+      "address": "4941 ANGLETON ST",
+      "hcad": "0770330040011",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1481",
+      "occKey": "2026-09-14::2026-1481",
+      "buildingId": "",
+      "lat": 29.665282,
+      "lng": -95.349103,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93754/OriginalFiles/Jutland_Homes.pdf?sv=2021-08-06&se=2051-09-08T03%3A20%3A37Z&sr=b&sp=r&sig=jfXOYQ7M659GmIQYp8Llcwr%2FgV1fMPS94YVKLwtTxig%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1480:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Tabor Residences (2026-1480)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1935.",
+      "address": "206 TABOR ST",
+      "hcad": "0330800000004",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1480",
+      "occKey": "2026-09-14::2026-1480",
+      "buildingId": "",
+      "lat": 29.79256,
+      "lng": -95.37683,
+      "yearBuilt": 1935,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93699/OriginalFiles/TABOR_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-08T02%3A48%3A03Z&sr=b&sp=r&sig=fRTkgvPQdj6h2HMaUpzpU6ITxnPNhlN4iL0c4PslksA%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1477:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Brookfield Residences Park (2026-1477)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "5802 BROOKFIELD DR",
+      "hcad": "0681350000411",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1477",
+      "occKey": "2026-09-14::2026-1477",
+      "buildingId": "",
+      "lat": 29.61521,
+      "lng": -95.47009,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93704/OriginalFiles/BROOKFIELD_RESIDENCES_PARK-Layout1.pdf?sv=2021-08-06&se=2051-09-08T01%3A06%3A37Z&sr=b&sp=r&sig=yOZzcQqysUYbPu%2FvKJxqDwcglHq8YoNKMn7PNewoIwM%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1472:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Residences at Sheldon Park (2026-1472)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1920.",
+      "address": "2015 SHELDON ST",
+      "hcad": "0121720000001",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1472",
+      "occKey": "2026-09-14::2026-1472",
+      "buildingId": "",
+      "lat": 29.80523,
+      "lng": -95.38957,
+      "yearBuilt": 1920,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93723/OriginalFiles/RESIDENCES_AT_SHELDON_PARK-Layout1.pdf?sv=2021-08-06&se=2051-09-07T23%3A58%3A02Z&sr=b&sp=r&sig=ReNH96NtUP2iuVnKh0m0Otnm5IuuZJfkUR%2BLb8dP3%2BQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1466:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Chestnut Estates (2026-1466)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1930.",
+      "address": "1808 CHESTNUT ST",
+      "hcad": "0031860000004",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1466",
+      "occKey": "2026-09-14::2026-1466",
+      "buildingId": "",
+      "lat": 29.77651,
+      "lng": -95.35883,
+      "yearBuilt": 1930,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93750/OriginalFiles/CHESTNUT_ESTATES_SHARED_DRIVE_REPLAT_PDF.pdf?sv=2021-08-06&se=2051-09-07T15%3A15%3A33Z&sr=b&sp=r&sig=h709NXbvMz5eIjDw0fim9O9WChYbu8ncSWdbVaQwbTM%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1454:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Winged Oaks (2026-1454)",
+      "summary": "Official Public Hearing Notice PDF posted for Winged Oaks (Hearing 2026-12-17).",
+      "address": "1334 BRITTMOORE RD",
+      "hcad": "1190740010012, 1190740010013",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1454",
+      "occKey": "2026-09-14::2026-1454",
+      "buildingId": "",
+      "lat": 29.79562,
+      "lng": -95.56825,
+      "yearBuilt": 2018,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93740/OriginalFiles/26-0515_1334_BRITTMOORE_ROAD_PLAT-SHEET_1.pdf?sv=2021-08-06&se=2051-09-04T19%3A37%3A07Z&sr=b&sp=r&sig=jlHl9pE9jhA4m5sKTD53%2BPlOp6f3TuNeE50gmIAv7yk%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/planning/2026/2026-1845-Winged-Oaks-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1446:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): YDM Beggs (2026-1446)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1939.",
+      "address": "4110 BEGGS ST",
+      "hcad": "0211770500005",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1446",
+      "occKey": "2026-09-14::2026-1446",
+      "buildingId": "",
+      "lat": 29.79756,
+      "lng": -95.36532,
+      "yearBuilt": 1939,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93599/OriginalFiles/PRELIM_SUBDIVISION_PLAT.pdf?sv=2021-08-06&se=2051-09-01T19%3A38%3A56Z&sr=b&sp=r&sig=mmYYD8%2FJqxtKDtK49xlu2NHvcm7lT97FzYd%2FVtdMqPw%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1445:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Citadel on Delano (2026-1445)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1935.",
+      "address": "2710 DELANO ST",
+      "hcad": "0190490000007",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1445",
+      "occKey": "2026-09-14::2026-1445",
+      "buildingId": "bld_003670",
+      "lat": 29.73528,
+      "lng": -95.35958,
+      "yearBuilt": 1935,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1445/OriginalFiles/SUBDIVISION_PLAT-Layout1.pdf?sv=2021-08-06&se=2051-09-09T19%3A22%3A37Z&sr=b&sp=r&sig=X6qawZwuU4Z74Q8RMeLen%2FbqQ2R5VRJuZT%2FY%2FDRbjCI%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1436:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Alabama Reserve (2026-1436)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1926.",
+      "address": "1516 W ALABAMA ST",
+      "hcad": "0522220000015",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1436",
+      "occKey": "2026-09-14::2026-1436",
+      "buildingId": "",
+      "lat": 29.73893,
+      "lng": -95.39847,
+      "yearBuilt": 1926,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93728/OriginalFiles/CS_26212_ALABAMA_RESERVE_09-03-26.pdf?sv=2021-08-06&se=2051-09-04T04%3A08%3A07Z&sr=b&sp=r&sig=Oolhr7sLPO4y38DB%2FLRELn2UMWt6BjmmsQIlViFihV8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1435:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Enterprise Houston Downtown (2026-1435)",
+      "summary": "Class 2 subdivision plat (C2) in A. Consent | Built 1935.",
+      "address": "2101 TRAVIS ST",
+      "hcad": "0021600000009",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1435",
+      "occKey": "2026-09-14::2026-1435",
+      "buildingId": "",
+      "lat": 29.74901,
+      "lng": -95.37227,
+      "yearBuilt": 1935,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93729/OriginalFiles/CS_26068_ENTERPRISE_HOUSTON_DOWNTOWN_9-3-26.pdf?sv=2021-08-06&se=2051-09-04T04%3A35%3A55Z&sr=b&sp=r&sig=7qQf%2BciRwLb5NFyBtnSLTOYUlE3reJ9fTuYWGt8mhv8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1394:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Napoleon Park Residences (2026-1394)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
+      "address": "3009 NAPOLEON ST",
+      "hcad": "0171520000005",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1394",
+      "occKey": "2026-09-14::2026-1394",
+      "buildingId": "",
+      "lat": 29.72976,
+      "lng": -95.35039,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93641/OriginalFiles/NAPOLEON_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A57%3A48Z&sr=b&sp=r&sig=CCdpXDCT4bFs7aOQ72xgniVwkj%2F%2BSfAK8wmwPonVq2g%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1284:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): OST Acres Second Addition partial replat no 2 (2026-1284)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
+      "address": "3009 NAPOLEON ST",
+      "hcad": "0171520000005",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1284",
+      "occKey": "2026-09-14::2026-1284",
+      "buildingId": "",
+      "lat": 29.72976,
+      "lng": -95.35039,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1284/OriginalFiles/25-0046-001_PLAT1.pdf?sv=2021-08-06&se=2051-08-27T19%3A05%3A13Z&sr=b&sp=r&sig=vGCzbD57iu4KGi9MV3QJWUqR%2BI3pEmOVjKmLiRvhh80%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1239:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Cresmere Place partial replat no 5 (2026-1239)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1940.",
+      "address": "2024 MILFORD ST",
+      "hcad": "0660390070001",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1239",
+      "occKey": "2026-09-14::2026-1239",
+      "buildingId": "",
+      "lat": 29.72896,
+      "lng": -95.40819,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93468/OriginalFiles/Cresmere_Place_Partial_Replat_No_5.pdf?sv=2021-08-06&se=2051-07-27T14%3A01%3A24Z&sr=b&sp=r&sig=xo%2B7xXWLoiQibNtzxsfUymAOwpfepiEXwW91cq5J4uI%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1175:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Riverside Terrace Sec 6 partial replat no 4 (2026-1175)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1936.",
+      "address": "2220 MACGREGOR WAY",
+      "hcad": "0611270360001, 0611270360035, 0611270360002",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1175",
+      "occKey": "2026-09-14::2026-1175",
+      "buildingId": "",
+      "lat": 29.71575,
+      "lng": -95.38015,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93407/OriginalFiles/26-0013-001.pdf?sv=2021-08-06&se=2051-07-24T14%3A39%3A33Z&sr=b&sp=r&sig=%2FB%2FAYrcxuFws%2FjAR668D2SVDSG6WFOeo4aoP8Sy%2F%2F%2BM%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1020:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Maxroys Corner (2026-1020)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1928.",
+      "address": "5936 PETTY ST",
+      "hcad": "0102420000654",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1020",
+      "occKey": "2026-09-14::2026-1020",
+      "buildingId": "",
+      "lat": 29.7807,
+      "lng": -95.43091,
+      "yearBuilt": 1928,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1020/OriginalFiles/45-2630_PLAT-Layout1_REV2.pdf?sv=2021-08-06&se=2051-09-14T14%3A56%3A06Z&sr=b&sp=r&sig=HrgiGd%2BkaY20825Y3O8UDZAnCnaDBYwS60lEsLUhOY4%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-0955:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Charlesmont Corner (2026-0955)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "8005 CHARLESMONT ST",
+      "hcad": "0810960000228",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-0955",
+      "occKey": "2026-09-14::2026-0955",
+      "buildingId": "",
+      "lat": 29.860017,
+      "lng": -95.279084,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-0955/OriginalFiles/CHARLESMONT_CORNER_PLAT_31.07.26-Model.pdf?sv=2021-08-06&se=2051-08-13T15%3A58%3A39Z&sr=b&sp=r&sig=aPCub0hA0smw6AakwFQoiCChZT1MiqeoN5TcWe%2FCUp4%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:cycle:2026-09-14",
+      "stream": "agenda",
+      "kind": "agenda_cycle_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Planning Commission Agenda Posted: 2026-09-14",
+      "summary": "Ingested 122 agenda items (72 flagged for historic review, 0 Section K Development Plat Variance(s), 25 Public Hearing Notice(s)).",
+      "address": "",
+      "hcad": "",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Agenda Spreadsheet (.xlsx)",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-09-14-2026.xlsx"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1441:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Eleanor Enclave (2026-1441)",
+      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1949.",
+      "address": "407 ELEANOR ST",
+      "hcad": "0660640410042",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1441",
+      "occKey": "2026-09-14::2026-1441",
+      "buildingId": "",
+      "lat": 29.81258,
+      "lng": -95.36659,
+      "yearBuilt": 1949,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93736/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-09-04T15%3A39%3A32Z&sr=b&sp=r&sig=j0wIh%2FTdoykQZm4%2FdXKTRr2vvPNLSqG7zzhhL1DEzPA%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1302:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Reserves at Park Place (2026-1302)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950.",
+      "address": "3827 BROADWAY ST",
+      "hcad": "0283120000009",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1302",
+      "occKey": "2026-09-14::2026-1302",
+      "buildingId": "",
+      "lat": 29.68685,
+      "lng": -95.27657,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93552/OriginalFiles/RESERVES_AT_PARK_PLACE_PLAT_080726.pdf?sv=2021-08-06&se=2051-08-08T00%3A01%3A05Z&sr=b&sp=r&sig=pJJS0HHyI3E1b0v8W5CB6tg4EQvyn%2BlRpp8jNjjrn3g%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1276:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Midline GP (2026-1276)",
+      "summary": "General plan (GP) in D. Variances | Built 1961.",
+      "address": "2400 W BAY AREA BLVD",
+      "hcad": "0402100000223, 0402100000259",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1276",
+      "occKey": "2026-09-14::2026-1276",
+      "buildingId": "",
+      "lat": 29.533144,
+      "lng": -95.152958,
+      "yearBuilt": 1961,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93395/OriginalFiles/3293-10037_Midline_General_Plan_07-24-26.pdf?sv=2021-08-06&se=2051-07-27T16%3A01%3A04Z&sr=b&sp=r&sig=gihWQ5C0kFMo6JCT%2BUGsGHs6LiBUBfdA%2FQV1ROacoiI%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-14:2026-1120:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-14",
+      "localDate": "2026-09-14",
+      "timestamp": "2026-09-14T12:00:00Z",
+      "discoveredAt": "2026-09-14T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-14): Westheimer Subdivision partial replat no 1 (2026-1120)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 2017.",
+      "address": "2531 KUESTER ST",
+      "hcad": "1211140020001",
+      "checkId": "",
+      "cycleKey": "2026-09-14",
+      "appNo": "2026-1120",
+      "occKey": "2026-09-14::2026-1120",
+      "buildingId": "",
+      "lat": 29.74344,
+      "lng": -95.40029,
+      "yearBuilt": 2017,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
+        }
+      ]
     },
     {
       "id": "permit:dshs:1490600010001:2026005266",
@@ -41394,70 +41794,729 @@
       ]
     },
     {
-      "id": "permit:dshs:0802690000264:2026005049",
-      "stream": "permits",
-      "kind": "permit_dshs_alert",
+      "id": "agenda:item:2026-09-03:2026-1398:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
       "severity": "critical",
       "adverse": true,
-      "date": "2026-08-27",
-      "localDate": "2026-08-27",
-      "timestamp": "2026-08-27T12:00:00Z",
-      "discoveredAt": "2026-08-27T12:00:00Z",
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
       "loggedAt": "",
-      "title": "TX DSHS Demolition Filing (#2026005049): 2233 MAURINE ST",
-      "summary": "2233 MAURINE ST (Built 1970): DSHS Notification #2026005049 filed 2026-08-27 (scheduled 2026-10-19 to 2026-10-21).",
-      "address": "2233 MAURINE ST",
-      "hcad": "0802690000264",
+      "title": "Notable Plat Filing (2026-09-03): Reserve at Spring Branch (2026-1398)",
+      "summary": "Class 3 subdivision preliminary replat (C3R) in B. Replats | Built 1950.",
+      "address": "1817 LAVERNE ST; 1839 LAVERNE ST",
+      "hcad": "0651040000027, 0651040000025",
       "checkId": "",
-      "cycleKey": "",
-      "appNo": "",
-      "occKey": "",
-      "buildingId": "bld_0802690000264",
-      "lat": 29.92526,
-      "lng": -95.35049,
-      "yearBuilt": 1970,
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1398",
+      "occKey": "2026-09-03::2026-1398",
+      "buildingId": "",
+      "lat": 29.8046,
+      "lng": -95.51271,
+      "yearBuilt": 1950,
       "designation": "",
       "links": [
         {
-          "label": "DSHS #2026005049",
-          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2437841"
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93661/OriginalFiles/RESERVE_AT_SPRING_BRANCH_8-22-2026_PDF.pdf?sv=2021-08-06&se=2051-08-24T00%3A12%3A29Z&sr=b&sp=r&sig=fjIrbw13GaD8ewY5SsTudWDYSieVfXl7yqmPlQqdywc%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1294:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Townhomes at 21st Street (2026-1294)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "946 W 21ST ST",
+      "hcad": "0610190040006",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1294",
+      "occKey": "2026-09-03::2026-1294",
+      "buildingId": "",
+      "lat": 29.80456,
+      "lng": -95.41634,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93543/OriginalFiles/261053125-Model.pdf?sv=2021-08-06&se=2051-08-07T17%3A26%3A29Z&sr=b&sp=r&sig=C5TreL1CY%2FkvnQngrtbiM7ea4R2JreYCHA6rX2OS7qw%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1407:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Esplanade on Live Oak replat no 1 (2026-1407)",
+      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1936.",
+      "address": "2602 ENGELKE ST",
+      "hcad": "0321950000001",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1407",
+      "occKey": "2026-09-03::2026-1407",
+      "buildingId": "",
+      "lat": 29.758219,
+      "lng": -95.342882,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93589/OriginalFiles/Esplanade_On_Live_Oak_Replat_No_1.pdf?sv=2021-08-06&se=2051-08-24T12%3A58%3A09Z&sr=b&sp=r&sig=yOpu%2F%2FOQ4YIjfiTkZJqN8Sq4nF3Z0Eg%2FOGBWvnnbCic%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1397:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Floyd Street Views (2026-1397)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1932.",
+      "address": "5412 FLOYD ST",
+      "hcad": "0511060080010",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1397",
+      "occKey": "2026-09-03::2026-1397",
+      "buildingId": "",
+      "lat": 29.7684,
+      "lng": -95.41689,
+      "yearBuilt": 1932,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93657/OriginalFiles/FLOYD_STREET_VIEWS_8-21-2026_PDF.pdf?sv=2021-08-06&se=2051-08-24T00%3A04%3A04Z&sr=b&sp=r&sig=vxaUttUSuEcVN4jReoU984LeHKfMFi4UdKDTF03XIs8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1396:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Oakcliff Park Residences (2026-1396)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1925.",
+      "address": "2715 OAKCLIFF ST",
+      "hcad": "0600580000198",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1396",
+      "occKey": "2026-09-03::2026-1396",
+      "buildingId": "",
+      "lat": 29.71142,
+      "lng": -95.31879,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93639/OriginalFiles/OAKCLIFF_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T20%3A23%3A02Z&sr=b&sp=r&sig=WSGG2v6h4HfGPmyqRMdbB8cxUbcC4P9gFzoWGHM21BQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1394:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Napoleon Park Residences (2026-1394)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
+      "address": "3009 NAPOLEON ST",
+      "hcad": "0171520000005",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1394",
+      "occKey": "2026-09-03::2026-1394",
+      "buildingId": "",
+      "lat": 29.72976,
+      "lng": -95.35039,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93641/OriginalFiles/NAPOLEON_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A57%3A48Z&sr=b&sp=r&sig=CCdpXDCT4bFs7aOQ72xgniVwkj%2F%2BSfAK8wmwPonVq2g%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1393:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Farmer Park Residences (2026-1393)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1926.",
+      "address": "3605 FARMER ST; 3617 FARMER ST",
+      "hcad": "0140790000008, 0140790000009",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1393",
+      "occKey": "2026-09-03::2026-1393",
+      "buildingId": "",
+      "lat": 29.77523,
+      "lng": -95.33356,
+      "yearBuilt": 1926,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93643/OriginalFiles/FARMER_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-23T19%3A11%3A25Z&sr=b&sp=r&sig=WuiEfyyjG35Ywnfa5ctpS2KRfzvTNicjlPOG2wWecIw%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1316:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): MS Cube Dewberry Development (2026-1316)",
+      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1940.",
+      "address": "4608 DEWBERRY ST",
+      "hcad": "0691060090004",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1316",
+      "occKey": "2026-09-03::2026-1316",
+      "buildingId": "",
+      "lat": 29.69551,
+      "lng": -95.34688,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93568/OriginalFiles/Mahavir-__Dewberry_PLAT_1.pdf?sv=2021-08-06&se=2051-08-10T03%3A29%3A08Z&sr=b&sp=r&sig=55EAxDNUwI%2B9ExEUpYtOQNBVNW1w8YjAyYbwozFvKiM%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1314:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Jutland Homes (2026-1314)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-29.",
+      "address": "",
+      "hcad": "0770330040011",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1314",
+      "occKey": "2026-09-03::2026-1314",
+      "buildingId": "",
+      "lat": 29.66236,
+      "lng": -95.35181,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93565/OriginalFiles/Jutland_Homes.pdf?sv=2021-08-06&se=2051-08-10T01%3A56%3A27Z&sr=b&sp=r&sig=3AeyFQgz5gVfYgaGvxHFdd5RmJ6jpXTik7yg5tHRfps%3D"
         },
         {
-          "label": "DSHS Record",
-          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233048"
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
         }
-      ],
-      "permitMeta": {
-        "alertKind": "dshs",
-        "title": "2233 MAURINE ST",
-        "address": "2233 MAURINE ST",
-        "hcad_num": "0802690000264",
-        "related_hcads": [
-          "0802690000264"
-        ],
-        "watchlist_id": "",
-        "building_id": "bld_0802690000264",
-        "year_built": 1970,
-        "yr_remodel": 0,
-        "architect": "",
-        "style": "",
-        "neighborhood": "",
-        "historic_district": "",
-        "landmark_name": "",
-        "good_brick_summary": "",
-        "owner": "",
-        "lat": 29.92526,
-        "lng": -95.35049,
-        "record": {
-          "notification_number": "2026005049",
-          "start_date": "2026-10-19",
-          "end_date": "2026-10-21",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2437841",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233048",
-          "filing_date": "2026-08-27",
-          "work_type": "Demolition"
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1284:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): OST Acres Second Addition partial replat no 2 (2026-1284)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1936.",
+      "address": "3009 NAPOLEON ST",
+      "hcad": "0171520000005",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1284",
+      "occKey": "2026-09-03::2026-1284",
+      "buildingId": "",
+      "lat": 29.72976,
+      "lng": -95.35039,
+      "yearBuilt": 1936,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1284/OriginalFiles/25-0046-001_PLAT1.pdf?sv=2021-08-06&se=2051-08-27T19%3A05%3A13Z&sr=b&sp=r&sig=vGCzbD57iu4KGi9MV3QJWUqR%2BI3pEmOVjKmLiRvhh80%3D"
         }
-      }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1274:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Upper Brays Bayou Wastewater Treatment Plant (2026-1274)",
+      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1940.",
+      "address": "13315 OLD WESTHEIMER",
+      "hcad": "0250460000324",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1274",
+      "occKey": "2026-09-03::2026-1274",
+      "buildingId": "",
+      "lat": 29.718649,
+      "lng": -95.590939,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93375/OriginalFiles/Upper_Brays_Bayou_WWTP_FINAL_PLAT.pdf?sv=2021-08-06&se=2051-08-03T14%3A59%3A24Z&sr=b&sp=r&sig=2rsxzqZLYNg24bTCxvBOmLf18eLhEMYFYM5PVstk4yA%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1215:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Alabama Commons (2026-1215)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1940.",
+      "address": "2412 ALABAMA ST",
+      "hcad": "0611460000004",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1215",
+      "occKey": "2026-09-03::2026-1215",
+      "buildingId": "",
+      "lat": 29.73011,
+      "lng": -95.36756,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93443/OriginalFiles/ALABAMA_COMMONS_7-24-2026_PDF.pdf?sv=2021-08-06&se=2051-07-26T18%3A28%3A27Z&sr=b&sp=r&sig=cam2MY9fBUJsoA%2BXnzxUE%2BYaXPAblcCj55ED4TX0zuQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1204:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Liberty Green (2026-1204)",
+      "summary": "Official Public Hearing Notice PDF posted for Liberty Green (Hearing 2026-12-03).",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1204",
+      "occKey": "2026-09-03::2026-1204",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93433/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-07-24T21%3A35%3A56Z&sr=b&sp=r&sig=8TOCcY0JcNnW1ghHe%2BNEIfwpCgj0nuoqJANb1CqMh8c%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://houstontx.gov/sites/default/files/planning/2026/2026-1524-Liberty-Green.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1204:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Liberty Green (2026-1204)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1925.",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1204",
+      "occKey": "2026-09-03::2026-1204",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93433/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-07-24T21%3A35%3A56Z&sr=b&sp=r&sig=8TOCcY0JcNnW1ghHe%2BNEIfwpCgj0nuoqJANb1CqMh8c%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1071:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Cruz Auto Shop (2026-1071)",
+      "summary": "Official Public Hearing Notice PDF posted for Cruz Auto Shop (Hearing 2026-12-03).",
+      "address": "954 SALTER DR",
+      "hcad": "0902600000527",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1071",
+      "occKey": "2026-09-03::2026-1071",
+      "buildingId": "",
+      "lat": 29.94325,
+      "lng": -95.3762,
+      "yearBuilt": 2013,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93162/OriginalFiles/4689-PLAT.pdf?sv=2021-08-06&se=2051-06-19T19%3A52%3A00Z&sr=b&sp=r&sig=05GoxCcmsvUvaSuGR4pkLfffU%2FNKJsPbQSJa96YT7z0%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://houstontx.gov/sites/default/files/planning/2026/2026-1614_Cruz-Auto-Shop_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1069:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Enclave at Saint Charles (2026-1069)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1930.",
+      "address": "3716 SAINT CHARLES ST",
+      "hcad": "0192080000017, 0192080000010",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1069",
+      "occKey": "2026-09-03::2026-1069",
+      "buildingId": "bld_013383",
+      "lat": 29.7306,
+      "lng": -95.36708,
+      "yearBuilt": 1930,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1069/OriginalFiles/Enclave_at_St_Charles_1-10.pdf?sv=2021-08-06&se=2051-08-19T19%3A47%3A44Z&sr=b&sp=r&sig=rq7fhQlULEC6R6mtGiFtmjX7MUP9jNhqAQyLGfdo2%2FM%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1020:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Maxroys Corner (2026-1020)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1928.",
+      "address": "5936 PETTY ST",
+      "hcad": "0102420000654",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1020",
+      "occKey": "2026-09-03::2026-1020",
+      "buildingId": "",
+      "lat": 29.7807,
+      "lng": -95.43091,
+      "yearBuilt": 1928,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1020/OriginalFiles/45-2630_PLAT-Layout1_REVISED.pdf?sv=2021-08-06&se=2051-08-27T18%3A02%3A51Z&sr=b&sp=r&sig=6CYmknvFwddu5JvPgZ5mW70b3GvnseA01U4j%2BYqIKQo%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:cycle:2026-09-03",
+      "stream": "agenda",
+      "kind": "agenda_cycle_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Planning Commission Agenda Posted: 2026-09-03",
+      "summary": "Ingested 122 agenda items (61 flagged for historic review, 0 Section K Development Plat Variance(s), 25 Public Hearing Notice(s)).",
+      "address": "",
+      "hcad": "",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Agenda Spreadsheet (.xlsx)",
+          "url": "https://www.houstontx.gov/sites/default/files/migrated/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-09-03-2026.xlsx"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1211:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Sul Ross Views (2026-1211)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1950.",
+      "address": "2038 SUL ROSS ST",
+      "hcad": "0561210000025",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1211",
+      "occKey": "2026-09-03::2026-1211",
+      "buildingId": "",
+      "lat": 29.73792,
+      "lng": -95.40969,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93439/OriginalFiles/SUL_ROSS_VIEWS_7-24-2026_PDF.pdf?sv=2021-08-06&se=2051-07-25T21%3A05%3A31Z&sr=b&sp=r&sig=rzhTa9C1%2BD9A9eos3spnRkAyVp5%2FgXhHPQ6PNGBKlxU%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1120:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Westheimer Subdivision partial replat no 1 (2026-1120)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 2017.",
+      "address": "2531 KUESTER ST",
+      "hcad": "1211140020001",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1120",
+      "occKey": "2026-09-03::2026-1120",
+      "buildingId": "",
+      "lat": 29.74344,
+      "lng": -95.40029,
+      "yearBuilt": 2017,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1097:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Eleanor Enclave (2026-1097)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1949.",
+      "address": "407 ELEANOR ST",
+      "hcad": "0660640410042",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1097",
+      "occKey": "2026-09-03::2026-1097",
+      "buildingId": "",
+      "lat": 29.81258,
+      "lng": -95.36659,
+      "yearBuilt": 1949,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93283/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-07-10T15%3A02%3A10Z&sr=b&sp=r&sig=J%2FkrTFGxMp%2BClg9iyv57mjtkKPAnFK%2FltQzsNZtH%2BSA%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1083:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Ali Plaza (2026-1083)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1955.",
+      "address": "7859 BOY ST",
+      "hcad": "0790770030013",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1083",
+      "occKey": "2026-09-03::2026-1083",
+      "buildingId": "",
+      "lat": 29.81872,
+      "lng": -95.28476,
+      "yearBuilt": 1955,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1083/OriginalFiles/Ali_Plaza-Replat-25ftBL.pdf?sv=2021-08-06&se=2051-08-11T18%3A21%3A03Z&sr=b&sp=r&sig=30LV52%2BBXdxJDyvR0hacpjkvKzIpVyOzfxmwZV6oLH8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-09-03:2026-1045:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-09-03",
+      "localDate": "2026-09-03",
+      "timestamp": "2026-09-03T12:00:00Z",
+      "discoveredAt": "2026-09-03T12:00:00Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-09-03): Schurmier Residences (2026-1045)",
+      "summary": "Class 3 subdivision preliminary replat (C3R) in F. Reconsideration Of Req | Built 1950.",
+      "address": "5025 SCHURMIER RD",
+      "hcad": "0261200000288",
+      "checkId": "",
+      "cycleKey": "2026-09-03",
+      "appNo": "2026-1045",
+      "occKey": "2026-09-03::2026-1045",
+      "buildingId": "",
+      "lat": 29.60841,
+      "lng": -95.33642,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1045/OriginalFiles/REV_SCHURMIER_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-08-24T18%3A26%3A51Z&sr=b&sp=r&sig=IDfF7yN834V%2FUOj2ewprlYnilUL%2BNkoO%2F7V%2BjnySsTY%3D"
+        }
+      ]
     }
   ],
   "publicOnly": true,

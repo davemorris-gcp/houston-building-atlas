@@ -2,16 +2,15 @@
   "schemaVersion": "2.0-public-stub",
   "requiresAuth": true,
   "privacyNotice": "Internal Significance assessments, Watchlist investigative dossiers, and Staff-Only strategy notes require authenticated Preservation Houston Staff or Screener sign-in.",
-  "updatedAt": "2026-11-24T21:51:24Z",
-  "lastAutoSweepAt": "2026-11-24T21:51:24Z",
+  "updatedAt": "2026-11-25T20:58:58Z",
+  "lastAutoSweepAt": "2026-11-25T20:58:58Z",
   "lastSweepHealth": {
-    "timestamp": "2026-11-24T21:51:24Z",
+    "timestamp": "2026-11-25T20:58:58Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
-    "succeededAgencies": 6,
+    "succeededAgencies": 7,
     "failedAgencies": [
-      "chk-10",
-      "chk-15"
+      "chk-10"
     ],
     "skippedAgencies": [],
     "allOk": false,
@@ -44,7 +43,7 @@
         "status": "failed",
         "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "error": "TDLR TABS (3605 FARMER): HTTP request failed or timed out; TDLR TABS (3617 FARMER): HTTP request failed or timed out; TDLR TABS (2531 KUESTER): HTTP request failed or timed out; TDLR TABS (2015 SHELDON): HTTP request failed or timed out"
+        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out; TDLR TABS (2501 CANAL): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -59,10 +58,10 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "error": ""
       }
     }
   },
