@@ -91,20 +91,22 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload static site + PMTiles v3 shards artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           name: github-pages-${{ github.run_attempt }}
           path: "app"
 
       - name: Extend deploy-pages client timeout ceiling for 561MB bundle
         run: |
-          if [ -f /home/runner/work/_actions/actions/deploy-pages/v4/dist/index.js ]; then
-            sed -i 's/MAX_TIMEOUT = 600000/MAX_TIMEOUT = 1800000/g' /home/runner/work/_actions/actions/deploy-pages/v4/dist/index.js
-          fi
+          for idx_path in /home/runner/work/_actions/actions/deploy-pages/v5/dist/index.js /home/runner/work/_actions/actions/deploy-pages/v4/dist/index.js; do
+            if [ -f "$idx_path" ]; then
+              sed -i 's/MAX_TIMEOUT = 600000/MAX_TIMEOUT = 1800000/g' "$idx_path"
+            fi
+          done
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         with:
           artifact_name: github-pages-${{ github.run_attempt }}
           timeout: 1800000
