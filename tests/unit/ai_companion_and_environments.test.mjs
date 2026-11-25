@@ -502,7 +502,8 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
   );
   assert.ok(llmsFullTxt.includes("## Section 2: Active Demolition Permits & Texas DSHS Asbestos Alerts"));
   assert.ok(llmsFullTxt.includes("## Section 8: Linked Archival Finding Aids"));
-  assert.ok(llmsFullTxt.includes("`26090093`"), "Section 2 must populate COH project numbers");
+  const sec2Slice = (llmsFullTxt.split("## Section 2:")[1] || "").split("## Section 3:")[0] || "";
+  assert.match(sec2Slice, /`26\d{6}`/, "Section 2 must populate 8-digit COH project numbers");
   assert.ok(llmsFullTxt.includes("DSHS Abatement"), "Section 2 must populate Signal Type labels");
   assert.ok(!/[\u2013\u2014]/.test(llmsTxt), "app/llms.txt contains forbidden U+2013/U+2014 dashes");
   assert.ok(!/[\u2013\u2014]/.test(llmsFullTxt), "app/llms-full.txt contains forbidden U+2013/U+2014 dashes");

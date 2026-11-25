@@ -242,33 +242,6 @@
       "classId": "c04_hd_contributing_hahc_kit",
       "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
       "targetType": "building",
-      "hcadNum": "0620820000016",
-      "id": "",
-      "name": "1119 Walling St",
-      "address": "1119 Walling St",
-      "lng": -95.386995,
-      "lat": 29.800815,
-      "deepLinkHash": "#hcad=0620820000016",
-      "expectedUi": {
-        "mustHaveTabs": [
-          "overview",
-          "history",
-          "permits",
-          "hcad"
-        ],
-        "mustContainTextAny": [
-          "HAHC COA PRECEDENTS",
-          "House History",
-          "Historic District"
-        ],
-        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
-      }
-    },
-    {
-      "archetypeId": "c04_hd_contributing_hahc_kit_2",
-      "classId": "c04_hd_contributing_hahc_kit",
-      "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
-      "targetType": "building",
       "hcadNum": "0621100000014",
       "id": "",
       "name": "1127 KEY ST",
@@ -292,17 +265,44 @@
       }
     },
     {
+      "archetypeId": "c04_hd_contributing_hahc_kit_2",
+      "classId": "c04_hd_contributing_hahc_kit",
+      "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
+      "targetType": "building",
+      "hcadNum": "0202240000019",
+      "id": "",
+      "name": "928 Cortlandt St",
+      "address": "928 Cortlandt St",
+      "lng": -95.394951,
+      "lat": 29.788041,
+      "deepLinkHash": "#hcad=0202240000019",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "House History",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
       "archetypeId": "c04_hd_contributing_hahc_kit_3",
       "classId": "c04_hd_contributing_hahc_kit",
       "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
       "targetType": "building",
-      "hcadNum": "0202450000023",
+      "hcadNum": "0202250000007",
       "id": "",
-      "name": "844 Cortlandt St",
-      "address": "844 Cortlandt St",
-      "lng": -95.394971,
-      "lat": 29.786757,
-      "deepLinkHash": "#hcad=0202450000023",
+      "name": "925 Cortlandt St",
+      "address": "925 Cortlandt St",
+      "lng": -95.395519,
+      "lat": 29.78788,
+      "deepLinkHash": "#hcad=0202250000007",
       "expectedUi": {
         "mustHaveTabs": [
           "overview",
@@ -866,13 +866,13 @@
       "classId": "c13_active_permit_watch",
       "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
       "targetType": "building",
-      "hcadNum": "0152300000001",
-      "id": "bld_004618",
-      "name": "John Henry Kirby Mansion",
-      "address": "2000 SMITH ST",
-      "lng": -95.374833,
-      "lat": 29.751432,
-      "deepLinkHash": "#hcad=0152300000001",
+      "hcadNum": "0202150000018",
+      "id": "0202150000018",
+      "name": "1020 CORTLANDT ST",
+      "address": "1020 CORTLANDT ST",
+      "lng": -95.394812,
+      "lat": 29.789727,
+      "deepLinkHash": "#hcad=0202150000018",
       "expectedUi": {
         "mustHaveTabs": [
           "overview",
@@ -891,13 +891,13 @@
       "classId": "c13_active_permit_watch",
       "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
       "targetType": "building",
-      "hcadNum": "0031950000018",
-      "id": "0031950000018",
-      "name": "213 HOGAN ST",
-      "address": "213 HOGAN ST",
-      "lng": -95.365036,
-      "lat": 29.775049,
-      "deepLinkHash": "#hcad=0031950000018",
+      "hcadNum": "0372870000009",
+      "id": "bld_002683",
+      "name": "529 EUCLID ST",
+      "address": "529 EUCLID ST",
+      "lng": -95.377657,
+      "lat": 29.7855,
+      "deepLinkHash": "#hcad=0372870000009",
       "expectedUi": {
         "mustHaveTabs": [
           "overview",
@@ -916,13 +916,13 @@
       "classId": "c13_active_permit_watch",
       "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
       "targetType": "building",
-      "hcadNum": "0261900000007",
-      "id": "bld_006541",
-      "name": "3703 GRAUSTARK ST",
-      "address": "3703 GRAUSTARK ST",
-      "lng": -95.394479,
-      "lat": 29.739435,
-      "deepLinkHash": "#hcad=0261900000007",
+      "hcadNum": "0202080000017",
+      "id": "0202080000017",
+      "name": "505 W  10TH ST",
+      "address": "505 W  10TH ST",
+      "lng": -95.402697,
+      "lat": 29.788991,
+      "deepLinkHash": "#hcad=0202080000017",
       "expectedUi": {
         "mustHaveTabs": [
           "overview",
