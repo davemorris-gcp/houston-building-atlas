@@ -143,6 +143,62 @@ export function normalizeHcad13(raw) {
   return slugToken(text);
 }
 
+export function normalizeHcadListStr(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return "";
+  const validIds = [];
+  const seen = new Set();
+  for (const rawTok of text.split(/[,;\s|]+/)) {
+    const tok = rawTok.replace(/^#+/, "").split("#")[0].trim();
+    if (!tok || /^[+-]?\d+(?:\.\d+)?E[+-]?\d+$/i.test(tok)) continue;
+    const digits = tok.replace(/[-\s]+/g, "");
+    if (/^\d{10,13}$/.test(digits) && !/^0+$/.test(digits)) {
+      const padded = digits.padStart(13, "0");
+      if (!seen.has(padded)) {
+        seen.add(padded);
+        validIds.push(padded);
+      }
+    }
+  }
+  if (validIds.length > 0) return validIds.join(", ");
+  return sanitizeActivityText(text);
+}
+
+export function formatExternalAgencySweepError(rawErr) {
+  const cleaned = sanitizeActivityText(rawErr);
+  if (!cleaned) return "portal temporarily unreachable";
+  // Preserve explicit HTTP status codes (e.g. "HTTP 503 Service Unavailable") while translating
+  // raw Python urllib/socket exception strings into calm plain English.
+  const httpMatch = cleaned.match(/\bHTTP\s+\d{3}(?:\s+[A-Za-z][A-Za-z0-9\s\-]{0,36})?/i);
+  if (httpMatch) {
+    return httpMatch[0].trim();
+  }
+  if (
+    /<urlopen\s+error|\[Errno\s*-?\d+\]|Name or service not known|Temporary failure in name resolution|nodename nor servname|Connection refused|Connection reset|timed?\s*out|TimeoutError|URLError|SSLError|RemoteDisconnected|unreachable/i.test(
+      cleaned
+    )
+  ) {
+    return "portal temporarily unreachable";
+  }
+  return cleaned.replace(/\s*\(<urlopen[^)]*>\)\s*/gi, "").trim() || "portal temporarily unreachable";
+}
+
+export function isUnreviewablePreAgendaPlatItem(it, cyc = null) {
+  if (!it || typeof it !== "object") return true;
+  const app = String(it.app || "").trim();
+  const section = String(it.section || "");
+  const typ = String(it.type || "");
+  const isDpv =
+    app.toUpperCase().startsWith("DPV") ||
+    section.includes("K.") ||
+    typ.toUpperCase().includes("DPV");
+  if (isDpv) return false;
+  const hasPdf = Boolean(String(it.pdf || "").trim() || String(it.noticePdf || "").trim());
+  if (hasPdf) return false;
+  const isUnposted = Boolean(cyc?.isEarlyGisCycle) || it.onMeetingAgenda === false;
+  return isUnposted;
+}
+
 export function parseIsoDatePrefix(val) {
   const m = String(val ?? "")
     .trim()
@@ -441,10 +497,7 @@ function makeActivityEvent({
 }) {
   const effectiveTs = loggedAt || discoveredAt || timestampIso;
   const localDate = toChicagoDateIso(effectiveTs, dateIso) || dateIso;
-  let normHcad = String(hcad || "").trim() ? normalizeHcad13(hcad) : "";
-  if (normHcad === "nohcad" || !/^\d+$/.test(normHcad)) {
-    normHcad = sanitizeActivityText(hcad);
-  }
+  const normHcad = normalizeHcadListStr(hcad);
   const out = {
     id: String(id || "").trim(),
     stream,
@@ -733,7 +786,7 @@ export function synthesizeLiveMonitorEvents({
         const detailParts = failedIds.map((cid) => {
           const info = agenciesMeta[cid] || {};
           const lbl = info.label || AUTOMATED_SWEEP_AGENCY_LABELS[cid] || cid;
-          const err = sanitizeActivityText(info.error || "query unavailable");
+          const err = formatExternalAgencySweepError(info.error || "");
           return `${lbl} (${err})`;
         });
         const totalAg = Number(activeSweepHealth.totalAgencies || 8);
@@ -924,8 +977,17 @@ export function synthesizeLiveMonitorEvents({
           if (eventsById.has(evId)) continue;
           const sweepIso = String(row.lastAutoSweepAt || prop.lastAutoSweepAt || "").trim();
           const rawChkDisc = String(chk.discoveredAt || "").trim();
+          const recIdStr = String(chk.agencyRecordId || "").trim();
+          const backfillFloor3d = todayLocal ? shiftIsoDate(todayLocal, -3) : "";
           let discTs = "";
-          if (rawChkDisc.includes("T")) {
+          if (
+            recIdStr.startsWith("coh-plat:") &&
+            chkDate &&
+            backfillFloor3d &&
+            chkDate < backfillFloor3d
+          ) {
+            discTs = clampDateNoonToNow(chkDate);
+          } else if (rawChkDisc.includes("T")) {
             discTs = rawChkDisc;
           } else if (
             rawChkDisc &&
@@ -1081,10 +1143,14 @@ export function synthesizeLiveMonitorEvents({
       : {};
   const platGenIso = String(platState?.generatedAt || "").trim();
 
+  const archivalCycleFloor = todayLocal ? shiftIsoDate(todayLocal, -21) : "";
   for (const cycleKey of Object.keys(cyclesObj).sort()) {
     const cyc = cyclesObj[cycleKey];
     if (!cyc || typeof cyc !== "object") continue;
-    const cycGenIso = String(cyc.generatedAt || platGenIso || "").trim();
+    const isArchivalCycle = Boolean(archivalCycleFloor && cycleKey < archivalCycleFloor);
+    const cycGenIso = isArchivalCycle
+      ? clampDateNoonToNow(cycleKey)
+      : String(cyc.generatedAt || platGenIso || "").trim();
     const items = Array.isArray(cyc.items) ? cyc.items : [];
     const reviews = cyc.reviews && typeof cyc.reviews === "object" ? cyc.reviews : {};
     const itemsByApp = new Map();
@@ -1094,7 +1160,34 @@ export function synthesizeLiveMonitorEvents({
 
     const cycEventDay = cycleKey > todayLocal && todayLocal ? todayLocal : cycleKey;
     const cycId = buildAgendaCycleEventId(cycleKey);
+    if (cyc.isEarlyGisCycle && eventsById.has(cycId)) {
+      eventsById.delete(cycId);
+    }
+    for (const [evKey, existingEv] of Array.from(eventsById.entries())) {
+      if (!existingEv || existingEv.cycleKey !== cycleKey || !existingEv.appNo) continue;
+      const matchedIt = itemsByApp.get(String(existingEv.appNo).trim());
+      if (!matchedIt) continue;
+      if (
+        existingEv.kind === "agenda_item_added" &&
+        isUnreviewablePreAgendaPlatItem(matchedIt, cyc)
+      ) {
+        eventsById.delete(evKey);
+        continue;
+      }
+      const mAtlas = matchedIt.atlas && typeof matchedIt.atlas === "object" ? matchedIt.atlas : {};
+      const hParts = [
+        existingEv.hcad || "",
+        matchedIt.hcad || "",
+        ...(Array.isArray(mAtlas.hcadAccounts) ? mAtlas.hcadAccounts : []),
+      ].filter(Boolean);
+      const mergedHcad = normalizeHcadListStr(hParts.join(", "));
+      if (mergedHcad && mergedHcad !== existingEv.hcad) {
+        existingEv.hcad = mergedHcad;
+      }
+    }
+
     if (
+      !cyc.isEarlyGisCycle &&
       !eventsById.has(cycId) &&
       (!baselineLocalDate || cycleKey >= baselineLocalDate) &&
       passesTemporalGate(cycGenIso, cycEventDay)
@@ -1132,6 +1225,7 @@ export function synthesizeLiveMonitorEvents({
       for (const it of items) {
         if (!it || !it.app) continue;
         if (!isNotableNewCycleItem(it, reviews)) continue;
+        if (isUnreviewablePreAgendaPlatItem(it, cyc)) continue;
         const app = String(it.app).trim();
         const section = String(it.section || "");
         const typ = String(it.type || "");
@@ -1154,6 +1248,11 @@ export function synthesizeLiveMonitorEvents({
         const iLinks = [];
         if (it.pdf) iLinks.push({ label: "Plat PDF", url: it.pdf });
         if (it.noticePdf) iLinks.push({ label: "Public Hearing Notice PDF", url: it.noticePdf });
+        const itemHcad = normalizeHcadListStr(
+          [it.hcad || "", ...(Array.isArray(atlas.hcadAccounts) ? atlas.hcadAccounts : [])]
+            .filter(Boolean)
+            .join(", ")
+        );
         tryAddSynthetic(
           makeActivityEvent({
             id: buildAgendaItemEventId(cycleKey, app, kindTok),
@@ -1179,7 +1278,7 @@ export function synthesizeLiveMonitorEvents({
               it.noticeLocation ||
               (Array.isArray(atlas.addresses) ? atlas.addresses[0] : "") ||
               "",
-            hcad: it.hcad || "",
+            hcad: itemHcad,
             cycleKey,
             appNo: app,
             occKey: it.occurrenceKey || `${cycleKey}::${app}`,
@@ -1213,6 +1312,11 @@ export function synthesizeLiveMonitorEvents({
         rLinks.push({ label: "Public Hearing Notice PDF", url: matchedIt.noticePdf });
       }
       const tsVal = updRaw && updRaw.includes("T") ? updRaw : `${revDay}T12:00:00Z`;
+      const revHcad = normalizeHcadListStr(
+        [matchedIt.hcad || "", ...(Array.isArray(atlas.hcadAccounts) ? atlas.hcadAccounts : [])]
+          .filter(Boolean)
+          .join(", ")
+      );
       tryAddSynthetic(
         makeActivityEvent({
           id: evId,
@@ -1231,7 +1335,7 @@ export function synthesizeLiveMonitorEvents({
             matchedIt.noticeLocation ||
             (Array.isArray(atlas.addresses) ? atlas.addresses[0] : "") ||
             "",
-          hcad: matchedIt.hcad || "",
+          hcad: revHcad,
           cycleKey,
           appNo,
           occKey: matchedIt.occurrenceKey || `${cycleKey}::${appNo}`,
@@ -1258,6 +1362,12 @@ export function synthesizeLiveMonitorEvents({
       for (const al of alerts) {
         if (!al || typeof al !== "object") continue;
         const hcadRaw = al.hcad_num || "";
+        const combinedAlertHcad =
+          normalizeHcadListStr(
+            [hcadRaw, ...(Array.isArray(al.related_hcads) ? al.related_hcads : [])]
+              .filter(Boolean)
+              .join(", ")
+          ) || String(hcadRaw);
         const titleName = sanitizeActivityText(
           al.title || al.building_name || al.address || "Historic Structure"
         );
@@ -1302,7 +1412,7 @@ export function synthesizeLiveMonitorEvents({
               title: `${lbl} (#${pno}): ${titleName}`,
               summary: `${addr}${al.year_built ? ` (Built ${al.year_built})` : ""}: ${useD || lbl} issued ${pDate}${buyer ? ` to ${buyer}` : ""}${desigStr ? ` | ${desigStr}` : ""}.`,
               address: addr,
-              hcad: String(hcadRaw),
+              hcad: combinedAlertHcad,
               watchPropertyId: al.watchlist_id || "",
               buildingId: al.building_id || "",
               lat: al.lat,
@@ -1359,7 +1469,7 @@ export function synthesizeLiveMonitorEvents({
               title: `TX DSHS ${wtype} Filing (#${nno}): ${titleName}`,
               summary: `${addr}${al.year_built ? ` (Built ${al.year_built})` : ""}: DSHS Notification #${nno} filed ${dDate}${windowTxt ? ` (${windowTxt})` : ""}${dn.abatement_contractor ? ` by ${dn.abatement_contractor}` : ""}${desigStr ? ` | ${desigStr}` : ""}.`,
               address: addr,
-              hcad: String(hcadRaw),
+              hcad: combinedAlertHcad,
               watchPropertyId: al.watchlist_id || "",
               buildingId: al.building_id || "",
               lat: al.lat,
@@ -1877,6 +1987,8 @@ function areHcadSetsCompatible(setA, setB) {
 
 function mergePropertyGroupFields(target, src) {
   for (const hid of src.hcadSet) target.hcadSet.add(hid);
+  target.hasMultiAddr = Boolean(target.hasMultiAddr || src.hasMultiAddr);
+  target.hasUnitDesignator = Boolean(target.hasUnitDesignator || src.hasUnitDesignator);
   for (const field of [
     "address",
     "hcad",
@@ -1902,12 +2014,22 @@ export function groupActivityEventsByProperty(events = []) {
     const evHcads = parseHcadAccountList(ev.hcad || "").hcadIds;
     const evHcadSet = new Set(evHcads);
     const validHcad = evHcads[0] || "";
-    const addrKey = canonicalPropertyAddressKey(ev.address || "");
+    const rawAddrStr = String(ev.address || "");
+    const hasUnitDesignator = /[#]|(?:\b(?:UNIT|APT|STE|SUITE)\b)/i.test(rawAddrStr);
+    const addrKeys = Array.from(
+      new Set(
+        rawAddrStr
+          .split(/[;]+/)
+          .map((seg) => canonicalPropertyAddressKey(seg))
+          .filter(Boolean)
+      )
+    );
+    const hasMultiAddr = addrKeys.length >= 2 && !hasUnitDesignator;
     const appNo = String(ev.appNo || "").trim();
 
     if (wpId) aliases.push(`prop:${wpId}`);
     for (const hid of evHcads) aliases.push(`hcad:${hid}`);
-    if (addrKey) aliases.push(`addr:${addrKey}`);
+    for (const ak of addrKeys) aliases.push(`addr:${ak}`);
     if (appNo) aliases.push(`app:${appNo.toUpperCase()}`);
     if (aliases.length === 0) aliases.push(`event:${String(ev.id || groups.length)}`);
 
@@ -1922,12 +2044,23 @@ export function groupActivityEventsByProperty(events = []) {
       }
     }
 
+    const canBridgeAssemblageByAddr = (candGrp) =>
+      Boolean(
+        (hasMultiAddr || candGrp.hasMultiAddr) &&
+          !hasUnitDesignator &&
+          !candGrp.hasUnitDesignator
+      );
+
     const matchedSet = new Set();
     for (const al of aliases) {
       for (const idx of aliasToIdxs.get(al) || []) {
         const candGrp = groups[idx];
         if (!candGrp) continue;
-        if (al.startsWith("addr:") && !areHcadSetsCompatible(effectiveHcadSet, candGrp.hcadSet)) {
+        if (
+          al.startsWith("addr:") &&
+          !areHcadSetsCompatible(effectiveHcadSet, candGrp.hcadSet) &&
+          !canBridgeAssemblageByAddr(candGrp)
+        ) {
           continue;
         }
         matchedSet.add(idx);
@@ -1939,7 +2072,17 @@ export function groupActivityEventsByProperty(events = []) {
     for (const otherIdx of matchedIdxs.slice(1)) {
       const primary = groups[grpIdx];
       const donor = groups[otherIdx];
-      if (!areHcadSetsCompatible(primary.hcadSet, donor.hcadSet)) continue;
+      if (
+        !areHcadSetsCompatible(primary.hcadSet, donor.hcadSet) &&
+        !(
+          (primary.hasMultiAddr || donor.hasMultiAddr || hasMultiAddr) &&
+          !primary.hasUnitDesignator &&
+          !donor.hasUnitDesignator &&
+          !hasUnitDesignator
+        )
+      ) {
+        continue;
+      }
       primary.events.push(...donor.events);
       mergePropertyGroupFields(primary, donor);
       groups[otherIdx] = null;
@@ -1955,6 +2098,8 @@ export function groupActivityEventsByProperty(events = []) {
       address: sanitizeActivityText(ev.address || ""),
       hcad: validHcad || sanitizeActivityText(ev.hcad || ""),
       hcadSet: evHcadSet,
+      hasMultiAddr,
+      hasUnitDesignator,
       yearBuilt: ev.yearBuilt ?? null,
       designation: sanitizeActivityText(ev.designation || ""),
       watchPropertyId: wpId,
@@ -1985,7 +2130,12 @@ export function groupActivityEventsByProperty(events = []) {
   return groups
     .filter(Boolean)
     .map((g) => {
-      const { hcadSet: _omitHcadSet, ...rest } = g;
+      const {
+        hcadSet: _omitHcadSet,
+        hasMultiAddr: _omitMultiAddr,
+        hasUnitDesignator: _omitUnitDesig,
+        ...rest
+      } = g;
       const sortedEvs = sortEventsForBriefing(g.events);
       const topEv = sortedEvs[0] || {};
       let derivedLabel = g.address;

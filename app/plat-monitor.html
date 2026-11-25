@@ -656,6 +656,7 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
+  formatExternalAgencySweepError,
 } from "./js/activityLogHelpers.js?v=20261113c";
 
 import {
@@ -672,6 +673,9 @@ import {
 import {
   DEFAULT_SHEET_WEBHOOK_URL,
   createEmptyRoamingState,
+  mergeUserRoamingStates,
+  areRoamingStatesEquivalent,
+  getRoamingStorageKey,
   deriveWatermarkInputsFromRoamingState,
   applyMarkCaughtUpToRoamingState,
   applyRestoreRoamingSnapshot,
@@ -1549,7 +1553,9 @@ function startMultiCycle(platPayload){
   }
 
   const validOrder = order.filter(k => Boolean(cycles[k]));
-  const defaultKey = platPayload?.cycleKey && cycles[platPayload.cycleKey] ? platPayload.cycleKey : validOrder[0];
+  const firstPostedKey = validOrder.find(k => !cycles[k]?.isEarlyGisCycle) || "";
+  const rawDefaultKey = platPayload?.cycleKey && cycles[platPayload.cycleKey] ? platPayload.cycleKey : validOrder[0];
+  const defaultKey = (cycles[rawDefaultKey]?.isEarlyGisCycle && firstPostedKey) ? firstPostedKey : rawDefaultKey;
   S = {
     cycles,
     cycleOrder: validOrder,
@@ -1987,16 +1993,20 @@ function inGroup(it, g){
 function populateHeaderAndFilterControls(){
   if (S) {
     const sel = $("#cycleSelect");
+    const firstPostedIdx = S.cycleOrder.findIndex(k => !S.cycles[k]?.isEarlyGisCycle);
+    const currentIdx = firstPostedIdx >= 0 ? firstPostedIdx : 0;
     const opts = S.cycleOrder.map((ck, idx) => {
       const cyc = S.cycles[ck];
       const shortD = formatShortUsDate(ck) || ck;
       const cnt = cyc?.items?.length || 0;
-      const tag = idx === 0
-        ? " (Current)"
-        : cyc?.isEarlyGisCycle
+      const pdfCnt = (cyc?.items || []).filter(i => i.pdf || i.noticePdf).length;
+      const tag = cyc?.isEarlyGisCycle
         ? " (Early GIS Preview)"
+        : idx === currentIdx
+        ? " (Current)"
         : "";
-      return `<option value="${esc(ck)}" ${S.activeCycleChoice === ck ? "selected" : ""}>PC ${esc(shortD)}${tag} · ${cnt} items</option>`;
+      const countLabel = cyc?.isEarlyGisCycle ? `${pdfCnt}/${cnt} w/ PDF` : `${cnt} items`;
+      return `<option value="${esc(ck)}" ${S.activeCycleChoice === ck ? "selected" : ""}>PC ${esc(shortD)}${tag} · ${countLabel}</option>`;
     });
     if (S.cycleOrder.length > 1) {
       const rawTotal = S.cycleOrder.reduce((sum, ck) => sum + (S.cycles[ck]?.items?.length || 0), 0);
@@ -2025,10 +2035,12 @@ function populateHeaderAndFilterControls(){
     const activeItems = getActiveItems();
     const onAgendaCnt = activeItems.filter(i => i.onMeetingAgenda !== false).length;
     const filingOnlyCnt = activeItems.length - onAgendaCnt;
+    const withPdfCnt = activeItems.filter(i => Boolean(i.pdf || i.noticePdf)).length;
     const apEl = $("#fAgendaPresence");
     if (apEl) {
       apEl.innerHTML = [
         `<option value="" ${!view.agendaPresence ? "selected" : ""}>All cycle items (${activeItems.length})</option>`,
+        `<option value="has_pdf" ${view.agendaPresence === "has_pdf" ? "selected" : ""}>Has Plat / Notice PDF (${withPdfCnt})</option>`,
         `<option value="on_agenda" ${view.agendaPresence === "on_agenda" ? "selected" : ""}>On Meeting Agenda (${onAgendaCnt})</option>`,
         `<option value="not_on_agenda" ${view.agendaPresence === "not_on_agenda" ? "selected" : ""}>Cycle Filing Only - Not on Agenda (${filingOnlyCnt})</option>`,
       ].join("");
@@ -2049,7 +2061,7 @@ function populateHeaderAndFilterControls(){
   const shTotal = Number(sh?.totalAgencies || 8);
   const shOk = Number(sh?.succeededAgencies ?? Math.max(0, shTotal - shFailed.length));
   const sweepHealthTxt = shFailed.length > 0
-    ? `⚠ Sweep Degraded (${shOk}/${shTotal} OK · Failed: ${shFailed.join(", ")}) · ${sweepTs}`
+    ? `Portal Note (${shOk}/${shTotal} OK · Retry queued: ${shFailed.join(", ")}) · ${sweepTs}`
     : `✓ ${shOk}/${shTotal} Agencies OK · ${sweepTs}`;
   $("#watchlistSweepBadge").textContent = `8-Agency Auto-Sweep: ${sweepHealthTxt}`;
   const actSweepEl = $("#activitySweepHealthBadge");
@@ -2291,7 +2303,9 @@ function applyRoamingStateToView(nextRoamingState, { allowModeUpdate = false, re
 function commitRoamingStateMutation(nextState, { syncCloud = true } = {}){
   const sess = getStaffSession();
   const email = sess ? sess.email : "";
-  const saved = saveLocalUserRoamingState(nextState, {
+  const latestOnDisk = loadLocalUserRoamingState({ email });
+  const mergedNext = mergeUserRoamingStates(latestOnDisk, nextState);
+  const saved = saveLocalUserRoamingState(mergedNext, {
     email,
     markDirty: Boolean(sess && syncCloud),
     mirrorLegacy: true,
@@ -2814,8 +2828,11 @@ function renderSingleActivityCardHtml(ev, wm){
     ? `<span class="chip strong">Review</span>`
     : `<span class="chip">Info</span>`;
 
+  const cardDateTxt = (s.date && s.localDate && s.date !== s.localDate)
+    ? `${formatShortUsDate(s.date) || s.date} (swept ${formatShortUsDate(s.localDate) || s.localDate})`
+    : (s.localDate ? (formatShortUsDate(s.localDate) || s.localDate) : "");
   const metaChips = [
-    s.localDate ? `<span class="chip">${esc(formatShortUsDate(s.localDate) || s.localDate)}</span>` : "",
+    cardDateTxt ? `<span class="chip">${esc(cardDateTxt)}</span>` : "",
     s.safeCheckId ? `<span class="chip watch">${s.safeCheckId}</span>` : "",
     s.yearBuilt ? `<span class="chip ${Number(s.yearBuilt) <= 1940 ? "critical" : ""}">Built ${esc(s.yearBuilt)}</span>` : "",
     s.safeHcad ? `<span class="chip">HCAD ${s.safeHcad}</span>` : "",
@@ -2880,11 +2897,11 @@ function renderActivityBriefing(actCtx){
     const agencyDetails = failedList.map(cid => {
       const info = sh?.agencies?.[cid] || {};
       const lbl = info.label || AUTOMATED_SWEEP_AGENCY_LABELS[cid] || cid;
-      const err = info.error ? ` (${info.error})` : "";
+      const err = info.error ? ` (${formatExternalAgencySweepError(info.error)})` : "";
       return `${lbl}${err}`;
     }).join("; ");
     banners.push(`<div class="act-banner degraded" data-degraded-sweep-banner="1">
-      <div><b>⚠ Latest 8-Agency Sweep Degraded (${okAg}/${totAg} agencies OK):</b> ${esc(agencyDetails)}. Quiet results on failed portals may be incomplete until the next 7:00 AM CT sweep.</div>
+      <div><b>External Portal Status (${okAg}/${totAg} agencies OK):</b> ${esc(agencyDetails)}. Existing findings remain intact; unreachable state or city portals are re-checked automatically on the next 7:00 AM CT sweep.</div>
     </div>`);
   }
 
@@ -3126,6 +3143,7 @@ function filtered(){
   return items
     .filter(it => inGroup(it, view.group))
     .filter(it => {
+      if (view.agendaPresence === "has_pdf") return Boolean(it.pdf || it.noticePdf);
       if (view.agendaPresence === "on_agenda") return it.onMeetingAgenda !== false;
       if (view.agendaPresence === "not_on_agenda") return it.onMeetingAgenda === false;
       return true;
@@ -3462,12 +3480,22 @@ function renderDetail(){
   const linkedWatch = findLinkedWatchProp(it, r);
   const priorCycles = Array.isArray(it.priorCycles) ? it.priorCycles : [];
 
-  const agendaPresenceBanner = it.onMeetingAgenda === false ? `
+  const itemCycObj = S?.cycles?.[it._cycleKey] || null;
+  const agendaPresenceBanner = it.onMeetingAgenda === false
+    ? itemCycObj?.isEarlyGisCycle
+      ? `
+    <div class="history-note" style="background:#FFF8EB;border-color:#E7C68E;color:#784C07">
+      <b>📋 Early Pre-Agenda PlatTracker GIS Filing (${esc(formatShortUsDate(it.pcDateIso || it._cycleKey))} Agenda Not Yet Posted):</b>
+      Retrieved early from City of Houston PlatTracker GIS before the Planning Commission draft agenda outline and full submittal PDFs are published. Use the <b>Has Plat / Notice PDF</b> toolbar filter to focus strictly on filings with posted PDFs.
+    </div>
+  `
+      : `
     <div class="history-note" style="background:#FFF8EB;border-color:#E7C68E;color:#784C07">
       <b>📋 Cycle Spreadsheet Filing Only (Not on Posted ${esc(formatShortUsDate(it.pcDateIso || it._cycleKey))} Meeting Agenda PDF):</b>
       The City includes deferred, administratively reviewed, or withdrawn cycle submittals in the biweekly spreadsheet even when they are omitted from the Planning Commission meeting agenda outline. Use the <b>On meeting agenda only</b> toolbar filter to focus strictly on agenda items.
     </div>
-  ` : "";
+  `
+    : "";
 
   const screenOutBanner = (it._c.group === "out" || it._c.overriddenFromOut) ? `
     <div class="screenout-banner">
@@ -6729,12 +6757,32 @@ function queueCloudSyncUserRoamingState(delayMs = 700){
       endpointSupportsRoamingSync = true;
       roamingSyncStatus = "synced";
       lastRoamingCloudSyncAt = new Date().toISOString();
-      const saved = saveLocalUserRoamingState(res.userState, {
+      const latestLocal = mergeUserRoamingStates(
+        loadLocalUserRoamingState({ email: activeSess.email }),
+        roamingState
+      );
+      const mergedAfterPush = mergeUserRoamingStates(latestLocal, res.userState);
+      const stillDirty = !areRoamingStatesEquivalent(res.userState, mergedAfterPush);
+      const saved = saveLocalUserRoamingState(mergedAfterPush, {
         email: activeSess.email,
-        markDirty: false,
+        markDirty: stillDirty,
         mirrorLegacy: true,
       });
+      const changedFromInMemory = !areRoamingStatesEquivalent(roamingState, saved);
       applyRoamingStateToView(saved);
+      if (stillDirty) {
+        queueCloudSyncUserRoamingState();
+      }
+      if (changedFromInMemory && view.mode === "activity") {
+        markActivityDirty();
+        const activeEl = document.activeElement;
+        const isTyping = Boolean(
+          activeEl &&
+          $("#detail")?.contains(activeEl) &&
+          (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+        );
+        if (!isTyping) render();
+      }
     } else {
       roamingSyncStatus = (typeof navigator !== "undefined" && navigator.onLine === false) ? "offline" : "synced";
     }
@@ -9427,8 +9475,16 @@ $("#cycleSelect")?.addEventListener("change", e => {
   S.activeCycleChoice = val;
   if (val !== "all" && S.cycles[val]) {
     S.cycleKey = val;
-  } else if (val === "all" && !view.allCyclesMode) {
-    view.allCyclesMode = "merged";
+    const cycObj = S.cycles[val];
+    const cycPdfCnt = (cycObj?.items || []).filter(i => i.pdf || i.noticePdf).length;
+    if (cycObj?.isEarlyGisCycle && cycPdfCnt > 0) {
+      view.agendaPresence = "has_pdf";
+    } else if (view.agendaPresence === "has_pdf") {
+      view.agendaPresence = "";
+    }
+  } else if (val === "all") {
+    if (!view.allCyclesMode) view.allCyclesMode = "merged";
+    if (view.agendaPresence === "has_pdf") view.agendaPresence = "";
   }
   view.selected = null;
   clearBootDeepLinkUrlParams();
@@ -9581,12 +9637,41 @@ document.addEventListener("drop", async e => {
   if (params.get("watch")) {
     view.selectedWatchId = params.get("watch");
   }
+  const initAp = String(params.get("agendaPresence") || "").trim();
+  if (["has_pdf", "on_agenda", "not_on_agenda"].includes(initAp)) {
+    view.agendaPresence = initAp;
+  }
   const streamSel = $("#actStreamFilter");
   if (streamSel && view.actStream) streamSel.value = view.actStream;
   const grpSel = $("#actGroupBySelect");
   if (grpSel && view.actGroupBy) grpSel.value = view.actGroupBy;
   updateModeButtons();
   loadLiveAtlasCycle(false);
+
+  window.addEventListener("storage", (ev) => {
+    const sess = getStaffSession();
+    const email = sess ? sess.email : "";
+    const userRoamKey = getRoamingStorageKey(email);
+    if (
+      ev &&
+      ev.key &&
+      (ev.key === userRoamKey || ev.key === READ_IDS_KEY || ev.key === CAUGHT_UP_AT_KEY)
+    ) {
+      const diskState = loadLocalUserRoamingState({ email });
+      const merged = mergeUserRoamingStates(roamingState, diskState);
+      if (!areRoamingStatesEquivalent(roamingState, merged)) {
+        applyRoamingStateToView(merged);
+        markActivityDirty();
+        const activeEl = document.activeElement;
+        const isTyping = Boolean(
+          activeEl &&
+          $("#detail")?.contains(activeEl) &&
+          (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+        );
+        if (!isTyping) render();
+      }
+    }
+  });
 
   subscribeCrossTabAuthChanges(({ session, signedOut }) => {
     if (signedOut || !session) {

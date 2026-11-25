@@ -3996,6 +3996,195 @@ def test_permit_watch_indexes_secondary_shared_street_addresses(tmp_path: Path) 
     assert {b["hcad_num"] for b in by_addr[na]} == {"0410000000001", "0410000000002"}
 
 
+def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads() -> None:
+    """Verify early GIS no-PDF deferral, multi-lot HCAD stamping, coh-plat backfill dating, and ghost escalation suppression."""
+    from atlas_pipeline import build_monitor_activity_log as bmal
+
+    before_wl = {
+        "watchedProperties": [
+            {
+                "id": "prop-tower",
+                "propertyName": "Midcentury Tower",
+                "address": "800 Bell",
+                "hcadAccount": "0020540000001",
+                "checklist": [
+                    {
+                        "id": "chk-10",
+                        "activity": "Accessibility Registration (TDLR TABS)",
+                        "status": "To Do",
+                        "checks": [
+                            {
+                                "date": "2019-05-01",
+                                "discoveredAt": "2026-11-13",
+                                "source": "auto-sweep",
+                                "historicalBaseline": True,
+                                "adverse": False,
+                                "agencyRecordId": "tdlr-tabs:TABS2019007481",
+                                "result": "[AUTO-SWEEP] TDLR #TABS2019007481",
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "id": "prop-sanctuary",
+                "propertyName": "Historic Sanctuary",
+                "address": "3827 BROADWAY ST",
+                "hcadAccount": "0283120000009",
+                "checklist": [
+                    {
+                        "id": "chk-09",
+                        "activity": "Replats & Variances",
+                        "status": "In Progress",
+                        "lastChecked": "2026-10-26",
+                        "checks": [
+                            {
+                                "date": "2026-10-26",
+                                "source": "manual",
+                                "result": "Checked agenda status",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+    }
+    after_wl = {
+        "watchedProperties": [
+            {
+                "id": "prop-tower",
+                "propertyName": "Midcentury Tower",
+                "address": "800 Bell",
+                "hcadAccount": "0020540000001",
+                "checklist": [
+                    {
+                        "id": "chk-10",
+                        "activity": "Accessibility Registration (TDLR TABS)",
+                        "status": "Flagged",
+                        "checks": [
+                            {
+                                "date": "2019-05-01",
+                                "discoveredAt": "2026-11-13",
+                                "source": "auto-sweep",
+                                "historicalBaseline": True,
+                                "adverse": False,
+                                "agencyRecordId": "tdlr-tabs:TABS2019007481",
+                                "result": "[AUTO-SWEEP] TDLR #TABS2019007481",
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "id": "prop-sanctuary",
+                "propertyName": "Historic Sanctuary",
+                "address": "3827 BROADWAY ST",
+                "hcadAccount": "0283120000009",
+                "checklist": [
+                    {
+                        "id": "chk-09",
+                        "activity": "Replats & Variances",
+                        "status": "In Progress",
+                        "lastChecked": "2026-10-26",
+                        "checks": [
+                            {
+                                "date": "2026-10-26",
+                                "source": "manual",
+                                "result": "Checked agenda status",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ],
+        "lastSweepHealth": {"allOk": True, "failedAgencies": []},
+    }
+    fpw.merge_auto_sweep_findings_into_property(
+        after_wl["watchedProperties"][1],
+        {
+            "findingsByCheck": {
+                "chk-09": [
+                    {
+                        "date": "2026-09-17",
+                        "source": "auto-sweep",
+                        "adverse": True,
+                        "agencyRecordId": "coh-plat:2026-09-17:2026-1302",
+                        "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-09-17) Item 2026-1302",
+                    }
+                ]
+            }
+        },
+        "2026-11-21T12:00:00Z",
+    )
+    sanctuary_chk09 = after_wl["watchedProperties"][1]["checklist"][0]
+    assert (
+        sanctuary_chk09["status"] == "In Progress"
+    ), "Backfilled Sept 17 plat must not override Oct 26 human In Progress acknowledgment"
+
+    wl_evs = bmal._diff_property_watchlist(before_wl, after_wl, "2026-11-21T12:05:00Z")
+    assert not any(
+        e["kind"] == "watchlist_status_escalation" for e in wl_evs
+    ), "Ghost watchlist_status_escalation must not emit without new adverse findings or human edits"
+    plat_auto_ev = next(e for e in wl_evs if e["kind"] == "watchlist_auto_finding")
+    assert plat_auto_ev["localDate"] == "2026-09-17"
+
+    early_plat = {
+        "cycles": {
+            "2026-12-03": {
+                "isEarlyGisCycle": True,
+                "items": [
+                    {
+                        "app": "2026-1883",
+                        "name": "Dennis Gardens",
+                        "type": "C2R",
+                        "section": "C. Consent",
+                        "onMeetingAgenda": False,
+                        "pdf": "",
+                        "noticePdf": "",
+                        "hcad": "0372370000003",
+                        "atlas": {
+                            "primaryAddress": "3210 DENNIS ST; 3216 DENNIS ST",
+                            "earliestYearBuilt": 1930,
+                            "hcadAccounts": ["0372370000003", "0372370000002"],
+                        },
+                    },
+                    {
+                        "app": "2026-1874",
+                        "name": "Reserve at Spring Branch",
+                        "type": "C2R",
+                        "section": "C. Consent",
+                        "onMeetingAgenda": False,
+                        "pdf": "https://edrc.houstontx.gov/2026-1874.pdf",
+                        "noticePdf": "",
+                        "hcad": "0651040000027",
+                        "atlas": {
+                            "primaryAddress": "1817 LAVERNE ST; 1839 LAVERNE ST",
+                            "earliestYearBuilt": 1938,
+                            "hcadAccounts": ["0651040000027", "0651040000025"],
+                        },
+                    },
+                ],
+                "reviews": {},
+            }
+        }
+    }
+    plat_evs_early = bmal._diff_plat_agenda({}, early_plat, "2026-11-20T12:00:00Z")
+    early_ids = {e["id"]: e for e in plat_evs_early}
+    assert "agenda:cycle:2026-12-03" not in early_ids
+    assert "agenda:item:2026-12-03:2026-1883:added" not in early_ids
+    assert early_ids["agenda:item:2026-12-03:2026-1874:added"]["hcad"] == "0651040000027, 0651040000025"
+
+    posted_plat = json.loads(json.dumps(early_plat))
+    posted_plat["cycles"]["2026-12-03"]["isEarlyGisCycle"] = False
+    posted_plat["cycles"]["2026-12-03"]["items"][0]["onMeetingAgenda"] = True
+    plat_evs_posted = bmal._diff_plat_agenda(early_plat, posted_plat, "2026-11-28T12:00:00Z")
+    posted_ids = {e["id"]: e for e in plat_evs_posted}
+    assert "agenda:cycle:2026-12-03" in posted_ids
+    assert "agenda:item:2026-12-03:2026-1883:added" in posted_ids
+    assert posted_ids["agenda:item:2026-12-03:2026-1883:added"]["hcad"] == "0372370000003, 0372370000002"
+
+
+
 
 
 

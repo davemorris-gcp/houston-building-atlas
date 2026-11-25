@@ -29,9 +29,13 @@ import {
   findMatchingWatchPropertyForAlert,
   fnv1a32Hex,
   formatActivityBriefingText,
+  formatExternalAgencySweepError,
   groupActivityEventsByDate,
+  groupActivityEventsByProperty,
   isNotableNewCycleItem,
+  isUnreviewablePreAgendaPlatItem,
   normalizeHcad13,
+  normalizeHcadListStr,
   resolveInitialMonitorMode,
   sanitizeActivityEventForRender,
   sanitizeActivityText,
@@ -1083,6 +1087,169 @@ print(json.dumps(out))
     ),
     true,
     "Pre-1941 historic parcel must be surfaced on brand-new cycles"
+  );
+
+  // 7. Phase 0 field feedback regressions: pre-agenda GIS deferral, semicolon multi-lot grouping,
+  //    coh-plat backfill date anchoring, and calm external portal status translation
+  assert.equal(
+    isUnreviewablePreAgendaPlatItem(
+      { app: "2026-1883", onMeetingAgenda: false, pdf: "", noticePdf: "", type: "C2R" },
+      { isEarlyGisCycle: true }
+    ),
+    true
+  );
+  assert.equal(
+    isUnreviewablePreAgendaPlatItem(
+      {
+        app: "2026-1883",
+        onMeetingAgenda: false,
+        pdf: "https://edrc.houstontx.gov/2026-1883.pdf",
+        noticePdf: "",
+        type: "C2R",
+      },
+      { isEarlyGisCycle: true }
+    ),
+    false
+  );
+  assert.equal(
+    formatExternalAgencySweepError(
+      "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+    ),
+    "portal temporarily unreachable"
+  );
+  assert.equal(
+    formatExternalAgencySweepError("TDLR TABS: HTTP 503 Service Unavailable"),
+    "HTTP 503 Service Unavailable"
+  );
+  assert.equal(
+    normalizeHcadListStr("0651040000027, 0651040000025, 0651040000027"),
+    "0651040000027, 0651040000025"
+  );
+
+  const multiLotGroups = groupActivityEventsByProperty([
+    {
+      id: "agenda:item:2026-09-03:2026-1398:added",
+      stream: "agenda",
+      kind: "agenda_item_added",
+      severity: "warning",
+      adverse: false,
+      localDate: "2026-09-03",
+      timestamp: "2026-09-03T12:00:00Z",
+      address: "1817 LAVERNE ST; 1839 LAVERNE ST",
+      hcad: "0651040000027",
+      appNo: "2026-1398",
+    },
+    {
+      id: "permit:coh:0651040000025:26099289",
+      stream: "permits",
+      kind: "permit_coh_alert",
+      severity: "critical",
+      adverse: true,
+      localDate: "2026-11-20",
+      timestamp: "2026-11-20T12:00:00Z",
+      address: "1839 LAVERNE ST",
+      hcad: "0651040000025",
+    },
+  ]);
+  assert.equal(
+    multiLotGroups.length,
+    1,
+    "Semicolon-delimited multi-lot plat card must coalesce with constituent parcel permit card"
+  );
+  assert.equal(multiLotGroups[0].events.length, 2);
+
+  const earlyAndBackfillSynth = synthesizeLiveMonitorEvents({
+    staticLog: {
+      publicOnly: true,
+      generatedAt: "2026-11-20T12:00:00Z",
+      events: [
+        {
+          id: "agenda:item:2026-12-03:2026-1883:added",
+          stream: "agenda",
+          kind: "agenda_item_added",
+          severity: "warning",
+          adverse: false,
+          date: "2026-11-20",
+          localDate: "2026-11-20",
+          timestamp: "2026-11-20T12:00:00Z",
+          discoveredAt: "2026-11-20T12:00:00Z",
+          cycleKey: "2026-12-03",
+          appNo: "2026-1883",
+          address: "3210 DENNIS ST; 3216 DENNIS ST",
+          hcad: "0372370000003",
+          links: [],
+        },
+      ],
+      dailyRuns: [],
+    },
+    watchedProperties: [
+      {
+        id: "prop-broadway",
+        propertyName: "Historic Sanctuary",
+        address: "3827 BROADWAY ST",
+        hcadAccount: "0283120000009",
+        lastAutoSweepAt: "2026-11-24T12:00:00Z",
+        checklist: [
+          {
+            id: "chk-09",
+            activity: "Replats & Variances",
+            status: "Flagged",
+            lastAutoSweepAt: "2026-11-24T12:00:00Z",
+            checks: [
+              {
+                date: "2026-09-17",
+                discoveredAt: "2026-11-20",
+                source: "auto-sweep",
+                adverse: true,
+                agencyRecordId: "coh-plat:2026-09-17:2026-1302",
+                result: "[AUTO-SWEEP] COH Planning Commission Agenda (2026-09-17) Item 2026-1302",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    platState: {
+      generatedAt: "2026-11-24T12:00:00Z",
+      cycles: {
+        "2026-12-03": {
+          isEarlyGisCycle: true,
+          generatedAt: "2026-11-24T12:00:00Z",
+          items: [
+            {
+              app: "2026-1883",
+              name: "Dennis Gardens",
+              type: "C2R",
+              section: "C. Consent",
+              onMeetingAgenda: false,
+              pdf: "",
+              noticePdf: "",
+              hcad: "0372370000003",
+              atlas: {
+                primaryAddress: "3210 DENNIS ST; 3216 DENNIS ST",
+                earliestYearBuilt: 1930,
+                hcadAccounts: ["0372370000003", "0372370000002"],
+              },
+            },
+          ],
+          reviews: {},
+        },
+      },
+    },
+    nowIso: "2026-11-24T15:00:00Z",
+  });
+  assert.equal(
+    earlyAndBackfillSynth.events.some((e) => e.id === "agenda:item:2026-12-03:2026-1883:added"),
+    false,
+    "Unposted early GIS item without Plat/Notice PDF must be deferred from What's New"
+  );
+  const backfilledPlatAuto = earlyAndBackfillSynth.events.find(
+    (e) => e.id === "wl:auto:prop-broadway:chk-09:id:coh-plat:2026-09-17:2026-1302"
+  );
+  assert.equal(
+    backfilledPlatAuto?.localDate,
+    "2026-09-17",
+    "Backfilled September coh-plat auto-finding must anchor to its 2026-09-17 cycle date, not 2026-11-20"
   );
 }
 

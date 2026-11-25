@@ -6811,6 +6811,23 @@ def collect_new_auto_sweep_findings(
             ):
                 continue
             nf_copy = dict(nf)
+            nf_date = str(nf_copy.get("date") or "").strip()[:10]
+            nf_rec_id = str(nf_copy.get("agencyRecordId") or "").strip()
+            if (
+                not nf_copy.get("discoveredAt")
+                and nf_rec_id.startswith("coh-plat:")
+                and len(nf_date) == 10
+                and len(sweep_date_iso) >= 10
+                and nf_date < sweep_date_iso[:10]
+            ):
+                try:
+                    if (
+                        dt.date.fromisoformat(sweep_date_iso[:10])
+                        - dt.date.fromisoformat(nf_date)
+                    ).days > 3:
+                        nf_copy["discoveredAt"] = nf_date
+                except ValueError:
+                    pass
             nf_copy["discoveredAt"] = str(nf_copy.get("discoveredAt") or sweep_date_iso)
             if _is_historical_auto_sweep_date(
                 nf_copy.get("date"),

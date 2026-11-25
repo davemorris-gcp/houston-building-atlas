@@ -148,6 +148,28 @@ def normalize_hcad_13(raw: object) -> str:
     return slug_token(text)
 
 
+def normalize_hcad_list_str(raw: object) -> str:
+    """Extract all valid 10-13 digit HCAD parcel IDs (deduplicated, 13-digit padded) or fallback text."""
+    text = str(raw or "").strip()
+    if not text:
+        return ""
+    valid_ids: list[str] = []
+    seen: set[str] = set()
+    for raw_tok in re.split(r"[,;\s|]+", text):
+        tok = raw_tok.lstrip("#").split("#")[0].strip()
+        if not tok or re.match(r"^[+-]?\d+(?:\.\d+)?E[+-]?\d+$", tok, re.I):
+            continue
+        digits = re.sub(r"[-\s]+", "", tok)
+        if digits.isdigit() and 10 <= len(digits) <= 13 and not re.match(r"^0+$", digits):
+            padded = digits.zfill(13)
+            if padded not in seen:
+                seen.add(padded)
+                valid_ids.append(padded)
+    if valid_ids:
+        return ", ".join(valid_ids)
+    return sanitize_text(text)
+
+
 def sanitize_links(raw_links: object) -> list[dict[str, str]]:
     """Retain only unique, well-formed http/https links with clean labels."""
     if not isinstance(raw_links, list):
@@ -386,9 +408,7 @@ def _make_event(
 ) -> dict:
     effective_ts = logged_at or discovered_at or timestamp_iso
     local_date = to_chicago_date_iso(effective_ts, date_iso) or date_iso
-    norm_hcad = normalize_hcad_13(hcad) if str(hcad or "").strip() else ""
-    if norm_hcad == "nohcad" or not norm_hcad.isdigit():
-        norm_hcad = sanitize_text(hcad)
+    norm_hcad = normalize_hcad_list_str(hcad)
     clean_lat = float(lat) if isinstance(lat, (int, float)) else None
     clean_lng = float(lng) if isinstance(lng, (int, float)) else None
     out: dict = {
@@ -704,6 +724,8 @@ def _diff_property_watchlist(
                     before_manual_ids.add(build_manual_check_event_id(pid, row_id, b_chk))
 
             has_new_adverse_auto_on_row = False
+            has_new_manual_on_row = False
+            any_auto_checks_on_row = bool(before_auto_ids)
             for a_chk in a_row.get("checks") or []:
                 if not isinstance(a_chk, dict):
                     continue
@@ -713,6 +735,7 @@ def _diff_property_watchlist(
                 chk_date = parse_iso_date_prefix(a_chk.get("date")) or local_today
 
                 if is_auto_sweep_check(a_chk):
+                    any_auto_checks_on_row = True
                     ev_id = build_auto_check_event_id(pid, row_id, a_chk)
                     if ev_id in before_auto_ids:
                         continue
@@ -743,11 +766,19 @@ def _diff_property_watchlist(
                             else ("warning" if adverse else "info")
                         )
                     )
-                    ts_val = (
-                        (disc_raw if "T" in disc_raw else _seed_ts_clamped(effective_seed_day, local_today, now_iso))
-                        if seed_mode
-                        else now_iso
-                    )
+                    rec_id_str = str(a_chk.get("agencyRecordId") or "").strip()
+                    if seed_mode:
+                        ts_val = (
+                            disc_raw
+                            if "T" in disc_raw
+                            else _seed_ts_clamped(effective_seed_day, local_today, now_iso)
+                        )
+                    elif rec_id_str.startswith("coh-plat:"):
+                        ts_val = _resolve_alert_discovery_timestamp(
+                            chk_date, local_today, now_iso, seed_mode=False
+                        )
+                    else:
+                        ts_val = now_iso
                     events.append(
                         _make_event(
                             event_id=ev_id,
@@ -777,6 +808,7 @@ def _diff_property_watchlist(
                     ev_id = build_manual_check_event_id(pid, row_id, a_chk)
                     if ev_id in before_manual_ids:
                         continue
+                    has_new_manual_on_row = True
                     logged_raw = str(a_chk.get("loggedAt") or "")
                     effective_day = (
                         to_chicago_date_iso(logged_raw, chk_date) if logged_raw else chk_date
@@ -827,10 +859,27 @@ def _diff_property_watchlist(
             curr_status = str(a_row.get("status") or "To Do").strip()
             if not seed_mode and curr_status == "Flagged" and prev_status != "Flagged":
                 raw_status_changed = str(a_row.get("statusChangedAt") or "").strip()
+                prev_status_changed = (
+                    str(b_row.get("statusChangedAt") or "").strip()
+                    if isinstance(b_row, dict)
+                    else ""
+                )
                 is_human_esc = bool(
                     not has_new_adverse_auto_on_row
-                    and (a_row.get("humanStatusEdited") is True or raw_status_changed)
+                    and (
+                        a_row.get("humanStatusEdited") is True
+                        or (raw_status_changed and raw_status_changed != prev_status_changed)
+                    )
                 )
+                # Suppress ghost escalations on automated rows that already had auto-sweep checks
+                # when zero net-new adverse findings, zero new manual checks, and zero human status edits occurred.
+                if (
+                    any_auto_checks_on_row
+                    and not has_new_adverse_auto_on_row
+                    and not has_new_manual_on_row
+                    and not is_human_esc
+                ):
+                    continue
                 esc_ts = raw_status_changed or (str(a_row.get("updatedAt") or "").strip() if is_human_esc else "")
                 esc_day = (
                     to_chicago_date_iso(
@@ -919,6 +968,25 @@ def _is_notable_new_cycle_item(it: dict, reviews: dict) -> bool:
     return False
 
 
+def _is_unreviewable_pre_agenda_item(it: dict, cyc: dict | None = None) -> bool:
+    """Return True when an early pre-agenda GIS/spreadsheet filing lacks both an agenda entry and any Plat/Notice PDF."""
+    if not isinstance(it, dict):
+        return True
+    app = str(it.get("app") or "").strip()
+    section = str(it.get("section") or "")
+    typ = str(it.get("type") or "")
+    is_dpv = app.upper().startswith("DPV") or "K." in section or "DPV" in typ.upper()
+    if is_dpv:
+        return False
+    has_pdf = bool(str(it.get("pdf") or "").strip() or str(it.get("noticePdf") or "").strip())
+    if has_pdf:
+        return False
+    is_unposted = bool(isinstance(cyc, dict) and cyc.get("isEarlyGisCycle")) or (
+        it.get("onMeetingAgenda") is False
+    )
+    return is_unposted
+
+
 def _plat_item_event_fields(it: dict, cycle_key: str) -> dict:
     app = str(it.get("app") or "").strip()
     atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
@@ -934,9 +1002,14 @@ def _plat_item_event_fields(it: dict, cycle_key: str) -> dict:
     if it.get("noticePdf"):
         links.append({"label": "Public Hearing Notice PDF", "url": str(it["noticePdf"])})
     desig = ", ".join(atlas.get("designations") or []) or str(it.get("hd") or "")
+    hcad_parts = [str(it.get("hcad") or "").strip()]
+    for extra_hcad in atlas.get("hcadAccounts") or []:
+        if str(extra_hcad or "").strip():
+            hcad_parts.append(str(extra_hcad).strip())
+    combined_hcad = normalize_hcad_list_str(", ".join(p for p in hcad_parts if p))
     return {
         "address": addr,
-        "hcad": str(it.get("hcad") or ""),
+        "hcad": combined_hcad,
         "cycle_key": cycle_key,
         "app_no": app,
         "occ_key": str(it.get("occurrenceKey") or f"{cycle_key}::{app}"),
@@ -959,8 +1032,41 @@ def _diff_plat_agenda(
 ) -> list[dict]:
     events: list[dict] = []
     local_today = to_chicago_date_iso(now_iso)
+    archival_cycle_floor = shift_iso_date(local_today, -21) if local_today else ""
     b_cycles = _extract_plat_cycles(before_plat)
     a_cycles = _extract_plat_cycles(after_plat)
+
+    def _emit_cycle_posted_event(cyc_obj: dict, cyc_key: str, ts_iso: str) -> None:
+        c_items = [x for x in (cyc_obj.get("items") or []) if isinstance(x, dict) and str(x.get("app") or "").strip()]
+        summ = cyc_obj.get("summary") if isinstance(cyc_obj.get("summary"), dict) else {}
+        tot = summ.get("totalAgendaItems", len(c_items))
+        to_chk = summ.get("toCheckCount", len(c_items))
+        dpv_cnt = summ.get("dpvVarianceCount", 0)
+        ph_cnt = summ.get("publicHearingNoticeCount", 0)
+        cyc_links: list[dict[str, str]] = []
+        if cyc_obj.get("sourceSpreadsheetUrl"):
+            cyc_links.append({"label": "Agenda Spreadsheet (.xlsx)", "url": str(cyc_obj["sourceSpreadsheetUrl"])})
+        if cyc_obj.get("agendaOutlineUrl"):
+            cyc_links.append({"label": "PC Draft Agenda Outline (PDF)", "url": str(cyc_obj["agendaOutlineUrl"])})
+        events.append(
+            _make_event(
+                event_id=build_agenda_cycle_event_id(cyc_key),
+                stream="agenda",
+                kind="agenda_cycle_added",
+                severity="warning" if (dpv_cnt or to_chk) else "info",
+                adverse=False,
+                date_iso=cyc_key,
+                timestamp_iso=ts_iso,
+                discovered_at=ts_iso,
+                title=f"Planning Commission Agenda Posted: {cyc_key}",
+                summary=(
+                    f"Ingested {tot} agenda items ({to_chk} flagged for historic review, "
+                    f"{dpv_cnt} Section K Development Plat Variance(s), {ph_cnt} Public Hearing Notice(s))."
+                ),
+                cycle_key=cyc_key,
+                links=cyc_links,
+            )
+        )
 
     for cycle_key in sorted(a_cycles.keys()):
         if seed_mode and retention_floor_iso and cycle_key < retention_floor_iso:
@@ -971,40 +1077,20 @@ def _diff_plat_agenda(
         a_reviews = a_cyc.get("reviews") if isinstance(a_cyc.get("reviews"), dict) else {}
         b_reviews = (b_cyc.get("reviews") if isinstance(b_cyc, dict) and isinstance(b_cyc.get("reviews"), dict) else {}) or {}
 
-        seed_cyc_ts = _seed_ts_clamped(cycle_key, local_today, now_iso) if seed_mode else now_iso
+        is_archival_cycle = bool(archival_cycle_floor and cycle_key < archival_cycle_floor)
+        seed_cyc_ts = (
+            _seed_ts_clamped(cycle_key, local_today, now_iso)
+            if (seed_mode or is_archival_cycle)
+            else now_iso
+        )
 
         if b_cyc is None:
-            summ = a_cyc.get("summary") if isinstance(a_cyc.get("summary"), dict) else {}
-            tot = summ.get("totalAgendaItems", len(a_items))
-            to_chk = summ.get("toCheckCount", len(a_items))
-            dpv_cnt = summ.get("dpvVarianceCount", 0)
-            ph_cnt = summ.get("publicHearingNoticeCount", 0)
-            cyc_links: list[dict[str, str]] = []
-            if a_cyc.get("sourceSpreadsheetUrl"):
-                cyc_links.append({"label": "Agenda Spreadsheet (.xlsx)", "url": str(a_cyc["sourceSpreadsheetUrl"])})
-            if a_cyc.get("agendaOutlineUrl"):
-                cyc_links.append({"label": "PC Draft Agenda Outline (PDF)", "url": str(a_cyc["agendaOutlineUrl"])})
-            events.append(
-                _make_event(
-                    event_id=build_agenda_cycle_event_id(cycle_key),
-                    stream="agenda",
-                    kind="agenda_cycle_added",
-                    severity="warning" if (dpv_cnt or to_chk) else "info",
-                    adverse=False,
-                    date_iso=cycle_key,
-                    timestamp_iso=seed_cyc_ts,
-                    discovered_at=seed_cyc_ts,
-                    title=f"Planning Commission Agenda Posted: {cycle_key}",
-                    summary=(
-                        f"Ingested {tot} agenda items ({to_chk} flagged for historic review, "
-                        f"{dpv_cnt} Section K Development Plat Variance(s), {ph_cnt} Public Hearing Notice(s))."
-                    ),
-                    cycle_key=cycle_key,
-                    links=cyc_links,
-                )
-            )
+            if not bool(a_cyc.get("isEarlyGisCycle")):
+                _emit_cycle_posted_event(a_cyc, cycle_key, seed_cyc_ts)
             for it in a_items:
                 if not _is_notable_new_cycle_item(it, a_reviews):
+                    continue
+                if _is_unreviewable_pre_agenda_item(it, a_cyc):
                     continue
                 app = str(it.get("app") or "").strip()
                 section = str(it.get("section") or "")
@@ -1013,8 +1099,8 @@ def _diff_plat_agenda(
                 atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
                 yr = int(atlas.get("earliestYearBuilt") or 0)
                 sub_iso = parse_iso_date_prefix(it.get("submittedIso")) or cycle_key
-                ev_day = sub_iso if (seed_mode and (not retention_floor_iso or sub_iso >= retention_floor_iso)) else cycle_key
-                ev_ts = _seed_ts_clamped(ev_day, local_today, now_iso) if seed_mode else now_iso
+                ev_day = sub_iso if ((seed_mode or is_archival_cycle) and (not retention_floor_iso or sub_iso >= retention_floor_iso)) else cycle_key
+                ev_ts = _seed_ts_clamped(ev_day, local_today, now_iso) if (seed_mode or is_archival_cycle) else now_iso
                 is_crit = bool(atlas.get("hasActivePermit") or atlas.get("designations") or (1836 <= yr <= 1940 and is_dpv))
                 kind_tok = "dpv" if is_dpv else ("notice_pdf" if (it.get("noticePdf") and not it.get("pdf")) else "added")
                 events.append(
@@ -1046,11 +1132,15 @@ def _diff_plat_agenda(
                     )
                 )
         else:
+            if bool(b_cyc.get("isEarlyGisCycle")) and not bool(a_cyc.get("isEarlyGisCycle")):
+                _emit_cycle_posted_event(a_cyc, cycle_key, seed_cyc_ts)
             b_items_by_app = {
                 str(x.get("app") or "").strip(): x
                 for x in (b_cyc.get("items") or [])
                 if isinstance(x, dict) and str(x.get("app") or "").strip()
             }
+            live_item_day = cycle_key if is_archival_cycle else (local_today or cycle_key)
+            live_item_ts = _seed_ts_clamped(cycle_key, local_today, now_iso) if is_archival_cycle else now_iso
             for it in a_items:
                 app = str(it.get("app") or "").strip()
                 b_it = b_items_by_app.get(app)
@@ -1064,6 +1154,8 @@ def _diff_plat_agenda(
                     cls = it.get("_c")
                     if isinstance(cls, dict) and cls.get("group") in ("out", "etj") and not cls.get("overriddenFromOut"):
                         continue
+                    if _is_unreviewable_pre_agenda_item(it, a_cyc):
+                        continue
                     kind_tok = "dpv" if is_dpv else "added"
                     is_crit = bool(atlas.get("hasActivePermit") or atlas.get("designations"))
                     events.append(
@@ -1073,9 +1165,9 @@ def _diff_plat_agenda(
                             kind=f"agenda_item_{kind_tok}",
                             severity="critical" if is_crit else ("warning" if (is_dpv or 1836 <= yr <= 1976) else "info"),
                             adverse=is_crit,
-                            date_iso=local_today or cycle_key,
-                            timestamp_iso=now_iso,
-                            discovered_at=now_iso,
+                            date_iso=live_item_day,
+                            timestamp_iso=live_item_ts,
+                            discovered_at=live_item_ts,
                             title=(
                                 f"New Section K DPV Added ({cycle_key}): {it.get('name') or app}"
                                 if is_dpv
@@ -1090,7 +1182,36 @@ def _diff_plat_agenda(
                         )
                     )
                 else:
-                    if not str(b_it.get("pdf") or "").strip() and str(it.get("pdf") or "").strip():
+                    newly_has_plat_pdf = not str(b_it.get("pdf") or "").strip() and bool(str(it.get("pdf") or "").strip())
+                    newly_has_notice_pdf = not str(b_it.get("noticePdf") or "").strip() and bool(str(it.get("noticePdf") or "").strip())
+                    if (
+                        _is_unreviewable_pre_agenda_item(b_it, b_cyc)
+                        and not _is_unreviewable_pre_agenda_item(it, a_cyc)
+                        and not newly_has_plat_pdf
+                        and not newly_has_notice_pdf
+                        and _is_notable_new_cycle_item(it, a_reviews)
+                    ):
+                        is_crit = bool(atlas.get("hasActivePermit") or atlas.get("designations"))
+                        events.append(
+                            _make_event(
+                                event_id=build_agenda_item_event_id(cycle_key, app, "added"),
+                                stream="agenda",
+                                kind="agenda_item_added",
+                                severity="critical" if is_crit else ("warning" if (1836 <= yr <= 1976) else "info"),
+                                adverse=is_crit,
+                                date_iso=live_item_day,
+                                timestamp_iso=live_item_ts,
+                                discovered_at=live_item_ts,
+                                title=f"Notable Plat Filing ({cycle_key}): {it.get('name') or app} ({app})",
+                                summary=(
+                                    f"{typ or 'Plat'} in {section or 'Agenda'}"
+                                    f"{f' | Built {yr}' if yr >= 1836 else ''}"
+                                    f"{f' | {it.get('varianceSummary')}' if it.get('varianceSummary') else ''}."
+                                ),
+                                **_plat_item_event_fields(it, cycle_key),
+                            )
+                        )
+                    if newly_has_plat_pdf:
                         events.append(
                             _make_event(
                                 event_id=build_agenda_item_event_id(cycle_key, app, "plat_pdf"),
@@ -1098,15 +1219,15 @@ def _diff_plat_agenda(
                                 kind="agenda_item_plat_pdf",
                                 severity="info",
                                 adverse=False,
-                                date_iso=local_today or cycle_key,
-                                timestamp_iso=now_iso,
-                                discovered_at=now_iso,
+                                date_iso=live_item_day,
+                                timestamp_iso=live_item_ts,
+                                discovered_at=live_item_ts,
                                 title=f"Plat Drawing PDF Posted: {it.get('name') or app} ({app})",
                                 summary=f"Submittal plat PDF attached for {it.get('name') or app} on the {cycle_key} agenda.",
                                 **_plat_item_event_fields(it, cycle_key),
                             )
                         )
-                    if not str(b_it.get("noticePdf") or "").strip() and str(it.get("noticePdf") or "").strip():
+                    if newly_has_notice_pdf:
                         events.append(
                             _make_event(
                                 event_id=build_agenda_item_event_id(cycle_key, app, "notice_pdf"),
@@ -1114,9 +1235,9 @@ def _diff_plat_agenda(
                                 kind="agenda_item_notice_pdf",
                                 severity="warning",
                                 adverse=False,
-                                date_iso=local_today or cycle_key,
-                                timestamp_iso=now_iso,
-                                discovered_at=now_iso,
+                                date_iso=live_item_day,
+                                timestamp_iso=live_item_ts,
+                                discovered_at=live_item_ts,
                                 title=f"Public Hearing Notice PDF Posted: {it.get('name') or app} ({app})",
                                 summary=(
                                     f"Official Public Hearing Notice PDF posted for {it.get('name') or app}"
@@ -1135,9 +1256,9 @@ def _diff_plat_agenda(
                                 kind="agenda_item_deferral",
                                 severity="info",
                                 adverse=False,
-                                date_iso=local_today or cycle_key,
-                                timestamp_iso=now_iso,
-                                discovered_at=now_iso,
+                                date_iso=live_item_day,
+                                timestamp_iso=live_item_ts,
+                                discovered_at=live_item_ts,
                                 title=f"Deferral Status Updated ({a_def}): {it.get('name') or app} ({app})",
                                 summary=f"Item {app} marked '{a_def}' on the {cycle_key} Planning Commission agenda.",
                                 **_plat_item_event_fields(it, cycle_key),
@@ -1283,6 +1404,10 @@ def _diff_permit_alerts(
         if not isinstance(al, dict):
             continue
         hcad_raw = al.get("hcad_num") or ""
+        hcad_all_parts = [str(hcad_raw).strip()] + [
+            str(x).strip() for x in (al.get("related_hcads") or []) if str(x or "").strip()
+        ]
+        combined_alert_hcad = normalize_hcad_list_str(", ".join(p for p in hcad_all_parts if p)) or str(hcad_raw)
         title_name = sanitize_text(al.get("title") or al.get("building_name") or al.get("address") or "Historic Structure")
         addr = sanitize_text(al.get("address") or "")
         desig_parts = [
@@ -1337,7 +1462,7 @@ def _diff_permit_alerts(
                         f"{f' | {desig_str}' if desig_str else ''}."
                     ),
                     address=addr,
-                    hcad=str(hcad_raw),
+                    hcad=combined_alert_hcad,
                     watch_property_id=str(al.get("watchlist_id") or ""),
                     building_id=str(al.get("building_id") or ""),
                     lat=al.get("lat"),
@@ -1405,7 +1530,7 @@ def _diff_permit_alerts(
                         f"{f' | {desig_str}' if desig_str else ''}."
                     ),
                     address=addr,
-                    hcad=str(hcad_raw),
+                    hcad=combined_alert_hcad,
                     watch_property_id=str(al.get("watchlist_id") or ""),
                     building_id=str(al.get("building_id") or ""),
                     lat=al.get("lat"),
