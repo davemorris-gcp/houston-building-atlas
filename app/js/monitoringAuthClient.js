@@ -2242,6 +2242,37 @@ export function createParcelSyncCoordinator({
     return survivingTs;
   }
 
+  function bypassCommittedLineageNodeOnConflict(conflictPid, maxSeq) {
+    // Blank-timestamp 409s leave `confirmedServerTs` null; record `hasServerRow` without
+    // advancing `seq` (and bypass upstream committed pointers when clearing `prevTarget`) so
+    // `hasServerBackedRow` holds while concurrent promotions and multi-hop chains stay valid.
+    const prevCommitted = committedLineageByPid.get(conflictPid);
+    const prevTarget = prevCommitted?.targetPid || "";
+    if (prevTarget && (prevCommitted?.seq || 0) > maxSeq) {
+      return;
+    }
+    if (prevTarget) {
+      for (const [upPid, upEntry] of committedLineageByPid.entries()) {
+        if (
+          upEntry.targetPid === conflictPid &&
+          upPid !== prevTarget &&
+          !committedPathReaches(prevTarget, upPid)
+        ) {
+          committedLineageByPid.set(upPid, {
+            targetPid: prevTarget,
+            seq: Math.max(upEntry.seq || 0, prevCommitted?.seq || 0),
+            hasServerRow: false,
+          });
+        }
+      }
+    }
+    committedLineageByPid.set(conflictPid, {
+      targetPid: "",
+      seq: prevCommitted?.seq ?? COMMITTED_EDGE_SEQ,
+      hasServerRow: true,
+    });
+  }
+
   function reconcileConflictTimestamps(pid, batch, currentDecision) {
     const conflictPid = String(currentDecision?.parcel_id || "").trim();
     const conflictTs = String(currentDecision?.decided_at || "").trim();
@@ -2257,37 +2288,12 @@ export function createParcelSyncCoordinator({
         ...batch.lineageEdges.map((e) => e.srcPid),
       ].filter(Boolean)
     );
-    for (const clearKey of clearedKeys) {
+    const clearedKeyList = Array.from(clearedKeys);
+    for (const clearKey of clearedKeyList) {
       clearRecordServerTs(clearKey);
     }
     if (conflictPid) {
-      // Blank-timestamp 409s leave `confirmedServerTs` null; record `hasServerRow` without
-      // advancing `seq` (and bypass upstream committed pointers when clearing `prevTarget`) so
-      // `hasServerBackedRow` holds while concurrent promotions and multi-hop chains stay valid.
-      const prevCommitted = committedLineageByPid.get(conflictPid);
-      const prevTarget = prevCommitted?.targetPid || "";
-      if (!prevTarget || (prevCommitted?.seq || 0) <= (batch?.causalSeq || 0)) {
-        if (prevTarget) {
-          for (const [upPid, upEntry] of committedLineageByPid.entries()) {
-            if (
-              upEntry.targetPid === conflictPid &&
-              upPid !== prevTarget &&
-              !committedPathReaches(prevTarget, upPid)
-            ) {
-              committedLineageByPid.set(upPid, {
-                targetPid: prevTarget,
-                seq: Math.max(upEntry.seq || 0, prevCommitted?.seq || 0),
-                hasServerRow: false,
-              });
-            }
-          }
-        }
-        committedLineageByPid.set(conflictPid, {
-          targetPid: "",
-          seq: prevCommitted?.seq ?? COMMITTED_EDGE_SEQ,
-          hasServerRow: true,
-        });
-      }
+      bypassCommittedLineageNodeOnConflict(conflictPid, batch?.causalSeq || 0);
     }
     const batchTouchesClearedKey = (candPid, candBatch) => {
       if (!candBatch) return false;
@@ -2317,7 +2323,7 @@ export function createParcelSyncCoordinator({
       } else if (
         !candRec.pendingBatch &&
         !hasInFlightTicketForPid(candPid) &&
-        Array.from(clearedKeys).some((k) => promotionPathReaches(k, candPid))
+        clearedKeyList.some((k) => promotionPathReaches(k, candPid))
       ) {
         candRec.serverTs = "";
       }

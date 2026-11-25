@@ -128,24 +128,15 @@ export function slugToken(raw) {
   return cleaned.slice(0, 64) || "none";
 }
 
-export function normalizeHcad13(raw) {
-  const text = String(raw ?? "").trim();
-  if (!text) return "nohcad";
-  const parts = text.split(/[,;\s|]+/);
-  for (const rawTok of parts) {
-    const tok = rawTok.replace(/^#+/, "").split("#")[0].trim();
-    if (!tok || /^[+-]?\d+(?:\.\d+)?E[+-]?\d+$/i.test(tok)) continue;
-    const digits = tok.replace(/[-\s]+/g, "");
-    if (/^\d{10,13}$/.test(digits) && !/^0+$/.test(digits)) {
-      return digits.padStart(13, "0");
-    }
-  }
-  return slugToken(text);
-}
+// Why 3-day grace window & 21-day cycle floor: Agency lookbacks and historical biweekly Planning
+// Commission spreadsheets (> 1 biweekly 14-day cycle old) anchor to their true filing/meeting date
+// rather than flooding the morning unread briefing on the sweep date.
+export const COH_PLAT_BACKFILL_GRACE_DAYS = 3;
+export const ARCHIVAL_PC_CYCLE_AGE_DAYS = 21;
 
-export function normalizeHcadListStr(raw) {
+function extractValidHcad13Ids(raw) {
   const text = String(raw ?? "").trim();
-  if (!text) return "";
+  if (!text) return [];
   const validIds = [];
   const seen = new Set();
   for (const rawTok of text.split(/[,;\s|]+/)) {
@@ -160,8 +151,21 @@ export function normalizeHcadListStr(raw) {
       }
     }
   }
-  if (validIds.length > 0) return validIds.join(", ");
-  return sanitizeActivityText(text);
+  return validIds;
+}
+
+export function normalizeHcad13(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return "nohcad";
+  const validIds = extractValidHcad13Ids(text);
+  return validIds.length > 0 ? validIds[0] : slugToken(text);
+}
+
+export function normalizeHcadListStr(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return "";
+  const validIds = extractValidHcad13Ids(text);
+  return validIds.length > 0 ? validIds.join(", ") : sanitizeActivityText(text);
 }
 
 export function formatExternalAgencySweepError(rawErr) {
@@ -183,16 +187,38 @@ export function formatExternalAgencySweepError(rawErr) {
   return cleaned.replace(/\s*\(<urlopen[^)]*>\)\s*/gi, "").trim() || "portal temporarily unreachable";
 }
 
-export function isUnreviewablePreAgendaPlatItem(it, cyc = null) {
-  if (!it || typeof it !== "object") return true;
+export function isDpvPlatItem(it) {
+  if (!it || typeof it !== "object") return false;
   const app = String(it.app || "").trim();
   const section = String(it.section || "");
   const typ = String(it.type || "");
-  const isDpv =
+  return (
     app.toUpperCase().startsWith("DPV") ||
     section.includes("K.") ||
-    typ.toUpperCase().includes("DPV");
-  if (isDpv) return false;
+    typ.toUpperCase().includes("DPV")
+  );
+}
+
+export function extractPlatItemHcadListStr(it, extraHcad = "") {
+  const item = it && typeof it === "object" ? it : {};
+  const atlas = item.atlas && typeof item.atlas === "object" ? item.atlas : {};
+  const parts = [item.hcad || "", extraHcad || ""];
+  if (Array.isArray(atlas.parcelBreakdown)) {
+    for (const pb of atlas.parcelBreakdown) {
+      if (pb && typeof pb === "object" && pb.hcad) parts.push(pb.hcad);
+    }
+  }
+  if (Array.isArray(atlas.hcadAccounts)) {
+    for (const acct of atlas.hcadAccounts) {
+      if (acct) parts.push(acct);
+    }
+  }
+  return normalizeHcadListStr(parts.filter(Boolean).join(", "));
+}
+
+export function isUnreviewablePreAgendaPlatItem(it, cyc = null) {
+  if (!it || typeof it !== "object") return true;
+  if (isDpvPlatItem(it)) return false;
   const hasPdf = Boolean(String(it.pdf || "").trim() || String(it.noticePdf || "").trim());
   if (hasPdf) return false;
   const isUnposted = Boolean(cyc?.isEarlyGisCycle) || it.onMeetingAgenda === false;
@@ -594,12 +620,7 @@ export function isNotableNewCycleItem(it, reviews = {}) {
   if (!it || typeof it !== "object") return false;
   const app = String(it.app || "").trim();
   const section = String(it.section || "");
-  const typ = String(it.type || "");
-  const isDpv =
-    app.toUpperCase().startsWith("DPV") ||
-    section.includes("K.") ||
-    typ.toUpperCase().includes("DPV");
-  if (isDpv || it.noticePdf) return true;
+  if (isDpvPlatItem(it) || it.noticePdf) return true;
   const rev = reviews && typeof reviews === "object" ? reviews[app] : null;
   if (
     rev &&
@@ -978,7 +999,9 @@ export function synthesizeLiveMonitorEvents({
           const sweepIso = String(row.lastAutoSweepAt || prop.lastAutoSweepAt || "").trim();
           const rawChkDisc = String(chk.discoveredAt || "").trim();
           const recIdStr = String(chk.agencyRecordId || "").trim();
-          const backfillFloor3d = todayLocal ? shiftIsoDate(todayLocal, -3) : "";
+          const backfillFloor3d = todayLocal
+            ? shiftIsoDate(todayLocal, -COH_PLAT_BACKFILL_GRACE_DAYS)
+            : "";
           let discTs = "";
           if (
             recIdStr.startsWith("coh-plat:") &&
@@ -1143,7 +1166,9 @@ export function synthesizeLiveMonitorEvents({
       : {};
   const platGenIso = String(platState?.generatedAt || "").trim();
 
-  const archivalCycleFloor = todayLocal ? shiftIsoDate(todayLocal, -21) : "";
+  const archivalCycleFloor = todayLocal
+    ? shiftIsoDate(todayLocal, -ARCHIVAL_PC_CYCLE_AGE_DAYS)
+    : "";
   for (const cycleKey of Object.keys(cyclesObj).sort()) {
     const cyc = cyclesObj[cycleKey];
     if (!cyc || typeof cyc !== "object") continue;
@@ -1174,24 +1199,21 @@ export function synthesizeLiveMonitorEvents({
         eventsById.delete(evKey);
         continue;
       }
-      const mAtlas = matchedIt.atlas && typeof matchedIt.atlas === "object" ? matchedIt.atlas : {};
-      const hParts = [
-        existingEv.hcad || "",
-        matchedIt.hcad || "",
-        ...(Array.isArray(mAtlas.hcadAccounts) ? mAtlas.hcadAccounts : []),
-      ].filter(Boolean);
-      const mergedHcad = normalizeHcadListStr(hParts.join(", "));
+      const matchedRev = reviews[String(existingEv.appNo).trim()];
+      const mergedHcad = extractPlatItemHcadListStr(
+        matchedIt,
+        [existingEv.hcad || "", matchedRev?.hcad || ""].filter(Boolean).join(", ")
+      );
       if (mergedHcad && mergedHcad !== existingEv.hcad) {
         existingEv.hcad = mergedHcad;
       }
     }
 
-    if (
-      !cyc.isEarlyGisCycle &&
-      !eventsById.has(cycId) &&
+    const canEmitCycleItems =
       (!baselineLocalDate || cycleKey >= baselineLocalDate) &&
-      passesTemporalGate(cycGenIso, cycEventDay)
-    ) {
+      passesTemporalGate(cycGenIso, cycEventDay);
+
+    if (!cyc.isEarlyGisCycle && !eventsById.has(cycId) && canEmitCycleItems) {
       const summ = cyc.summary || {};
       const tot = summ.totalAgendaItems ?? items.length;
       const toChk = summ.toCheckCount ?? items.length;
@@ -1221,7 +1243,9 @@ export function synthesizeLiveMonitorEvents({
           syntheticLive: true,
         })
       );
+    }
 
+    if (canEmitCycleItems && (cyc.isEarlyGisCycle || !eventsById.has(cycId) || eventsById.get(cycId)?.syntheticLive)) {
       for (const it of items) {
         if (!it || !it.app) continue;
         if (!isNotableNewCycleItem(it, reviews)) continue;
@@ -1229,10 +1253,7 @@ export function synthesizeLiveMonitorEvents({
         const app = String(it.app).trim();
         const section = String(it.section || "");
         const typ = String(it.type || "");
-        const isDpv =
-          app.toUpperCase().startsWith("DPV") ||
-          section.includes("K.") ||
-          typ.toUpperCase().includes("DPV");
+        const isDpv = isDpvPlatItem(it);
         const atlas = it.atlas && typeof it.atlas === "object" ? it.atlas : {};
         const yr = Number(atlas.earliestYearBuilt || 0);
         const kindTok = isDpv
@@ -1248,11 +1269,7 @@ export function synthesizeLiveMonitorEvents({
         const iLinks = [];
         if (it.pdf) iLinks.push({ label: "Plat PDF", url: it.pdf });
         if (it.noticePdf) iLinks.push({ label: "Public Hearing Notice PDF", url: it.noticePdf });
-        const itemHcad = normalizeHcadListStr(
-          [it.hcad || "", ...(Array.isArray(atlas.hcadAccounts) ? atlas.hcadAccounts : [])]
-            .filter(Boolean)
-            .join(", ")
-        );
+        const itemHcad = extractPlatItemHcadListStr(it);
         tryAddSynthetic(
           makeActivityEvent({
             id: buildAgendaItemEventId(cycleKey, app, kindTok),
@@ -1312,11 +1329,7 @@ export function synthesizeLiveMonitorEvents({
         rLinks.push({ label: "Public Hearing Notice PDF", url: matchedIt.noticePdf });
       }
       const tsVal = updRaw && updRaw.includes("T") ? updRaw : `${revDay}T12:00:00Z`;
-      const revHcad = normalizeHcadListStr(
-        [matchedIt.hcad || "", ...(Array.isArray(atlas.hcadAccounts) ? atlas.hcadAccounts : [])]
-          .filter(Boolean)
-          .join(", ")
-      );
+      const revHcad = extractPlatItemHcadListStr(matchedIt, rev.hcad || "");
       tryAddSynthetic(
         makeActivityEvent({
           id: evId,
@@ -1985,6 +1998,17 @@ function areHcadSetsCompatible(setA, setB) {
   return false;
 }
 
+function canCoalescePropertyGroups(grpA, grpB) {
+  if (areHcadSetsCompatible(grpA.hcadSet, grpB.hcadSet)) {
+    return true;
+  }
+  return Boolean(
+    (grpA.hasMultiAddr || grpB.hasMultiAddr) &&
+      !grpA.hasUnitDesignator &&
+      !grpB.hasUnitDesignator
+  );
+}
+
 function mergePropertyGroupFields(target, src) {
   for (const hid of src.hcadSet) target.hcadSet.add(hid);
   target.hasMultiAddr = Boolean(target.hasMultiAddr || src.hasMultiAddr);
@@ -2044,23 +2068,18 @@ export function groupActivityEventsByProperty(events = []) {
       }
     }
 
-    const canBridgeAssemblageByAddr = (candGrp) =>
-      Boolean(
-        (hasMultiAddr || candGrp.hasMultiAddr) &&
-          !hasUnitDesignator &&
-          !candGrp.hasUnitDesignator
-      );
+    const incomingShape = {
+      hcadSet: effectiveHcadSet,
+      hasMultiAddr,
+      hasUnitDesignator,
+    };
 
     const matchedSet = new Set();
     for (const al of aliases) {
       for (const idx of aliasToIdxs.get(al) || []) {
         const candGrp = groups[idx];
         if (!candGrp) continue;
-        if (
-          al.startsWith("addr:") &&
-          !areHcadSetsCompatible(effectiveHcadSet, candGrp.hcadSet) &&
-          !canBridgeAssemblageByAddr(candGrp)
-        ) {
+        if (al.startsWith("addr:") && !canCoalescePropertyGroups(incomingShape, candGrp)) {
           continue;
         }
         matchedSet.add(idx);
@@ -2072,15 +2091,7 @@ export function groupActivityEventsByProperty(events = []) {
     for (const otherIdx of matchedIdxs.slice(1)) {
       const primary = groups[grpIdx];
       const donor = groups[otherIdx];
-      if (
-        !areHcadSetsCompatible(primary.hcadSet, donor.hcadSet) &&
-        !(
-          (primary.hasMultiAddr || donor.hasMultiAddr || hasMultiAddr) &&
-          !primary.hasUnitDesignator &&
-          !donor.hasUnitDesignator &&
-          !hasUnitDesignator
-        )
-      ) {
+      if (!canCoalescePropertyGroups(primary, donor)) {
         continue;
       }
       primary.events.push(...donor.events);

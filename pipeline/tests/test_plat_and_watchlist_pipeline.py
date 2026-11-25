@@ -3996,8 +3996,8 @@ def test_permit_watch_indexes_secondary_shared_street_addresses(tmp_path: Path) 
     assert {b["hcad_num"] for b in by_addr[na]} == {"0410000000001", "0410000000002"}
 
 
-def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads() -> None:
-    """Verify early GIS no-PDF deferral, multi-lot HCAD stamping, coh-plat backfill dating, and ghost escalation suppression."""
+def test_watchlist_suppresses_ghost_escalation_and_anchors_backfilled_coh_plat_dates() -> None:
+    """Verify ghost watchlist_status_escalation suppression and historical coh-plat backfill date anchoring."""
     from atlas_pipeline import build_monitor_activity_log as bmal
 
     before_wl = {
@@ -4049,56 +4049,10 @@ def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads
             },
         ]
     }
-    after_wl = {
-        "watchedProperties": [
-            {
-                "id": "prop-tower",
-                "propertyName": "Midcentury Tower",
-                "address": "800 Bell",
-                "hcadAccount": "0020540000001",
-                "checklist": [
-                    {
-                        "id": "chk-10",
-                        "activity": "Accessibility Registration (TDLR TABS)",
-                        "status": "Flagged",
-                        "checks": [
-                            {
-                                "date": "2019-05-01",
-                                "discoveredAt": "2026-11-13",
-                                "source": "auto-sweep",
-                                "historicalBaseline": True,
-                                "adverse": False,
-                                "agencyRecordId": "tdlr-tabs:TABS2019007481",
-                                "result": "[AUTO-SWEEP] TDLR #TABS2019007481",
-                            }
-                        ],
-                    }
-                ],
-            },
-            {
-                "id": "prop-sanctuary",
-                "propertyName": "Historic Sanctuary",
-                "address": "3827 BROADWAY ST",
-                "hcadAccount": "0283120000009",
-                "checklist": [
-                    {
-                        "id": "chk-09",
-                        "activity": "Replats & Variances",
-                        "status": "In Progress",
-                        "lastChecked": "2026-10-26",
-                        "checks": [
-                            {
-                                "date": "2026-10-26",
-                                "source": "manual",
-                                "result": "Checked agenda status",
-                            }
-                        ],
-                    }
-                ],
-            },
-        ],
-        "lastSweepHealth": {"allOk": True, "failedAgencies": []},
-    }
+    after_wl = deepcopy(before_wl)
+    after_wl["watchedProperties"][0]["checklist"][0]["status"] = "Flagged"
+    after_wl["lastSweepHealth"] = {"allOk": True, "failedAgencies": []}
+
     fpw.merge_auto_sweep_findings_into_property(
         after_wl["watchedProperties"][1],
         {
@@ -4117,16 +4071,17 @@ def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads
         "2026-11-21T12:00:00Z",
     )
     sanctuary_chk09 = after_wl["watchedProperties"][1]["checklist"][0]
-    assert (
-        sanctuary_chk09["status"] == "In Progress"
-    ), "Backfilled Sept 17 plat must not override Oct 26 human In Progress acknowledgment"
+    assert sanctuary_chk09["status"] == "In Progress"
 
     wl_evs = bmal._diff_property_watchlist(before_wl, after_wl, "2026-11-21T12:05:00Z")
-    assert not any(
-        e["kind"] == "watchlist_status_escalation" for e in wl_evs
-    ), "Ghost watchlist_status_escalation must not emit without new adverse findings or human edits"
+    assert not any(e["kind"] == "watchlist_status_escalation" for e in wl_evs)
     plat_auto_ev = next(e for e in wl_evs if e["kind"] == "watchlist_auto_finding")
     assert plat_auto_ev["localDate"] == "2026-09-17"
+
+
+def test_pre_agenda_gis_deferral_preserves_critical_alert_on_pdf_post_and_parcel_breakdown_hcads() -> None:
+    """Verify early GIS no-PDF deferral, critical/adverse recovery when PDF posts, and parcelBreakdown HCAD extraction."""
+    from atlas_pipeline import build_monitor_activity_log as bmal
 
     early_plat = {
         "cycles": {
@@ -4145,7 +4100,11 @@ def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads
                         "atlas": {
                             "primaryAddress": "3210 DENNIS ST; 3216 DENNIS ST",
                             "earliestYearBuilt": 1930,
-                            "hcadAccounts": ["0372370000003", "0372370000002"],
+                            "hasActivePermit": True,
+                            "parcelBreakdown": [
+                                {"hcad": "0372370000003"},
+                                {"hcad": "0372370000002"},
+                            ],
                         },
                     },
                     {
@@ -4160,7 +4119,10 @@ def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads
                         "atlas": {
                             "primaryAddress": "1817 LAVERNE ST; 1839 LAVERNE ST",
                             "earliestYearBuilt": 1938,
-                            "hcadAccounts": ["0651040000027", "0651040000025"],
+                            "parcelBreakdown": [
+                                {"hcad": "0651040000027"},
+                                {"hcad": "0651040000025"},
+                            ],
                         },
                     },
                 ],
@@ -4174,20 +4136,98 @@ def test_phase0_feedback_pre_agenda_deferral_ghost_escalation_and_multilot_hcads
     assert "agenda:item:2026-12-03:2026-1883:added" not in early_ids
     assert early_ids["agenda:item:2026-12-03:2026-1874:added"]["hcad"] == "0651040000027, 0651040000025"
 
-    posted_plat = json.loads(json.dumps(early_plat))
+    # Transition 1: Deferred item receives its Plat PDF while cycle is still early GIS -> emits critical/adverse added (no duplicate plat_pdf)
+    pdf_posted_plat = deepcopy(early_plat)
+    pdf_posted_plat["cycles"]["2026-12-03"]["items"][0]["pdf"] = "https://edrc.houstontx.gov/2026-1883.pdf"
+    evs_on_pdf = bmal._diff_plat_agenda(early_plat, pdf_posted_plat, "2026-11-25T12:00:00Z")
+    pdf_ids = {e["id"]: e for e in evs_on_pdf}
+    grad_ev = pdf_ids["agenda:item:2026-12-03:2026-1883:added"]
+    assert grad_ev["severity"] == "critical"
+    assert grad_ev["adverse"] is True
+    assert grad_ev["hcad"] == "0372370000003, 0372370000002"
+    assert "agenda:item:2026-12-03:2026-1883:plat_pdf" not in pdf_ids
+
+    # Transition 2: Official agenda outline posts -> emits agenda_cycle_added without re-emitting already graduated item
+    posted_plat = deepcopy(pdf_posted_plat)
     posted_plat["cycles"]["2026-12-03"]["isEarlyGisCycle"] = False
     posted_plat["cycles"]["2026-12-03"]["items"][0]["onMeetingAgenda"] = True
-    plat_evs_posted = bmal._diff_plat_agenda(early_plat, posted_plat, "2026-11-28T12:00:00Z")
-    posted_ids = {e["id"]: e for e in plat_evs_posted}
-    assert "agenda:cycle:2026-12-03" in posted_ids
-    assert "agenda:item:2026-12-03:2026-1883:added" in posted_ids
-    assert posted_ids["agenda:item:2026-12-03:2026-1883:added"]["hcad"] == "0372370000003, 0372370000002"
+    evs_on_outline = bmal._diff_plat_agenda(pdf_posted_plat, posted_plat, "2026-11-28T12:00:00Z")
+    outline_ids = {e["id"]: e for e in evs_on_outline}
+    assert "agenda:cycle:2026-12-03" in outline_ids
+    assert "agenda:item:2026-12-03:2026-1883:added" not in outline_ids
 
 
-
-
-
-
-
+def test_restore_rotated_public_hearing_notices_guards_ph_shifts_and_graduated_apps() -> None:
+    """Verify _restore_rotated_public_hearing_notices handles PH-* positional shifts and PH-* -> 2026-* graduation."""
+    prev_cyc = {
+        "cycleKey": "2026-10-29",
+        "minutesPdfUrl": "https://houstontx.gov/minutes-oct29.pdf",
+        "items": [
+            {
+                "app": "PH-001",
+                "occurrenceKey": "2026-10-29::PH-001",
+                "name": "Montrose Residences",
+                "type": "C3N",
+                "section": "I. Public Hearings",
+                "noticePdf": "https://houstontx.gov/notices/montrose_ph.pdf",
+                "hearingDateIso": "2026-11-12",
+                "noticeLocation": "1226 W Pierce St",
+                "varianceSummary": "Courtyard setback",
+                "atlas": {},
+            },
+            {
+                "app": "PH-002",
+                "occurrenceKey": "2026-10-29::PH-002",
+                "name": "Aisla Villas",
+                "type": "C3N",
+                "section": "I. Public Hearings",
+                "noticePdf": "https://houstontx.gov/notices/aisla_ph.pdf",
+                "hearingDateIso": "2026-11-12",
+                "atlas": {},
+            },
+        ],
+        "reviews": {
+            "PH-002": {"tier": "2", "tierConfirmed": True, "why": "Watch brick bungalow"},
+        },
+    }
+    cur_cyc = {
+        "cycleKey": "2026-10-29",
+        "items": [
+            {
+                "app": "PH-002",
+                "occurrenceKey": "2026-10-29::PH-002",
+                "name": "Unrelated Shifted Subdivision",
+                "type": "C3N",
+                "section": "III. Future Public Hearings",
+                "noticePdf": "",
+                "atlas": {},
+            },
+            {
+                "app": "2026-1585",
+                "occurrenceKey": "2026-10-29::2026-1585",
+                "name": "Montrose Residences",
+                "type": "C3N",
+                "section": "I. Public Hearings",
+                "noticePdf": "",
+                "atlas": {},
+            },
+        ],
+        "reviews": {},
+    }
+    fpw._restore_rotated_public_hearing_notices(cur_cyc, prev_cyc)
+    assert cur_cyc["minutesPdfUrl"] == "https://houstontx.gov/minutes-oct29.pdf"
+    by_name = {it["name"]: it for it in cur_cyc["items"]}
+    # 1. Unrelated PH-002 must NOT inherit Aisla Villas' noticePdf
+    assert by_name["Unrelated Shifted Subdivision"]["noticePdf"] == ""
+    # 2. Montrose Residences graduated from PH-001 -> 2026-1585 inherits noticePdf & varianceSummary without duplicating PH-001
+    assert by_name["Montrose Residences"]["app"] == "2026-1585"
+    assert by_name["Montrose Residences"]["noticePdf"] == "https://houstontx.gov/notices/montrose_ph.pdf"
+    assert by_name["Montrose Residences"]["varianceSummary"] == "Courtyard setback"
+    assert sum(1 for it in cur_cyc["items"] if it["name"] == "Montrose Residences") == 1
+    # 3. Aisla Villas is restored under a non-colliding PH-001 ID alongside its review overlay
+    aisla = by_name["Aisla Villas"]
+    assert aisla["app"] == "PH-001"
+    assert aisla["occurrenceKey"] == "2026-10-29::PH-001"
+    assert cur_cyc["reviews"]["PH-001"]["tier"] == "2"
 
 

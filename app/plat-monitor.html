@@ -672,6 +672,7 @@ import {
 
 import {
   DEFAULT_SHEET_WEBHOOK_URL,
+  normalizeStaffEmail,
   createEmptyRoamingState,
   mergeUserRoamingStates,
   areRoamingStatesEquivalent,
@@ -1174,7 +1175,8 @@ let curatedBuildingPhotosByBldId = new Map();
 let curatedBuildingPhotosByHcad = new Map();
 let curatedBuildingPhotosByAddr = new Map();
 let history = [];
-let roamingState = loadLocalUserRoamingState({ email: getStaffSession()?.email || "" });
+let roamingStateOwnerEmail = normalizeStaffEmail(getStaffSession()?.email || "");
+let roamingState = loadLocalUserRoamingState({ email: roamingStateOwnerEmail });
 let roamingSyncStatus = getStaffSession() ? "synced" : "signed_out"; // "signed_out" | "syncing" | "synced" | "offline"
 let lastRoamingCloudSyncAt = "";
 const _initialWmInputs = deriveWatermarkInputsFromRoamingState(
@@ -2249,7 +2251,26 @@ function formatCaughtUpTimestamp(isoStr){
   }) + " CT";
 }
 
-function applyRoamingStateToView(nextRoamingState, { allowModeUpdate = false, resetMissingPrefs = false } = {}){
+function refreshActivityViewIfNotTyping(){
+  markActivityDirty();
+  const activeEl = document.activeElement;
+  const isTyping = Boolean(
+    activeEl &&
+    $("#detail")?.contains(activeEl) &&
+    (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+  );
+  if (!isTyping) render();
+}
+
+function applyRoamingStateToView(
+  nextRoamingState,
+  {
+    allowModeUpdate = false,
+    resetMissingPrefs = false,
+    ownerEmail = normalizeStaffEmail(getStaffSession()?.email || ""),
+  } = {}
+){
+  roamingStateOwnerEmail = normalizeStaffEmail(ownerEmail);
   roamingState = nextRoamingState || createEmptyRoamingState();
   const wmInputs = deriveWatermarkInputsFromRoamingState(roamingState);
   view.caughtUpAt = wmInputs.caughtUpAt;
@@ -6774,14 +6795,7 @@ function queueCloudSyncUserRoamingState(delayMs = 700){
         queueCloudSyncUserRoamingState();
       }
       if (changedFromInMemory && view.mode === "activity") {
-        markActivityDirty();
-        const activeEl = document.activeElement;
-        const isTyping = Boolean(
-          activeEl &&
-          $("#detail")?.contains(activeEl) &&
-          (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
-        );
-        if (!isTyping) render();
+        refreshActivityViewIfNotTyping();
       }
     } else {
       roamingSyncStatus = (typeof navigator !== "undefined" && navigator.onLine === false) ? "offline" : "synced";
@@ -9650,25 +9664,24 @@ document.addEventListener("drop", async e => {
 
   window.addEventListener("storage", (ev) => {
     const sess = getStaffSession();
-    const email = sess ? sess.email : "";
-    const userRoamKey = getRoamingStorageKey(email);
+    const normEmail = normalizeStaffEmail(sess ? sess.email : "");
+    const userRoamKey = getRoamingStorageKey(normEmail);
     if (
       ev &&
       ev.key &&
       (ev.key === userRoamKey || ev.key === READ_IDS_KEY || ev.key === CAUGHT_UP_AT_KEY)
     ) {
-      const diskState = loadLocalUserRoamingState({ email });
-      const merged = mergeUserRoamingStates(roamingState, diskState);
-      if (!areRoamingStatesEquivalent(roamingState, merged)) {
-        applyRoamingStateToView(merged);
-        markActivityDirty();
-        const activeEl = document.activeElement;
-        const isTyping = Boolean(
-          activeEl &&
-          $("#detail")?.contains(activeEl) &&
-          (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
-        );
-        if (!isTyping) render();
+      const diskState = loadLocalUserRoamingState({ email: normEmail });
+      const switchedOwner = roamingStateOwnerEmail !== normEmail;
+      const nextState = switchedOwner
+        ? diskState
+        : mergeUserRoamingStates(roamingState, diskState);
+      if (switchedOwner || !areRoamingStatesEquivalent(roamingState, nextState)) {
+        applyRoamingStateToView(nextState, {
+          ownerEmail: normEmail,
+          resetMissingPrefs: switchedOwner,
+        });
+        refreshActivityViewIfNotTyping();
       }
     }
   });
@@ -9676,12 +9689,18 @@ document.addEventListener("drop", async e => {
   subscribeCrossTabAuthChanges(({ session, signedOut }) => {
     if (signedOut || !session) {
       wipeInMemoryPrivateStateOnSignOut();
-      roamingState = loadLocalUserRoamingState({ email: "" });
-      applyRoamingStateToView(roamingState, { resetMissingPrefs: true });
+      const anonState = loadLocalUserRoamingState({ email: "" });
+      applyRoamingStateToView(anonState, { ownerEmail: "", resetMissingPrefs: true });
       markActivityDirty();
       updateStaffAuthButtonUI();
       render();
       return;
+    }
+    const nextEmail = normalizeStaffEmail(session.email || "");
+    if (roamingStateOwnerEmail !== nextEmail) {
+      const userDiskState = loadLocalUserRoamingState({ email: nextEmail });
+      applyRoamingStateToView(userDiskState, { ownerEmail: nextEmail, resetMissingPrefs: true });
+      markActivityDirty();
     }
     const cached = loadCachedMonitoringState(session.email, session.role);
     if (cached) hydratePhase1MapsFromPayload(cached, session.role);
