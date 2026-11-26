@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-25T20:58:58Z",
+  "generatedAt": "2026-11-26T20:52:24Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -2169,8 +2169,8 @@
         "superNeighborhoodMedianYear": 1970,
         "designations": [],
         "smlsProtections": [],
-        "hasActivePermit": false,
-        "activePermitHeadline": "",
+        "hasActivePermit": true,
+        "activePermitHeadline": "City of Houston Stage 1 sewer disconnection plumbing permit (1 of 2, #26102089, issued 2026-11-26: DEMO RES/SEWER DISC); Stage 2 demolition permit not yet pulled.",
         "suggestedTier": "2"
       },
       "_c": {
@@ -2180,9 +2180,10 @@
         "overriddenFromOut": false,
         "flags": [
           "shared",
-          "pre1976"
+          "pre1976",
+          "permit"
         ],
-        "score": 5,
+        "score": 10,
         "code": "C2R",
         "inCity": true
       },
@@ -30290,7 +30291,7 @@
         "designations": [],
         "smlsProtections": [],
         "hasActivePermit": true,
-        "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+        "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
         "suggestedTier": "2"
       },
       "_c": {
@@ -33659,7 +33660,7 @@
         "designations": [],
         "smlsProtections": [],
         "hasActivePermit": true,
-        "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-11-03: RES DEMO/SEWER DISC).",
+        "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-29: RES DEMO/SEWER DISC).",
         "suggestedTier": "1"
       },
       "_c": {
@@ -49256,7 +49257,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099289, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-21: DEMO RES/SEWER DIS).",
+            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099289, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-22: DEMO RES/SEWER DIS).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -59101,8 +59102,8 @@
             "superNeighborhoodMedianYear": 1951,
             "designations": [],
             "smlsProtections": [],
-            "hasActivePermit": false,
-            "activePermitHeadline": "",
+            "hasActivePermit": true,
+            "activePermitHeadline": "City of Houston Stage 1 sewer disconnection plumbing permit (1 of 2, #26098977, issued 2026-11-22: DEMO RES/ SEWER DISC); Stage 2 demolition permit not yet pulled.",
             "suggestedTier": "2"
           },
           "_c": {
@@ -59112,9 +59113,10 @@
             "overriddenFromOut": false,
             "flags": [
               "split",
-              "pre1976"
+              "pre1976",
+              "permit"
             ],
-            "score": 7,
+            "score": 12,
             "code": "C2R",
             "inCity": true
           },
@@ -78681,7 +78683,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -85109,7 +85111,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099101, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-21: DEMO RES/SEWER DISC).",
+            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099101, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-22: DEMO RES/SEWER DISC).",
             "suggestedTier": "1"
           },
           "_c": {
@@ -93253,7 +93255,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099465, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-25: DEMO RES/ SEWER DISC).",
+            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099465, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-26: DEMO RES/ SEWER DISC).",
             "suggestedTier": "1"
           },
           "_c": {
@@ -96235,7 +96237,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26088037, issued 2026-10-16: DEMO RES/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26088037, issued 2026-10-17: DEMO RES/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -96724,7 +96726,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099101, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-21: DEMO RES/SEWER DISC).",
+            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099101, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-22: DEMO RES/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -102975,7 +102977,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-11-03: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -109766,7 +109768,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -145530,7 +145532,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-11-03: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -156433,8 +156435,8 @@
             "superNeighborhoodMedianYear": 1970,
             "designations": [],
             "smlsProtections": [],
-            "hasActivePermit": false,
-            "activePermitHeadline": "",
+            "hasActivePermit": true,
+            "activePermitHeadline": "City of Houston Stage 1 sewer disconnection plumbing permit (1 of 2, #26102089, issued 2026-11-26: DEMO RES/SEWER DISC); Stage 2 demolition permit not yet pulled.",
             "suggestedTier": "2"
           },
           "_c": {
@@ -156444,9 +156446,10 @@
             "overriddenFromOut": false,
             "flags": [
               "shared",
-              "pre1976"
+              "pre1976",
+              "permit"
             ],
-            "score": 5,
+            "score": 10,
             "code": "C2R",
             "inCity": true
           },
@@ -184554,7 +184557,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -187923,7 +187926,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-11-03: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "1"
           },
           "_c": {
@@ -212906,7 +212909,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -214714,7 +214717,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-28: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26074815, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -218545,7 +218548,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-11-03: RES DEMO/SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26076183, issued 2026-10-29: RES DEMO/SEWER DISC).",
             "suggestedTier": "1"
           },
           "_c": {
@@ -222360,7 +222363,7 @@
           "park": "",
           "thoroughfare": "",
           "landUse": "Subdivision / Replat Filing",
-          "acreage": "0.1343",
+          "acreage": "0.1212",
           "lots": "2",
           "hcad": "0321200020004",
           "developer": "",
@@ -222385,45 +222388,45 @@
             "reviewCycle": "2026-24",
             "pcDateIso": "2026-12-03",
             "submittedIso": "2026-10-30",
-            "uploadDateIso": "2026-10-29",
+            "uploadDateIso": "2026-11-25",
             "lotCount": 2,
             "reserveCount": 0,
-            "acreage": 0.1343,
+            "acreage": 0.1212,
             "centroid": [
-              -95.343171,
-              29.786951
+              -95.342936,
+              29.786887
             ],
             "interiorPoint": [
-              -95.343171,
-              29.786951
+              -95.342936,
+              29.786887
             ],
             "bbox": [
-              -95.343235,
-              29.786842,
-              -95.342874,
-              29.786986
+              -95.343204,
+              29.786848,
+              -95.342877,
+              29.786992
             ],
             "polygon": [
               [
                 [
-                  -95.343235,
-                  29.786984
+                  -95.343203,
+                  29.786848
                 ],
                 [
-                  -95.342876,
-                  29.786986
+                  -95.343204,
+                  29.786989
                 ],
                 [
-                  -95.342874,
-                  29.786845
+                  -95.342879,
+                  29.786992
                 ],
                 [
-                  -95.343234,
-                  29.786842
+                  -95.342877,
+                  29.786851
                 ],
                 [
-                  -95.343235,
-                  29.786984
+                  -95.343203,
+                  29.786848
                 ]
               ]
             ],
@@ -222452,8 +222455,8 @@
             ],
             "owner": "SPACE CITY HOMES IS LLC",
             "ownerAcquiredDate": "",
-            "lng": -95.343171,
-            "lat": 29.786951,
+            "lng": -95.342936,
+            "lat": 29.786887,
             "coordSource": "plattracker_gis",
             "buildingId": "",
             "buildingName": "",
@@ -238669,7 +238672,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26087084, issued 2026-10-16: DEMO RES/ SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26087084, issued 2026-10-17: DEMO RES/ SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -238835,7 +238838,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26087084, issued 2026-10-16: DEMO RES/ SEWER DISC).",
+            "activePermitHeadline": "City of Houston Stage 2 building demolition permit (#26087084, issued 2026-10-17: DEMO RES/ SEWER DISC).",
             "suggestedTier": "2"
           },
           "_c": {
@@ -240055,7 +240058,7 @@
             "designations": [],
             "smlsProtections": [],
             "hasActivePermit": true,
-            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099289, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-21: DEMO RES/SEWER DIS).",
+            "activePermitHeadline": "Both required City of Houston demolition permits issued (#26099289, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-11-22: DEMO RES/SEWER DIS).",
             "suggestedTier": "2"
           },
           "_c": {

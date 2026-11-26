@@ -1,20 +1,18 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-25T21:12:53Z",
-  "lastSweepAt": "2026-11-25T20:58:58Z",
+  "generatedAt": "2026-11-26T20:57:20Z",
+  "lastSweepAt": "2026-11-26T20:52:25Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-28",
+  "retentionFloorDate": "2026-08-29",
   "lastSweepHealth": {
-    "timestamp": "2026-11-25T20:58:58Z",
+    "timestamp": "2026-11-26T20:52:25Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
-    "failedAgencies": [
-      "chk-10"
-    ],
+    "succeededAgencies": 8,
+    "failedAgencies": [],
     "skippedAgencies": [],
-    "allOk": false,
+    "allOk": true,
     "agencies": {
       "chk-04": {
         "status": "ok",
@@ -41,10 +39,10 @@
         "error": ""
       },
       "chk-10": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TDLR Architectural Barriers (TABS)",
-        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out; TDLR TABS (2501 CANAL): HTTP request failed or timed out"
+        "error": ""
       },
       "chk-13": {
         "status": "ok",
@@ -67,20 +65,38 @@
     }
   },
   "summary": {
-    "totalEvents": 812,
-    "criticalCount": 444,
+    "totalEvents": 816,
+    "criticalCount": 448,
     "warningCount": 228,
     "infoCount": 140,
     "byStream": {
       "watchlist": 0,
       "agenda": 291,
       "staff": 0,
-      "permits": 521
+      "permits": 525
     },
     "operationalNoticeCount": 21,
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-26",
+      "lastRunAt": "2026-11-26T20:57:20Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "totalAgencies": 8,
+      "succeededAgencies": 8,
+      "failedAgencies": [],
+      "allOk": true,
+      "eventCount": 4,
+      "adverseEventCount": 4,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 4
+      }
+    },
     {
       "date": "2026-11-25",
       "lastRunAt": "2026-11-25T21:12:53Z",
@@ -1798,28 +1814,265 @@
         "staff": 0,
         "permits": 0
       }
-    },
-    {
-      "date": "2026-08-28",
-      "lastRunAt": "2026-08-28T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 0,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 0
-      }
     }
   ],
   "events": [
+    {
+      "id": "permit:coh:0923470000032:26104494",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-26",
+      "localDate": "2026-11-26",
+      "timestamp": "2026-11-26T20:57:20Z",
+      "discoveredAt": "2026-11-26T20:57:20Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104494): 9602 CHIMNEY ROCK RD",
+      "summary": "9602 CHIMNEY ROCK RD (Built 1964): DEMO BLD/SEWER DISC issued 2026-11-26.",
+      "address": "9602 CHIMNEY ROCK RD",
+      "hcad": "0923470000032",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0923470000032",
+      "lat": 29.67638,
+      "lng": -95.47715,
+      "yearBuilt": 1964,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "9602 CHIMNEY ROCK RD",
+        "address": "9602 CHIMNEY ROCK RD",
+        "hcad_num": "0923470000032",
+        "related_hcads": [
+          "0923470000032"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0923470000032",
+        "year_built": 1964,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.67638,
+        "lng": -95.47715,
+        "record": {
+          "project_no": "26104494",
+          "date": "2026-11-26",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO BLD/SEWER DISC",
+          "owner_occupant": "*BRAESWOOD FOOD TRUCK PARK",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0731000330041:26104020",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-26",
+      "localDate": "2026-11-26",
+      "timestamp": "2026-11-26T20:57:20Z",
+      "discoveredAt": "2026-11-26T20:57:20Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104020): 1725 ALTHEA DR",
+      "summary": "1725 ALTHEA DR (Built 1949): DEMO RES/ SEWER DISC issued 2026-11-26.",
+      "address": "1725 ALTHEA DR",
+      "hcad": "0731000330041",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0731000330041",
+      "lat": 29.82501,
+      "lng": -95.44367,
+      "yearBuilt": 1949,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "1725 ALTHEA DR",
+        "address": "1725 ALTHEA DR",
+        "hcad_num": "0731000330041",
+        "related_hcads": [
+          "0731000330041"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0731000330041",
+        "year_built": 1949,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.82501,
+        "lng": -95.44367,
+        "record": {
+          "project_no": "26104020",
+          "date": "2026-11-26",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/ SEWER DISC",
+          "owner_occupant": "*1725 ALTHEA LLC",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0550200090003:26104504",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-26",
+      "localDate": "2026-11-26",
+      "timestamp": "2026-11-26T20:57:20Z",
+      "discoveredAt": "2026-11-26T20:57:20Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26104504): 605 COTTAGE ST",
+      "summary": "605 COTTAGE ST (Built 1920): DEMO RES/SEWER DISC issued 2026-11-26.",
+      "address": "605 COTTAGE ST",
+      "hcad": "0550200090003",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0550200090003",
+      "lat": 29.79203,
+      "lng": -95.373,
+      "yearBuilt": 1920,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "605 COTTAGE ST",
+        "address": "605 COTTAGE ST",
+        "hcad_num": "0550200090003",
+        "related_hcads": [
+          "0550200090003"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0550200090003",
+        "year_built": 1920,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.79203,
+        "lng": -95.373,
+        "record": {
+          "project_no": "26104504",
+          "date": "2026-11-26",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0162670040016:26102089",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-26",
+      "localDate": "2026-11-26",
+      "timestamp": "2026-11-26T20:57:20Z",
+      "discoveredAt": "2026-11-26T20:57:20Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26102089): 1021 WALL ST",
+      "summary": "1021 WALL ST (Built 1940): DEMO RES/SEWER DISC issued 2026-11-26.",
+      "address": "1021 WALL ST",
+      "hcad": "0162670040016",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_0162670040016",
+      "lat": 29.8686,
+      "lng": -95.42785,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "1021 WALL ST",
+        "address": "1021 WALL ST",
+        "hcad_num": "0162670040016",
+        "related_hcads": [
+          "0162670040016"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_0162670040016",
+        "year_built": 1940,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.8686,
+        "lng": -95.42785,
+        "record": {
+          "project_no": "26102089",
+          "date": "2026-11-26",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "*MATHIEW           WILLIE  MAE",
+          "buyer": "",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
     {
       "id": "permit:dshs:1035350000010:2026006555",
       "stream": "permits",

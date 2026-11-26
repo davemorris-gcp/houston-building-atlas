@@ -2,18 +2,16 @@
   "schemaVersion": "2.0-public-stub",
   "requiresAuth": true,
   "privacyNotice": "Internal Significance assessments, Watchlist investigative dossiers, and Staff-Only strategy notes require authenticated Preservation Houston Staff or Screener sign-in.",
-  "updatedAt": "2026-11-25T20:58:58Z",
-  "lastAutoSweepAt": "2026-11-25T20:58:58Z",
+  "updatedAt": "2026-11-26T20:52:25Z",
+  "lastAutoSweepAt": "2026-11-26T20:52:25Z",
   "lastSweepHealth": {
-    "timestamp": "2026-11-25T20:58:58Z",
+    "timestamp": "2026-11-26T20:52:25Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
-    "failedAgencies": [
-      "chk-10"
-    ],
+    "succeededAgencies": 8,
+    "failedAgencies": [],
     "skippedAgencies": [],
-    "allOk": false,
+    "allOk": true,
     "agencies": {
       "chk-04": {
         "status": "ok",
@@ -40,10 +38,10 @@
         "error": ""
       },
       "chk-10": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TDLR Architectural Barriers (TABS)",
-        "error": "TDLR TABS (2101 TRAVIS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out; TDLR TABS (2501 CANAL): HTTP request failed or timed out"
+        "error": ""
       },
       "chk-13": {
         "status": "ok",
