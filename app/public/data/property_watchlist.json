@@ -2,10 +2,10 @@
   "schemaVersion": "2.0-public-stub",
   "requiresAuth": true,
   "privacyNotice": "Internal Significance assessments, Watchlist investigative dossiers, and Staff-Only strategy notes require authenticated Preservation Houston Staff or Screener sign-in.",
-  "updatedAt": "2026-11-26T20:52:25Z",
-  "lastAutoSweepAt": "2026-11-26T20:52:25Z",
+  "updatedAt": "2026-11-27T20:37:03Z",
+  "lastAutoSweepAt": "2026-11-27T20:37:03Z",
   "lastSweepHealth": {
-    "timestamp": "2026-11-26T20:52:25Z",
+    "timestamp": "2026-11-27T20:37:03Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
     "succeededAgencies": 8,

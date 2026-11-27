@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-26T20:57:20Z",
-  "lastSweepAt": "2026-11-26T20:52:25Z",
+  "generatedAt": "2026-11-27T20:42:01Z",
+  "lastSweepAt": "2026-11-27T20:37:03Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-29",
+  "retentionFloorDate": "2026-08-30",
   "lastSweepHealth": {
-    "timestamp": "2026-11-26T20:52:25Z",
+    "timestamp": "2026-11-27T20:37:03Z",
     "sweepsExecuted": true,
     "totalAgencies": 8,
     "succeededAgencies": 8,
@@ -79,6 +79,24 @@
     "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-27",
+      "lastRunAt": "2026-11-27T20:42:01Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "totalAgencies": 8,
+      "succeededAgencies": 8,
+      "failedAgencies": [],
+      "allOk": true,
+      "eventCount": 0,
+      "adverseEventCount": 0,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-26",
       "lastRunAt": "2026-11-26T20:57:20Z",
@@ -1780,25 +1798,6 @@
     {
       "date": "2026-08-30",
       "lastRunAt": "2026-08-30T12:00:00Z",
-      "runCount": 1,
-      "sweepsExecuted": true,
-      "totalAgencies": 8,
-      "succeededAgencies": 8,
-      "failedAgencies": [],
-      "allOk": true,
-      "seededHistory": true,
-      "eventCount": 0,
-      "adverseEventCount": 0,
-      "byStream": {
-        "watchlist": 0,
-        "agenda": 0,
-        "staff": 0,
-        "permits": 0
-      }
-    },
-    {
-      "date": "2026-08-29",
-      "lastRunAt": "2026-08-29T12:00:00Z",
       "runCount": 1,
       "sweepsExecuted": true,
       "totalAgencies": 8,
